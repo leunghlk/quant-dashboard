@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-HK"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quant Portfolio Dashboard — Kathy Leung</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box }
+  body { background:#f0f4f8; color:#1e293b; font-family:'PingFang HK',-apple-system,'Helvetica Neue',sans-serif; padding:20px }
+  .container { max-width:1300px; margin:0 auto }
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px }
+  .header h1 { font-size:24px; color:#1e293b }
+  .header .sub { font-size:13px; color:#64748b; margin-top:2px }
+  .timestamp { background:#fff; padding:8px 16px; border-radius:20px; box-shadow:0 1px 3px rgba(0,0,0,.08); font-size:13px; color:#64748b }
+  .card { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); margin-bottom:20px; overflow:hidden }
+  .card-header { padding:16px 20px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center }
+  .card-title { font-size:16px; font-weight:700; color:#1e293b }
+  .summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0 }
+  .summary-item { padding:20px; text-align:center; border-right:1px solid #e2e8f0 }
+  .summary-item:last-child { border-right:none }
+  .summary-val { font-size:28px; font-weight:700 }
+  .summary-label { font-size:12px; color:#64748b; margin-top:4px }
+  .summary-sub { font-size:11px; color:#94a3b8; margin-top:2px }
+  table { width:100%; border-collapse:collapse }
+  th { background:#f8fafc; color:#475569; font-size:11px; font-weight:600; text-transform:uppercase; padding:10px 8px; text-align:left; letter-spacing:.5px }
+  th.right { text-align:right }
+  th.center { text-align:center }
+  .progress-bar { background:#e2e8f0; height:8px; border-radius:4px; overflow:hidden; margin-top:8px }
+  .progress-fill { height:8px; border-radius:4px; transition:width .3s }
+  .tab { background:#f1f5f9; color:#64748b; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600 }
+  .tab.active { background:#2563eb; color:#fff }
+  .badge { padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600 }
+  .tx-form { padding:20px }
+  .tx-form input, .tx-form select { padding:8px 12px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px }
+  .tx-form button { padding:8px 20px; background:#2563eb; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600 }
+</style>
+</head><body><div class="container">
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <h1>📈 Quant Portfolio Dashboard</h1>
+    <div class="sub">4-Factor Model · Quality 30% · Momentum 25% · Value 20% · Growth 25% · Kathy Leung 梁凱菱</div>
+  </div>
+  <div class="timestamp">📅 2026-07-30 20:00</div>
+</div>
+
+<!-- SUMMARY CARDS -->
+<div class="card">
+  <div class="summary-grid">
+    <div class="summary-item">
+      <div class="summary-val" style="color:#1e293b">$3,667.27</div>
+      <div class="summary-label">當前組合總值</div>
+      <div class="summary-sub">HKD $28,605</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-val" style="color:#dc2626">HKD $21,395</div>
+      <div class="summary-label">距回本差距</div>
+      <div class="summary-sub">目標 HKD $50,000</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-val" style="color:#2563eb">57%</div>
+      <div class="summary-label">回本進度</div>
+      <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="background:#2563eb;width:57%"></div></div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-val" style="color:#64748b">4-6 個月</div>
+      <div class="summary-label">理性回本預期</div>
+      <div class="summary-sub">每月目標 +8-10%</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-val" style="color:#f97316">⚠️ 反彈中</div>
+      <div class="summary-label">半導體板塊狀態</div>
+      <div class="summary-sub">Decel=-5 但超賣反彈</div>
+    </div>
+  </div>
+</div>
+
+<!-- CURRENT PORTFOLIO -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">📂 目前持倉</span>
+    <span style="color:#94a3b8;font-size:12px">成本基礎 $3,588.82</span>
+  </div>
+  <table>
+    <thead><tr>
+      <th>股票</th><th class="right">股數</th><th class="right">成本</th><th class="right">現價</th>
+      <th class="right">市值</th><th class="right">盈虧</th>
+    </tr></thead>
+    <tbody><tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:10px;font-weight:600;color:#1e293b">SOXS</td>
+      <td style="padding:10px;text-align:right;color:#64748b">10</td>
+      <td style="padding:10px;text-align:right;color:#64748b">$64.550</td>
+      <td style="padding:10px;text-align:right;color:#1e293b;font-weight:500">$73.15</td>
+      <td style="padding:10px;text-align:right;color:#1e293b">$731.50</td>
+      <td style="padding:10px;text-align:right;color:#16a34a;font-weight:600">$+86.00 (+13.3%)</td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:10px;font-weight:600;color:#1e293b">SQQQ</td>
+      <td style="padding:10px;text-align:right;color:#64748b">10</td>
+      <td style="padding:10px;text-align:right;color:#64748b">$46.675</td>
+      <td style="padding:10px;text-align:right;color:#1e293b;font-weight:500">$49.44</td>
+      <td style="padding:10px;text-align:right;color:#1e293b">$494.40</td>
+      <td style="padding:10px;text-align:right;color:#16a34a;font-weight:600">$+27.65 (+5.9%)</td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:10px;font-weight:600;color:#1e293b">SKDD</td>
+      <td style="padding:10px;text-align:right;color:#64748b">20</td>
+      <td style="padding:10px;text-align:right;color:#64748b">$23.000</td>
+      <td style="padding:10px;text-align:right;color:#1e293b;font-weight:500">$21.24</td>
+      <td style="padding:10px;text-align:right;color:#1e293b">$424.80</td>
+      <td style="padding:10px;text-align:right;color:#dc2626;font-weight:600">$-35.20 (-7.7%)</td>
+    </tr>
+      <tr style="border-bottom:1px solid #e2e8f0">
+        <td style="padding:10px;color:#64748b">現金</td>
+        <td></td><td></td><td></td>
+        <td style="padding:10px;text-align:right;color:#1e293b">$2,016.57</td>
+        <td></td>
+      </tr>
+      <tr style="background:#f8fafc;font-weight:700">
+        <td style="padding:10px">總計</td><td></td><td></td><td></td>
+        <td style="padding:10px;text-align:right;color:#1e293b">$3,667.27</td>
+        <td style="padding:10px;text-align:right;color:#16a34a">HKD $28,605</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ACTION PLAN -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">🎯 執行計劃（盤前沽 ETF → 開市買個股）</span>
+    <span class="badge" style="background:#fef3c7;color:#92400e">待執行</span>
+  </div>
+  <div style="padding:12px 20px;background:#fffbeb;font-size:13px;color:#92400e;line-height:1.6">
+    ⚡ <b>盤前立即沽</b> SOXS / SQQQ / SKDD（半導體反彈中，3x ETF 每分鐘失血）→ <b>9:30 ET 開市後買入</b> ADBE / DDOG / LRCX（限價單）
+  </div>
+  <table>
+    <thead><tr>
+      <th>動作</th><th>股票</th><th class="right">股數</th><th class="right">價位</th>
+      <th class="right">金額</th><th>原因</th><th>模型評分</th>
+    </tr></thead>
+    <tbody><tr style="border-bottom:1px solid #e2e8f0;background:#fef2f2">
+      <td style="padding:10px"><span style="background:#dc2626;color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600">SELL</span></td>
+      <td style="padding:10px;font-weight:600;color:#1e293b">SOXS</td>
+      <td style="padding:10px;text-align:right;color:#64748b">10</td>
+      <td style="padding:10px;text-align:right;color:#1e293b">$73.15</td>
+      <td style="padding:10px;text-align:right;color:#1e293b;font-weight:500">$731.50</td>
+      <td style="padding:10px;font-size:12px;color:#64748b">3x反向ETF，半導體反彈中，止賺出場</td>
+      <td style="padding:10px;font-size:11px;color:#94a3b8"></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0;background:#fef2f2">
+      <td style="padding:10px"><span style="background:#dc2626;color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600">SELL</span></td>
+      <td style="padding:10px;font-weight:600;color:#1e293b">SQQQ</td>
+      <td style="padding:10px;text-align:right;color:#64748b">10</td>
+      <td style="padding:10px;text-align:right;color:#1e293b">$49.44</td>
+      <td style="padding:10px;text-align:right;color:#1e293b;font-weight:500">$494.40</td>
+      <td style="padding:10px;font-size:12px;color:#64748b">3x反向ETF，納指反彈中，止賺出場</td>
+      <td style="padding:10px;font-size:11px;color:#94a3b8"></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0;background:#fef2f2">
+      <td style="padding:10px"><span style="background:#dc2626;color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600">SELL</span></td>
+      <td style="padding:10px;font-weight:600;color:#1e293b">SKDD</td>
+      <td style="padding:10px;text-align:right;color:#64748b">20</td>
+      <td style="padding:10px;text-align:right;color:#1e293b">$21.24</td>
+      <td style="padding:10px;text-align:right;color:#1e293b;font-weight:500">$424.80</td>
+      <td style="padding:10px;font-size:12px;color:#64748b">止蝕-7.7%，釋放現金</td>
+      <td style="padding:10px;font-size:11px;color:#94a3b8"></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0;background:#f0fdf4">
+      <td style="padding:10px"><span style="background:#16a34a;color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600">BUY</span></td>
+      <td style="padding:10px;font-weight:600;color:#1e293b">ADBE</td>
+      <td style="padding:10px;text-align:right;color:#64748b">6</td>
+      <td style="padding:10px;text-align:right;color:#1e293b">$263.43</td>
+      <td style="padding:10px;text-align:right;color:#1e293b;font-weight:500">$1,580.58</td>
+      <td style="padding:10px;font-size:12px;color:#64748b">Q=0.94 V=0.64 Decel=0 Vol=49%，全場最穩防守股</td>
+      <td style="padding:10px;font-size:11px;color:#94a3b8">Score 0.519 · Decel=0 · Q=0.94 M=0.21 V=0.64 G=0.22</td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0;background:#f0fdf4">
+      <td style="padding:10px"><span style="background:#16a34a;color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600">BUY</span></td>
+      <td style="padding:10px;font-weight:600;color:#1e293b">DDOG</td>
+      <td style="padding:10px;text-align:right;color:#64748b">5</td>
+      <td style="padding:10px;text-align:right;color:#1e293b">$264.20</td>
+      <td style="padding:10px;text-align:right;color:#1e293b;font-weight:500">$1,321.00</td>
+      <td style="padding:10px;font-size:12px;color:#64748b">Score=0.623 Decel=0 Vol=45%，唯一高分+零減速+低波幅</td>
+      <td style="padding:10px;font-size:11px;color:#94a3b8">Score 0.623 · Decel=0 · Q=0.60 M=0.92 V=0.10 G=0.77</td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0;background:#f0fdf4">
+      <td style="padding:10px"><span style="background:#16a34a;color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600">BUY</span></td>
+      <td style="padding:10px;font-weight:600;color:#1e293b">LRCX</td>
+      <td style="padding:10px;text-align:right;color:#64748b">2</td>
+      <td style="padding:10px;text-align:right;color:#1e293b">$252.35</td>
+      <td style="padding:10px;text-align:right;color:#1e293b;font-weight:500">$504.70</td>
+      <td style="padding:10px;font-size:12px;color:#64748b">Q=0.97 G=0.97，目標$375(+48%)，半導體反彈後加碼</td>
+      <td style="padding:10px;font-size:11px;color:#94a3b8">Score 0.622 · Decel=-5 · Q=0.96 M=0.88 V=0.10 G=0.97</td>
+    </tr></tbody>
+  </table>
+</div>
+
+<!-- WATCHLIST -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">📊 觀察名單 — 14 隻股票實時評分</span>
+    <span style="color:#94a3b8;font-size:12px">按總分排序 · 每日更新</span>
+  </div>
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr>
+      <th class="center">#</th><th>股票</th><th>信號</th><th class="center">總分</th>
+      <th>Quality</th><th>Momentum</th><th>Value</th><th>Growth</th>
+      <th class="center">Decel</th>
+      <th class="right">12M</th><th class="right">6M</th><th class="right">3M</th><th class="right">1M</th>
+      <th class="right">現價</th><th class="right">Vol30</th><th class="right">上行</th>
+    </tr></thead>
+    <tbody><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">1</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">CRDO</div><div style="font-size:11px;color:#94a3b8">通訊晶片</div></td>
+      <td style="padding:8px"><span style="background:#3b82f6;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">ACCUMULATE</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#3b82f6">63</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:100%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">100</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:89%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">89</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:5%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">5</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:100%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">100</span></td>
+      <td style="padding:8px;text-align:center"><span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">⚠️ EXHAUSTION</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+163%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+70%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+180%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-28%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$177.45</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">107%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+57%</span></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">2</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">DDOG</div><div style="font-size:11px;color:#94a3b8">軟件/Cyber</div></td>
+      <td style="padding:8px"><span style="background:#3b82f6;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">ACCUMULATE</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#3b82f6">62</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#3b82f6;height:5px;border-radius:3px;width:60%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">60</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:92%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">92</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:10%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">10</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:77%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">77</span></td>
+      <td style="padding:8px;text-align:center"><span style="color:#94a3b8;font-size:11px">—</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+88%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+80%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+115%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+6%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$264.20</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">45%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+2%</span></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">3</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">LRCX</div><div style="font-size:11px;color:#94a3b8">半導體設備</div></td>
+      <td style="padding:8px"><span style="background:#3b82f6;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">ACCUMULATE</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#3b82f6">62</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:96%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">96</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:88%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">88</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:10%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">10</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:97%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">97</span></td>
+      <td style="padding:8px;text-align:center"><span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">⚠️ EXHAUSTION</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+325%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+131%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+106%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-39%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$252.35</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">85%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+48%</span></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">4</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">AMD</div><div style="font-size:11px;color:#94a3b8">晶片</div></td>
+      <td style="padding:8px"><span style="background:#3b82f6;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">ACCUMULATE</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#3b82f6">57</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:76%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">76</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:91%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">91</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:7%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">7</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:100%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">100</span></td>
+      <td style="padding:8px;text-align:center"><span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">⚠️ EXHAUSTION</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+275%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+151%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+175%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-20%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$429.56</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">75%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+34%</span></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">5</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">AMAT</div><div style="font-size:11px;color:#94a3b8">半導體設備</div></td>
+      <td style="padding:8px"><span style="background:#3b82f6;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">ACCUMULATE</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#3b82f6">57</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:91%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">91</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:91%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">91</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:8%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">8</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:81%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">81</span></td>
+      <td style="padding:8px;text-align:center"><span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">⚠️ EXHAUSTION</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+282%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+166%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+115%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-37%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$436.45</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">93%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+44%</span></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">6</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">INTC</div><div style="font-size:11px;color:#94a3b8">晶片</div></td>
+      <td style="padding:8px"><span style="background:#3b82f6;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">ACCUMULATE</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#3b82f6">55</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#3b82f6;height:5px;border-radius:3px;width:52%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">52</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:83%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">83</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#f97316;height:5px;border-radius:3px;width:43%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">43</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:100%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">100</span></td>
+      <td style="padding:8px;text-align:center"><span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">⚠️ EXHAUSTION</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+481%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+264%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+220%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-38%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$81.88</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">84%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+41%</span></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">7</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">WDAY</div><div style="font-size:11px;color:#94a3b8">軟件/HR</div></td>
+      <td style="padding:8px"><span style="background:#eab308;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">HOLD</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#3b82f6">55</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:72%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">72</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:31%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">31</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#3b82f6;height:5px;border-radius:3px;width:46%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">46</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#3b82f6;height:5px;border-radius:3px;width:64%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">64</span></td>
+      <td style="padding:8px;text-align:center"><span style="color:#94a3b8;font-size:11px">—</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-48%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-44%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#94a3b8">-4%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+36%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$168.01</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">69%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+0%</span></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">8</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">BE</div><div style="font-size:11px;color:#94a3b8">清潔能源</div></td>
+      <td style="padding:8px"><span style="background:#eab308;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">HOLD</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#3b82f6">54</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#3b82f6;height:5px;border-radius:3px;width:64%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">64</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:81%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">81</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:22%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">22</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:100%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">100</span></td>
+      <td style="padding:8px;text-align:center"><span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">⚠️ EXHAUSTION</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+1140%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+205%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+130%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-40%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$163.75</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">132%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+75%</span></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">9</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">ADBE</div><div style="font-size:11px;color:#94a3b8">軟件</div></td>
+      <td style="padding:8px"><span style="background:#eab308;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">HOLD</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#3b82f6">52</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:94%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">94</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:21%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">21</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#3b82f6;height:5px;border-radius:3px;width:64%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">64</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:22%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">22</span></td>
+      <td style="padding:8px;text-align:center"><span style="color:#94a3b8;font-size:11px">—</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-46%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-42%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-14%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+28%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$263.43</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">49%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+2%</span></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">10</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">KLAC</div><div style="font-size:11px;color:#94a3b8">半導體設備</div></td>
+      <td style="padding:8px"><span style="background:#eab308;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">HOLD</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#3b82f6">49</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:88%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">88</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:90%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">90</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:0%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">0</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#3b82f6;height:5px;border-radius:3px;width:61%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">61</span></td>
+      <td style="padding:8px;text-align:center"><span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">⚠️ EXHAUSTION</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+215%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+118%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+102%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-39%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$170.19</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">97%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+38%</span></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">11</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">MRVL</div><div style="font-size:11px;color:#94a3b8">晶片</div></td>
+      <td style="padding:8px"><span style="background:#eab308;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">HOLD</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#3b82f6">47</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:79%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">79</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:89%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">89</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:17%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">17</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#3b82f6;height:5px;border-radius:3px;width:50%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">50</span></td>
+      <td style="padding:8px;text-align:center"><span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">⚠️ EXHAUSTION</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+261%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+222%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+216%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-41%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$163.40</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">89%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+57%</span></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">12</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">NOW</div><div style="font-size:11px;color:#94a3b8">軟件/IT</div></td>
+      <td style="padding:8px"><span style="background:#f97316;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">REDUCE</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#f97316">44</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:66%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">66</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:30%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">30</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:29%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">29</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#3b82f6;height:5px;border-radius:3px;width:45%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">45</span></td>
+      <td style="padding:8px;text-align:center"><span style="color:#94a3b8;font-size:11px">—</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-51%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-35%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#94a3b8">-5%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+16%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$115.76</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">65%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+21%</span></td>
+    </tr><tr style="border-bottom:1px solid #e2e8f0" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:8px;text-align:center;color:#94a3b8;font-weight:600">13</td>
+      <td style="padding:8px"><div style="font-weight:600;color:#1e293b">GLW</div><div style="font-size:11px;color:#94a3b8">特種材料</div></td>
+      <td style="padding:8px"><span style="background:#f97316;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600">REDUCE</span></td>
+      <td style="padding:8px"><div style="font-weight:700;font-size:16px;color:#f97316">43</div></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#3b82f6;height:5px;border-radius:3px;width:60%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">60</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:83%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">83</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#ef4444;height:5px;border-radius:3px;width:9%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">9</span></td>
+      <td style="padding:8px"><div style="background:#e2e8f0;height:5px;border-radius:3px;width:40px;display:inline-block;vertical-align:middle"><div style="background:#22c55e;height:5px;border-radius:3px;width:69%"></div></div><span style="font-size:11px;color:#64748b;margin-left:4px">69</span></td>
+      <td style="padding:8px;text-align:center"><span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">⚠️ EXHAUSTION</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+399%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+186%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#16a34a">+99%</span></td>
+      <td style="padding:8px;text-align:right;font-size:12px"><span style="color:#dc2626">-51%</span></td>
+      <td style="padding:8px;text-align:right;color:#1e293b;font-weight:500">$124.05</td>
+      <td style="padding:8px;text-align:right;color:#64748b;font-size:12px">111%</td>
+      <td style="padding:8px;text-align:right"><span style="color:#16a34a;font-weight:600">+74%</span></td>
+    </tr></tbody>
+  </table>
+  </div>
+</div>
+
+<!-- TRANSACTION LOG (input + history) -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">📝 交易紀錄</span>
+    <span style="color:#94a3b8;font-size:12px">手動輸入買入/沽出</span>
+  </div>
+  <div class="tx-form">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+      <div><label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px">日期</label><input type="date" id="txDate" value="2026-07-30"></div>
+      <div><label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px">動作</label><select id="txAction"><option>BUY</option><option>SELL</option></select></div>
+      <div><label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px">股票</label><input type="text" id="txTicker" placeholder="e.g. ADBE" style="width:80px"></div>
+      <div><label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px">股數</label><input type="number" id="txShares" placeholder="0" style="width:70px"></div>
+      <div><label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px">價格</label><input type="number" id="txPrice" placeholder="0.00" step="0.01" style="width:90px"></div>
+      <div><label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px">備註</label><input type="text" id="txNote" placeholder="原因..." style="width:200px"></div>
+      <button onclick="addTx()">+ 新增交易</button>
+      <button onclick="exportTx()" style="background:#64748b">匯出 JSON</button>
+    </div>
+    <div id="txLog" style="margin-top:20px"></div>
+  </div>
+</div>
+
+<!-- STRATEGY -->
+<div class="card">
+  <div class="card-header"><span class="card-title">📋 策略概覽</span></div>
+  <div style="padding:20px;font-size:13px;line-height:1.8;color:#475569">
+    <div style="margin-bottom:12px"><b style="color:#dc2626">階段一（Week 1-2）：清倉 ETF → 建防守倉</b><br>
+    盤前沽 SOXS/SQQQ/SKDD，開市買 ADBE(44%) + DDOG(37%) + LRCX(14%)。平均 Vol54%，Decel=0，用低波幅熬過震盪。</div>
+    <div style="margin-bottom:12px"><b style="color:#2563eb">階段二（Month 1-3）：反彈加碼</b><br>
+    半導體 Decel 從 -5 回升至 ≥-2 時，加碼 LRCX +3股、AMAT 2股、INTC 10股。每月再平衡一次。</div>
+    <div style="margin-bottom:12px"><b style="color:#16a34a">階段三（Month 4-6）：收成</b><br>
+    目標股到分析員目標價分批套利。Decel≤-3 必沽。預期每月 +8-10%，4-6 個月回本。</div>
+    <div style="padding:10px;background:#fef2f2;border-radius:8px;border-left:3px solid #dc2626">
+    <b>鐵律</b>：Decel≤-3 必沽 · 單股不超40% · 保留5%現金 · 不用槓桿ETF · 月度再平衡</div>
+  </div>
+</div>
+
+<div style="text-align:center;color:#94a3b8;font-size:11px;padding:10px">
+  Kathy Leung 梁凱菱 · 4-Factor Quant Model · 數據: yfinance · 僅供教學參考
+</div>
+
+</div>
+
+<script>
+let transactions = [];
+
+function addTx() {
+  const d = document.getElementById('txDate').value;
+  const a = document.getElementById('txAction').value;
+  const t = document.getElementById('txTicker').value.toUpperCase();
+  const s = parseInt(document.getElementById('txShares').value);
+  const p = parseFloat(document.getElementById('txPrice').value);
+  const n = document.getElementById('txNote').value;
+  if (!t || !s || !p) { alert('請填寫股票、股數、價格'); return; }
+  transactions.push({date:d, action:a, ticker:t, shares:s, price:p, note:n});
+  renderTx();
+  // Clear
+  document.getElementById('txTicker').value = '';
+  document.getElementById('txShares').value = '';
+  document.getElementById('txPrice').value = '';
+  document.getElementById('txNote').value = '';
+}
+
+function delTx(i) {
+  transactions.splice(i, 1);
+  renderTx();
+}
+
+function renderTx() {
+  const log = document.getElementById('txLog');
+  if (!transactions.length) {
+    log.innerHTML = '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:20px">尚無交易紀錄。執行買賣後在此輸入。</div>';
+    return;
+  }
+  let html = '<table style="width:100%;border-collapse:collapse"><thead><tr>' +
+    '<th style="padding:8px">日期</th><th>動作</th><th>股票</th><th class="right">股數</th>' +
+    '<th class="right">價格</th><th class="right">金額</th><th>備註</th><th></th></tr></thead><tbody>';
+  transactions.forEach((t, i) => {
+    const ac = t.action === 'BUY' ? '#16a34a' : '#dc2626';
+    const val = t.shares * t.price;
+    html += '<tr style="border-bottom:1px solid #e2e8f0">' +
+      '<td style="padding:8px;font-size:13px">'+t.date+'</td>' +
+      '<td style="padding:8px"><span style="background:'+ac+';color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">'+t.action+'</span></td>' +
+      '<td style="padding:8px;font-weight:600">'+t.ticker+'</td>' +
+      '<td style="padding:8px;text-align:right">'+t.shares+'</td>' +
+      '<td style="padding:8px;text-align:right">$'+t.price.toFixed(2)+'</td>' +
+      '<td style="padding:8px;text-align:right;font-weight:600">$'+val.toLocaleString(undefined,{minimumFractionDigits:2})+'</td>' +
+      '<td style="padding:8px;font-size:12px;color:#64748b">'+(t.note||'')+'</td>' +
+      '<td style="padding:8px"><button onclick="delTx('+i+')" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px">×</button></td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  log.innerHTML = html;
+}
+
+function exportTx() {
+  if (!transactions.length) { alert('沒有交易可匯出'); return; }
+  const blob = new Blob([JSON.stringify(transactions, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'transactions.json'; a.click();
+}
+
+renderTx();
+</script>
+</body></html>
