@@ -38,29 +38,52 @@ tr:hover{background:#f8fafc}
 .alert-banner{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 18px;margin-bottom:16px;display:none}
 .alert-banner.show{display:block}
 .alert-item{display:flex;gap:8px;align-items:center;margin:4px 0;font-size:14px}
+.clickable{cursor:pointer}
+.clickable:hover{background:#eff6ff}
+.detail-row{display:none}
+.detail-row.show{display:''}
+.fbar-bar{background:#e2e8f0;height:6px;border-radius:3px;width:100%}
+.fbar-fill{height:6px;border-radius:3px}
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:1000}
+.modal-overlay.show{display:flex;justify-content:center;align-items:center}
+.modal{background:#fff;border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto}
+.privacy-btn{background:#64748b;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
+.privacy-on{filter:blur(6px)}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+th.n{text-align:right}
+.blurred{filter:blur(5px);transition:filter .2s}
 </style>
 </head><body><div class="container">
 <div class="header"><div><h1>📈 Quant Portfolio</h1>
 <div class="sub">4-Factor Model · Decel Override · 每60秒自動刷新</div></div>
 <div style="display:flex;gap:10px;align-items:center">
+<button class="privacy-btn" id="privacyBtn" onclick="togglePrivacy()">🔒 隱藏持倉</button>
 <div class="status-bar"><span class="live-dot"></span><span id="lastUpdate">載入中...</span></div>
 <button id="refresh" onclick="loadData()">🔄 刷新</button></div></div>
 <div class="alert-banner" id="alertBanner"></div>
+<div id="privacyZone">
 <div class="card"><div class="grid" id="summaryGrid"></div></div>
 <div class="card"><div class="card-h"><span class="card-t">📂 持倉</span><span id="cashInfo" style="font-size:12px;color:#64748b"></span></div>
 <table><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">Decel</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
-<div class="card"><div class="card-h"><span class="card-t">📊 觀察名單 — 即時評分（16隻）</span></div>
-<div style="overflow-x:auto"><table><thead><tr><th class="c">#</th><th>股票</th><th>信號</th><th class="c">總分</th><th>Mom</th><th class="c">Decel</th><th class="r">12M</th><th class="r">6M</th><th class="r">3M</th><th class="r">1M</th><th class="r">現價</th><th class="r">Vol</th></tr></thead><tbody id="watchlistBody"></tbody></table></div></div>
+<div class="card"><div class="card-h"><span class="card-t">📊 觀察名單 — 即時評分</span><span style="font-size:11px;color:#94a3b8">點擊股票名稱展開4-factor詳情</span></div>
+<div style="overflow-x:auto"><table><thead><tr><th class="c">#</th><th>股票</th><th>信號</th><th class="c">總分</th><th>Q</th><th>M</th><th>V</th><th>G</th><th class="c">Decel</th><th class="r">12M</th><th class="r">1M</th><th class="r">現價</th><th class="r">Vol</th></tr></thead><tbody id="watchlistBody"></tbody></table></div></div>
 <div class="card"><div class="card-h"><span class="card-t">ETF 追蹤</span></div>
 <table><thead><tr><th>ETF</th><th class="r">現價</th><th class="r">12M</th><th class="r">6M</th><th class="r">3M</th><th class="r">1M</th><th class="r">5D</th><th class="r">Vol30</th></tr></thead><tbody id="etfBody"></tbody></table></div>
-
 <div class="card"><div class="card-h"><span class="card-t">🎯 指數技術分析 — 支持阻力 + 造好造淡</span></div>
 <div id="techBody" style="padding:16px"></div>
 </div>
-<div style="text-align:center;color:#94a3b8;font-size:11px;padding:8px">Kathy Leung 梁凱菱 · API: quant-api.leunghlk.workers.dev</div>
+</div>
+<div class="card"><div class="card-h"><span class="card-t">📝 交易紀錄</span><span style="font-size:12px;color:#64748b">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
+<table><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table>
+</div>
+<div style="text-align:center;color:#94a3b8;font-size:11px;padding:8px">Kathy Leung 梁凱菱 · 4-Factor Quant Model · Decel規則: ≥-1可買 · ≤-3必沽</div>
+</div>
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+<div class="modal" id="modalContent"></div>
 </div>
 <script>
 const API='https://quant-api.leunghlk.workers.dev/api';
+let TXDATA=[];
 function fmt(v,d=2){return v!=null?Number(v).toFixed(d):'—'}
 function fmtPct(v){return v!=null?(v*100).toFixed(1)+'%':'—'}
 function sigClass(s){return 'sig sig-'+s}
@@ -75,6 +98,30 @@ async function loadData(){
   document.getElementById('refresh').disabled=false;
   document.getElementById('refresh').textContent='🔄 刷新';
 }
+function fbar(score,label,weight){
+  const pct=Math.round(score*100);
+  const col=pct>=65?'#22c55e':pct>=45?'#3b82f6':pct>=35?'#f97316':'#ef4444';
+  return '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span><b>'+label+'</b> ('+weight+')</span><span style="font-weight:700;color:'+col+'">'+pct+'</span></div><div class="fbar-bar"><div class="fbar-fill" style="width:'+pct+'%;background:'+col+'"></div></div></div>';
+}
+function showDetail(ticker,data){
+  const s=data.watchlist.find(w=>w.ticker===ticker);
+  if(!s)return;
+  const held=data.portfolio.positions[ticker];
+  const buyBlocked=s.decel<=-3?'<div style="color:#dc2626;font-weight:600;padding:8px;background:#fef2f2;border-radius:6px;margin-top:8px">🔴 Decel='+s.decel+' ≤ -3 → 禁止買入/強制沽出</div>':'';
+  const decelInfo=s.decelReasons&&s.decelReasons.length?'<div style="margin-top:8px;font-size:12px;color:#64748b">減速原因:<br>'+s.decelReasons.map(r=>'• '+r).join('<br>')+'</div>':'';
+  document.getElementById('modalContent').innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div><span style="font-size:20px;font-weight:800">'+ticker+'</span>'+(held?' <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">持有 '+held.shares+'股</span>':'')+'</div><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></div>'+
+    '<div style="font-size:13px;color:#64748b;margin-bottom:12px">現價 $'+fmt(s.price)+' · RSI Vol '+s.vol30+'% · 12M '+fmtPct(s.m12)+'</div>'+
+    '<div style="margin-bottom:16px">'+fbar(s.quality,'Quality 質素','30%')+fbar(s.momentum,'Momentum 動量','25%')+fbar(s.value,'Value 價值','20%')+fbar(s.growth,'Growth 增長','25%')+'</div>'+
+    '<div style="padding:10px;background:#f8fafc;border-radius:8px;margin-bottom:8px"><b>總分: '+fmt(s.score*100,0)+'</b> · Decel: <span class="'+dc(s.decel)+'">'+s.decel+'</span></div>'+
+    decelInfo+buyBlocked+
+    '<div style="margin-top:12px;font-size:11px;color:#94a3b8;line-height:1.6">'+
+    '<b>Decel規則</b>: ≥-1 正常可買 · -2 降低評級 · ≤-3 禁止買入/強制沽出<br>'+
+    '<b>信號規則</b>: BUY≥70 · ACCUMULATE≥55 · HOLD≥45 · REDUCE≥35 · SELL<35</div>'+
+    '<button onclick="closeModal()" style="margin-top:16px;width:100%;padding:10px;background:#64748b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">關閉</button>';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('show')}
 function render(data){
   const p=data.portfolio;
   document.getElementById('summaryGrid').innerHTML=
@@ -86,7 +133,7 @@ function render(data){
   let ph='';
   for(const[t,pos]of Object.entries(p.positions)){
     const wl=data.watchlist.find(w=>w.ticker===t);const decel=wl?wl.decel:0;
-    ph+='<tr><td style="font-weight:700">'+t+'</td><td class="r">'+pos.shares+'</td><td class="r" style="color:#64748b">$'+fmt(pos.cost)+'</td><td class="r" style="font-weight:600">$'+fmt(pos.price)+'</td><td class="r">$'+fmt(pos.value)+'</td><td class="r" style="color:'+cv(pos.pnl)+';font-weight:700">$'+fmt(pos.pnl)+'('+fmt(pos.pnlPct,1)+'%)</td><td class="c">'+(decel!==0?'<span class="'+dc(decel)+'">'+decel+'</span>':'—')+'</td></tr>';
+    ph+='<tr class="clickable" onclick="showDetail(\''+t+'\',lastData)"><td style="font-weight:700">'+t+'</td><td class="r">'+pos.shares+'</td><td class="r" style="color:#64748b">$'+fmt(pos.cost)+'</td><td class="r" style="font-weight:600">$'+fmt(pos.price)+'</td><td class="r">$'+fmt(pos.value)+'</td><td class="r" style="color:'+cv(pos.pnl)+';font-weight:700">$'+fmt(pos.pnl)+'('+fmt(pos.pnlPct,1)+'%)</td><td class="c">'+(decel!==0?'<span class="'+dc(decel)+'">'+decel+'</span>':'—')+'</td></tr>';
   }
   ph+='<tr style="background:#f8fafc"><td colspan="4">現金</td><td class="r">$'+fmt(p.cash)+'</td><td></td><td></td></tr>';
   ph+='<tr style="font-weight:700;background:#f1f5f9"><td>總計</td><td></td><td></td><td></td><td class="r">$'+fmt(p.totalValue)+'</td><td class="r" style="color:#2563eb">HKD$'+p.totalValueHKD.toLocaleString()+'</td><td></td></tr>';
@@ -94,7 +141,7 @@ function render(data){
   let wl='';
   data.watchlist.forEach((s,i)=>{
     const held=p.positions[s.ticker]?'📌 ':'';
-    wl+='<tr><td class="c" style="color:#94a3b8">'+(i+1)+'</td><td style="font-weight:'+ (held?'700':'600') +'">'+held+s.ticker+'</td><td><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td><td class="c" style="font-weight:700;font-size:15px;color:'+(s.score>=0.55?'#2563eb':s.score>=0.45?'#eab308':'#ef4444')+'">'+fmt(s.score*100,0)+'</td><td style="font-size:11px;color:#64748b">'+fmt(s.momentum*100,0)+'</td><td class="c">'+(s.decel!==0?'<span class="'+dc(s.decel)+'">'+s.decel+'</span>':'—')+'</td><td class="r" style="font-size:11px;color:'+cv(s.m12)+'">'+fmtPct(s.m12)+'</td><td class="r" style="font-size:11px;color:'+cv(s.m6)+'">'+fmtPct(s.m6)+'</td><td class="r" style="font-size:11px;color:'+cv(s.m3)+'">'+fmtPct(s.m3)+'</td><td class="r" style="font-size:11px;color:'+cv(s.m1m)+'">'+fmtPct(s.m1m)+'</td><td class="r" style="font-weight:600">$'+fmt(s.price)+'</td><td class="r" style="font-size:11px;color:#64748b">'+s.vol30+'%</td></tr>';
+    wl+='<tr class="clickable" onclick="showDetail(\''+s.ticker+'\',lastData)"><td class="c" style="color:#94a3b8">'+(i+1)+'</td><td style="font-weight:'+(held?'700':'600')+';color:#2563eb;text-decoration:underline">'+held+s.ticker+'</td><td><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td><td class="c" style="font-weight:700;font-size:15px;color:'+(s.score>=0.55?'#2563eb':s.score>=0.45?'#eab308':'#ef4444')+'">'+fmt(s.score*100,0)+'</td><td style="font-size:11px;color:#64748b">'+fmt(s.quality*100,0)+'</td><td style="font-size:11px;color:#64748b">'+fmt(s.momentum*100,0)+'</td><td style="font-size:11px;color:#64748b">'+fmt(s.value*100,0)+'</td><td style="font-size:11px;color:#64748b">'+fmt(s.growth*100,0)+'</td><td class="c">'+(s.decel!==0?'<span class="'+dc(s.decel)+'">'+s.decel+'</span>':'—')+'</td><td class="r" style="font-size:11px;color:'+cv(s.m12)+'">'+fmtPct(s.m12)+'</td><td class="r" style="font-size:11px;color:'+cv(s.m1m)+'">'+fmtPct(s.m1m)+'</td><td class="r" style="font-weight:600">$'+fmt(s.price)+'</td><td class="r" style="font-size:11px;color:#64748b">'+s.vol30+'%</td></tr>';
   });
   document.getElementById('watchlistBody').innerHTML=wl;
   let eh='';
@@ -102,42 +149,75 @@ function render(data){
   document.getElementById('etfBody').innerHTML=eh;
   const banner=document.getElementById('alertBanner');
   if(data.alerts&&data.alerts.length>0){let ah='';data.alerts.forEach(a=>{const icon=a.type==='BUY'?'🟢':'🔴';ah+='<div class="alert-item">'+icon+' <b>'+a.type+'</b> '+a.ticker+'@$'+fmt(a.price)+' — '+a.reason+'</div>'});banner.innerHTML=ah;banner.classList.add('show')}else{banner.classList.remove('show')}
-  
-  // Technical Analysis
+  // Tech analysis — dual column layout
   let techHTML='';
   if(data.techAnalysis){
     for(const[idx,t]of Object.entries(data.techAnalysis)){
-      if(t.error){techHTML+='<div style="color:#dc2626">'+t.name+': '+t.error+'</div>';continue}
+      if(t.error){techHTML+='<div style="color:#dc2626">'+(t.name||idx)+': '+t.error+'</div>';continue}
       const actionColor=t.action.includes('造好')?'#22c55e':t.action.includes('造淡')?'#ef4444':t.action.includes('偏強')?'#3b82f6':t.action.includes('偏弱')?'#eab308':'#94a3b8';
-      techHTML+='<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e2e8f0">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+      const ind=t.indicators||{};
+      techHTML+='<div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #e2e8f0">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
         '<div style="font-weight:700;font-size:15px">'+t.name+'</div>'+
-        '<div style="text-align:right"><span style="font-size:20px;font-weight:700">$'+fmt(t.price)+'</span>'+
+        '<div style="text-align:right"><span style="font-size:20px;font-weight:700">'+t.price.toLocaleString()+'</span>'+
         '<span style="background:'+actionColor+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;margin-left:8px">'+t.action+'</span></div></div>'+
-        '<div style="font-size:12px;color:#64748b;margin-bottom:8px">'+t.reason+'</div>'+
-        '<table style="width:100%;font-size:12px"><tr>'+
-        '<td style="padding:4px 8px;color:#dc2626">阻力R3(頂)</td><td style="text-align:right;font-weight:600;color:#dc2626">$'+fmt(t.levels.resistance3)+'</td>'+
-        '<td style="padding:4px 8px;color:#f97316">阻力R2</td><td style="text-align:right;font-weight:600;color:#f97316">$'+fmt(t.levels.resistance2)+'</td>'+
-        '</tr><tr>'+
-        '<td style="padding:4px 8px;color:#f97316">阻力R1</td><td style="text-align:right;font-weight:600;color:#f97316">$'+fmt(t.levels.resistance1)+' <span style="font-size:10px;color:#94a3b8">('+t.distR1+'%)</span></td>'+
-        '<td style="padding:4px 8px;color:#64748b">MA50</td><td style="text-align:right">$'+fmt(t.ma50)+'</td>'+
-        '</tr><tr>'+
-        '<td style="padding:4px 8px;color:#64748b">MA20</td><td style="text-align:right">$'+fmt(t.ma20)+'</td>'+
-        '<td style="padding:4px 8px;color:#64748b">RSI</td><td style="text-align:right;font-weight:600;color:'+(t.rsi<30?'#22c55e':t.rsi>70?'#ef4444':'#64748b')+'">'+t.rsi+'</td>'+
-        '</tr><tr>'+
-        '<td style="padding:4px 8px;color:#3b82f6">支持S1</td><td style="text-align:right;font-weight:600;color:#3b82f6">$'+fmt(t.levels.support1)+' <span style="font-size:10px;color:#94a3b8">('+t.distS1+'%)</span></td>'+
-        '<td style="padding:4px 8px;color:#3b82f6">支持S2</td><td style="text-align:right;font-weight:600;color:#3b82f6">$'+fmt(t.levels.support2)+'</td>'+
-        '</tr><tr>'+
-        '<td style="padding:4px 8px;color:#22c55e">支持S3(底)</td><td style="text-align:right;font-weight:600;color:#22c55e">$'+fmt(t.levels.support3)+'</td>'+
-        '<td style="padding:4px 8px;color:#64748b">3M高低</td><td style="text-align:right;font-size:11px">$'+fmt(t.low3m)+' - $'+fmt(t.high3m)+'</td>'+
-        '</tr></table>'+
-        '<div style="margin-top:8px;padding:8px 12px;background:'+ (actionColor=== '#22c55e' ? '#f0fdf4' : actionColor === '#ef4444' ? '#fef2f2' : '#f8fafc') +';border-radius:6px;font-size:12px;color:#475569;font-weight:600">'+
-        '📋 '+t.strategy+
-        '</div></div>';
+        '<div style="font-size:12px;color:#64748b;margin-bottom:10px">'+t.reason+'</div>'+
+        '<div style="display:flex;gap:16px">'+
+        // LEFT: Levels
+        '<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
+        '<tr><td style="padding:3px 8px;color:#dc2626;font-weight:600">R3 (頂)</td><td class="n" style="color:#dc2626;font-weight:600">'+t.levels.resistance3.toLocaleString()+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R2</td><td class="n" style="color:#f97316;font-weight:600">'+t.levels.resistance2.toLocaleString()+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R1</td><td class="n" style="color:#f97316;font-weight:600">'+t.levels.resistance1.toLocaleString()+' <span style="font-size:10px;color:#94a3b8">('+t.distR1+'%)</span></td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b">MA20</td><td class="n" style="color:#64748b">'+t.ma20.toLocaleString()+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b">MA50</td><td class="n" style="color:#64748b">'+t.ma50.toLocaleString()+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#1e293b;font-weight:700">現價</td><td class="n" style="color:#1e293b;font-weight:700">'+t.price.toLocaleString()+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S1</td><td class="n" style="color:#3b82f6;font-weight:600">'+t.levels.support1.toLocaleString()+' <span style="font-size:10px;color:#94a3b8">('+t.distS1+'%)</span></td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S2</td><td class="n" style="color:#3b82f6;font-weight:600">'+t.levels.support2.toLocaleString()+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#22c55e;font-weight:600">S3 (底)</td><td class="n" style="color:#22c55e;font-weight:600">'+t.levels.support3.toLocaleString()+'</td></tr>'+
+        '</table></div>'+
+        // RIGHT: Indicators
+        '<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
+        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MACD</td><td class="n" style="font-size:12px">'+(ind.macd?ind.macd.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.macd.value+'</span>':'—')+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MTM</td><td class="n" style="font-size:12px">'+(ind.mtm?ind.mtm.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.mtm.value+'</span>':'—')+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">KDJ</td><td class="n" style="font-size:12px">'+(ind.kdj?ind.kdj.signal+'<br><span style="font-size:10px;color:#94a3b8">J='+ind.kdj.j+' K='+ind.kdj.k+'</span>':'—')+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">RSI</td><td class="n" style="font-size:12px">'+(ind.rsi?ind.rsi.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.rsi.value+'</span>':'—')+'</td></tr>'+
+        '</table></div>'+
+        '</div>'+
+        '<div style="margin-top:8px;padding:8px 12px;background:'+(actionColor==='#22c55e'?'#f0fdf4':actionColor==='#ef4444'?'#fef2f2':'#f8fafc')+';border-radius:6px;font-size:12px;color:#475569;font-weight:600">'+
+        '📋 '+t.strategy+'</div></div>';
     }
   }
   document.getElementById('techBody').innerHTML=techHTML||'<div style="color:#94a3b8">載入中...</div>';
+  renderTx();
 }
+function renderTx(){
+  let html='';
+  const txs=TXDATA.length?TXDATA:[
+    {date:'2026-07-30',action:'SELL',ticker:'SOXS',shares:10,price:54.517,note:'止蝕 半導體反彈'},
+    {date:'2026-07-30',action:'SELL',ticker:'SKDD',shares:20,price:15.4801,note:'止血 -28.4%'},
+    {date:'2026-07-30',action:'SELL',ticker:'SQQQ',shares:10,price:45.301,note:'止蝕 納指反彈'},
+    {date:'2026-07-30',action:'BUY',ticker:'ADBE',shares:5,price:242.71,note:'Q=0.94 V=0.64 Decel=0'},
+    {date:'2026-07-30',action:'BUY',ticker:'DDOG',shares:5,price:267.94,note:'Score=0.623 Decel=0 Vol=45%'},
+  ];
+  txs.forEach(t=>{
+    const ac=t.action==='BUY'?'#16a34a':'#dc2626';
+    const val=t.shares*t.price;
+    html+='<tr><td style="font-size:12px;color:#64748b">'+t.date+'</td><td><span class="sig" style="background:'+ac+'">'+t.action+'</span></td><td style="font-weight:700">'+t.ticker+'</td><td class="r">'+t.shares+'</td><td class="r">$'+fmt(t.price)+'</td><td class="r" style="font-weight:600">$'+val.toLocaleString(undefined,{minimumFractionDigits:2})+'</td><td style="font-size:11px;color:#64748b">'+(t.note||'')+'</td></tr>';
+  });
+  document.getElementById('txBody').innerHTML=html;
+}
+let lastData={};
+let privacyOn=false;
+function togglePrivacy(){
+  privacyOn=!privacyOn;
+  const z=document.getElementById('privacyZone');
+  if(privacyOn){z.classList.add('blurred');document.getElementById('privacyBtn').textContent='👁️ 顯示持倉';document.getElementById('privacyBtn').style.background='#2563eb'}
+  else{z.classList.remove('blurred');document.getElementById('privacyBtn').textContent='🔒 隱藏持倉';document.getElementById('privacyBtn').style.background='#64748b'}
+}
+const origLoad=loadData;
+loadData=async function(){await origLoad();};
+var origRender=render;
+render=function(d){lastData=d;origRender(d);};
 loadData();setInterval(loadData,60000);
 </script>
 </body></html>
