@@ -73,10 +73,16 @@ th.n{text-align:right}
 <table><thead><tr><th>ETF</th><th class="r">現價</th><th class="r">12M</th><th class="r">6M</th><th class="r">3M</th><th class="r">1M</th><th class="r">5D</th><th class="r">Vol30</th></tr></thead><tbody id="etfBody"></tbody></table></div>
 
 <div class="card" id="shortCard"><div class="card-h"><span class="card-t">🔴 造淡信號 — 按潛力排序（Decel最負排最前）</span><span style="font-size:11px;color:#dc2626">動量崩塌中</span></div>
-<table><thead><tr><th>股票</th><th>信號</th><th class="r">現價</th><th class="c">Decel</th><th class="r">1M%</th><th class="r">5D%</th><th>反向ETF</th><th class="c">槓桿</th><th>原因</th></tr></thead><tbody id="shortBody"></tbody></table>
+<table><thead><tr><th>股票</th><th>信號</th><th class="r">現價</th><th class="c">Decel</th><th class="r">1M%</th><th class="r">5D%</th><th>推薦反向ETF</th><th>全部選項</th><th>原因</th></tr></thead><tbody id="shortBody"></tbody></table>
 </div>
 <div class="card"><div class="card-h"><span class="card-t">🎯 指數技術分析 — 支持阻力 + 造好造淡</span></div>
 <div id="techBody" style="padding:16px"></div>
+</div>
+<div class="card"><div class="card-h"><span class="card-t">🏦 Quant → ELN 策略</span><span style="font-size:11px;color:#64748b">ELN=Short Put，揀唔會跌到strike的股票</span></div>
+<div id="elnBody" style="padding:16px"></div>
+</div>
+<div class="card privacy-zone"><div class="card-h"><span class="card-t">📅 回本進度 Timeline</span><span style="font-size:11px;color:#64748b">每日目標追蹤</span></div>
+<div id="recoveryBody" style="padding:16px"></div>
 </div>
 <div class="card privacy-zone"><div class="card-h"><span class="card-t">📝 交易紀錄</span><span style="font-size:12px;color:#64748b">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
 <table><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table>
@@ -157,7 +163,7 @@ function render(data){
   if(data.shortSignals&&data.shortSignals.length>0){
     let sh='';
     data.shortSignals.forEach(s=>{
-      sh+='<tr><td style="font-weight:700;color:#dc2626">'+s.ticker+'</td><td><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td><td class="r">$'+fmt(s.price)+'</td><td class="c"><span class="'+dc(s.decel)+'">'+s.decel+'</span></td><td class="r" style="font-size:11px;color:'+cv(s.m1m)+'">'+(s.m1m*100).toFixed(1)+'%</td><td class="r" style="font-size:11px;color:'+cv(s.m5d)+'">'+(s.m5d*100).toFixed(1)+'%</td><td style="font-weight:600;color:#2563eb">'+s.shortETF+'</td><td class="c">'+s.leverage+'</td><td style="font-size:10px;color:#64748b;max-width:120px;overflow:hidden;text-overflow:ellipsis">'+s.reason.substring(0,40)+'</td></tr>';
+      sh+='<tr><td style="font-weight:700;color:#dc2626">'+s.ticker+'</td><td><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td><td class="r">$'+fmt(s.price)+'</td><td class="c"><span class="'+dc(s.decel)+'">'+s.decel+'</span></td><td class="r" style="font-size:11px;color:'+cv(s.m1m)+'">'+(s.m1m*100).toFixed(1)+'%</td><td class="r" style="font-size:11px;color:'+cv(s.m5d)+'">'+(s.m5d*100).toFixed(1)+'%</td><td style="font-weight:600;color:#2563eb">'+s.shortETF+'<span style="font-size:9px;color:#94a3b8">('+s.leverage+')</span></td><td style="font-size:10px;color:#64748b;max-width:140px">'+(s.allETFs||'')+'</td><td style="font-size:10px;color:#64748b;max-width:120px;overflow:hidden;text-overflow:ellipsis">'+s.reason.substring(0,40)+'</td></tr>';
     });
     document.getElementById('shortBody').innerHTML=sh;
     shortCard.style.display='';
@@ -200,11 +206,66 @@ function render(data){
         '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">RSI</td><td class="n" style="font-size:12px">'+(ind.rsi?ind.rsi.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.rsi.value+'</span>':'—')+'</td></tr>'+
         '</table></div>'+
         '</div>'+
+        // WEEKLY INDICATORS (莊主方法論：周線定大勢)
+        +(t.weekly?'<div style="margin-top:12px;padding:10px 12px;background:#f1f5f9;border-radius:8px;border-left:4px solid #6366f1">'+
+        '<div style="font-weight:700;font-size:13px;color:#4338ca;margin-bottom:6px">📅 周線指標（莊主方法論：周線定大勢）</div>'+
+        '<div style="display:flex;gap:12px;margin-bottom:8px">'+
+        '<div style="flex:1"><table style="width:100%;font-size:11px;border-collapse:collapse">'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周RSI</td><td class="n">'+(t.weekly.rsi?t.weekly.rsi.signal+' <span style="font-size:10px;color:#94a3b8">('+t.weekly.rsi.value+')</span>':'—')+'</td></tr>'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周MACD</td><td class="n">'+(t.weekly.macd?t.weekly.macd.signal+' <span style="font-size:10px;color:#94a3b8">('+t.weekly.macd.value+')</span>':'—')+'</td></tr>'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周KDJ</td><td class="n">'+(t.weekly.kdj?t.weekly.kdj.signal+' <span style="font-size:10px;color:#94a3b8">(K='+t.weekly.kdj.k+')</span>':'—')+'</td></tr>'+
+        '</table></div>'+
+        '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-left:8px;border-left:1px solid #cbd5e1">'+
+        '<div style="font-size:13px;font-weight:700;margin-bottom:4px">'+t.weekly.bias+'</div>'+
+        '<div style="font-size:11px;color:#64748b;margin-bottom:4px">'+t.weekly.reason+'</div>'+
+        '<div style="font-size:11px;color:#4338ca;font-weight:600">▶ '+t.weekly.action+'</div>'+
+        '</div></div></div>':'')+
         '<div style="margin-top:8px;padding:8px 12px;background:'+(actionColor==='#22c55e'?'#f0fdf4':actionColor==='#ef4444'?'#fef2f2':'#f8fafc')+';border-radius:6px;font-size:12px;color:#475569;font-weight:600">'+
         '📋 '+t.strategy+'</div></div>';
     }
   }
   document.getElementById('techBody').innerHTML=techHTML||'<div style="color:#94a3b8">載入中...</div>';
+  // ELN Strategy
+  if(data.elnStrategy){
+    const eln=data.elnStrategy;
+    let elnHTML='';
+    if(eln.bestPick){
+      elnHTML+='<div style="padding:10px 12px;background:#f0fdf4;border-radius:8px;border-left:4px solid #22c55e;margin-bottom:12px">'+
+        '<div style="font-weight:700;font-size:14px;color:#15803d">⭐ 首選：'+eln.bestPick.ticker+' ('+'★'.repeat(eln.bestPick.stars)+'☆'.repeat(5-eln.bestPick.stars)+')</div>'+
+        '<div style="font-size:12px;color:#475569;margin-top:4px">'+eln.rationale+'</div></div>';
+    }
+    if(eln.recommended&&eln.recommended.length>0){
+      elnHTML+='<table style="width:100%;font-size:12px;border-collapse:collapse">'+
+        '<tr style="background:#f1f5f9"><th style="padding:6px;text-align:left">股票</th><th class="n">評分</th><th class="n">質素</th><th class="n">價值</th><th class="n">Decel</th><th class="n">Vol30</th><th class="n">分析員目標</th><th class="n">推薦</th></tr>';
+      eln.recommended.forEach(r=>{
+        const upside = r.targetMeanPrice ? '('+Math.round((r.targetMeanPrice/r.price-1)*100)+'%)' : '';
+        elnHTML+='<tr><td style="padding:5px;font-weight:600">'+r.ticker+'</td><td class="n">'+Math.round(r.score*100)+'</td><td class="n" style="color:#22c55e">'+Math.round(r.quality*100)+'</td><td class="n">'+Math.round(r.value*100)+'</td><td class="n" style="color:'+(r.decel===0?'#22c55e':'#eab308')+'">'+r.decel+'</td><td class="n">'+r.vol30+'%</td><td class="n">'+(r.targetMeanPrice?'$'+r.targetMeanPrice+' '+upside:'—')+'</td><td class="n">'+'★'.repeat(r.stars)+'</td></tr>';
+      });
+      elnHTML+='</table>';
+    }
+    if(eln.avoid&&eln.avoid.length>0){
+      elnHTML+='<div style="margin-top:10px;font-size:12px;color:#dc2626;font-weight:600">🚫 不建議掛ELN：'+
+        eln.avoid.map(a=>a.ticker+'('+a.reason+')').join(' · ')+'</div>';
+    }
+    elnHTML+='<div style="margin-top:8px;font-size:11px;color:#64748b;line-height:1.6">'+
+      '<b>ELN選股原則</b>：Decel≥-1（動量無崩塌）+ Quality≥70（基本面穩健）+ Vol30≤65%（低波幅）+ 建議3個月期、strike 85-90%</div>';
+    document.getElementById('elnBody').innerHTML=elnHTML;
+  }
+  // Recovery Timeline
+  if(data.portfolio&&data.portfolio.recoveryTimeline){
+    const rt=data.portfolio.recoveryTimeline;
+    let recHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">';
+    recHTML+='<div style="text-align:center;padding:12px;background:#f1f5f9;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#2563eb">'+(rt.dailyTargetHKD>0?'+':'')+'HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+'</div><div style="font-size:11px;color:#64748b;margin-top:2px">每日目標</div><div style="font-size:10px;color:#94a3b8">~'+(rt.dailyTargetUSD>0?'+':'')+'$'+Math.abs(rt.dailyTargetUSD)+'/交易日</div></div>';
+    recHTML+='<div style="text-align:center;padding:12px;background:#f1f5f9;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#6366f1">'+rt.estimatedMonths+'個月</div><div style="font-size:11px;color:#64748b;margin-top:2px">預計回本期</div><div style="font-size:10px;color:#94a3b8">每月目標 +'+rt.monthlyTargetPct+'%</div></div>';
+    const daysElapsed=Math.floor((Date.now()-new Date(rt.startDate).getTime())/(1000*60*60*24));
+    recHTML+='<div style="text-align:center;padding:12px;background:#f1f5f9;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#eab308">'+daysElapsed+'天</div><div style="font-size:11px;color:#64748b;margin-top:2px">已過天數</div><div style="font-size:10px;color:#94a3b8">自'+rt.startDate+'</div></div>';
+    recHTML+='</div>';
+    // Progress bar
+    recHTML+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#64748b">回本進度</span><span style="font-weight:700">'+rt.progressPct+'%</span></div>';
+    recHTML+='<div style="height:12px;background:#e2e8f0;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,rt.progressPct)+'%;background:linear-gradient(90deg,#3b82f6,#6366f1);border-radius:6px;transition:width 0.5s"></div></div></div>';
+    recHTML+='<div style="font-size:11px;color:#64748b;text-align:center;padding-top:4px">差距：HKD $'+Math.abs(rt.gapHKD).toLocaleString()+' → 目標 HKD $'+rt.targetHKD.toLocaleString()+' · 每日review是否達到 +HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+'</div>';
+    document.getElementById('recoveryBody').innerHTML=recHTML;
+  }
   renderTx();
 }
 function renderTx(){
