@@ -65,6 +65,9 @@ th.n{text-align:right}
 <button id="refresh" onclick="loadData()">🔄 刷新</button></div></div>
 <div class="alert-banner" id="alertBanner"></div>
 <div class="card privacy-zone"><div class="grid" id="summaryGrid"></div></div>
+<div class="card privacy-zone"><div class="card-h"><span class="card-t">📅 回本進度 Timeline</span><span style="font-size:11px;color:#64748b">每日目標追蹤</span></div>
+<div id="recoveryBody" style="padding:16px"></div>
+</div>
 <div class="card privacy-zone"><div class="card-h"><span class="card-t">📂 持倉</span><span id="cashInfo" style="font-size:12px;color:#64748b"></span></div>
 <table><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">Decel</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
 <div class="card"><div class="card-h"><span class="card-t">📊 觀察名單 — 即時評分</span><span style="font-size:11px;color:#94a3b8">點擊股票名稱展開4-factor詳情</span></div>
@@ -73,7 +76,7 @@ th.n{text-align:right}
 <table><thead><tr><th>ETF</th><th class="r">現價</th><th class="r">12M</th><th class="r">6M</th><th class="r">3M</th><th class="r">1M</th><th class="r">5D</th><th class="r">Vol30</th></tr></thead><tbody id="etfBody"></tbody></table></div>
 
 <div class="card" id="shortCard"><div class="card-h"><span class="card-t">🔴 造淡信號 — 按潛力排序（Decel最負排最前）</span><span style="font-size:11px;color:#dc2626">動量崩塌中</span></div>
-<table><thead><tr><th>股票</th><th>信號</th><th class="r">現價</th><th class="c">Decel</th><th class="r">1M%</th><th class="r">5D%</th><th>推薦反向ETF</th><th>全部選項</th><th>原因</th></tr></thead><tbody id="shortBody"></tbody></table>
+<table><thead><tr><th>股票</th><th>信號</th><th class="r">現價</th><th class="c">Decel</th><th class="r">1M%</th><th>反向ETF</th><th>策略</th></tr></thead><tbody id="shortBody"></tbody></table>
 </div>
 <div class="card"><div class="card-h"><span class="card-t">🎯 指數技術分析 — 支持阻力 + 造好造淡</span></div>
 <div id="techBody" style="padding:16px"></div>
@@ -81,9 +84,7 @@ th.n{text-align:right}
 <div class="card"><div class="card-h"><span class="card-t">🏦 Quant → ELN 策略</span><span style="font-size:11px;color:#64748b">ELN=Short Put，揀唔會跌到strike的股票</span></div>
 <div id="elnBody" style="padding:16px"></div>
 </div>
-<div class="card privacy-zone"><div class="card-h"><span class="card-t">📅 回本進度 Timeline</span><span style="font-size:11px;color:#64748b">每日目標追蹤</span></div>
-<div id="recoveryBody" style="padding:16px"></div>
-</div>
+
 <div class="card privacy-zone"><div class="card-h"><span class="card-t">📝 交易紀錄</span><span style="font-size:12px;color:#64748b">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
 <table><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table>
 </div>
@@ -163,7 +164,7 @@ function render(data){
   if(data.shortSignals&&data.shortSignals.length>0){
     let sh='';
     data.shortSignals.forEach(s=>{
-      sh+='<tr><td style="font-weight:700;color:#dc2626">'+s.ticker+'</td><td><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td><td class="r">$'+fmt(s.price)+'</td><td class="c"><span class="'+dc(s.decel)+'">'+s.decel+'</span></td><td class="r" style="font-size:11px;color:'+cv(s.m1m)+'">'+(s.m1m*100).toFixed(1)+'%</td><td class="r" style="font-size:11px;color:'+cv(s.m5d)+'">'+(s.m5d*100).toFixed(1)+'%</td><td style="font-weight:600;color:#2563eb">'+s.shortETF+'<span style="font-size:9px;color:#94a3b8">('+s.leverage+')</span></td><td style="font-size:10px;color:#64748b;max-width:140px">'+(s.allETFs||'')+'</td><td style="font-size:10px;color:#64748b;max-width:120px;overflow:hidden;text-overflow:ellipsis">'+s.reason.substring(0,40)+'</td></tr>';
+      sh+='<tr><td style="font-weight:700;color:#dc2626">'+s.ticker+'</td><td><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td><td class="r">$'+fmt(s.price)+'</td><td class="c"><span class="'+dc(s.decel)+'">'+s.decel+'</span></td><td class="r" style="font-size:11px;color:'+cv(s.m1m)+'">'+(s.m1m*100).toFixed(1)+'%</td><td style="font-weight:600;color:#2563eb">'+s.shortETF+'<span style="font-size:9px;color:#94a3b8">('+s.leverage+')</span></td><td style="font-size:10px;color:#475569;max-width:200px">'+(s.strategy?s.strategy.summary.substring(0,60):s.reason.substring(0,40))+'</td></tr>';
     });
     document.getElementById('shortBody').innerHTML=sh;
     shortCard.style.display='';
@@ -254,16 +255,16 @@ function render(data){
   // Recovery Timeline
   if(data.portfolio&&data.portfolio.recoveryTimeline){
     const rt=data.portfolio.recoveryTimeline;
-    let recHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">';
-    recHTML+='<div style="text-align:center;padding:12px;background:#f1f5f9;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#2563eb">'+(rt.dailyTargetHKD>0?'+':'')+'HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+'</div><div style="font-size:11px;color:#64748b;margin-top:2px">每日目標</div><div style="font-size:10px;color:#94a3b8">~'+(rt.dailyTargetUSD>0?'+':'')+'$'+Math.abs(rt.dailyTargetUSD)+'/交易日</div></div>';
-    recHTML+='<div style="text-align:center;padding:12px;background:#f1f5f9;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#6366f1">'+rt.estimatedMonths+'個月</div><div style="font-size:11px;color:#64748b;margin-top:2px">預計回本期</div><div style="font-size:10px;color:#94a3b8">每月目標 +'+rt.monthlyTargetPct+'%</div></div>';
-    const daysElapsed=Math.floor((Date.now()-new Date(rt.startDate).getTime())/(1000*60*60*24));
-    recHTML+='<div style="text-align:center;padding:12px;background:#f1f5f9;border-radius:8px"><div style="font-size:24px;font-weight:700;color:#eab308">'+daysElapsed+'天</div><div style="font-size:11px;color:#64748b;margin-top:2px">已過天數</div><div style="font-size:10px;color:#94a3b8">自'+rt.startDate+'</div></div>';
+    let recHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">';
+    recHTML+='<div style="text-align:center;padding:10px;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe"><div style="font-size:20px;font-weight:700;color:#2563eb">'+(rt.dailyTargetHKD>0?'+':'')+'HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">每日目標</div></div>';
+    recHTML+='<div style="text-align:center;padding:10px;background:#eef2ff;border-radius:8px;border:1px solid #c7d2fe"><div style="font-size:20px;font-weight:700;color:#6366f1">'+rt.estimatedMonths+'個月</div><div style="font-size:10px;color:#64748b;margin-top:2px">剩餘時間</div></div>';
+    recHTML+='<div style="text-align:center;padding:10px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a"><div style="font-size:20px;font-weight:700;color:#d97706">'+rt.daysElapsed+'天</div><div style="font-size:10px;color:#64748b;margin-top:2px">已過天數</div></div>';
+    recHTML+='<div style="text-align:center;padding:10px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0"><div style="font-size:20px;font-weight:700;color:#16a34a">'+rt.progressPct+'%</div><div style="font-size:10px;color:#64748b;margin-top:2px">完成進度</div></div>';
     recHTML+='</div>';
     // Progress bar
     recHTML+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#64748b">回本進度</span><span style="font-weight:700">'+rt.progressPct+'%</span></div>';
     recHTML+='<div style="height:12px;background:#e2e8f0;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,rt.progressPct)+'%;background:linear-gradient(90deg,#3b82f6,#6366f1);border-radius:6px;transition:width 0.5s"></div></div></div>';
-    recHTML+='<div style="font-size:11px;color:#64748b;text-align:center;padding-top:4px">差距：HKD $'+Math.abs(rt.gapHKD).toLocaleString()+' → 目標 HKD $'+rt.targetHKD.toLocaleString()+' · 每日review是否達到 +HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+'</div>';
+    recHTML+='<div style="font-size:11px;color:#64748b;text-align:center;padding-top:4px">差距：HKD $'+Math.abs(rt.gapHKD).toLocaleString()+' → 目標 HKD $'+rt.targetHKD.toLocaleString()+' (12月31日前) · 剩餘 '+rt.daysRemaining+' 交易日 · 每日需賺 +HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+' (約 +'+rt.monthlyTargetPct+'%/月)</div>';
     document.getElementById('recoveryBody').innerHTML=recHTML;
   }
   renderTx();
