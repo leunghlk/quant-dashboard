@@ -60,7 +60,7 @@ th.n{text-align:right}
 <div class="header"><div><h1>📈 Quant Portfolio</h1>
 <div class="sub">4-Factor Model · Decel Override · 每60秒自動刷新</div></div>
 <div style="display:flex;gap:10px;align-items:center">
-<button class="privacy-btn" id="privacyBtn" onclick="togglePrivacy()">🔒 隱藏持倉</button>
+<button class="privacy-btn" id="privacyBtn" onclick="togglePrivacy()">👁️ 顯示持倉</button>
 <div class="status-bar"><span class="live-dot"></span><span id="lastUpdate">載入中...</span></div>
 <button id="refresh" onclick="loadData()">🔄 刷新</button></div></div>
 <div class="alert-banner" id="alertBanner"></div>
@@ -224,7 +224,7 @@ function renderTx(){
   document.getElementById('txBody').innerHTML=html;
 }
 let lastData={};
-let privacyOn=false;
+let privacyOn=true;
 function togglePrivacy(){
   privacyOn=!privacyOn;
   const zones=document.querySelectorAll('.privacy-zone');
@@ -236,6 +236,8 @@ const origLoad=loadData;
 loadData=async function(){await origLoad();};
 var origRender=render;
 render=function(d){lastData=d;origRender(d);};
+// Init: blur privacy zones on load (default hidden)
+document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.privacy-zone').forEach(z=>z.classList.add('blurred'))});
 loadData();setInterval(loadData,60000);
 </script>
 </body></html>
