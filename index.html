@@ -29,6 +29,9 @@ table{width:100%;border-collapse:collapse;font-size:13px}
 th{background:#f8fafc;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;padding:8px 6px;text-align:left;letter-spacing:.5px}
 th.r{text-align:right}th.c{text-align:center}
 td{padding:8px 6px;border-bottom:1px solid #e2e8f0}
+td.r{text-align:right;font-variant-numeric:tabular-nums}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+td.c{text-align:center}
 tr:hover{background:#f8fafc}
 .sig{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;color:#fff}
 .sig-SELL{background:#ef4444}.sig-REDUCE{background:#f97316}.sig-HOLD{background:#eab308}.sig-ACCUMULATE{background:#3b82f6}.sig-BUY{background:#22c55e}
@@ -61,19 +64,21 @@ th.n{text-align:right}
 <div class="status-bar"><span class="live-dot"></span><span id="lastUpdate">載入中...</span></div>
 <button id="refresh" onclick="loadData()">🔄 刷新</button></div></div>
 <div class="alert-banner" id="alertBanner"></div>
-<div id="privacyZone">
-<div class="card"><div class="grid" id="summaryGrid"></div></div>
-<div class="card"><div class="card-h"><span class="card-t">📂 持倉</span><span id="cashInfo" style="font-size:12px;color:#64748b"></span></div>
+<div class="card privacy-zone"><div class="grid" id="summaryGrid"></div></div>
+<div class="card privacy-zone"><div class="card-h"><span class="card-t">📂 持倉</span><span id="cashInfo" style="font-size:12px;color:#64748b"></span></div>
 <table><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">Decel</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
 <div class="card"><div class="card-h"><span class="card-t">📊 觀察名單 — 即時評分</span><span style="font-size:11px;color:#94a3b8">點擊股票名稱展開4-factor詳情</span></div>
 <div style="overflow-x:auto"><table><thead><tr><th class="c">#</th><th>股票</th><th>信號</th><th class="c">總分</th><th>Q</th><th>M</th><th>V</th><th>G</th><th class="c">Decel</th><th class="r">12M</th><th class="r">1M</th><th class="r">現價</th><th class="r">Vol</th></tr></thead><tbody id="watchlistBody"></tbody></table></div></div>
 <div class="card"><div class="card-h"><span class="card-t">ETF 追蹤</span></div>
 <table><thead><tr><th>ETF</th><th class="r">現價</th><th class="r">12M</th><th class="r">6M</th><th class="r">3M</th><th class="r">1M</th><th class="r">5D</th><th class="r">Vol30</th></tr></thead><tbody id="etfBody"></tbody></table></div>
+
+<div class="card" id="shortCard"><div class="card-h"><span class="card-t">🔴 造淡信號 — Decel ≤-3 的股票 + 反向ETF建議</span><span style="font-size:11px;color:#dc2626">動量崩塌中</span></div>
+<table><thead><tr><th>股票</th><th>信號</th><th class="r">現價</th><th class="c">Decel</th><th>反向ETF</th><th>原因</th></tr></thead><tbody id="shortBody"></tbody></table>
+</div>
 <div class="card"><div class="card-h"><span class="card-t">🎯 指數技術分析 — 支持阻力 + 造好造淡</span></div>
 <div id="techBody" style="padding:16px"></div>
 </div>
-</div>
-<div class="card"><div class="card-h"><span class="card-t">📝 交易紀錄</span><span style="font-size:12px;color:#64748b">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
+<div class="card privacy-zone"><div class="card-h"><span class="card-t">📝 交易紀錄</span><span style="font-size:12px;color:#64748b">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
 <table><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table>
 </div>
 <div style="text-align:center;color:#94a3b8;font-size:11px;padding:8px">Kathy Leung 梁凱菱 · 4-Factor Quant Model · Decel規則: ≥-1可買 · ≤-3必沽</div>
@@ -147,6 +152,18 @@ function render(data){
   let eh='';
   data.etfs.forEach(e=>{eh+='<tr><td style="font-weight:700">'+e.ticker+'</td><td class="r" style="font-weight:600">$'+fmt(e.price)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m12)+'">'+fmtPct(e.m12)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m6)+'">'+fmtPct(e.m6)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m3)+'">'+fmtPct(e.m3)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m1m)+'">'+fmtPct(e.m1m)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m5d)+'">'+fmtPct(e.m5d)+'</td><td class="r" style="font-size:11px;color:#64748b">'+e.vol30+'%</td></tr>'});
   document.getElementById('etfBody').innerHTML=eh;
+  // Short signals
+  const shortCard=document.getElementById('shortCard');
+  if(data.shortSignals&&data.shortSignals.length>0){
+    let sh='';
+    data.shortSignals.forEach(s=>{
+      sh+='<tr><td style="font-weight:700;color:#dc2626">'+s.ticker+'</td><td><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td><td class="r">$'+fmt(s.price)+'</td><td class="c"><span class="'+dc(s.decel)+'">'+s.decel+'</span></td><td style="font-weight:600;color:#2563eb">'+s.shortETF+'</td><td style="font-size:11px;color:#64748b">'+s.reason.substring(0,50)+'</td></tr>';
+    });
+    document.getElementById('shortBody').innerHTML=sh;
+    shortCard.style.display='';
+  }else{
+    shortCard.style.display='none';
+  }
   const banner=document.getElementById('alertBanner');
   if(data.alerts&&data.alerts.length>0){let ah='';data.alerts.forEach(a=>{const icon=a.type==='BUY'?'🟢':'🔴';ah+='<div class="alert-item">'+icon+' <b>'+a.type+'</b> '+a.ticker+'@$'+fmt(a.price)+' — '+a.reason+'</div>'});banner.innerHTML=ah;banner.classList.add('show')}else{banner.classList.remove('show')}
   // Tech analysis — dual column layout
@@ -210,9 +227,10 @@ let lastData={};
 let privacyOn=false;
 function togglePrivacy(){
   privacyOn=!privacyOn;
-  const z=document.getElementById('privacyZone');
-  if(privacyOn){z.classList.add('blurred');document.getElementById('privacyBtn').textContent='👁️ 顯示持倉';document.getElementById('privacyBtn').style.background='#2563eb'}
-  else{z.classList.remove('blurred');document.getElementById('privacyBtn').textContent='🔒 隱藏持倉';document.getElementById('privacyBtn').style.background='#64748b'}
+  const zones=document.querySelectorAll('.privacy-zone');
+  const btn=document.getElementById('privacyBtn');
+  if(privacyOn){zones.forEach(z=>z.classList.add('blurred'));btn.textContent='👁️ 顯示';btn.style.background='#2563eb'}
+  else{zones.forEach(z=>z.classList.remove('blurred'));btn.textContent='🔒 隱藏持倉';btn.style.background='#64748b'}
 }
 const origLoad=loadData;
 loadData=async function(){await origLoad();};
