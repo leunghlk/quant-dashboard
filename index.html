@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-HK"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quant Portfolio — Kathy Leung</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f0f4f8;color:#1e293b;font-family:'PingFang HK',-apple-system,sans-serif;padding:16px}
+.container{max-width:1300px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.header h1{font-size:22px}
+.header .sub{font-size:12px;color:#64748b}
+#refresh{background:#2563eb;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
+#refresh:disabled{background:#94a3b8}
+.status-bar{display:flex;gap:12px;align-items:center;font-size:12px;color:#64748b}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:16px;overflow:hidden}
+.card-h{padding:14px 18px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}
+.card-t{font-size:15px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.grid-item{padding:16px;text-align:center;border-right:1px solid #e2e8f0}
+.grid-item:last-child{border-right:none}
+.grid-val{font-size:26px;font-weight:700}
+.grid-lbl{font-size:11px;color:#64748b;margin-top:3px}
+.grid-sub{font-size:10px;color:#94a3b8}
+.progress{background:#e2e8f0;height:8px;border-radius:4px;margin-top:6px}
+.progress-fill{height:8px;border-radius:4px;background:#2563eb}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f8fafc;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;padding:8px 6px;text-align:left;letter-spacing:.5px}
+th.r{text-align:right}th.c{text-align:center}
+td{padding:8px 6px;border-bottom:1px solid #e2e8f0}
+tr:hover{background:#f8fafc}
+.sig{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;color:#fff}
+.sig-SELL{background:#ef4444}.sig-REDUCE{background:#f97316}.sig-HOLD{background:#eab308}.sig-ACCUMULATE{background:#3b82f6}.sig-BUY{background:#22c55e}
+.decel{padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600}
+.decel-ex{background:#fee2e2;color:#dc2626}.decel-d{background:#ffedd5;color:#ea580c}.decel-c{background:#fef9c3;color:#ca8a04}
+.pos{color:#16a34a;font-weight:600}.neg{color:#dc2626;font-weight:600}
+.alert-banner{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 18px;margin-bottom:16px;display:none}
+.alert-banner.show{display:block}
+.alert-item{display:flex;gap:8px;align-items:center;margin:4px 0;font-size:14px}
+</style>
+</head><body><div class="container">
+<div class="header"><div><h1>📈 Quant Portfolio</h1>
+<div class="sub">4-Factor Model · Decel Override · 每60秒自動刷新</div></div>
+<div style="display:flex;gap:10px;align-items:center">
+<div class="status-bar"><span class="live-dot"></span><span id="lastUpdate">載入中...</span></div>
+<button id="refresh" onclick="loadData()">🔄 刷新</button></div></div>
+<div class="alert-banner" id="alertBanner"></div>
+<div class="card"><div class="grid" id="summaryGrid"></div></div>
+<div class="card"><div class="card-h"><span class="card-t">📂 持倉</span><span id="cashInfo" style="font-size:12px;color:#64748b"></span></div>
+<table><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">Decel</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
+<div class="card"><div class="card-h"><span class="card-t">📊 觀察名單 — 即時評分（16隻）</span></div>
+<div style="overflow-x:auto"><table><thead><tr><th class="c">#</th><th>股票</th><th>信號</th><th class="c">總分</th><th>Mom</th><th class="c">Decel</th><th class="r">12M</th><th class="r">6M</th><th class="r">3M</th><th class="r">1M</th><th class="r">現價</th><th class="r">Vol</th></tr></thead><tbody id="watchlistBody"></tbody></table></div></div>
+<div class="card"><div class="card-h"><span class="card-t">ETF 追蹤</span></div>
+<table><thead><tr><th>ETF</th><th class="r">現價</th><th class="r">12M</th><th class="r">6M</th><th class="r">3M</th><th class="r">1M</th><th class="r">5D</th><th class="r">Vol30</th></tr></thead><tbody id="etfBody"></tbody></table></div>
+
+<div class="card"><div class="card-h"><span class="card-t">🎯 指數技術分析 — 支持阻力 + 造好造淡</span></div>
+<div id="techBody" style="padding:16px"></div>
+</div>
+<div style="text-align:center;color:#94a3b8;font-size:11px;padding:8px">Kathy Leung 梁凱菱 · API: quant-api.leunghlk.workers.dev</div>
+</div>
+<script>
+const API='https://quant-api.leunghlk.workers.dev/api';
+function fmt(v,d=2){return v!=null?Number(v).toFixed(d):'—'}
+function fmtPct(v){return v!=null?(v*100).toFixed(1)+'%':'—'}
+function sigClass(s){return 'sig sig-'+s}
+function cv(v){return v>=0?'#16a34a':'#dc2626'}
+function dc(d){if(d<=-3)return'decel decel-ex';if(d<=-2)return'decel decel-d';if(d<=-1)return'decel decel-c';return''}
+async function loadData(){
+  document.getElementById('refresh').disabled=true;
+  document.getElementById('refresh').textContent='⏳ 載入中...';
+  try{const r=await fetch(API);const d=await r.json();render(d);
+    document.getElementById('lastUpdate').textContent='更新: '+new Date(d.timestamp).toLocaleTimeString('zh-HK');
+  }catch(e){document.getElementById('lastUpdate').textContent='❌ '+e.message}
+  document.getElementById('refresh').disabled=false;
+  document.getElementById('refresh').textContent='🔄 刷新';
+}
+function render(data){
+  const p=data.portfolio;
+  document.getElementById('summaryGrid').innerHTML=
+    '<div class="grid-item"><div class="grid-val">$'+fmt(p.totalValue)+'</div><div class="grid-lbl">組合總值</div><div class="grid-sub">HKD $'+p.totalValueHKD.toLocaleString()+'</div></div>'+
+    '<div class="grid-item"><div class="grid-val" style="color:'+cv(-p.gapToTarget)+'">HKD $'+Math.abs(p.gapToTarget).toLocaleString()+'</div><div class="grid-lbl">距回本'+(p.gapToTarget>0?'差距':'✅')+'</div><div class="grid-sub">目標HKD$50,000</div></div>'+
+    '<div class="grid-item"><div class="grid-val" style="color:#2563eb">'+p.progressPct+'%</div><div class="grid-lbl">回本進度</div><div class="progress"><div class="progress-fill" style="width:'+Math.min(100,p.progressPct)+'%"></div></div></div>'+
+    '<div class="grid-item"><div class="grid-val" style="color:'+cv(p.realizedLoss)+'">$'+fmt(p.realizedLoss)+'</div><div class="grid-lbl">已實現盈虧</div><div class="grid-sub">ETF止蝕</div></div>';
+  document.getElementById('cashInfo').textContent='現金 $'+fmt(p.cash);
+  let ph='';
+  for(const[t,pos]of Object.entries(p.positions)){
+    const wl=data.watchlist.find(w=>w.ticker===t);const decel=wl?wl.decel:0;
+    ph+='<tr><td style="font-weight:700">'+t+'</td><td class="r">'+pos.shares+'</td><td class="r" style="color:#64748b">$'+fmt(pos.cost)+'</td><td class="r" style="font-weight:600">$'+fmt(pos.price)+'</td><td class="r">$'+fmt(pos.value)+'</td><td class="r" style="color:'+cv(pos.pnl)+';font-weight:700">$'+fmt(pos.pnl)+'('+fmt(pos.pnlPct,1)+'%)</td><td class="c">'+(decel!==0?'<span class="'+dc(decel)+'">'+decel+'</span>':'—')+'</td></tr>';
+  }
+  ph+='<tr style="background:#f8fafc"><td colspan="4">現金</td><td class="r">$'+fmt(p.cash)+'</td><td></td><td></td></tr>';
+  ph+='<tr style="font-weight:700;background:#f1f5f9"><td>總計</td><td></td><td></td><td></td><td class="r">$'+fmt(p.totalValue)+'</td><td class="r" style="color:#2563eb">HKD$'+p.totalValueHKD.toLocaleString()+'</td><td></td></tr>';
+  document.getElementById('positionsBody').innerHTML=ph;
+  let wl='';
+  data.watchlist.forEach((s,i)=>{
+    const held=p.positions[s.ticker]?'📌 ':'';
+    wl+='<tr><td class="c" style="color:#94a3b8">'+(i+1)+'</td><td style="font-weight:'+ (held?'700':'600') +'">'+held+s.ticker+'</td><td><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td><td class="c" style="font-weight:700;font-size:15px;color:'+(s.score>=0.55?'#2563eb':s.score>=0.45?'#eab308':'#ef4444')+'">'+fmt(s.score*100,0)+'</td><td style="font-size:11px;color:#64748b">'+fmt(s.momentum*100,0)+'</td><td class="c">'+(s.decel!==0?'<span class="'+dc(s.decel)+'">'+s.decel+'</span>':'—')+'</td><td class="r" style="font-size:11px;color:'+cv(s.m12)+'">'+fmtPct(s.m12)+'</td><td class="r" style="font-size:11px;color:'+cv(s.m6)+'">'+fmtPct(s.m6)+'</td><td class="r" style="font-size:11px;color:'+cv(s.m3)+'">'+fmtPct(s.m3)+'</td><td class="r" style="font-size:11px;color:'+cv(s.m1m)+'">'+fmtPct(s.m1m)+'</td><td class="r" style="font-weight:600">$'+fmt(s.price)+'</td><td class="r" style="font-size:11px;color:#64748b">'+s.vol30+'%</td></tr>';
+  });
+  document.getElementById('watchlistBody').innerHTML=wl;
+  let eh='';
+  data.etfs.forEach(e=>{eh+='<tr><td style="font-weight:700">'+e.ticker+'</td><td class="r" style="font-weight:600">$'+fmt(e.price)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m12)+'">'+fmtPct(e.m12)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m6)+'">'+fmtPct(e.m6)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m3)+'">'+fmtPct(e.m3)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m1m)+'">'+fmtPct(e.m1m)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m5d)+'">'+fmtPct(e.m5d)+'</td><td class="r" style="font-size:11px;color:#64748b">'+e.vol30+'%</td></tr>'});
+  document.getElementById('etfBody').innerHTML=eh;
+  const banner=document.getElementById('alertBanner');
+  if(data.alerts&&data.alerts.length>0){let ah='';data.alerts.forEach(a=>{const icon=a.type==='BUY'?'🟢':'🔴';ah+='<div class="alert-item">'+icon+' <b>'+a.type+'</b> '+a.ticker+'@$'+fmt(a.price)+' — '+a.reason+'</div>'});banner.innerHTML=ah;banner.classList.add('show')}else{banner.classList.remove('show')}
+  
+  // Technical Analysis
+  let techHTML='';
+  if(data.techAnalysis){
+    for(const[idx,t]of Object.entries(data.techAnalysis)){
+      if(t.error){techHTML+='<div style="color:#dc2626">'+t.name+': '+t.error+'</div>';continue}
+      const actionColor=t.action.includes('造好')?'#22c55e':t.action.includes('造淡')?'#ef4444':t.action.includes('偏強')?'#3b82f6':t.action.includes('偏弱')?'#eab308':'#94a3b8';
+      techHTML+='<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e2e8f0">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div style="font-weight:700;font-size:15px">'+t.name+'</div>'+
+        '<div style="text-align:right"><span style="font-size:20px;font-weight:700">$'+fmt(t.price)+'</span>'+
+        '<span style="background:'+actionColor+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;margin-left:8px">'+t.action+'</span></div></div>'+
+        '<div style="font-size:12px;color:#64748b;margin-bottom:8px">'+t.reason+'</div>'+
+        '<table style="width:100%;font-size:12px"><tr>'+
+        '<td style="padding:4px 8px;color:#dc2626">阻力R3(頂)</td><td style="text-align:right;font-weight:600;color:#dc2626">$'+fmt(t.levels.resistance3)+'</td>'+
+        '<td style="padding:4px 8px;color:#f97316">阻力R2</td><td style="text-align:right;font-weight:600;color:#f97316">$'+fmt(t.levels.resistance2)+'</td>'+
+        '</tr><tr>'+
+        '<td style="padding:4px 8px;color:#f97316">阻力R1</td><td style="text-align:right;font-weight:600;color:#f97316">$'+fmt(t.levels.resistance1)+' <span style="font-size:10px;color:#94a3b8">('+t.distR1+'%)</span></td>'+
+        '<td style="padding:4px 8px;color:#64748b">MA50</td><td style="text-align:right">$'+fmt(t.ma50)+'</td>'+
+        '</tr><tr>'+
+        '<td style="padding:4px 8px;color:#64748b">MA20</td><td style="text-align:right">$'+fmt(t.ma20)+'</td>'+
+        '<td style="padding:4px 8px;color:#64748b">RSI</td><td style="text-align:right;font-weight:600;color:'+(t.rsi<30?'#22c55e':t.rsi>70?'#ef4444':'#64748b')+'">'+t.rsi+'</td>'+
+        '</tr><tr>'+
+        '<td style="padding:4px 8px;color:#3b82f6">支持S1</td><td style="text-align:right;font-weight:600;color:#3b82f6">$'+fmt(t.levels.support1)+' <span style="font-size:10px;color:#94a3b8">('+t.distS1+'%)</span></td>'+
+        '<td style="padding:4px 8px;color:#3b82f6">支持S2</td><td style="text-align:right;font-weight:600;color:#3b82f6">$'+fmt(t.levels.support2)+'</td>'+
+        '</tr><tr>'+
+        '<td style="padding:4px 8px;color:#22c55e">支持S3(底)</td><td style="text-align:right;font-weight:600;color:#22c55e">$'+fmt(t.levels.support3)+'</td>'+
+        '<td style="padding:4px 8px;color:#64748b">3M高低</td><td style="text-align:right;font-size:11px">$'+fmt(t.low3m)+' - $'+fmt(t.high3m)+'</td>'+
+        '</tr></table>'+
+        '<div style="margin-top:8px;padding:8px 12px;background:'+ (actionColor=== '#22c55e' ? '#f0fdf4' : actionColor === '#ef4444' ? '#fef2f2' : '#f8fafc') +';border-radius:6px;font-size:12px;color:#475569;font-weight:600">'+
+        '📋 '+t.strategy+
+        '</div></div>';
+    }
+  }
+  document.getElementById('techBody').innerHTML=techHTML||'<div style="color:#94a3b8">載入中...</div>';
+}
+loadData();setInterval(loadData,60000);
+</script>
+</body></html>
