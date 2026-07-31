@@ -207,9 +207,9 @@ function render(data){
         '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">RSI</td><td class="n" style="font-size:12px">'+(ind.rsi?ind.rsi.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.rsi.value+'</span>':'—')+'</td></tr>'+
         '</table></div>'+
         '</div>'+
-        // WEEKLY INDICATORS (莊主方法論：周線定大勢)
-        +(t.weekly?'<div style="margin-top:12px;padding:10px 12px;background:#f1f5f9;border-radius:8px;border-left:4px solid #6366f1">'+
-        '<div style="font-weight:700;font-size:13px;color:#4338ca;margin-bottom:6px">📅 周線指標（莊主方法論：周線定大勢）</div>'+
+        // WEEKLY INDICATORS (莊主方法論：周線定大勢) — 莊主訊號用琥珀色區分
+        (t.weekly?'<div style="margin-top:12px;padding:10px 12px;background:#fffbeb;border-radius:8px;border-left:4px solid #d97706">'+
+        '<div style="font-weight:700;font-size:13px;color:#b45309;margin-bottom:6px">🧠 莊主 Combine 訊號（周線定大勢）</div>'+
         '<div style="display:flex;gap:12px;margin-bottom:8px">'+
         '<div style="flex:1"><table style="width:100%;font-size:11px;border-collapse:collapse">'+
         '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周RSI</td><td class="n">'+(t.weekly.rsi?t.weekly.rsi.signal+' <span style="font-size:10px;color:#94a3b8">('+t.weekly.rsi.value+')</span>':'—')+'</td></tr>'+
@@ -217,9 +217,9 @@ function render(data){
         '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周KDJ</td><td class="n">'+(t.weekly.kdj?t.weekly.kdj.signal+' <span style="font-size:10px;color:#94a3b8">(K='+t.weekly.kdj.k+')</span>':'—')+'</td></tr>'+
         '</table></div>'+
         '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-left:8px;border-left:1px solid #cbd5e1">'+
-        '<div style="font-size:13px;font-weight:700;margin-bottom:4px">'+t.weekly.bias+'</div>'+
-        '<div style="font-size:11px;color:#64748b;margin-bottom:4px">'+t.weekly.reason+'</div>'+
-        '<div style="font-size:11px;color:#4338ca;font-weight:600">▶ '+t.weekly.action+'</div>'+
+        '<div style="font-size:13px;font-weight:700;margin-bottom:4px;color:'+(t.weekly.bias.includes('看好')?'#16a34a':t.weekly.bias.includes('看淡')?'#dc2626':'#b45309')+'">'+t.weekly.bias+'</div>'+
+        '<div style="font-size:11px;color:#78350f;margin-bottom:4px">'+t.weekly.reason+'</div>'+
+        '<div style="font-size:11px;color:#b45309;font-weight:600">▶ '+t.weekly.action+'</div>'+
         '</div></div></div>':'')+
         '<div style="margin-top:8px;padding:8px 12px;background:'+(actionColor==='#22c55e'?'#f0fdf4':actionColor==='#ef4444'?'#fef2f2':'#f8fafc')+';border-radius:6px;font-size:12px;color:#475569;font-weight:600">'+
         '📋 '+t.strategy+'</div></div>';
