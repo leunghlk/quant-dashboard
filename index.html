@@ -84,6 +84,9 @@ th.n{text-align:right}
 <div class="card"><div class="card-h"><span class="card-t">🎯 指數技術分析 — 支持阻力 + 造好造淡</span></div>
 <div id="techBody" style="padding:16px"></div>
 </div>
+<div class="card"><div class="card-h"><span class="card-t">📋 盤前交易策略 — 造好/造淡</span><span id="preMktTs" style="font-size:11px;color:#94a3b8"></span></div>
+<div id="preMktBody" style="padding:16px"></div>
+</div>
 <div class="card"><div class="card-h"><span class="card-t">🏦 Quant → ELN 策略</span><span style="font-size:11px;color:#64748b">ELN=Short Put，揀唔會跌到strike的股票</span></div>
 <div id="elnBody" style="padding:16px"></div>
 </div>
@@ -228,7 +231,41 @@ function render(data){
         '📋 '+t.strategy+'</div></div>';
     }
   }
+
   document.getElementById('techBody').innerHTML=techHTML||'<div style="color:#94a3b8">載入中...</div>';
+  // Pre-Market Strategy render
+  if(data.preMarketStrategy){
+    const pm=data.preMarketStrategy;
+    const tsEl=document.getElementById('preMktTs');
+    if(tsEl) tsEl.textContent='生成 '+(pm.generated?new Date(pm.generated).toLocaleString('zh-HK'):'');
+    let pmHTML='';
+    for(const s of pm.indices){
+      const col=s.side.includes('造好')?'#22c55e':s.side.includes('造淡')?'#ef4444':'#94a3b8';
+      const bg=s.side.includes('造好')?'#f0fdf4':s.side.includes('造淡')?'#fef2f2':'#f8fafc';
+      const fl=s.fibLevels;
+      pmHTML+='<div style="margin-bottom:16px;padding:12px 14px;background:'+bg+';border-radius:8px;border-left:4px solid '+col+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div style="font-weight:700;font-size:14px">'+s.index+'</div>'+
+        '<span style="background:'+col+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600">'+s.side+'</span></div>'+
+        '<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:8px">'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600;width:70px">標的</td><td style="padding:2px 6px;font-weight:600;color:#0f172a">'+s.vehicle+'</td></tr>'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">入場</td><td style="padding:2px 6px;color:#16a34a;font-weight:600">'+s.entry+'</td></tr>'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">止蝕</td><td style="padding:2px 6px;color:#dc2626;font-weight:600">'+s.stop+'</td></tr>'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">目標</td><td style="padding:2px 6px;color:#2563eb;font-weight:600">'+s.target+'</td></tr>'+
+        '</table>'+
+        '<div style="font-size:11px;color:#475569;margin-bottom:6px">'+s.rationale+'</div>'+
+        '<div style="font-size:10px;color:#94a3b8;margin-bottom:4px">Fib量度: '+s.fibMeasure+'</div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px">'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#3b82f6">回0.382 '+fl.r0_382.toLocaleString()+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#3b82f6">回0.5 '+fl.r0_500.toLocaleString()+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#3b82f6">回0.618 '+fl.r0_618.toLocaleString()+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#f97316">延1.236 '+fl.e1_236.toLocaleString()+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#f97316">延1.382 '+fl.e1_382.toLocaleString()+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#f97316">延1.618 '+fl.e1_618.toLocaleString()+'</span>'+
+        '</div></div>';
+    }
+    document.getElementById('preMktBody').innerHTML=pmHTML||'<div style="color:#94a3b8">無盤前策略</div>';
+  }
   // Action Strategy render
   if(data.actionStrategy){
     const as=data.actionStrategy;
