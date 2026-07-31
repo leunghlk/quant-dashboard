@@ -65,6 +65,9 @@ th.n{text-align:right}
 <button id="refresh" onclick="loadData()">🔄 刷新</button></div></div>
 <div class="alert-banner" id="alertBanner"></div>
 <div class="card privacy-zone"><div class="grid" id="summaryGrid"></div></div>
+<div class="card"><div class="card-h"><span class="card-t">⚡ 最新策略 — 買/沽/觀望</span><span id="strategyTimestamp" style="font-size:11px;color:#94a3b8"></span></div>
+<div id="actionBody" style="padding:16px"></div>
+</div>
 <div class="card privacy-zone"><div class="card-h"><span class="card-t">📅 回本進度 Timeline</span><span style="font-size:11px;color:#64748b">每日目標追蹤</span></div>
 <div id="recoveryBody" style="padding:16px"></div>
 </div>
@@ -209,7 +212,7 @@ function render(data){
         '</div>'+
         // WEEKLY INDICATORS (莊主方法論：周線定大勢) — 莊主訊號用琥珀色區分
         (t.weekly?'<div style="margin-top:12px;padding:10px 12px;background:#fffbeb;border-radius:8px;border-left:4px solid #d97706">'+
-        '<div style="font-weight:700;font-size:13px;color:#b45309;margin-bottom:6px">🧠 莊主 Combine 訊號（周線定大勢）</div>'+
+        '<div style="font-weight:700;font-size:13px;color:#b45309;margin-bottom:6px">📅 周線定大勢（莊主方法論）</div>'+
         '<div style="display:flex;gap:12px;margin-bottom:8px">'+
         '<div style="flex:1"><table style="width:100%;font-size:11px;border-collapse:collapse">'+
         '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周RSI</td><td class="n">'+(t.weekly.rsi?t.weekly.rsi.signal+' <span style="font-size:10px;color:#94a3b8">('+t.weekly.rsi.value+')</span>':'—')+'</td></tr>'+
@@ -226,6 +229,31 @@ function render(data){
     }
   }
   document.getElementById('techBody').innerHTML=techHTML||'<div style="color:#94a3b8">載入中...</div>';
+  // Action Strategy render
+  if(data.actionStrategy){
+    const as=data.actionStrategy;
+    let actHTML='';
+    const tsEl=document.getElementById('strategyTimestamp');
+    if(tsEl) tsEl.textContent='更新: '+new Date(as.timestamp).toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'});
+    if(as.actions&&as.actions.length>0){
+      as.actions.forEach(a=>{
+        const color=a.type==='BUY'?'#22c55e':a.type==='SELL'?'#ef4444':'#f97316';
+        const bg=a.type==='BUY'?'#f0fdf4':a.type==='SELL'?'#fef2f2':'#fff7ed';
+        const icon=a.type==='BUY'?'🟢':a.type==='SELL'?'🔴':'🟠';
+        actHTML+='<div style="padding:12px 14px;background:'+bg+';border-radius:8px;border-left:4px solid '+color+';margin-bottom:10px">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+          '<span style="font-weight:700;font-size:14px;color:'+color+'">'+icon+' '+a.type+' '+a.vehicle+'</span>'+
+          '<span style="font-size:12px;color:#64748b">'+(a.shares>0?a.shares+'股 @ $'+a.price.toFixed(2)+' = $'+Math.round(a.amount):'')+'</span></div>'+
+          '<div style="font-size:12px;color:#475569;margin-bottom:4px">📋 '+a.reason+'</div>'+
+          '<div style="font-size:12px;color:#475569">⏰ '+(a.timing||'—')+
+          (a.stopLoss?' | 止蝕 $'+a.stopLoss:'')+
+          (a.target?' | 目標 $'+a.target:'')+'</div></div>';
+      });
+    } else {
+      actHTML+='<div style="padding:14px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;font-weight:600">'+as.summary+'</div>';
+    }
+    document.getElementById('actionBody').innerHTML=actHTML;
+  }
   // ELN Strategy
   if(data.elnStrategy){
     const eln=data.elnStrategy;
