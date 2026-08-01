@@ -71,6 +71,12 @@ th.n{text-align:right}
 <div class="card privacy-zone"><div class="card-h"><span class="card-t">📅 回本進度 Timeline</span><span style="font-size:11px;color:#64748b">每日目標追蹤</span></div>
 <div id="recoveryBody" style="padding:16px"></div>
 </div>
+<div class="card"><div class="card-h"><span class="card-t">🎯 指數ETF部署 — 睇返指數本身</span><span style="font-size:11px;color:#64748b">周線定大勢 · 日線定入場</span></div>
+<div id="indexEtfBody" style="padding:16px"></div>
+</div>
+<div class="card"><div class="card-h"><span class="card-t">⚖️ 雙向操作策略 — 正向 / 反向</span><span style="font-size:11px;color:#64748b">每隻股兩邊都寫；點擊展開</span></div>
+<div style="overflow-x:auto"><table><thead><tr><th>股票</th><th class="c">立場</th><th class="c">Decel</th><th class="r">現價</th><th>🟢 正向（造好）</th><th>🔴 反向（造淡）</th></tr></thead><tbody id="bidiBody"></tbody></table></div>
+</div>
 <div class="card privacy-zone"><div class="card-h"><span class="card-t">📂 持倉</span><span id="cashInfo" style="font-size:12px;color:#64748b"></span></div>
 <table><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">Decel</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
 <div class="card"><div class="card-h"><span class="card-t">📊 觀察名單 — 即時評分</span><span style="font-size:11px;color:#94a3b8">點擊股票名稱展開4-factor詳情</span></div>
@@ -140,6 +146,60 @@ function showDetail(ticker,data){
   document.getElementById('modalOverlay').classList.add('show');
 }
 function closeModal(){document.getElementById('modalOverlay').classList.remove('show')}
+function showBidi(ticker){
+  const b=(lastData.bidirectional||[]).find(x=>x.ticker===ticker);
+  if(!b)return;
+  const row=(l,v,c)=>'<tr><td style="padding:3px 6px;color:#64748b;font-weight:600;white-space:nowrap;vertical-align:top">'+l+'</td><td style="padding:3px 6px;color:'+(c||'#0f172a')+'">'+v+'</td></tr>';
+  document.getElementById('modalContent').innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><span style="font-size:20px;font-weight:800">'+b.ticker+'</span> <span style="font-size:13px;color:#64748b">$'+fmt(b.price)+'</span>'+(b.held?' <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">持有</span>':'')+'</div>'+
+    '<span style="background:'+(b.stance==='偏淡'?'#dc2626':b.stance==='偏好'?'#16a34a':'#94a3b8')+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700">'+b.stance+'</span></div>'+
+    '<div style="font-size:12px;color:#64748b;margin-bottom:12px">Score '+Math.round(b.score*100)+' · Decel '+b.decel+' · 1M '+(b.m1m*100).toFixed(1)+'% · 5D '+(b.m5d*100).toFixed(1)+'% · Vol30 '+b.vol30+'%</div>'+
+    '<div style="padding:10px 12px;background:#f0fdf4;border-radius:8px;border-left:4px solid #16a34a;margin-bottom:10px">'+
+    '<div style="font-weight:700;font-size:13px;color:#15803d;margin-bottom:6px">🟢 正向（造好）'+b.long.verdict+'</div>'+
+    '<table style="width:100%;font-size:12px;border-collapse:collapse">'+
+    row('工具',b.long.vehicle)+row('入場',b.long.entry,'#16a34a')+row('分注',b.long.sizing)+
+    row('止蝕',b.long.stopLoss,'#dc2626')+row('目標',b.long.target,'#2563eb')+row('觸發',b.long.trigger,'#78350f')+
+    '</table></div>'+
+    '<div style="padding:10px 12px;background:#fef2f2;border-radius:8px;border-left:4px solid #dc2626">'+
+    '<div style="font-weight:700;font-size:13px;color:#b91c1c;margin-bottom:6px">🔴 反向（造淡）'+b.short.verdict+'</div>'+
+    '<table style="width:100%;font-size:12px;border-collapse:collapse">'+
+    row('工具',b.short.vehicle+(b.short.allETFs!=='—'?' <span style="font-size:10px;color:#94a3b8">['+b.short.allETFs+']</span>':''))+
+    row('入場',b.short.entry,'#dc2626')+row('分注',b.short.sizing)+
+    row('止蝕',b.short.stopLoss,'#dc2626')+row('止賺',b.short.takeProfit,'#2563eb')+
+    row('觸發',b.short.trigger,'#78350f')+row('理據',b.short.reason)+
+    '</table></div>'+
+    '<button onclick="closeModal()" style="margin-top:14px;width:100%;padding:10px;background:#64748b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">關閉</button>';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function showCalendar(){
+  const rt=lastData.portfolio&&lastData.portfolio.recoveryTimeline;
+  if(!rt||!rt.dailyProgress){return}
+  const dp=rt.dailyProgress, ts=rt.todayStatus||{};
+  let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
+    '<span style="font-size:18px;font-weight:800">📅 每日進度月曆</span>'+
+    '<span style="font-size:12px;color:#64748b">起始 2026-07-30 → 目標 2026-12-31</span></div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">'+
+    '<div style="text-align:center;padding:8px;background:#f0fdf4;border-radius:8px"><div style="font-size:18px;font-weight:700;color:#16a34a">'+(ts.metDays||0)+'/'+(ts.totalDays||0)+'</div><div style="font-size:10px;color:#64748b">達標日數</div></div>'+
+    '<div style="text-align:center;padding:8px;background:#eff6ff;border-radius:8px"><div style="font-size:18px;font-weight:700;color:#2563eb">'+(ts.metRate||0)+'%</div><div style="font-size:10px;color:#64748b">達標率</div></div>'+
+    '<div style="text-align:center;padding:8px;background:#fffbeb;border-radius:8px"><div style="font-size:18px;font-weight:700;color:#d97706">HKD $'+(ts.dailyNeedHKD||0).toLocaleString()+'</div><div style="font-size:10px;color:#64748b">每日需賺</div></div></div>';
+  h+='<div style="max-height:52vh;overflow-y:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
+    '<thead><tr style="background:#f1f5f9;position:sticky;top:0"><th style="padding:6px;text-align:left">日期</th><th class="n">組合(HKD)</th><th class="n">目標線</th><th class="n">差距</th><th class="n">當日±</th><th class="n">累計%</th><th class="c">達標</th></tr></thead><tbody>';
+  dp.slice().reverse().forEach(d=>{
+    const bg=d.met?'#f0fdf4':'#fef2f2';
+    h+='<tr style="background:'+bg+'"><td style="padding:5px;font-weight:600">'+d.date+'</td>'+
+      '<td class="n" style="font-weight:600">$'+d.valueHKD.toLocaleString()+'</td>'+
+      '<td class="n" style="color:#64748b">$'+d.targetHKD.toLocaleString()+'</td>'+
+      '<td class="n" style="color:'+(d.diffHKD>=0?'#16a34a':'#dc2626')+';font-weight:600">'+(d.diffHKD>=0?'+':'')+'$'+d.diffHKD.toLocaleString()+'</td>'+
+      '<td class="n" style="color:'+(d.dayGainHKD>=0?'#16a34a':'#dc2626')+'">'+(d.dayGainHKD>=0?'+':'')+'$'+d.dayGainHKD.toLocaleString()+' ('+(d.dayGainPct>=0?'+':'')+d.dayGainPct+'%)</td>'+
+      '<td class="n" style="color:'+(d.cumPct>=0?'#16a34a':'#dc2626')+'">'+(d.cumPct>=0?'+':'')+d.cumPct+'%</td>'+
+      '<td class="c">'+(d.met?'✅':'❌')+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div style="margin-top:10px;font-size:11px;color:#64748b;line-height:1.6"><b>目標線計法</b>：由起始本金 HKD $'+(ts.baselineHKD||0).toLocaleString()+'（7/30 入場成本＋現金）線性遞增至 HKD $50,000（2026-12-31），每交易日 +HKD $'+(ts.dailyNeedHKD||0).toLocaleString()+'。組合價值＝持倉當日 Yahoo 收市價 × 股數 ＋ 現金。</div>';
+  h+='<button onclick="closeModal()" style="margin-top:14px;width:100%;padding:10px;background:#64748b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">關閉</button>';
+  document.getElementById('modalContent').innerHTML=h;
+  document.getElementById('modalOverlay').classList.add('show');
+}
 function render(data){
   const p=data.portfolio;
   document.getElementById('summaryGrid').innerHTML=
@@ -317,6 +377,56 @@ function render(data){
       '<b>ELN選股原則</b>：Decel≥-1（動量無崩塌）+ Quality≥70（基本面穩健）+ Vol30≤65%（低波幅）+ 建議3個月期、strike 85-90%</div>';
     document.getElementById('elnBody').innerHTML=elnHTML;
   }
+  // Index ETF strategy
+  if(data.indexEtfStrategy){
+    let ieHTML='';
+    data.indexEtfStrategy.forEach(x=>{
+      const col=x.side.includes('造好')?'#16a34a':x.side.includes('造淡')?'#dc2626':'#94a3b8';
+      const bg=x.side.includes('造好')?'#f0fdf4':x.side.includes('造淡')?'#fef2f2':'#f8fafc';
+      ieHTML+='<div style="margin-bottom:14px;padding:12px 14px;background:'+bg+';border-radius:8px;border-left:4px solid '+col+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div><span style="font-weight:800;font-size:15px">'+x.etf+'</span> <span style="font-size:12px;color:#64748b">$'+fmt(x.etfPrice)+' → 睇 '+x.indexName+' '+x.indexPrice.toLocaleString()+'</span></div>'+
+        '<span style="background:'+col+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700">'+x.side+'</span></div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px;margin-bottom:8px">'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px">MA20 '+x.ma20.toLocaleString()+(x.belowMA20?' <b style="color:#dc2626">▼價低</b>':' <b style="color:#16a34a">▲價高</b>')+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px">MA50 '+x.ma50.toLocaleString()+(x.belowMA50?' <b style="color:#dc2626">▼價低</b>':' <b style="color:#16a34a">▲價高</b>')+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px">日RSI '+x.dailyRsi+'</span>'+
+        '<span style="background:#fffbeb;border:1px solid #fde68a;padding:2px 7px;border-radius:4px;color:#b45309;font-weight:600">周線 '+x.weeklyBias+'</span></div>'+
+        '<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:6px">'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600;width:64px;vertical-align:top">工具</td><td style="padding:2px 6px;font-weight:600">'+x.vehicle+'</td></tr>'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600;vertical-align:top">入場</td><td style="padding:2px 6px;color:#0f172a">'+x.entry+'</td></tr>'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600;vertical-align:top">止蝕</td><td style="padding:2px 6px;color:#dc2626">'+x.stop+'</td></tr>'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600;vertical-align:top">目標</td><td style="padding:2px 6px;color:#2563eb">'+x.target+'</td></tr>'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600;vertical-align:top">分注</td><td style="padding:2px 6px">'+x.sizing+'</td></tr>'+
+        '</table>'+
+        '<div style="font-size:11px;color:#475569;margin-bottom:4px">'+x.rationale+'</div>'+
+        '<div style="font-size:10px;color:#94a3b8">正向工具：'+x.longVehicle+'　|　反向工具：'+x.shortVehicle+'　|　Fib量度：'+x.fibMeasure+'</div>'+
+        '<div style="display:flex;gap:5px;flex-wrap:wrap;font-size:10px;margin-top:5px">'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#3b82f6">回0.382 '+x.fib.retrace.r0_382.toLocaleString()+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#3b82f6">回0.5 '+x.fib.retrace.r0_500.toLocaleString()+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#3b82f6">回0.618 '+x.fib.retrace.r0_618.toLocaleString()+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#f97316">延1.236 '+x.fib.ext.e1_236.toLocaleString()+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#f97316">延1.382 '+x.fib.ext.e1_382.toLocaleString()+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#f97316">延1.618 '+x.fib.ext.e1_618.toLocaleString()+'</span>'+
+        '</div></div>';
+    });
+    document.getElementById('indexEtfBody').innerHTML=ieHTML||'<div style="color:#94a3b8">無指數ETF</div>';
+  }
+  // Bidirectional strategy table
+  if(data.bidirectional){
+    let bh='';
+    data.bidirectional.forEach(b=>{
+      const sc=b.stance==='偏淡'?'#dc2626':b.stance==='偏好'?'#16a34a':'#94a3b8';
+      bh+='<tr class="clickable" onclick="showBidi(\''+b.ticker+'\')">'+
+        '<td style="font-weight:700;color:#2563eb;text-decoration:underline">'+(b.held?'📌 ':'')+b.ticker+'</td>'+
+        '<td class="c"><span style="background:'+sc+';color:#fff;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700">'+b.stance+'</span></td>'+
+        '<td class="c">'+(b.decel!==0?'<span class="'+dc(b.decel)+'">'+b.decel+'</span>':'—')+'</td>'+
+        '<td class="r" style="font-weight:600">$'+fmt(b.price)+'</td>'+
+        '<td style="font-size:11px;color:#475569;max-width:230px"><b style="color:#15803d">'+b.long.verdict+'</b><br><span style="color:#64748b">'+b.long.vehicle+'</span><br>'+b.long.entry+'</td>'+
+        '<td style="font-size:11px;color:#475569;max-width:230px"><b style="color:#b91c1c">'+b.short.verdict+'</b><br><span style="color:#64748b">'+b.short.vehicle+'</span><br>'+b.short.entry+'</td></tr>';
+    });
+    document.getElementById('bidiBody').innerHTML=bh;
+  }
   // Recovery Timeline
   if(data.portfolio&&data.portfolio.recoveryTimeline){
     const rt=data.portfolio.recoveryTimeline;
@@ -330,6 +440,26 @@ function render(data){
     recHTML+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#64748b">回本進度</span><span style="font-weight:700">'+rt.progressPct+'%</span></div>';
     recHTML+='<div style="height:12px;background:#e2e8f0;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,rt.progressPct)+'%;background:linear-gradient(90deg,#3b82f6,#6366f1);border-radius:6px;transition:width 0.5s"></div></div></div>';
     recHTML+='<div style="font-size:11px;color:#64748b;text-align:center;padding-top:4px">差距：HKD $'+Math.abs(rt.gapHKD).toLocaleString()+' → 目標 HKD $'+rt.targetHKD.toLocaleString()+' (12月31日前) · 剩餘 '+rt.daysRemaining+' 交易日 · 每日需賺 +HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+' (約 +'+rt.monthlyTargetPct+'%/月)</div>';
+    // 今日達標與否
+    const ts=rt.todayStatus;
+    if(ts&&!ts.error){
+      const okc=ts.met?'#16a34a':'#dc2626';
+      const okbg=ts.met?'#f0fdf4':'#fef2f2';
+      recHTML+='<div style="margin-top:12px;padding:12px 14px;background:'+okbg+';border-radius:8px;border-left:4px solid '+okc+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+        '<span style="font-weight:800;font-size:15px;color:'+okc+'">'+ts.verdict+'（'+ts.date+'）</span>'+
+        '<span style="font-size:13px;font-weight:700;color:'+okc+'">'+ts.shortfallText+'</span></div>'+
+        '<table style="width:100%;font-size:12px;border-collapse:collapse">'+
+        '<tr><td style="padding:2px 6px;color:#64748b">當日組合值</td><td class="n" style="font-weight:700">HKD $'+ts.valueHKD.toLocaleString()+'</td>'+
+        '<td style="padding:2px 6px;color:#64748b">當日目標線</td><td class="n">HKD $'+ts.targetHKD.toLocaleString()+'</td></tr>'+
+        '<tr><td style="padding:2px 6px;color:#64748b">當日盈虧</td><td class="n" style="color:'+(ts.dayGainHKD>=0?'#16a34a':'#dc2626')+';font-weight:700">'+(ts.dayGainHKD>=0?'+':'')+'HKD $'+ts.dayGainHKD.toLocaleString()+' ('+(ts.dayGainPct>=0?'+':'')+ts.dayGainPct+'%)</td>'+
+        '<td style="padding:2px 6px;color:#64748b">累計達標</td><td class="n">'+ts.metDays+'/'+ts.totalDays+' 日 ('+ts.metRate+'%)</td></tr>'+
+        '</table>'+
+        '<button onclick="showCalendar()" style="margin-top:10px;width:100%;padding:9px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px">📅 開啟每日進度月曆（由 7/30 起）</button>'+
+        '</div>';
+    } else {
+      recHTML+='<div style="margin-top:10px;padding:10px;background:#f8fafc;border-radius:8px;font-size:12px;color:#64748b;text-align:center">每日進度資料載入中'+(ts&&ts.error?'（'+ts.error+'）':'')+'</div>';
+    }
     document.getElementById('recoveryBody').innerHTML=recHTML;
   }
   renderTx();
