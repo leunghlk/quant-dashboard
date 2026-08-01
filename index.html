@@ -55,62 +55,99 @@ tr:hover{background:#f8fafc}
 td.n{text-align:right;font-variant-numeric:tabular-nums}
 th.n{text-align:right}
 .blurred{filter:blur(5px);transition:filter .2s}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tab{background:#fff;border:1px solid #cbd5e1;color:#475569;padding:10px 22px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;transition:all .15s}
+.tab:hover{border-color:#2563eb;color:#2563eb}
+.tab.active{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.3)}
+.pane{display:none}
+.pane.active{display:block}
+.sec-title{font-size:13px;font-weight:800;color:#0f172a;padding:10px 0 6px;border-bottom:2px solid #e2e8f0;margin-bottom:10px;letter-spacing:.3px}
+.tf-badge{display:inline-block;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 8px;border-radius:5px;font-size:10px;font-weight:700;margin-right:6px}
+.tf-badge.wk{background:#fffbeb;color:#b45309;border-color:#fde68a}
+.kv{width:100%;font-size:12px;border-collapse:collapse}
+.kv td{padding:3px 6px;border:none;vertical-align:top}
+.kv td:first-child{color:#64748b;font-weight:600;white-space:nowrap;width:72px}
 </style>
 </head><body><div class="container">
 <div class="header"><div><h1>📈 Quant Portfolio</h1>
-<div class="sub">4-Factor Model · Decel Override · 每60秒自動刷新</div></div>
+<div class="sub">四因子模型 · 動量減速覆蓋 · 每60秒自動更新</div></div>
 <div style="display:flex;gap:10px;align-items:center">
 <button class="privacy-btn" id="privacyBtn" onclick="togglePrivacy()">👁️ 顯示持倉</button>
 <div class="status-bar"><span class="live-dot"></span><span id="lastUpdate">載入中...</span></div>
-<button id="refresh" onclick="loadData()">🔄 刷新</button></div></div>
+<button id="refresh" onclick="loadData()">🔄 更新</button></div></div>
 <div class="alert-banner" id="alertBanner"></div>
-<div class="card privacy-zone"><div class="grid" id="summaryGrid"></div></div>
-<div class="card"><div class="card-h"><span class="card-t">⚡ 最新策略 — 買/沽/觀望</span><span id="strategyTimestamp" style="font-size:11px;color:#94a3b8"></span></div>
-<div id="actionBody" style="padding:16px"></div>
-</div>
-<div class="card privacy-zone"><div class="card-h"><span class="card-t">📅 回本進度 Timeline</span><span style="font-size:11px;color:#64748b">每日目標追蹤</span></div>
-<div id="recoveryBody" style="padding:16px"></div>
-</div>
-<div class="card"><div class="card-h"><span class="card-t">🎯 指數ETF部署 — 睇返指數本身</span><span style="font-size:11px;color:#64748b">周線定大勢 · 日線定入場</span></div>
-<div id="indexEtfBody" style="padding:16px"></div>
-</div>
-<div class="card"><div class="card-h"><span class="card-t">⚖️ 雙向操作策略 — 正向 / 反向</span><span style="font-size:11px;color:#64748b">每隻股兩邊都寫；點擊展開</span></div>
-<div style="overflow-x:auto"><table><thead><tr><th>股票</th><th class="c">立場</th><th class="c">Decel</th><th class="r">現價</th><th>🟢 正向（造好）</th><th>🔴 反向（造淡）</th></tr></thead><tbody id="bidiBody"></tbody></table></div>
-</div>
-<div class="card privacy-zone"><div class="card-h"><span class="card-t">📂 持倉</span><span id="cashInfo" style="font-size:12px;color:#64748b"></span></div>
-<table><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">Decel</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
-<div class="card"><div class="card-h"><span class="card-t">📊 觀察名單 — 即時評分</span><span style="font-size:11px;color:#94a3b8">點擊股票名稱展開4-factor詳情</span></div>
-<div style="overflow-x:auto"><table><thead><tr><th class="c">#</th><th>股票</th><th>信號</th><th class="c">總分</th><th>Q</th><th>M</th><th>V</th><th>G</th><th class="c">Decel</th><th class="r">12M</th><th class="r">1M</th><th class="r">現價</th><th class="r">Vol</th></tr></thead><tbody id="watchlistBody"></tbody></table></div></div>
-<div class="card"><div class="card-h"><span class="card-t">ETF 追蹤</span></div>
-<table><thead><tr><th>ETF</th><th class="r">現價</th><th class="r">12M</th><th class="r">6M</th><th class="r">3M</th><th class="r">1M</th><th class="r">5D</th><th class="r">Vol30</th></tr></thead><tbody id="etfBody"></tbody></table></div>
 
-<div class="card" id="shortCard"><div class="card-h"><span class="card-t">🔴 造淡信號 — 按潛力排序（Decel最負排最前）</span><span style="font-size:11px;color:#dc2626">動量崩塌中</span></div>
-<table><thead><tr><th>股票</th><th>信號</th><th class="r">現價</th><th class="c">Decel</th><th class="r">1M%</th><th>反向ETF</th><th>策略</th></tr></thead><tbody id="shortBody"></tbody></table>
-</div>
-<div class="card"><div class="card-h"><span class="card-t">🎯 指數技術分析 — 支持阻力 + 造好造淡</span></div>
-<div id="techBody" style="padding:16px"></div>
-</div>
-<div class="card"><div class="card-h"><span class="card-t">📋 盤前交易策略 — 造好/造淡</span><span id="preMktTs" style="font-size:11px;color:#94a3b8"></span></div>
-<div id="preMktBody" style="padding:16px"></div>
-</div>
-<div class="card"><div class="card-h"><span class="card-t">🏦 Quant → ELN 策略</span><span style="font-size:11px;color:#64748b">ELN=Short Put，揀唔會跌到strike的股票</span></div>
-<div id="elnBody" style="padding:16px"></div>
+<div class="tabs">
+  <button class="tab active" id="tabBtn-portfolio" onclick="switchTab('portfolio')">💼 組合</button>
+  <button class="tab" id="tabBtn-strategy" onclick="switchTab('strategy')">🎯 策略</button>
+  <button class="tab" id="tabBtn-wave" onclick="switchTab('wave')">🌊 數浪</button>
 </div>
 
-<div class="card privacy-zone"><div class="card-h"><span class="card-t">📝 交易紀錄</span><span style="font-size:12px;color:#64748b">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
-<table><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table>
+<!-- ═══════════ 組合 PANE ═══════════ -->
+<div class="pane active" id="pane-portfolio">
+  <div class="card privacy-zone"><div class="grid" id="summaryGrid"></div></div>
+  <div class="card privacy-zone"><div class="card-h"><span class="card-t">📅 回本進度</span><span style="font-size:11px;color:#64748b">每日目標追蹤</span></div>
+  <div id="recoveryBody" style="padding:16px"></div></div>
+  <div class="card privacy-zone"><div class="card-h"><span class="card-t">📂 現有持倉</span><span id="cashInfo" style="font-size:12px;color:#64748b"></span></div>
+  <table><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">動量減速</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
+  <div class="card privacy-zone"><div class="card-h"><span class="card-t">📝 交易紀錄</span><span style="font-size:12px;color:#64748b">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
+  <table><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table></div>
 </div>
-<div style="text-align:center;color:#94a3b8;font-size:11px;padding:8px">Kathy Leung 梁凱菱 · 4-Factor Quant Model · Decel規則: ≥-1可買 · ≤-3必沽</div>
+
+<!-- ═══════════ 策略 PANE ═══════════ -->
+<div class="pane" id="pane-strategy">
+  <div class="card"><div class="card-h"><span class="card-t">① 部署總覽 — 結論</span><span id="strategyTimestamp" style="font-size:11px;color:#94a3b8"></span></div>
+  <div id="summaryBody" style="padding:16px"></div></div>
+
+  <div class="card"><div class="card-h"><span class="card-t">② 大盤形勢 — 美股環境與趨勢預期</span></div>
+  <div id="regimeBody" style="padding:16px"></div></div>
+
+  <div class="card"><div class="card-h"><span class="card-t">③ 指數部署 — 費城半導體 · 納斯達克100期貨</span><span style="font-size:11px;color:#64748b">中線睇周線 · 短線睇日線</span></div>
+  <div id="indexEtfBody" style="padding:16px"></div></div>
+
+  <div class="card"><div class="card-h"><span class="card-t">④ 觀察名單 — 造好機會</span><span style="font-size:11px;color:#16a34a">按四因子評分排序 · 點擊股票查看因子拆解</span></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>操作建議</th></tr></thead><tbody id="longListBody"></tbody></table></div></div>
+
+  <div class="card"><div class="card-h"><span class="card-t">⑤ 觀察名單 — 造淡機會</span><span style="font-size:11px;color:#dc2626">按動量減速排序 · 點擊股票查看因子拆解</span></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>操作建議</th></tr></thead><tbody id="shortListBody"></tbody></table></div></div>
+
+  <div class="card"><div class="card-h"><span class="card-t">⑥ 觀察名單 — 暫時觀望</span><span style="font-size:11px;color:#94a3b8">未符合造好或造淡條件</span></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>轉向條件</th></tr></thead><tbody id="neutralListBody"></tbody></table></div></div>
+
+  <div class="card"><div class="card-h"><span class="card-t">⑦ 指數技術分析 — 支持阻力位</span></div>
+  <div id="techBody" style="padding:16px"></div></div>
+
+  <div class="card"><div class="card-h"><span class="card-t">⑧ ELN 策略</span><span style="font-size:11px;color:#64748b">ELN 即沽出認沽期權，須選不會跌穿行使價之股份</span></div>
+  <div id="elnBody" style="padding:16px"></div></div>
+</div>
+
+<!-- ═══════════ 數浪 PANE ═══════════ -->
+<div class="pane" id="pane-wave">
+  <div class="card"><div class="card-h"><span class="card-t">🌊 艾略特波浪計算 — 恒生指數 · 費城半導體 · 納斯達克100期貨</span><span style="font-size:11px;color:#64748b">月線 → 周線 → 日線</span></div>
+  <div id="waveBody" style="padding:16px"></div></div>
+</div>
+
+<div style="text-align:center;color:#94a3b8;font-size:11px;padding:8px">Kathy Leung 梁凱菱 · 四因子量化模型 · 動量減速規則：≥-1 可買入 · ≤-3 須沽出</div>
 </div>
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
 <div class="modal" id="modalContent"></div>
 </div>
 <script>
+function switchTab(name){
+  ['portfolio','strategy','wave'].forEach(n=>{
+    document.getElementById('pane-'+n).classList.toggle('active',n===name);
+    document.getElementById('tabBtn-'+n).classList.toggle('active',n===name);
+  });
+  try{localStorage.setItem('qtab',name)}catch(e){}
+  window.scrollTo(0,0);
+}
 const API='https://quant-api.leunghlk.workers.dev/api';
 let TXDATA=[];
 function fmt(v,d=2){return v!=null?Number(v).toFixed(d):'—'}
 function fmtPct(v){return v!=null?(v*100).toFixed(1)+'%':'—'}
 function sigClass(s){return 'sig sig-'+s}
+function r2(v){return Math.round(v*100)/100}
+function rD(v){return (v>=1000)?Math.round(v).toLocaleString():((Math.round(v*100)/100).toLocaleString())}
 function cv(v){return v>=0?'#16a34a':'#dc2626'}
 function dc(d){if(d<=-3)return'decel decel-ex';if(d<=-2)return'decel decel-d';if(d<=-1)return'decel decel-c';return''}
 async function loadData(){
@@ -211,35 +248,101 @@ function render(data){
   let ph='';
   for(const[t,pos]of Object.entries(p.positions)){
     const wl=data.watchlist.find(w=>w.ticker===t);const decel=wl?wl.decel:0;
-    ph+='<tr class="clickable" onclick="showDetail(\''+t+'\',lastData)"><td style="font-weight:700">'+t+'</td><td class="r">'+pos.shares+'</td><td class="r" style="color:#64748b">$'+fmt(pos.cost)+'</td><td class="r" style="font-weight:600">$'+fmt(pos.price)+'</td><td class="r">$'+fmt(pos.value)+'</td><td class="r" style="color:'+cv(pos.pnl)+';font-weight:700">$'+fmt(pos.pnl)+'('+fmt(pos.pnlPct,1)+'%)</td><td class="c">'+(decel!==0?'<span class="'+dc(decel)+'">'+decel+'</span>':'—')+'</td></tr>';
+    ph+='<tr class="clickable" data-tk="'+t+'"><td style="font-weight:700">'+t+'</td><td class="r">'+pos.shares+'</td><td class="r" style="color:#64748b">$'+fmt(pos.cost)+'</td><td class="r" style="font-weight:600">$'+fmt(pos.price)+'</td><td class="r">$'+fmt(pos.value)+'</td><td class="r" style="color:'+cv(pos.pnl)+';font-weight:700">$'+fmt(pos.pnl)+'('+fmt(pos.pnlPct,1)+'%)</td><td class="c">'+(decel!==0?'<span class="'+dc(decel)+'">'+decel+'</span>':'—')+'</td></tr>';
   }
   ph+='<tr style="background:#f8fafc"><td colspan="4">現金</td><td class="r">$'+fmt(p.cash)+'</td><td></td><td></td></tr>';
   ph+='<tr style="font-weight:700;background:#f1f5f9"><td>總計</td><td></td><td></td><td></td><td class="r">$'+fmt(p.totalValue)+'</td><td class="r" style="color:#2563eb">HKD$'+p.totalValueHKD.toLocaleString()+'</td><td></td></tr>';
   document.getElementById('positionsBody').innerHTML=ph;
-  let wl='';
-  data.watchlist.forEach((s,i)=>{
-    const held=p.positions[s.ticker]?'📌 ':'';
-    wl+='<tr class="clickable" onclick="showDetail(\''+s.ticker+'\',lastData)"><td class="c" style="color:#94a3b8">'+(i+1)+'</td><td style="font-weight:'+(held?'700':'600')+';color:#2563eb;text-decoration:underline">'+held+s.ticker+'</td><td><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td><td class="c" style="font-weight:700;font-size:15px;color:'+(s.score>=0.55?'#2563eb':s.score>=0.45?'#eab308':'#ef4444')+'">'+fmt(s.score*100,0)+'</td><td style="font-size:11px;color:#64748b">'+fmt(s.quality*100,0)+'</td><td style="font-size:11px;color:#64748b">'+fmt(s.momentum*100,0)+'</td><td style="font-size:11px;color:#64748b">'+fmt(s.value*100,0)+'</td><td style="font-size:11px;color:#64748b">'+fmt(s.growth*100,0)+'</td><td class="c">'+(s.decel!==0?'<span class="'+dc(s.decel)+'">'+s.decel+'</span>':'—')+'</td><td class="r" style="font-size:11px;color:'+cv(s.m12)+'">'+fmtPct(s.m12)+'</td><td class="r" style="font-size:11px;color:'+cv(s.m1m)+'">'+fmtPct(s.m1m)+'</td><td class="r" style="font-weight:600">$'+fmt(s.price)+'</td><td class="r" style="font-size:11px;color:#64748b">'+s.vol30+'%</td></tr>';
-  });
-  document.getElementById('watchlistBody').innerHTML=wl;
-  let eh='';
-  data.etfs.forEach(e=>{eh+='<tr><td style="font-weight:700">'+e.ticker+'</td><td class="r" style="font-weight:600">$'+fmt(e.price)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m12)+'">'+fmtPct(e.m12)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m6)+'">'+fmtPct(e.m6)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m3)+'">'+fmtPct(e.m3)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m1m)+'">'+fmtPct(e.m1m)+'</td><td class="r" style="font-size:11px;color:'+cv(e.m5d)+'">'+fmtPct(e.m5d)+'</td><td class="r" style="font-size:11px;color:#64748b">'+e.vol30+'%</td></tr>'});
-  document.getElementById('etfBody').innerHTML=eh;
-  // Short signals — sorted by short potential
-  const shortCard=document.getElementById('shortCard');
-  if(data.shortSignals&&data.shortSignals.length>0){
-    let sh='';
-    data.shortSignals.forEach(s=>{
-      sh+='<tr><td style="font-weight:700;color:#dc2626">'+s.ticker+'</td><td><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td><td class="r">$'+fmt(s.price)+'</td><td class="c"><span class="'+dc(s.decel)+'">'+s.decel+'</span></td><td class="r" style="font-size:11px;color:'+cv(s.m1m)+'">'+(s.m1m*100).toFixed(1)+'%</td><td style="font-weight:600;color:#2563eb">'+s.shortETF+'<span style="font-size:9px;color:#94a3b8">('+s.leverage+')</span></td><td style="font-size:10px;color:#475569;max-width:200px">'+(s.strategy?s.strategy.summary.substring(0,60):s.reason.substring(0,40))+'</td></tr>';
+
+  // ① 部署總覽
+  if(data.strategySummary){
+    const ss=data.strategySummary;
+    let sh='<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px;padding:10px 12px;background:#eff6ff;border-radius:8px;border-left:4px solid #2563eb">'+ss.headline+'</div>';
+    sh+='<div style="font-size:11px;color:#64748b;margin-bottom:10px">造好機會：<b style="color:#16a34a">'+ss.longCount+'</b> ｜ 造淡機會：<b style="color:#dc2626">'+ss.shortCount+'</b> ｜ 可動用現金：<b>HKD $'+ss.cashHKD.toLocaleString()+'</b>（USD $'+fmt(ss.cashUSD)+'）</div>';
+    ss.items.forEach(it=>{
+      const col=it.badge.includes('🟢')?'#16a34a':it.badge.includes('🔴')?'#dc2626':'#64748b';
+      sh+='<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #f1f5f9">'+
+        '<span style="font-size:18px;line-height:1.2">'+it.badge+'</span>'+
+        '<div style="flex:1"><div style="font-weight:700;font-size:13px;color:#0f172a">['+it.type+'] '+it.title+'</div>'+
+        '<div style="font-size:12px;color:#334155;margin-top:2px"><b style="color:'+col+'">部署：</b>'+it.action+'</div>'+
+        '<div style="font-size:11px;color:#64748b;margin-top:2px">'+it.detail+'</div></div></div>';
     });
-    document.getElementById('shortBody').innerHTML=sh;
-    shortCard.style.display='';
-  }else{
-    shortCard.style.display='none';
+    document.getElementById('summaryBody').innerHTML=sh;
   }
-  const banner=document.getElementById('alertBanner');
-  if(data.alerts&&data.alerts.length>0){let ah='';data.alerts.forEach(a=>{const icon=a.type==='BUY'?'🟢':'🔴';ah+='<div class="alert-item">'+icon+' <b>'+a.type+'</b> '+a.ticker+'@$'+fmt(a.price)+' — '+a.reason+'</div>'});banner.innerHTML=ah;banner.classList.add('show')}else{banner.classList.remove('show')}
-  // Tech analysis — dual column layout
+
+  // ② 大盤形勢
+  if(data.marketRegime){
+    const mr=data.marketRegime;
+    let rh='<div style="font-size:14px;font-weight:800;color:'+mr.regimeColor+';margin-bottom:10px;padding:10px 12px;background:'+mr.regimeColor+'15;border-radius:8px">'+mr.regime+'</div>';
+    rh+='<div style="font-size:12px;color:#334155;line-height:1.7;margin-bottom:14px">'+mr.outlook+'</div>';
+    rh+='<div class="sec-title">驅動因素</div><table class="kv">';
+    mr.drivers.forEach(d=>{
+      rh+='<tr><td>'+d.label+'</td><td style="font-weight:700;color:#0f172a">'+d.value+'</td></tr><tr><td></td><td style="font-size:11px;color:#64748b;padding-bottom:6px">'+d.detail+'</td></tr>';
+    });
+    rh+='</table>';
+    document.getElementById('regimeBody').innerHTML=rh;
+  }
+
+  // ③ 指數部署（中線周線 + 短線日線）
+  if(data.indexEtfStrategy){
+    let ieHTML='';
+    data.indexEtfStrategy.forEach(x=>{
+      const midCol=x.mid.side.includes('造好')?'#16a34a':x.mid.side.includes('造淡')?'#dc2626':'#94a3b8';
+      const shortCol=x.short.side.includes('造好')?'#16a34a':x.short.side.includes('造淡')?'#dc2626':'#94a3b8';
+      ieHTML+='<div style="margin-bottom:16px;padding:12px 14px;background:#fafafa;border-radius:8px;border:1px solid #e2e8f0">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div><span style="font-weight:800;font-size:15px">'+x.etf+'</span> <span style="font-size:12px;color:#64748b">$'+fmt(x.etfPrice)+' → '+x.indexName+' '+rD(x.indexPrice)+'</span></div>'+
+        '<span style="font-size:10px;color:#94a3b8">日線RSI '+x.dailyRsi+' ｜ 周線 '+(x.weeklyBias||'—')+'</span></div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px;margin-bottom:10px">'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px">MA20 '+rD(x.ma20)+(x.belowMA20?' ⬇低':' ⬆高')+'</span>'+
+        '<span style="background:#fff;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px">MA50 '+rD(x.ma50)+(x.belowMA50?' ⬇低':' ⬆高')+'</span>'+
+        '<span style="background:#fffbeb;border:1px solid #fde68a;padding:2px 7px;border-radius:4px;color:#b45309">周RSI '+(x.weeklyRsi!=null?x.weeklyRsi:'—')+'</span></div>'+
+        '<div style="padding:9px 11px;background:#fffbeb;border-radius:8px;border-left:4px solid '+midCol+';margin-bottom:8px">'+
+        '<div style="font-weight:700;font-size:12px;color:#b45309;margin-bottom:4px"><span class="tf-badge wk">周線．中線</span>'+x.mid.side+'</div>'+
+        '<table class="kv"><tr><td>工具</td><td>'+x.mid.vehicle+'</td></tr>'+
+        '<tr><td>入場</td><td style="color:#0f172a">'+x.mid.entry+'</td></tr>'+
+        '<tr><td>止蝕</td><td style="color:#dc2626">'+x.mid.stop+'</td></tr>'+
+        '<tr><td>目標</td><td style="color:#2563eb">'+x.mid.target+'</td></tr>'+
+        '<tr><td>分注</td><td>'+x.mid.sizing+'</td></tr></table>'+
+        '<div style="font-size:11px;color:#78350f;margin-top:4px">理據：'+x.mid.rationale+'</div></div>'+
+        '<div style="padding:9px 11px;background:#eff6ff;border-radius:8px;border-left:4px solid '+shortCol+'">'+
+        '<div style="font-weight:700;font-size:12px;color:#1d4ed8;margin-bottom:4px"><span class="tf-badge">日線．短線</span>'+x.short.side+'</div>'+
+        '<table class="kv"><tr><td>工具</td><td>'+x.short.vehicle+'</td></tr>'+
+        '<tr><td>入場</td><td style="color:#0f172a">'+x.short.entry+'</td></tr>'+
+        '<tr><td>止蝕</td><td style="color:#dc2626">'+x.short.stop+'</td></tr>'+
+        '<tr><td>目標</td><td style="color:#2563eb">'+x.short.target+'</td></tr>'+
+        '<tr><td>分注</td><td>'+x.short.sizing+'</td></tr></table>'+
+        '<div style="font-size:11px;color:#475569;margin-top:4px">理據：'+x.short.rationale+'</div></div>'+
+        '<div style="font-size:10px;color:#94a3b8;margin-top:6px">正向：'+x.longVehicle+'　｜　反向：'+x.shortVehicle+(x.suggShares!=null?'　｜　建議股數約 '+x.suggShares+' 股（預算 USD $'+x.budgetUSD.toLocaleString()+'）':'')+'</div>'+
+        '</div>';
+    });
+    document.getElementById('indexEtfBody').innerHTML=ieHTML||'<div style="color:#94a3b8">無指數ETF</div>';
+  }
+
+  // ④⑤⑥ 觀察名單三張表
+  const longs=[],shorts=[],neutrals=[];
+  data.bidirectional.forEach(b=>{ if(b.stance==='偏好')longs.push(b); else if(b.stance==='偏淡')shorts.push(b); else neutrals.push(b); });
+  shorts.sort((a,b)=>a.decel-b.decel);
+  const listRow=(b,kind)=>{
+    const held=p.positions[b.ticker]?'📌 ':'';
+    let lastCell;
+    if(kind==='long') lastCell=b.long.entry;
+    else if(kind==='short') lastCell=b.short.entry;
+    else lastCell=(b.long.trigger&&b.long.trigger!=='—'?b.long.trigger:'待評分回升至造好門檻');
+    return '<tr class="clickable" data-tk="'+b.ticker+'">'+
+      '<td style="font-weight:'+(held?'700':'600')+';color:#2563eb;text-decoration:underline">'+held+b.ticker+'</td>'+
+      '<td><span class="'+sigClass(b.signal)+'">'+b.signal+'</span></td>'+
+      '<td class="c" style="font-weight:700;font-size:15px;color:'+(b.score>=0.55?'#2563eb':b.score>=0.45?'#eab308':'#ef4444')+'">'+fmt(b.score*100,0)+'</td>'+
+      '<td class="c">'+(b.decel!==0?'<span class="'+dc(b.decel)+'">'+b.decel+'</span>':'—')+'</td>'+
+      '<td class="r" style="font-weight:600">$'+fmt(b.price)+'</td>'+
+      '<td class="r" style="font-size:11px;color:'+cv(b.m1m)+'">'+(b.m1m*100).toFixed(1)+'%</td>'+
+      '<td style="font-size:11px;color:#475569;max-width:300px">'+lastCell+'</td></tr>';
+  };
+  document.getElementById('longListBody').innerHTML=longs.map(b=>listRow(b,'long')).join('')||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">暫無符合造好條件之股份</td></tr>';
+  document.getElementById('shortListBody').innerHTML=shorts.map(b=>listRow(b,'short')).join('')||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">暫無符合造淡條件之股份</td></tr>';
+  document.getElementById('neutralListBody').innerHTML=neutrals.map(b=>listRow(b,'neutral')).join('')||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">無</td></tr>';
+
+  // ⑦ 指數技術分析（雙欄）
   let techHTML='';
   if(data.techAnalysis){
     for(const[idx,t]of Object.entries(data.techAnalysis)){
@@ -249,23 +352,21 @@ function render(data){
       techHTML+='<div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #e2e8f0">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
         '<div style="font-weight:700;font-size:15px">'+t.name+'</div>'+
-        '<div style="text-align:right"><span style="font-size:20px;font-weight:700">'+t.price.toLocaleString()+'</span>'+
+        '<div style="text-align:right"><span style="font-size:20px;font-weight:700">'+rD(t.price)+'</span>'+
         '<span style="background:'+actionColor+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;margin-left:8px">'+t.action+'</span></div></div>'+
         '<div style="font-size:12px;color:#64748b;margin-bottom:10px">'+t.reason+'</div>'+
         '<div style="display:flex;gap:16px">'+
-        // LEFT: Levels
         '<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
-        '<tr><td style="padding:3px 8px;color:#dc2626;font-weight:600">R3 (頂)</td><td class="n" style="color:#dc2626;font-weight:600">'+t.levels.resistance3.toLocaleString()+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R2</td><td class="n" style="color:#f97316;font-weight:600">'+t.levels.resistance2.toLocaleString()+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R1</td><td class="n" style="color:#f97316;font-weight:600">'+t.levels.resistance1.toLocaleString()+' <span style="font-size:10px;color:#94a3b8">('+t.distR1+'%)</span></td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#64748b">MA20</td><td class="n" style="color:#64748b">'+t.ma20.toLocaleString()+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#64748b">MA50</td><td class="n" style="color:#64748b">'+t.ma50.toLocaleString()+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#1e293b;font-weight:700">現價</td><td class="n" style="color:#1e293b;font-weight:700">'+t.price.toLocaleString()+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S1</td><td class="n" style="color:#3b82f6;font-weight:600">'+t.levels.support1.toLocaleString()+' <span style="font-size:10px;color:#94a3b8">('+t.distS1+'%)</span></td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S2</td><td class="n" style="color:#3b82f6;font-weight:600">'+t.levels.support2.toLocaleString()+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#22c55e;font-weight:600">S3 (底)</td><td class="n" style="color:#22c55e;font-weight:600">'+t.levels.support3.toLocaleString()+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#dc2626;font-weight:600">R3 (頂)</td><td class="n" style="color:#dc2626;font-weight:600">'+rD(t.levels.resistance3)+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R2</td><td class="n" style="color:#f97316;font-weight:600">'+rD(t.levels.resistance2)+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R1</td><td class="n" style="color:#f97316;font-weight:600">'+rD(t.levels.resistance1)+' <span style="font-size:10px;color:#94a3b8">('+t.distR1+'%)</span></td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b">MA20</td><td class="n" style="color:#64748b">'+rD(t.ma20)+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b">MA50</td><td class="n" style="color:#64748b">'+rD(t.ma50)+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#1e293b;font-weight:700">現價</td><td class="n" style="color:#1e293b;font-weight:700">'+rD(t.price)+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S1</td><td class="n" style="color:#3b82f6;font-weight:600">'+rD(t.levels.support1)+' <span style="font-size:10px;color:#94a3b8">('+t.distS1+'%)</span></td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S2</td><td class="n" style="color:#3b82f6;font-weight:600">'+rD(t.levels.support2)+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#22c55e;font-weight:600">S3 (底)</td><td class="n" style="color:#22c55e;font-weight:600">'+rD(t.levels.support3)+'</td></tr>'+
         '</table></div>'+
-        // RIGHT: Indicators
         '<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
         '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MACD</td><td class="n" style="font-size:12px">'+(ind.macd?ind.macd.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.macd.value+'</span>':'—')+'</td></tr>'+
         '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MTM</td><td class="n" style="font-size:12px">'+(ind.mtm?ind.mtm.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.mtm.value+'</span>':'—')+'</td></tr>'+
@@ -273,9 +374,8 @@ function render(data){
         '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">RSI</td><td class="n" style="font-size:12px">'+(ind.rsi?ind.rsi.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.rsi.value+'</span>':'—')+'</td></tr>'+
         '</table></div>'+
         '</div>'+
-        // WEEKLY INDICATORS (莊主方法論：周線定大勢) — 莊主訊號用琥珀色區分
         (t.weekly?'<div style="margin-top:12px;padding:10px 12px;background:#fffbeb;border-radius:8px;border-left:4px solid #d97706">'+
-        '<div style="font-weight:700;font-size:13px;color:#b45309;margin-bottom:6px">📅 周線定大勢（莊主方法論）</div>'+
+        '<div style="font-weight:700;font-size:13px;color:#b45309;margin-bottom:6px">📅 周線定大勢（波浪理論 — 周線判勢）</div>'+
         '<div style="display:flex;gap:12px;margin-bottom:8px">'+
         '<div style="flex:1"><table style="width:100%;font-size:11px;border-collapse:collapse">'+
         '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周RSI</td><td class="n">'+(t.weekly.rsi?t.weekly.rsi.signal+' <span style="font-size:10px;color:#94a3b8">('+t.weekly.rsi.value+')</span>':'—')+'</td></tr>'+
@@ -291,67 +391,9 @@ function render(data){
         '📋 '+t.strategy+'</div></div>';
     }
   }
-
   document.getElementById('techBody').innerHTML=techHTML||'<div style="color:#94a3b8">載入中...</div>';
-  // Pre-Market Strategy render
-  if(data.preMarketStrategy){
-    const pm=data.preMarketStrategy;
-    const tsEl=document.getElementById('preMktTs');
-    if(tsEl) tsEl.textContent='生成 '+(pm.generated?new Date(pm.generated).toLocaleString('zh-HK'):'');
-    let pmHTML='';
-    for(const s of pm.indices){
-      const col=s.side.includes('造好')?'#22c55e':s.side.includes('造淡')?'#ef4444':'#94a3b8';
-      const bg=s.side.includes('造好')?'#f0fdf4':s.side.includes('造淡')?'#fef2f2':'#f8fafc';
-      const fl=s.fibLevels;
-      pmHTML+='<div style="margin-bottom:16px;padding:12px 14px;background:'+bg+';border-radius:8px;border-left:4px solid '+col+'">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
-        '<div style="font-weight:700;font-size:14px">'+s.index+'</div>'+
-        '<span style="background:'+col+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600">'+s.side+'</span></div>'+
-        '<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:8px">'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600;width:70px">標的</td><td style="padding:2px 6px;font-weight:600;color:#0f172a">'+s.vehicle+'</td></tr>'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">入場</td><td style="padding:2px 6px;color:#16a34a;font-weight:600">'+s.entry+'</td></tr>'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">止蝕</td><td style="padding:2px 6px;color:#dc2626;font-weight:600">'+s.stop+'</td></tr>'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">目標</td><td style="padding:2px 6px;color:#2563eb;font-weight:600">'+s.target+'</td></tr>'+
-        '</table>'+
-        '<div style="font-size:11px;color:#475569;margin-bottom:6px">'+s.rationale+'</div>'+
-        '<div style="font-size:10px;color:#94a3b8;margin-bottom:4px">Fib量度: '+s.fibMeasure+'</div>'+
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px">'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#3b82f6">回0.382 '+fl.r0_382.toLocaleString()+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#3b82f6">回0.5 '+fl.r0_500.toLocaleString()+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#3b82f6">回0.618 '+fl.r0_618.toLocaleString()+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#f97316">延1.236 '+fl.e1_236.toLocaleString()+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#f97316">延1.382 '+fl.e1_382.toLocaleString()+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#f97316">延1.618 '+fl.e1_618.toLocaleString()+'</span>'+
-        '</div></div>';
-    }
-    document.getElementById('preMktBody').innerHTML=pmHTML||'<div style="color:#94a3b8">無盤前策略</div>';
-  }
-  // Action Strategy render
-  if(data.actionStrategy){
-    const as=data.actionStrategy;
-    let actHTML='';
-    const tsEl=document.getElementById('strategyTimestamp');
-    if(tsEl) tsEl.textContent='更新: '+new Date(as.timestamp).toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'});
-    if(as.actions&&as.actions.length>0){
-      as.actions.forEach(a=>{
-        const color=a.type==='BUY'?'#22c55e':a.type==='SELL'?'#ef4444':'#f97316';
-        const bg=a.type==='BUY'?'#f0fdf4':a.type==='SELL'?'#fef2f2':'#fff7ed';
-        const icon=a.type==='BUY'?'🟢':a.type==='SELL'?'🔴':'🟠';
-        actHTML+='<div style="padding:12px 14px;background:'+bg+';border-radius:8px;border-left:4px solid '+color+';margin-bottom:10px">'+
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
-          '<span style="font-weight:700;font-size:14px;color:'+color+'">'+icon+' '+a.type+' '+a.vehicle+'</span>'+
-          '<span style="font-size:12px;color:#64748b">'+(a.shares>0?a.shares+'股 @ $'+a.price.toFixed(2)+' = $'+Math.round(a.amount):'')+'</span></div>'+
-          '<div style="font-size:12px;color:#475569;margin-bottom:4px">📋 '+a.reason+'</div>'+
-          '<div style="font-size:12px;color:#475569">⏰ '+(a.timing||'—')+
-          (a.stopLoss?' | 止蝕 $'+a.stopLoss:'')+
-          (a.target?' | 目標 $'+a.target:'')+'</div></div>';
-      });
-    } else {
-      actHTML+='<div style="padding:14px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;font-weight:600">'+as.summary+'</div>';
-    }
-    document.getElementById('actionBody').innerHTML=actHTML;
-  }
-  // ELN Strategy
+
+  // ⑧ ELN 策略
   if(data.elnStrategy){
     const eln=data.elnStrategy;
     let elnHTML='';
@@ -377,58 +419,52 @@ function render(data){
       '<b>ELN選股原則</b>：Decel≥-1（動量無崩塌）+ Quality≥70（基本面穩健）+ Vol30≤65%（低波幅）+ 建議3個月期、strike 85-90%</div>';
     document.getElementById('elnBody').innerHTML=elnHTML;
   }
-  // Index ETF strategy
-  if(data.indexEtfStrategy){
-    let ieHTML='';
-    data.indexEtfStrategy.forEach(x=>{
-      const col=x.side.includes('造好')?'#16a34a':x.side.includes('造淡')?'#dc2626':'#94a3b8';
-      const bg=x.side.includes('造好')?'#f0fdf4':x.side.includes('造淡')?'#fef2f2':'#f8fafc';
-      ieHTML+='<div style="margin-bottom:14px;padding:12px 14px;background:'+bg+';border-radius:8px;border-left:4px solid '+col+'">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
-        '<div><span style="font-weight:800;font-size:15px">'+x.etf+'</span> <span style="font-size:12px;color:#64748b">$'+fmt(x.etfPrice)+' → 睇 '+x.indexName+' '+x.indexPrice.toLocaleString()+'</span></div>'+
-        '<span style="background:'+col+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700">'+x.side+'</span></div>'+
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px;margin-bottom:8px">'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px">MA20 '+x.ma20.toLocaleString()+(x.belowMA20?' <b style="color:#dc2626">▼價低</b>':' <b style="color:#16a34a">▲價高</b>')+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px">MA50 '+x.ma50.toLocaleString()+(x.belowMA50?' <b style="color:#dc2626">▼價低</b>':' <b style="color:#16a34a">▲價高</b>')+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px">日RSI '+x.dailyRsi+'</span>'+
-        '<span style="background:#fffbeb;border:1px solid #fde68a;padding:2px 7px;border-radius:4px;color:#b45309;font-weight:600">周線 '+x.weeklyBias+'</span></div>'+
-        '<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:6px">'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600;width:64px;vertical-align:top">工具</td><td style="padding:2px 6px;font-weight:600">'+x.vehicle+'</td></tr>'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600;vertical-align:top">入場</td><td style="padding:2px 6px;color:#0f172a">'+x.entry+'</td></tr>'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600;vertical-align:top">止蝕</td><td style="padding:2px 6px;color:#dc2626">'+x.stop+'</td></tr>'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600;vertical-align:top">目標</td><td style="padding:2px 6px;color:#2563eb">'+x.target+'</td></tr>'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600;vertical-align:top">分注</td><td style="padding:2px 6px">'+x.sizing+'</td></tr>'+
-        '</table>'+
-        '<div style="font-size:11px;color:#475569;margin-bottom:4px">'+x.rationale+'</div>'+
-        '<div style="font-size:10px;color:#94a3b8">正向工具：'+x.longVehicle+'　|　反向工具：'+x.shortVehicle+'　|　Fib量度：'+x.fibMeasure+'</div>'+
-        '<div style="display:flex;gap:5px;flex-wrap:wrap;font-size:10px;margin-top:5px">'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#3b82f6">回0.382 '+x.fib.retrace.r0_382.toLocaleString()+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#3b82f6">回0.5 '+x.fib.retrace.r0_500.toLocaleString()+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#3b82f6">回0.618 '+x.fib.retrace.r0_618.toLocaleString()+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#f97316">延1.236 '+x.fib.ext.e1_236.toLocaleString()+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#f97316">延1.382 '+x.fib.ext.e1_382.toLocaleString()+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#f97316">延1.618 '+x.fib.ext.e1_618.toLocaleString()+'</span>'+
-        '</div></div>';
+
+  // 數浪 tab
+  if(data.waveCounts){
+    let wh='';
+    data.waveCounts.forEach(x=>{
+      if(x.error){wh+='<div style="color:#dc2626;margin-bottom:14px"><b>'+x.name+'</b>：'+x.error+'</div>';return;}
+      wh+='<div style="margin-bottom:22px;padding:14px;border:1px solid #e2e8f0;border-radius:10px">';
+      wh+='<div style="font-weight:800;font-size:16px;color:#0f172a;margin-bottom:4px">'+x.name+' <span style="font-size:12px;color:#64748b;font-weight:500">現價 '+rD(x.price)+'</span></div>';
+      if(x.conclusion) wh+='<div style="font-size:12px;color:#334155;background:#eff6ff;padding:8px 10px;border-radius:6px;margin-bottom:10px;line-height:1.6">'+x.conclusion+'</div>';
+      const frames=['monthly','weekly','daily'];
+      const frameName={monthly:'月線（全期）',weekly:'周線（近5年）',daily:'日線（近180日）'};
+      frames.forEach(fk=>{
+        const f=x[fk]; if(!f) return;
+        const wcol=f.wave.position.includes('③')?'#16a34a':f.wave.position.includes('⑤')?'#16a34a':f.wave.position.includes('②')||f.wave.position.includes('④')?'#d97706':f.wave.position.includes('Ⓐ')?'#dc2626':'#64748b';
+        wh+='<div class="sec-title"><span class="tf-badge '+(fk==='weekly'?'wk':'')+'">'+frameName[fk]+'</span></div>';
+        wh+='<div style="font-size:13px;font-weight:700;color:'+wcol+';margin-bottom:2px">現處：'+f.wave.position+'</div>';
+        wh+='<div style="font-size:11px;color:#475569;margin-bottom:8px">'+f.wave.detail+(f.wave.lastPivot?('　最近轉折點：'+f.wave.lastPivot):'')+'</div>';
+        if(f.pivots&&f.pivots.length){
+          wh+='<div style="font-size:11px;color:#64748b;margin-bottom:3px">轉折點：</div><div style="font-size:11px;margin-bottom:8px">';
+          f.pivots.forEach(p=>{ wh+='<span style="display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;margin:2px">'+p.label+' '+p.price+' ('+p.date+')</span> '; });
+          wh+='</div>';
+        }
+        if(f.rules){
+          if(f.rules.passes.length){ wh+='<div style="font-size:11px;color:#16a34a">'+f.rules.passes.join('　')+'</div>'; }
+          if(f.rules.issues.length){ wh+='<div style="font-size:11px;color:#dc2626">'+f.rules.issues.join('　')+'</div>'; }
+        }
+        if(f.fib&&f.fib.length){
+          wh+='<div style="font-size:11px;color:#64748b;margin:6px 0 3px">黃金比率目標（回調 0.382/0.5/0.618；延伸 1.236/1.382/1.618）：</div>';
+          f.fib.forEach(tg=>{
+            wh+='<div style="font-size:11px;margin-bottom:4px"><b>'+tg.wave+'</b> — '+tg.measure+'</div>';
+            if(tg.levels&&tg.levels.length){
+              wh+='<div style="font-size:11px;margin-bottom:6px">';
+              tg.levels.forEach(lv=>{ wh+='<span style="display:inline-block;background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;margin:2px;color:#0f172a">'+lv.r+' → '+lv.v+'</span> '; });
+              wh+='</div>';
+            }
+          });
+        }
+      });
+      if(x.caveat) wh+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;font-style:italic">'+x.caveat+'</div>';
+      wh+='</div>';
     });
-    document.getElementById('indexEtfBody').innerHTML=ieHTML||'<div style="color:#94a3b8">無指數ETF</div>';
+    document.getElementById('waveBody').innerHTML=wh;
   }
-  // Bidirectional strategy table
-  if(data.bidirectional){
-    let bh='';
-    data.bidirectional.forEach(b=>{
-      const sc=b.stance==='偏淡'?'#dc2626':b.stance==='偏好'?'#16a34a':'#94a3b8';
-      bh+='<tr class="clickable" onclick="showBidi(\''+b.ticker+'\')">'+
-        '<td style="font-weight:700;color:#2563eb;text-decoration:underline">'+(b.held?'📌 ':'')+b.ticker+'</td>'+
-        '<td class="c"><span style="background:'+sc+';color:#fff;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700">'+b.stance+'</span></td>'+
-        '<td class="c">'+(b.decel!==0?'<span class="'+dc(b.decel)+'">'+b.decel+'</span>':'—')+'</td>'+
-        '<td class="r" style="font-weight:600">$'+fmt(b.price)+'</td>'+
-        '<td style="font-size:11px;color:#475569;max-width:230px"><b style="color:#15803d">'+b.long.verdict+'</b><br><span style="color:#64748b">'+b.long.vehicle+'</span><br>'+b.long.entry+'</td>'+
-        '<td style="font-size:11px;color:#475569;max-width:230px"><b style="color:#b91c1c">'+b.short.verdict+'</b><br><span style="color:#64748b">'+b.short.vehicle+'</span><br>'+b.short.entry+'</td></tr>';
-    });
-    document.getElementById('bidiBody').innerHTML=bh;
-  }
-  // Recovery Timeline
-  if(data.portfolio&&data.portfolio.recoveryTimeline){
+
+  // 回本進度（組合頁）
+  if(data.portfolio && data.portfolio.recoveryTimeline){
     const rt=data.portfolio.recoveryTimeline;
     let recHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">';
     recHTML+='<div style="text-align:center;padding:10px;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe"><div style="font-size:20px;font-weight:700;color:#2563eb">'+(rt.dailyTargetHKD>0?'+':'')+'HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">每日目標</div></div>';
@@ -436,13 +472,11 @@ function render(data){
     recHTML+='<div style="text-align:center;padding:10px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a"><div style="font-size:20px;font-weight:700;color:#d97706">'+rt.daysElapsed+'天</div><div style="font-size:10px;color:#64748b;margin-top:2px">已過天數</div></div>';
     recHTML+='<div style="text-align:center;padding:10px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0"><div style="font-size:20px;font-weight:700;color:#16a34a">'+rt.progressPct+'%</div><div style="font-size:10px;color:#64748b;margin-top:2px">完成進度</div></div>';
     recHTML+='</div>';
-    // Progress bar
     recHTML+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#64748b">回本進度</span><span style="font-weight:700">'+rt.progressPct+'%</span></div>';
-    recHTML+='<div style="height:12px;background:#e2e8f0;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,rt.progressPct)+'%;background:linear-gradient(90deg,#3b82f6,#6366f1);border-radius:6px;transition:width 0.5s"></div></div></div>';
+    recHTML+='<div style="height:12px;background:#e2e8f0;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,rt.progressPct)+'%;background:linear-gradient(90deg,#3b82f6,#6366f1);border-radius:6px"></div></div></div>';
     recHTML+='<div style="font-size:11px;color:#64748b;text-align:center;padding-top:4px">差距：HKD $'+Math.abs(rt.gapHKD).toLocaleString()+' → 目標 HKD $'+rt.targetHKD.toLocaleString()+' (12月31日前) · 剩餘 '+rt.daysRemaining+' 交易日 · 每日需賺 +HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+' (約 +'+rt.monthlyTargetPct+'%/月)</div>';
-    // 今日達標與否
     const ts=rt.todayStatus;
-    if(ts&&!ts.error){
+    if(ts && !ts.error){
       const okc=ts.met?'#16a34a':'#dc2626';
       const okbg=ts.met?'#f0fdf4':'#fef2f2';
       recHTML+='<div style="margin-top:12px;padding:12px 14px;background:'+okbg+';border-radius:8px;border-left:4px solid '+okc+'">'+
@@ -462,6 +496,7 @@ function render(data){
     }
     document.getElementById('recoveryBody').innerHTML=recHTML;
   }
+
   renderTx();
 }
 function renderTx(){
@@ -489,12 +524,17 @@ function togglePrivacy(){
   if(privacyOn){zones.forEach(z=>z.classList.add('blurred'));btn.textContent='👁️ 顯示';btn.style.background='#2563eb'}
   else{zones.forEach(z=>z.classList.remove('blurred'));btn.textContent='🔒 隱藏持倉';btn.style.background='#64748b'}
 }
-const origLoad=loadData;
-loadData=async function(){await origLoad();};
-var origRender=render;
-render=function(d){lastData=d;origRender(d);};
 // Init: blur privacy zones on load (default hidden)
-document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.privacy-zone').forEach(z=>z.classList.add('blurred'))});
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.privacy-zone').forEach(z=>z.classList.add('blurred'));
+  // 事件委派：觀察名單 / 持倉 股票名點擊 → 4因子詳情
+  document.body.addEventListener('click',function(e){
+    const row=e.target.closest('[data-tk]');
+    if(row){ showDetail(row.getAttribute('data-tk'), lastData); }
+  });
+  // 恢復上次選擇嘅 tab
+  try{ const t=localStorage.getItem('qtab'); if(t) switchTab(t); }catch(e){}
+});
 loadData();setInterval(loadData,60000);
 </script>
 </body></html>
