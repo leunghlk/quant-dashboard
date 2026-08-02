@@ -55,7 +55,7 @@ tr:hover{background:#f8fafc}
 td.n{text-align:right;font-variant-numeric:tabular-nums}
 th.n{text-align:right}
 .blurred{filter:blur(5px);transition:filter .2s}
-.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;position:sticky;top:0;z-index:100;background:#f0f4f8;padding:8px 0;border-radius:0}
 .tab{background:#fff;border:1px solid #cbd5e1;color:#475569;padding:10px 22px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;transition:all .15s}
 .tab:hover{border-color:#2563eb;color:#2563eb}
 /* Colour 1: 組合 — blue */
@@ -99,7 +99,7 @@ th.n{text-align:right}
   <div id="dailyReportBody" style="padding:16px"></div></div>
   <div class="card"><div class="card-h"><span class="card-t">⚡ 即時活躍訊號</span><span style="font-size:11px;color:#64748b">BUY / SELL / SHORT — 按優先次序</span></div>
   <div id="dailyActionsBody" style="padding:16px"></div></div>
-  <div class="card"><div class="card-h"><span class="card-t">📋 部署監察</span><span style="font-size:11px;color:#64748b">造淡候選 / 觀望觸發條件</span></div>
+  <div class="card"><div class="card-h"><span class="card-t">📋 部署監察</span><span style="font-size:11px;color:#64748b">造好候選 / 造淡候選 / 觀望觸發條件</span></div>
   <div id="dailyWatchBody" style="padding:16px"></div></div>
 </div>
 
@@ -497,6 +497,57 @@ function render(data){
           wh+='<div style="font-size:11px;color:#475569;line-height:1.5">'+x.dailyWave+'</div>';
           wh+='</div>';
         }
+        // SVG 波浪圖
+        if(x.chartData && x.chartData.length>=3){
+          const cd=x.chartData;
+          const w=680,h=260,padL=50,padR=20,padT=20,padB=40;
+          const prices=cd.map(p=>p.l);
+          const minP=Math.min(...prices)*0.95, maxP=Math.max(...prices)*1.05;
+          const xStep=(w-padL-padR)/(cd.length-1);
+          const yPos=v=>padT+(1-(v-minP)/(maxP-minP))*(h-padT-padB);
+          const xPos=i=>padL+i*xStep;
+          // Build SVG
+          let svg='<div style="margin-top:12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px;overflow-x:auto">';
+          svg+='<div style="font-size:11px;font-weight:700;color:#0f172a;margin-bottom:6px">📈 波浪結構圖（月線 pivot）</div>';
+          svg+='<svg width="'+w+'" height="'+h+'" style="font-family:monospace">';
+          // Grid lines + Y axis labels
+          for(let g=0;g<=4;g++){
+            const v=minP+(maxP-minP)*g/4;
+            const y=yPos(v);
+            svg+='<line x1="'+padL+'" y1="'+y+'" x2="'+(w-padR)+'" y2="'+y+'" stroke="#f1f5f9" stroke-width="1"/>';
+            svg+='<text x="'+(padL-4)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#94a3b8">'+(v>=1000?Math.round(v).toLocaleString():v.toFixed(0))+'</text>';
+          }
+          // Connect pivots with line
+          let pathD='';
+          cd.forEach((p,i)=>{
+            const x=xPos(i), y=yPos(p.l);
+            pathD+=(i===0?'M':'L')+x+','+y+' ';
+          });
+          svg+='<path d="'+pathD+'" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,2"/>';
+          // Plot pivots
+          cd.forEach((p,i)=>{
+            const x=xPos(i), y=yPos(p.l);
+            const isH=p.t==='H';
+            const col=isH?'#dc2626':'#16a34a';
+            svg+='<circle cx="'+x+'" cy="'+y+'" r="4" fill="'+col+'" stroke="#fff" stroke-width="1.5"/>';
+            // Label above/below
+            const ly=isH?y-12:y+16;
+            svg+='<text x="'+x+'" y="'+ly+'" text-anchor="middle" font-size="10" font-weight="700" fill="'+col+'">'+p.n+'</text>';
+            // Price label
+            const py=isH?y-24:y+28;
+            svg+='<text x="'+x+'" y="'+py+'" text-anchor="middle" font-size="8" fill="#64748b">'+(p.l>=1000?Math.round(p.l).toLocaleString():p.l.toFixed(0))+'</text>';
+            // Date
+            svg+='<text x="'+x+'" y="'+(h-padB+14)+'" text-anchor="middle" font-size="8" fill="#94a3b8">'+p.d+'</text>';
+          });
+          // Current price marker
+          if(x.currentPrice){
+            const cy=yPos(x.currentPrice);
+            svg+='<line x1="'+padL+'" y1="'+cy+'" x2="'+(w-padR)+'" y2="'+cy+'" stroke="#7c3aed" stroke-width="1" stroke-dasharray="5,3" opacity="0.5"/>';
+            svg+='<text x="'+(w-padR-4)+'" y="'+(cy-4)+'" text-anchor="end" font-size="9" font-weight="700" fill="#7c3aed">現價 '+x.currentPrice.toLocaleString()+'</text>';
+          }
+          svg+='</svg></div>';
+          wh+=svg;
+        }
       } else {
         // 舊格式 fallback（auto count）
         if(x.conclusion) wh+='<div style="font-size:12px;color:#334155;background:#eff6ff;padding:8px 10px;border-radius:6px;margin-bottom:10px;line-height:1.6">'+x.conclusion+'</div>';
@@ -693,19 +744,36 @@ function renderDailyReport(data){
     ab.innerHTML=ah;
   }
 
-  // 部署監察 — 觀望名單 + 到價提示
+  // 部署監察 — 造好候選 + 造淡候選 + 觀望觸發
   const wb=document.getElementById('dailyWatchBody');
   if(wb){
     let wh='<div style="font-size:12px;line-height:1.7">';
+    // 造好候選
+    if(data.bidirectional){
+      const longs=data.bidirectional.filter(b=>b.stance==='偏好'&&!data.portfolio?.positions?.[b.ticker]);
+      if(longs.length>0){
+        wh+='<div style="font-weight:700;margin-bottom:4px;color:#16a34a">🟢 造好候選（'+longs.length+'隻）</div>';
+        longs.forEach(b=>{
+          wh+='<div style="padding:4px 0;border-bottom:1px solid #f1f5f9">';
+          wh+='<span style="font-weight:600;color:#16a34a">'+b.ticker+'</span> Score='+Math.round(b.score*100)+' Decel='+b.decel;
+          if(b.long&&b.long.entry)wh+='<div style="font-size:10px;color:#16a34a;padding-left:12px">▶ '+b.long.entry.substring(0,80)+'</div>';
+          if(b.long&&b.long.vehicle)wh+='<div style="font-size:10px;color:#64748b;padding-left:12px">工具：'+b.long.vehicle+'</div>';
+          wh+='</div>';
+        });
+      } else {
+        wh+='<div style="font-weight:700;margin-bottom:4px;color:#94a3b8">🟢 造好候選：暫無</div>';
+      }
+    }
     // 觀望名單（留意轉向）
     if(data.bidirectional){
       const watch=data.bidirectional.filter(b=>b.stance==='觀望');
       if(watch.length>0){
-        wh+='<div style="font-weight:700;margin-bottom:4px">🟡 觀望名單（'+watch.length+'隻，留意轉向）</div>';
+        wh+='<div style="font-weight:700;margin:10px 0 4px;color:#d97706">🟡 觀望名單（'+watch.length+'隻，留意轉向）</div>';
         watch.forEach(b=>{
           wh+='<div style="padding:4px 0;border-bottom:1px solid #f1f5f9">';
           wh+='<span style="font-weight:600">'+b.ticker+'</span> Score='+Math.round(b.score*100)+' Decel='+b.decel;
-          if(b.long&&b.long.trigger)wh+='<div style="font-size:10px;color:#64748b;padding-left:12px">▶ '+b.long.trigger.substring(0,80)+'</div>';
+          if(b.long&&b.long.trigger)wh+='<div style="font-size:10px;color:#64748b;padding-left:12px">▶ 轉好：'+b.long.trigger.substring(0,80)+'</div>';
+          if(b.short&&b.short.trigger)wh+='<div style="font-size:10px;color:#64748b;padding-left:12px">▶ 轉淡：'+b.short.trigger.substring(0,80)+'</div>';
           wh+='</div>';
         });
       }
