@@ -78,13 +78,25 @@ th.n{text-align:right}
 <div class="alert-banner" id="alertBanner"></div>
 
 <div class="tabs">
-  <button class="tab active" id="tabBtn-portfolio" onclick="switchTab('portfolio')">💼 組合</button>
+  <button class="tab active" id="tabBtn-daily" onclick="switchTab('daily')">📊 每日戰報</button>
+  <button class="tab" id="tabBtn-portfolio" onclick="switchTab('portfolio')">💼 組合</button>
   <button class="tab" id="tabBtn-strategy" onclick="switchTab('strategy')">🎯 策略</button>
   <button class="tab" id="tabBtn-wave" onclick="switchTab('wave')">🌊 數浪</button>
+  <button class="tab" id="tabBtn-monthly" onclick="switchTab('monthly')">📅 月度再平衡</button>
+</div>
+
+<!-- ═══════════ 每日戰報 PANE (DEFAULT) ═══════════ -->
+<div class="pane active" id="pane-daily">
+  <div class="card"><div class="card-h"><span class="card-t">📊 每日戰報</span><span id="dailyReportTs" style="font-size:11px;color:#94a3b8"></span></div>
+  <div id="dailyReportBody" style="padding:16px"></div></div>
+  <div class="card"><div class="card-h"><span class="card-t">⚡ 今日活躍訊號</span><span style="font-size:11px;color:#64748b">BUY / SELL / SHORT</span></div>
+  <div id="dailyActionsBody" style="padding:16px"></div></div>
+  <div class="card"><div class="card-h"><span class="card-t">📋 明日關注</span><span style="font-size:11px;color:#64748b">到價提示 / 觸發條件</span></div>
+  <div id="dailyWatchBody" style="padding:16px"></div></div>
 </div>
 
 <!-- ═══════════ 組合 PANE ═══════════ -->
-<div class="pane active" id="pane-portfolio">
+<div class="pane" id="pane-portfolio">
   <div class="card privacy-zone"><div class="grid" id="summaryGrid"></div></div>
   <div class="card privacy-zone"><div class="card-h"><span class="card-t">📅 回本進度</span><span style="font-size:11px;color:#64748b">每日目標追蹤</span></div>
   <div id="recoveryBody" style="padding:16px"></div></div>
@@ -127,16 +139,24 @@ th.n{text-align:right}
   <div id="waveBody" style="padding:16px"></div></div>
 </div>
 
-<div style="text-align:center;color:#94a3b8;font-size:11px;padding:8px">Kathy Leung 梁凱菱 · 四因子量化模型 · 動量減速規則：≥-1 可買入 · ≤-3 須沽出</div>
+<!-- ═══════════ 月度再平衡 PANE ═══════════ -->
+<div class="pane" id="pane-monthly">
+  <div class="card"><div class="card-h"><span class="card-t">📅 月度再平衡</span><span style="font-size:11px;color:#64748b">每月1-3號自動執行</span></div>
+  <div id="monthlyBody" style="padding:16px"></div></div>
+</div>
+
+<div style="text-align:center;color:#94a3b8;font-size:11px;padding:8px">leungkathy · 四因子量化模型 · 動量減速規則：≥-1 可買入 · ≤-3 須沽出</div>
 </div>
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
 <div class="modal" id="modalContent"></div>
 </div>
 <script>
 function switchTab(name){
-  ['portfolio','strategy','wave'].forEach(n=>{
-    document.getElementById('pane-'+n).classList.toggle('active',n===name);
-    document.getElementById('tabBtn-'+n).classList.toggle('active',n===name);
+  ['daily','portfolio','strategy','wave','monthly'].forEach(n=>{
+    const p=document.getElementById('pane-'+n);
+    const t=document.getElementById('tabBtn-'+n);
+    if(p)p.classList.toggle('active',n===name);
+    if(t)t.classList.toggle('active',n===name);
   });
   try{localStorage.setItem('qtab',name)}catch(e){}
   window.scrollTo(0,0);
@@ -153,7 +173,7 @@ function dc(d){if(d<=-3)return'decel decel-ex';if(d<=-2)return'decel decel-d';if
 async function loadData(){
   document.getElementById('refresh').disabled=true;
   document.getElementById('refresh').textContent='⏳ 載入中...';
-  try{const r=await fetch(API);const d=await r.json();render(d);
+  try{const r=await fetch(API);const d=await r.json();lastData=d;render(d);
     document.getElementById('lastUpdate').textContent='更新: '+new Date(d.timestamp).toLocaleTimeString('zh-HK');
   }catch(e){document.getElementById('lastUpdate').textContent='❌ '+e.message}
   document.getElementById('refresh').disabled=false;
@@ -319,10 +339,15 @@ function render(data){
     document.getElementById('indexEtfBody').innerHTML=ieHTML||'<div style="color:#94a3b8">無指數ETF</div>';
   }
 
-  // ④⑤⑥ 觀察名單三張表
+  // ④⑤⑥ 觀察名單三張表 — 按對應方向最佳選擇排序
   const longs=[],shorts=[],neutrals=[];
   data.bidirectional.forEach(b=>{ if(b.stance==='偏好')longs.push(b); else if(b.stance==='偏淡')shorts.push(b); else neutrals.push(b); });
-  shorts.sort((a,b)=>a.decel-b.decel);
+  // 造好：按 Score 降序（最高分排最前）
+  longs.sort((a,b)=>b.score-a.score);
+  // 造淡：按 Decel 升序（最負=最有造淡價值排最前），同分再按 1M 跌幅
+  shorts.sort((a,b)=>a.decel-b.decel||a.m1m-b.m1m);
+  // 觀望：按 Score 降序（最接近造好門檻排最前）
+  neutrals.sort((a,b)=>b.score-a.score);
   const listRow=(b,kind)=>{
     const held=p.positions[b.ticker]?'📌 ':'';
     let lastCell;
@@ -435,7 +460,7 @@ function render(data){
         // pivots
         if(x.pivots && x.pivots.length){
           wh+='<div style="font-size:11px;color:#64748b;margin-bottom:3px;font-weight:700">轉折點（月內高低，非收市價）：</div><div style="font-size:11px;margin-bottom:10px">';
-          x.pivots.forEach(p=>{ wh+='<span style="display:inline-block;background:'+(p.type==='H'?'#fef2f2':'#f0fdf4')+';border:1px solid '+(p.type==='H'?'#fecaca':'#bbf7d0')+';padding:3px 8px;border-radius:4px;margin:2px">'+p.label+' <b>'+p.price.toLocaleString()+'</b> ('+p.date+')</span> '; });
+          x.pivots.forEach(p=>{ wh+='<span style="display:inline-block;background:'+(p.type==='H'?'#fef2f2':'#f0fdf4')+';border:1px solid '+(p.type==='H'?'#fecaca':'#bbf7d0')+';padding:3px 8px;border-radius:4px;margin:2px">'+p.label+' <b>'+p.price.toLocaleString()+'</b> ('+p.date+')'+(p.note?' <span style="font-size:9px;color:#94a3b8">'+p.note+'</span>':'')+'</span> '; });
           wh+='</div>';
         }
         // rules
@@ -449,12 +474,20 @@ function render(data){
           wh+='<div style="font-size:11px;color:#64748b;margin:8px 0 3px;font-weight:700">黃金比率目標（回調 0.382/0.5/0.618；延伸 1.236/1.382/1.618）：</div>';
           x.currentWaveTargets.forEach(tg=>{
             wh+='<div style="font-size:11px;margin-bottom:4px;color:#334155"><b>'+tg.wave+'</b></div>';
+            if(tg.measure) wh+='<div style="font-size:10px;color:#94a3b8;margin-bottom:2px">量度：'+tg.measure+'</div>';
             if(tg.levels && tg.levels.length){
               wh+='<div style="font-size:11px;margin-bottom:6px">';
               tg.levels.forEach(lv=>{ wh+='<span style="display:inline-block;background:#fffbeb;border:1px solid #fde68a;padding:2px 8px;border-radius:4px;margin:2px;color:#0f172a;font-weight:600">'+lv.r+' → '+lv.v+'</span> '; });
               wh+='</div>';
             }
           });
+        }
+        // 日線微浪
+        if(x.dailyWave){
+          wh+='<div style="margin-top:10px;padding:8px 10px;background:#f8fafc;border-radius:6px;border-left:3px solid #6366f1">';
+          wh+='<div style="font-size:11px;font-weight:700;color:#6366f1;margin-bottom:4px">🔍 日線微浪</div>';
+          wh+='<div style="font-size:11px;color:#475569;line-height:1.5">'+x.dailyWave+'</div>';
+          wh+='</div>';
         }
       } else {
         // 舊格式 fallback（auto count）
@@ -530,6 +563,8 @@ function render(data){
     document.getElementById('recoveryBody').innerHTML=recHTML;
   }
 
+  renderDailyReport(data);
+  renderMonthly(data);
   renderTx();
 }
 function renderTx(){
@@ -548,6 +583,194 @@ function renderTx(){
   });
   document.getElementById('txBody').innerHTML=html;
 }
+
+// ═══ 每日戰報渲染 ═══
+function renderDailyReport(data){
+  const ts=document.getElementById('dailyReportTs');
+  if(ts)ts.textContent='更新: '+new Date(data.timestamp).toLocaleString('zh-HK');
+  const body=document.getElementById('dailyReportBody');
+  if(!body)return;
+
+  let h='<div style="font-size:13px;line-height:1.8">';
+  // 組合概況
+  const p=data.portfolio||{};
+  h+='<div style="padding:12px;background:#eff6ff;border-radius:8px;margin-bottom:12px">';
+  h+='<div style="font-weight:700;font-size:14px;margin-bottom:6px">💼 組合概況</div>';
+  h+='<div>總值 HKD $'+(p.totalValueHKD||0).toLocaleString()+' (USD $'+fmt(p.totalValue)+') · 現金 USD $'+fmt(p.cash)+'</div>';
+  const rt=p.recoveryTimeline||{};
+  const ts2=rt.todayStatus||{};
+  if(ts2&&!ts2.error){
+    h+='<div style="margin-top:4px">'+(ts2.met?'✅':'❌')+' 今日'+(ts2.met?'達標':'未達標')+' · 組合值 HKD $'+(ts2.valueHKD||0).toLocaleString()+' vs 目標 HKD $'+(ts2.targetHKD||0).toLocaleString()+' ('+ts2.shortfallText+')</div>';
+    h+='<div style="margin-top:2px">累計達標 '+ts2.metDays+'/'+ts2.totalDays+' 日 ('+ts2.metRate+'%)</div>';
+  }
+  h+='</div>';
+
+  // 持倉表現
+  if(p.positions){
+    h+='<div style="font-weight:700;font-size:14px;margin-bottom:6px">📂 持倉表現</div>';
+    for(const[t,pos]of Object.entries(p.positions)){
+      const pnlCol=pos.pnl>=0?'#16a34a':'#dc2626';
+      h+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9">';
+      h+='<span style="font-weight:600">'+t+' '+pos.shares+'股@$'+fmt(pos.cost)+'</span>';
+      h+='<span>現價 $'+fmt(pos.price)+' · <span style="color:'+pnlCol+';font-weight:700">'+(pos.pnl>=0?'+':'')+'$'+fmt(pos.pnl)+' ('+fmt(pos.pnlPct,1)+'%)</span></span>';
+      h+='</div>';
+    }
+  }
+
+  // 大盤形勢
+  if(data.marketRegime){
+    h+='<div style="margin-top:12px;padding:10px;background:'+(data.marketRegime.regime==='risk-off'?'#fef2f2':data.marketRegime.regime==='risk-on'?'#f0fdf4':'#fffbeb')+';border-radius:8px">';
+    h+='<div style="font-weight:700;font-size:13px">🌍 大盤：'+(data.marketRegime.regime||'—')+'</div>';
+    h+='<div style="font-size:12px;color:#475569;margin-top:4px">'+(data.marketRegime.summary||'')+'</div>';
+    h+='</div>';
+  }
+
+  // 指數概覽
+  if(data.techAnalysis){
+    h+='<div style="margin-top:12px;font-weight:700;font-size:14px">📈 指數</div>';
+    for(const[idx,t]of Object.entries(data.techAnalysis)){
+      h+='<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px">';
+      h+='<span>'+(t.name||idx)+' '+rD(t.price)+'</span>';
+      h+='<span style="color:'+(t.action.includes('造好')?'#16a34a':t.action.includes('造淡')?'#dc2626':'#94a3b8')+'">'+t.action+'</span>';
+      h+='</div>';
+    }
+  }
+  h+='</div>';
+  body.innerHTML=h;
+
+  // 今日活躍訊號
+  const ab=document.getElementById('dailyActionsBody');
+  if(ab&&data.actionStrategy){
+    let ah='';
+    const acts=data.actionStrategy.actions||[];
+    if(acts.length===0){
+      ah='<div style="color:#94a3b8;text-align:center;padding:12px">暫無活躍訊號</div>';
+    }else{
+      acts.forEach(a=>{
+        const col=a.type==='BUY'?'#16a34a':a.type==='SELL'?'#dc2626':'#b91c1c';
+        ah+='<div style="padding:8px 10px;margin-bottom:6px;border-left:4px solid '+col+';background:#f8fafc;border-radius:6px">';
+        ah+='<div style="font-weight:700;color:'+col+'">'+a.type+' '+a.ticker+' <span style="font-size:12px;color:#64748b">'+(a.vehicle||'')+'</span></div>';
+        ah+='<div style="font-size:11px;color:#475569;margin-top:2px">'+a.reason+'</div>';
+        if(a.timing)ah+='<div style="font-size:11px;color:#64748b;margin-top:2px">⏰ '+a.timing+'</div>';
+        if(a.stopLoss)ah+='<div style="font-size:11px;color:#dc2626;margin-top:2px">🛑 止蝕 '+a.stopLoss+'</div>';
+        ah+='</div>';
+      });
+    }
+    ah+='<div style="font-size:11px;color:#94a3b8;margin-top:8px">'+data.actionStrategy.summary+'</div>';
+    ab.innerHTML=ah;
+  }
+
+  // 明日關注
+  const wb=document.getElementById('dailyWatchBody');
+  if(wb){
+    let wh='<div style="font-size:12px;line-height:1.7">';
+    // 造淡機會
+    const ss=data.shortSignals||[];
+    if(ss.length>0){
+      wh+='<div style="font-weight:700;margin-bottom:4px">🔴 造淡機會（'+ss.length+'隻）</div>';
+      ss.slice(0,5).forEach(s=>{
+        const st=s.strategy||{};
+        wh+='<div style="padding:4px 0;border-bottom:1px solid #f1f5f9">';
+        wh+='<span style="font-weight:600">'+s.ticker+'</span> Decel='+s.decel+' 1M='+Math.round(s.m1m*100)+'% 5D='+Math.round(s.m5d*100)+'% → ';
+        wh+='<span style="color:#dc2626;font-weight:600">'+s.shortETF+'('+s.leverage+')</span>';
+        if(st.entry)wh+=' · '+st.entry;
+        wh+='</div>';
+      });
+    }
+    // 到價提示
+    if(data.bidirectional){
+      const watch=data.bidirectional.filter(b=>b.stance==='觀望').slice(0,3);
+      if(watch.length>0){
+        wh+='<div style="font-weight:700;margin:8px 0 4px">🟡 觀望名單（留意轉向）</div>';
+        watch.forEach(b=>{
+          wh+='<div style="padding:3px 0"><span style="font-weight:600">'+b.ticker+'</span> Score='+Math.round(b.score*100)+' Decel='+b.decel;
+          if(b.long&&b.long.trigger)wh+=' · 觸發：'+b.long.trigger.substring(0,50);
+          wh+='</div>';
+        });
+      }
+    }
+    wh+='</div>';
+    wb.innerHTML=wh;
+  }
+}
+
+// ═══ 月度再平衡渲染 ═══
+function renderMonthly(data){
+  const body=document.getElementById('monthlyBody');
+  if(!body)return;
+  const stocks=data.watchlist||[];
+  const shortS=data.shortSignals||[];
+  const bidi=data.bidirectional||[];
+
+  let h='<div style="font-size:12px;color:#64748b;margin-bottom:12px">每月1-3號自動執行。系統全面重新評分所有觀察名單股票，根據四因子評分及動量減速覆蓋決定買入/賣出/造淡。</div>';
+
+  // 再平衡規則
+  h+='<div style="padding:10px;background:#f8fafc;border-radius:8px;margin-bottom:14px">';
+  h+='<div style="font-weight:700;font-size:13px;margin-bottom:6px">📋 再平衡規則</div>';
+  h+='<div style="font-size:11px;line-height:1.7">';
+  h+='1. Score≥0.55 + Decel≥-1 → 買入（等權部署）<br>';
+  h+='2. Decel≤-3 → 強制沽出（動量崩塌覆蓋）<br>';
+  h+='3. Decel≤-3 且非持倉 → 造淡機會（反向ETF）<br>';
+  h+='4. 持倉但 Score<0.55 → 續持不加碼<br>';
+  h+='5. 分注策略：首注30% → 確認後20% → 保留20%應急';
+  h+='</div></div>';
+
+  // 當前評分總覽
+  h+='<div style="font-weight:700;font-size:14px;margin-bottom:8px">📊 當前評分總覽（'+stocks.length+'隻）</div>';
+  h+='<table style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:14px">';
+  h+='<thead><tr style="border-bottom:2px solid #e2e8f0"><th style="text-align:left;padding:4px">股票</th><th>信號</th><th>Score</th><th>Decel</th><th>現價</th><th>1M</th><th>5D</th><th>建議</th></tr></thead><tbody>';
+  stocks.sort((a,b)=>b.score-a.score).forEach(s=>{
+    const action=s.decel<=-3?'🔴 造淡':s.score>=0.55?'🟢 造好':'🟡 觀望';
+    const actCol=s.decel<=-3?'#dc2626':s.score>=0.55?'#16a34a':'#d97706';
+    h+='<tr style="border-bottom:1px solid #f1f5f9"><td style="font-weight:600;padding:4px">'+(data.portfolio&&data.portfolio.positions&&data.portfolio.positions[s.ticker]?'📌 ':'')+s.ticker+'</td>';
+    h+='<td style="text-align:center"><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td>';
+    h+='<td style="text-align:center;font-weight:700">'+Math.round(s.score*100)+'</td>';
+    h+='<td style="text-align:center">'+(s.decel!==0?'<span class="'+dc(s.decel)+'">'+s.decel+'</span>':'—')+'</td>';
+    h+='<td style="text-align:right">$'+fmt(s.price)+'</td>';
+    h+='<td style="text-align:right;color:'+cv(s.m1m)+'">'+(s.m1m*100).toFixed(1)+'%</td>';
+    h+='<td style="text-align:right;color:'+cv(s.m5d)+'">'+(s.m5d*100).toFixed(1)+'%</td>';
+    h+='<td style="text-align:center;color:'+actCol+';font-weight:600">'+action+'</td></tr>';
+  });
+  h+='</tbody></table>';
+
+  // 持倉檢視
+  h+='<div style="font-weight:700;font-size:14px;margin-bottom:8px">📂 持倉檢視</div>';
+  const held=stocks.filter(s=>data.portfolio&&data.portfolio.positions&&data.portfolio.positions[s.ticker]);
+  if(held.length===0){
+    h+='<div style="color:#94a3b8;padding:8px">暫無持倉</div>';
+  }else{
+    held.forEach(s=>{
+      const pos=data.portfolio.positions[s.ticker];
+      h+='<div style="padding:8px 10px;margin-bottom:6px;border-radius:6px;background:'+(s.decel<=-3?'#fef2f2':'#f0fdf4')+'">';
+      h+='<span style="font-weight:700">'+s.ticker+'</span> '+pos.shares+'股 · Score='+Math.round(s.score*100)+' Decel='+s.decel;
+      h+='<span style="float:right;font-weight:700;color:'+(s.decel<=-3?'#dc2626':'#16a34a')+'">'+(s.decel<=-3?'建議沽出':'繼續持有')+'</span>';
+      h+='</div>';
+    });
+  }
+
+  // 造淡候選
+  h+='<div style="font-weight:700;font-size:14px;margin:14px 0 8px">🔴 造淡候選（按潛力排序）</div>';
+  if(shortS.length===0){
+    h+='<div style="color:#94a3b8;padding:8px">暫無造淡候選</div>';
+  }else{
+    shortS.forEach(s=>{
+      const st=s.strategy||{};
+      h+='<div style="padding:6px 0;border-bottom:1px solid #f1f5f9">';
+      h+='<span style="font-weight:600">'+s.ticker+'</span> Decel='+s.decel+' → <span style="color:#dc2626;font-weight:600">'+s.shortETF+'('+s.leverage+')</span>';
+      if(st.entry)h+=' · '+st.entry;
+      h+='</div>';
+    });
+  }
+
+  // 下次再平衡
+  h+='<div style="margin-top:14px;padding:10px;background:#eff6ff;border-radius:8px;text-align:center">';
+  h+='<div style="font-size:12px;color:#64748b">下次自動再平衡</div>';
+  h+='<div style="font-size:16px;font-weight:700;color:#2563eb;margin-top:4px">每月 1-3 號 09:00 HKT</div>';
+  h+='</div>';
+
+  body.innerHTML=h;
+}
+
 let lastData={};
 let privacyOn=true;
 function togglePrivacy(){
@@ -565,8 +788,8 @@ document.addEventListener('DOMContentLoaded',function(){
     const row=e.target.closest('[data-tk]');
     if(row){ showDetail(row.getAttribute('data-tk'), lastData); }
   });
-  // 恢復上次選擇嘅 tab
-  try{ const t=localStorage.getItem('qtab'); if(t) switchTab(t); }catch(e){}
+  // 每次開 dashboard 都預設「每日戰報」
+  switchTab('daily');
 });
 loadData();setInterval(loadData,60000);
 </script>
