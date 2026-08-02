@@ -420,43 +420,76 @@ function render(data){
     document.getElementById('elnBody').innerHTML=elnHTML;
   }
 
-  // 數浪 tab
+  // 數浪 tab — 手動 CFA 數浪 format
   if(data.waveCounts){
     let wh='';
     data.waveCounts.forEach(x=>{
       if(x.error){wh+='<div style="color:#dc2626;margin-bottom:14px"><b>'+x.name+'</b>：'+x.error+'</div>';return;}
       wh+='<div style="margin-bottom:22px;padding:14px;border:1px solid #e2e8f0;border-radius:10px">';
-      wh+='<div style="font-weight:800;font-size:16px;color:#0f172a;margin-bottom:4px">'+x.name+' <span style="font-size:12px;color:#64748b;font-weight:500">現價 '+rD(x.price)+'</span></div>';
-      if(x.conclusion) wh+='<div style="font-size:12px;color:#334155;background:#eff6ff;padding:8px 10px;border-radius:6px;margin-bottom:10px;line-height:1.6">'+x.conclusion+'</div>';
-      const frames=['monthly','weekly','daily'];
-      const frameName={monthly:'月線（全期）',weekly:'周線（近5年）',daily:'日線（近180日）'};
-      frames.forEach(fk=>{
-        const f=x[fk]; if(!f) return;
-        const wcol=f.wave.position.includes('③')?'#16a34a':f.wave.position.includes('⑤')?'#16a34a':f.wave.position.includes('②')||f.wave.position.includes('④')?'#d97706':f.wave.position.includes('Ⓐ')?'#dc2626':'#64748b';
-        wh+='<div class="sec-title"><span class="tf-badge '+(fk==='weekly'?'wk':'')+'">'+frameName[fk]+'</span></div>';
-        wh+='<div style="font-size:13px;font-weight:700;color:'+wcol+';margin-bottom:2px">現處：'+f.wave.position+'</div>';
-        wh+='<div style="font-size:11px;color:#475569;margin-bottom:8px">'+f.wave.detail+(f.wave.lastPivot?('　最近轉折點：'+f.wave.lastPivot):'')+'</div>';
-        if(f.pivots&&f.pivots.length){
-          wh+='<div style="font-size:11px;color:#64748b;margin-bottom:3px">轉折點：</div><div style="font-size:11px;margin-bottom:8px">';
-          f.pivots.forEach(p=>{ wh+='<span style="display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;margin:2px">'+p.label+' '+p.price+' ('+p.date+')</span> '; });
+      wh+='<div style="font-weight:800;font-size:16px;color:#0f172a;margin-bottom:4px">'+x.name+' <span style="font-size:12px;color:#64748b;font-weight:500">現價 '+rD(x.currentPrice)+'</span></div>';
+      // 手動數浪格式（MANUAL_WAVE_COUNTS）
+      if(x.position && x.pivots && x.currentWaveTargets){
+        const wcol = x.position.includes('O4')||x.position.includes('(2)') ? '#d97706' : x.position.includes('O3')||x.position.includes('O5') ? '#16a34a' : '#64748b';
+        wh+='<div style="font-size:14px;font-weight:800;color:'+wcol+';margin-bottom:4px">📍 現處：'+x.position+'</div>';
+        wh+='<div style="font-size:12px;color:#475569;margin-bottom:10px;line-height:1.6">'+x.positionDetail+'</div>';
+        // pivots
+        if(x.pivots && x.pivots.length){
+          wh+='<div style="font-size:11px;color:#64748b;margin-bottom:3px;font-weight:700">轉折點（月內高低，非收市價）：</div><div style="font-size:11px;margin-bottom:10px">';
+          x.pivots.forEach(p=>{ wh+='<span style="display:inline-block;background:'+(p.type==='H'?'#fef2f2':'#f0fdf4')+';border:1px solid '+(p.type==='H'?'#fecaca':'#bbf7d0')+';padding:3px 8px;border-radius:4px;margin:2px">'+p.label+' <b>'+p.price.toLocaleString()+'</b> ('+p.date+')</span> '; });
           wh+='</div>';
         }
-        if(f.rules){
-          if(f.rules.passes.length){ wh+='<div style="font-size:11px;color:#16a34a">'+f.rules.passes.join('　')+'</div>'; }
-          if(f.rules.issues.length){ wh+='<div style="font-size:11px;color:#dc2626">'+f.rules.issues.join('　')+'</div>'; }
+        // rules
+        if(x.rules){
+          if(x.rules.passes && x.rules.passes.length){ wh+='<div style="font-size:11px;color:#16a34a;margin-bottom:4px;line-height:1.5">'+x.rules.passes.join('<br>')+'</div>'; }
+          if(x.rules.issues && x.rules.issues.length){ wh+='<div style="font-size:11px;color:#dc2626;margin-bottom:6px;line-height:1.5">'+x.rules.issues.join('<br>')+'</div>'; }
+          if(x.rules.valid !== undefined){ wh+='<div style="font-size:11px;font-weight:700;color:'+(x.rules.valid?'#16a34a':'#dc2626')+';margin-bottom:8px">'+(x.rules.valid?'✅ 三鐵律檢驗通過':'❌ 鐵律有違反')+'</div>'; }
         }
-        if(f.fib&&f.fib.length){
-          wh+='<div style="font-size:11px;color:#64748b;margin:6px 0 3px">黃金比率目標（回調 0.382/0.5/0.618；延伸 1.236/1.382/1.618）：</div>';
-          f.fib.forEach(tg=>{
-            wh+='<div style="font-size:11px;margin-bottom:4px"><b>'+tg.wave+'</b> — '+tg.measure+'</div>';
-            if(tg.levels&&tg.levels.length){
+        // targets
+        if(x.currentWaveTargets && x.currentWaveTargets.length){
+          wh+='<div style="font-size:11px;color:#64748b;margin:8px 0 3px;font-weight:700">黃金比率目標（回調 0.382/0.5/0.618；延伸 1.236/1.382/1.618）：</div>';
+          x.currentWaveTargets.forEach(tg=>{
+            wh+='<div style="font-size:11px;margin-bottom:4px;color:#334155"><b>'+tg.wave+'</b></div>';
+            if(tg.levels && tg.levels.length){
               wh+='<div style="font-size:11px;margin-bottom:6px">';
-              tg.levels.forEach(lv=>{ wh+='<span style="display:inline-block;background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;margin:2px;color:#0f172a">'+lv.r+' → '+lv.v+'</span> '; });
+              tg.levels.forEach(lv=>{ wh+='<span style="display:inline-block;background:#fffbeb;border:1px solid #fde68a;padding:2px 8px;border-radius:4px;margin:2px;color:#0f172a;font-weight:600">'+lv.r+' → '+lv.v+'</span> '; });
               wh+='</div>';
             }
           });
         }
-      });
+      } else {
+        // 舊格式 fallback（auto count）
+        if(x.conclusion) wh+='<div style="font-size:12px;color:#334155;background:#eff6ff;padding:8px 10px;border-radius:6px;margin-bottom:10px;line-height:1.6">'+x.conclusion+'</div>';
+        const frames=['monthly','weekly','daily'];
+        const frameName={monthly:'月線（全期）',weekly:'周線（近5年）',daily:'日線（近180日）'};
+        frames.forEach(fk=>{
+          const f=x[fk]; if(!f) return;
+          const wcol=f.wave.position.includes('③')?'#16a34a':f.wave.position.includes('⑤')?'#16a34a':f.wave.position.includes('②')||f.wave.position.includes('④')?'#d97706':f.wave.position.includes('Ⓐ')?'#dc2626':'#64748b';
+          wh+='<div class="sec-title"><span class="tf-badge '+(fk==='weekly'?'wk':'')+'">'+frameName[fk]+'</span></div>';
+          wh+='<div style="font-size:13px;font-weight:700;color:'+wcol+';margin-bottom:2px">現處：'+f.wave.position+'</div>';
+          wh+='<div style="font-size:11px;color:#475569;margin-bottom:8px">'+f.wave.detail+(f.wave.lastPivot?('　最近轉折點：'+f.wave.lastPivot):'')+'</div>';
+          if(f.pivots&&f.pivots.length){
+            wh+='<div style="font-size:11px;color:#64748b;margin-bottom:3px">轉折點：</div><div style="font-size:11px;margin-bottom:8px">';
+            f.pivots.forEach(p=>{ wh+='<span style="display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;margin:2px">'+p.label+' '+p.price+' ('+p.date+')</span> '; });
+            wh+='</div>';
+          }
+          if(f.rules){
+            if(f.rules.passes.length){ wh+='<div style="font-size:11px;color:#16a34a">'+f.rules.passes.join('　')+'</div>'; }
+            if(f.rules.issues.length){ wh+='<div style="font-size:11px;color:#dc2626">'+f.rules.issues.join('　')+'</div>'; }
+          }
+          if(f.fib&&f.fib.length){
+            wh+='<div style="font-size:11px;color:#64748b;margin:6px 0 3px">黃金比率目標：</div>';
+            f.fib.forEach(tg=>{
+              wh+='<div style="font-size:11px;margin-bottom:4px"><b>'+tg.wave+'</b> — '+tg.measure+'</div>';
+              if(tg.levels&&tg.levels.length){
+                wh+='<div style="font-size:11px;margin-bottom:6px">';
+                tg.levels.forEach(lv=>{ wh+='<span style="display:inline-block;background:#fff;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;margin:2px;color:#0f172a">'+lv.r+' → '+lv.v+'</span> '; });
+                wh+='</div>';
+              }
+            });
+          }
+        });
+      }
+      if(x.conclusion) wh+='<div style="font-size:12px;color:#334155;background:#eff6ff;padding:8px 10px;border-radius:6px;margin-top:10px;line-height:1.6">'+x.conclusion+'</div>';
       if(x.caveat) wh+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;font-style:italic">'+x.caveat+'</div>';
       wh+='</div>';
     });
