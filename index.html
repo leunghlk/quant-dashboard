@@ -772,7 +772,7 @@ function renderDailyReport(data){
       const longs=data.bidirectional.filter(b=>b.stance==='偏好'&&!data.portfolio?.positions?.[b.ticker]);
       if(longs.length>0){
         wh+='<div style="font-weight:700;margin-bottom:4px;color:#16a34a">🟢 造好候選（'+longs.length+'隻）</div>';
-        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse"><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>工具 / 入場</th></tr>';
+        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th style="text-align:left">工具 / 入場</th></tr>';
         longs.forEach(b=>{
           wh+='<tr style="border-bottom:1px solid #f1f5f9"><td style="font-weight:600;color:#16a34a;padding:4px 3px">'+b.ticker+'</td>'+
             '<td>'+Math.round(b.score*100)+'</td><td>'+b.decel+'</td>'+
@@ -788,7 +788,7 @@ function renderDailyReport(data){
       const watch=data.bidirectional.filter(b=>b.stance==='觀望');
       if(watch.length>0){
         wh+='<div style="font-weight:700;margin:10px 0 4px;color:#d97706">🟡 觀望名單（'+watch.length+'隻，留意轉向）</div>';
-        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse"><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>轉好 / 轉淡觸發</th></tr>';
+        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th style="text-align:left">轉好 / 轉淡觸發</th></tr>';
         watch.forEach(b=>{
           const trig=[];
           if(b.long&&b.long.trigger)trig.push('轉好：'+b.long.trigger.substring(0,50));
@@ -805,7 +805,7 @@ function renderDailyReport(data){
       const shorts=data.bidirectional.filter(b=>b.stance==='偏淡'&&!data.portfolio?.positions?.[b.ticker]);
       if(shorts.length>0){
         wh+='<div style="font-weight:700;margin:10px 0 4px;color:#dc2626">🔴 造淡候選（'+shorts.length+'隻）</div>';
-        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse"><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>工具 / 入場</th></tr>';
+        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th style="text-align:left">工具 / 入場</th></tr>';
         shorts.forEach(b=>{
           const etf=(b.short&&b.short.vehicle)||'SOXS/SQQQ';
           wh+='<tr style="border-bottom:1px solid #f1f5f9"><td style="font-weight:600;color:#dc2626;padding:4px 3px">'+b.ticker+'</td>'+
