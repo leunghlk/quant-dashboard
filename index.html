@@ -747,8 +747,8 @@ function renderDailyReport(data){
         const tierCol=s.priority<=2?'#dc2626':s.priority<=5?'#f97316':'#94a3b8';
         ah+='<div style="padding:8px 10px;margin-bottom:6px;border-left:4px solid '+tierCol+';background:'+(s.priority<=2?'#fef2f2':'#fffbeb')+';border-radius:6px">';
         ah+='<div style="display:flex;justify-content:space-between;align-items:center">';
-        ah+='<span style="font-weight:700;color:'+tierCol+'">②'+s.priority+' '+s.ticker+' <span style="font-size:11px;color:#64748b">'+s.budgetTier+'</span></span>';
-        ah+='<span style="font-size:11px;color:#64748b">Decel='+s.decel+' · 1M '+Math.round(s.m1m*100)+'% · 5D '+Math.round(s.m5d*100)+'%</span>';
+        ah+='<div style="flex:1"><span style="font-weight:700;color:'+tierCol+'">🔴造淡#'+s.priority+' '+s.ticker+'</span> <span style="font-size:11px;color:#64748b">'+s.budgetTier+'</span></div>';
+        ah+='<div style="font-size:11px;color:#64748b;text-align:right">Decel='+s.decel+' · 1M '+Math.round(s.m1m*100)+'% · 5D '+Math.round(s.m5d*100)+'%</div>';
         ah+='</div>';
         ah+='<div style="font-size:11px;margin-top:4px">🛠️ '+s.shortETF+' ('+s.leverage+') · '+(s.strategy?s.strategy.entry:'現價可入')+'</div>';
         ah+='<div style="font-size:11px;margin-top:2px">🛑 '+(s.strategy?s.strategy.stopLoss:'ETF跌15%止蝕')+'</div>';
@@ -772,13 +772,13 @@ function renderDailyReport(data){
       const longs=data.bidirectional.filter(b=>b.stance==='偏好'&&!data.portfolio?.positions?.[b.ticker]);
       if(longs.length>0){
         wh+='<div style="font-weight:700;margin-bottom:4px;color:#16a34a">🟢 造好候選（'+longs.length+'隻）</div>';
+        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse"><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>工具 / 入場</th></tr>';
         longs.forEach(b=>{
-          wh+='<div style="padding:4px 0;border-bottom:1px solid #f1f5f9">';
-          wh+='<span style="font-weight:600;color:#16a34a">'+b.ticker+'</span> Score='+Math.round(b.score*100)+' Decel='+b.decel;
-          if(b.long&&b.long.entry)wh+='<div style="font-size:10px;color:#16a34a;padding-left:12px">▶ '+b.long.entry.substring(0,80)+'</div>';
-          if(b.long&&b.long.vehicle)wh+='<div style="font-size:10px;color:#64748b;padding-left:12px">工具：'+b.long.vehicle+'</div>';
-          wh+='</div>';
+          wh+='<tr style="border-bottom:1px solid #f1f5f9"><td style="font-weight:600;color:#16a34a;padding:4px 3px">'+b.ticker+'</td>'+
+            '<td>'+Math.round(b.score*100)+'</td><td>'+b.decel+'</td>'+
+            '<td style="font-size:10px;color:#475569">'+((b.long&&b.long.vehicle)?b.long.vehicle:'—')+(b.long&&b.long.entry?'<br>'+b.long.entry.substring(0,60):'')+'</td></tr>';
         });
+        wh+='</table>';
       } else {
         wh+='<div style="font-weight:700;margin-bottom:4px;color:#94a3b8">🟢 造好候選：暫無</div>';
       }
@@ -788,13 +788,31 @@ function renderDailyReport(data){
       const watch=data.bidirectional.filter(b=>b.stance==='觀望');
       if(watch.length>0){
         wh+='<div style="font-weight:700;margin:10px 0 4px;color:#d97706">🟡 觀望名單（'+watch.length+'隻，留意轉向）</div>';
+        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse"><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>轉好 / 轉淡觸發</th></tr>';
         watch.forEach(b=>{
-          wh+='<div style="padding:4px 0;border-bottom:1px solid #f1f5f9">';
-          wh+='<span style="font-weight:600">'+b.ticker+'</span> Score='+Math.round(b.score*100)+' Decel='+b.decel;
-          if(b.long&&b.long.trigger)wh+='<div style="font-size:10px;color:#64748b;padding-left:12px">▶ 轉好：'+b.long.trigger.substring(0,80)+'</div>';
-          if(b.short&&b.short.trigger)wh+='<div style="font-size:10px;color:#64748b;padding-left:12px">▶ 轉淡：'+b.short.trigger.substring(0,80)+'</div>';
-          wh+='</div>';
+          const trig=[];
+          if(b.long&&b.long.trigger)trig.push('轉好：'+b.long.trigger.substring(0,50));
+          if(b.short&&b.short.trigger)trig.push('轉淡：'+b.short.trigger.substring(0,50));
+          wh+='<tr style="border-bottom:1px solid #f1f5f9"><td style="font-weight:600;padding:4px 3px">'+b.ticker+'</td>'+
+            '<td>'+Math.round(b.score*100)+'</td><td>'+b.decel+'</td>'+
+            '<td style="font-size:10px;color:#475569">'+trig.join('<br>')+'</td></tr>';
         });
+        wh+='</table>';
+      }
+    }
+    // 造淡候選（觀察名單 — 偏淡）
+    if(data.bidirectional){
+      const shorts=data.bidirectional.filter(b=>b.stance==='偏淡'&&!data.portfolio?.positions?.[b.ticker]);
+      if(shorts.length>0){
+        wh+='<div style="font-weight:700;margin:10px 0 4px;color:#dc2626">🔴 造淡候選（'+shorts.length+'隻）</div>';
+        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse"><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>工具 / 入場</th></tr>';
+        shorts.forEach(b=>{
+          const etf=(b.short&&b.short.vehicle)||'SOXS/SQQQ';
+          wh+='<tr style="border-bottom:1px solid #f1f5f9"><td style="font-weight:600;color:#dc2626;padding:4px 3px">'+b.ticker+'</td>'+
+            '<td>'+Math.round(b.score*100)+'</td><td>'+b.decel+'</td>'+
+            '<td style="font-size:10px;color:#475569">'+etf+(b.short&&b.short.entry?'<br>'+b.short.entry.substring(0,60):'')+'</td></tr>';
+        });
+        wh+='</table>';
       }
     }
     wh+='</div>';
@@ -912,7 +930,7 @@ function renderMonthly(data){
     shortS.forEach(s=>{
       const tierCol=s.priority<=2?'#dc2626':s.priority<=5?'#f97316':'#94a3b8';
       h+='<div style="padding:8px 10px;margin-bottom:6px;border-left:4px solid '+tierCol+';background:'+(s.priority<=2?'#fef2f2':'#fffbeb')+';border-radius:6px">';
-      h+='<div style="font-size:12px"><span style="font-weight:700;color:'+tierCol+'">②'+s.priority+' '+s.ticker+'</span> <span style="font-size:10px;color:#64748b">'+s.budgetTier+'</span></div>';
+      h+='<div style="font-size:12px"><span style="font-weight:700;color:'+tierCol+'">🔴造淡#'+s.priority+' '+s.ticker+'</span> <span style="font-size:10px;color:#64748b">'+s.budgetTier+'</span></div>';
       h+='<div style="font-size:11px;margin-top:2px">Decel='+s.decel+' 1M='+Math.round(s.m1m*100)+'% 5D='+Math.round(s.m5d*100)+'% → '+s.shortETF+'('+s.leverage+') · '+(s.strategy?s.strategy.entry:'')+'</div>';
       h+='</div>';
     });
