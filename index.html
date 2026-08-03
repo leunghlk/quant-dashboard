@@ -101,6 +101,8 @@ th.n{text-align:right}
   <div id="dailyActionsBody" style="padding:16px"></div></div>
   <div class="card"><div class="card-h"><span class="card-t">📋 部署監察</span><span style="font-size:11px;color:#64748b">造好候選 / 造淡候選 / 觀望觸發條件</span></div>
   <div id="dailyWatchBody" style="padding:16px"></div></div>
+  <div class="card"><div class="card-h"><span class="card-t">📅 業績日曆</span><span style="font-size:11px;color:#64748b">每隻 watchlist 股票 · 績前風險評估</span></div>
+  <div id="earningsCalendarBody" style="padding:16px"></div></div>
 </div>
 
 <!-- ═══════════ 組合 PANE ═══════════ -->
@@ -739,20 +741,45 @@ function renderDailyReport(data){
       });
     }
 
-    // SHORT section — priority ranked
+    // SHORT section — priority ranked with full verification
     if(shorts.length>0){
       ah+='<div style="font-weight:700;font-size:13px;margin:12px 0 6px;color:#b91c1c">🔴 造淡候選（'+shorts.length+'隻，按優先次序）</div>';
       ah+='<div style="font-size:10px;color:#94a3b8;margin-bottom:8px">預算 USD $'+Math.round(data.portfolio?.cash||0)+' ｜ 建議：首2隻各注 ~$200，第3-5隻候補</div>';
       shorts.forEach(s=>{
         const tierCol=s.priority<=2?'#dc2626':s.priority<=5?'#f97316':'#94a3b8';
-        ah+='<div style="padding:8px 10px;margin-bottom:6px;border-left:4px solid '+tierCol+';background:'+(s.priority<=2?'#fef2f2':'#fffbeb')+';border-radius:6px">';
+        // Earnings badge color
+        const earnRiskCol = s.earnings && s.earnings.risk==='極高' ? '#dc2626' : s.earnings && s.earnings.risk==='高' ? '#f97316' : '#94a3b8';
+        const earnBadgeHTML = s.earnings && s.earnings.daysUntil > 0
+          ? '<span style="display:inline-block;font-size:10px;padding:1px 6px;background:'+earnRiskCol+'20;color:'+earnRiskCol+';border-radius:4px;margin-left:6px;font-weight:600">📅業績 '+s.earnings.dateLabel+' '+s.earnings.daysUntil+'日['+s.earnings.risk+']</span>'
+          : '';
+        // Value rating badge
+        const vrCol = s.strategy && s.strategy.valueRating
+          ? (s.strategy.valueRating.includes('高')&&!s.strategy.valueRating.includes('低') ? '#16a34a'
+            : s.strategy.valueRating.includes('中高') ? '#0891b2'
+            : s.strategy.valueRating.includes('極低')||s.strategy.valueRating.includes('⛔') ? '#dc2626'
+            : s.strategy.valueRating.includes('低') ? '#f97316' : '#64748b')
+          : '#64748b';
+        const vrBadgeHTML = s.strategy && s.strategy.riskReward
+          ? '<span style="display:inline-block;font-size:10px;padding:1px 6px;background:'+vrCol+'15;color:'+vrCol+';border-radius:4px;margin-left:6px;font-weight:600">R:R 1:'+s.strategy.riskReward+' ['+s.strategy.valueRating+']</span>'
+          : '';
+        ah+='<div style="padding:10px;margin-bottom:8px;border-left:4px solid '+tierCol+';background:'+(s.priority<=2?'#fef2f2':'#fffbeb')+';border-radius:6px">';
         ah+='<div style="display:flex;justify-content:space-between;align-items:center">';
-        ah+='<div style="flex:1"><span style="font-weight:700;color:'+tierCol+'">🔴造淡#'+s.priority+' '+s.ticker+'</span> <span style="font-size:11px;color:#64748b">'+s.budgetTier+'</span></div>';
-        ah+='<div style="font-size:11px;color:#64748b;text-align:right">Decel='+s.decel+' · 1M '+Math.round(s.m1m*100)+'% · 5D '+Math.round(s.m5d*100)+'%</div>';
+        ah+='<div style="flex:1"><span style="font-weight:700;color:'+tierCol+'">🔴造淡#'+s.priority+' '+s.ticker+'</span> <span style="font-size:11px;color:#64748b">'+s.budgetTier+'</span>'+earnBadgeHTML+vrBadgeHTML+'</div>';
+        ah+='<div style="font-size:11px;color:#64748b;text-align:right">Decel='+s.decel+' · 1M '+Math.round(s.m1m*100)+'% · 5D '+Math.round(s.m5d*100)+'% · 現價$'+rD(s.price)+'</div>';
         ah+='</div>';
+        // Entry + ETF
         ah+='<div style="font-size:11px;margin-top:4px">🛠️ '+s.shortETF+' ('+s.leverage+') · '+(s.strategy?s.strategy.entry:'現價可入')+'</div>';
-        ah+='<div style="font-size:11px;margin-top:2px">🛑 '+(s.strategy?s.strategy.stopLoss:'ETF跌15%止蝕')+'</div>';
-        ah+='<div style="font-size:10px;color:#94a3b8;margin-top:2px">⚠️ '+s.holdThreshold+'</div>';
+        // Stop loss + take profit with specific prices
+        ah+='<div style="font-size:11px;margin-top:3px">🛑 止蝕：'+(s.strategy?s.strategy.stopLoss:'ETF跌15%止蝕')+'</div>';
+        ah+='<div style="font-size:11px;margin-top:2px">🎯 目標：'+(s.strategy?s.strategy.takeProfit:'Decel回升至≥-1離場')+'</div>';
+        // Sizing
+        ah+='<div style="font-size:11px;margin-top:2px">💰 倉位：'+(s.strategy?s.strategy.sizing:'預算30%')+'</div>';
+        // Hold threshold
+        ah+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">⚠️ '+s.holdThreshold+'</div>';
+        // Earnings warning if present
+        if(s.earnings && s.earnings.warning) {
+          ah+='<div style="font-size:10px;color:'+earnRiskCol+';margin-top:3px;font-weight:600">'+s.earnings.warning+'</div>';
+        }
         ah+='</div>';
       });
     }
@@ -819,6 +846,88 @@ function renderDailyReport(data){
     wh+='</div>';
     wb.innerHTML=wh;
   }
+
+  // === EARNINGS CALENDAR (2026-08-03: Kathy 要求每隻都顯示業績日期+風險) ===
+  const ec=document.getElementById('earningsCalendarBody');
+  if(ec && data.watchlist){
+    // Build earnings calendar from all watchlist stocks
+    const earnList=[];
+    for(const s of data.watchlist){
+      const e=getEarningsInfoJS(s.ticker, s.price);
+      if(e) earnList.push({...e, ticker:s.ticker, decel:s.decel, signal:s.signal});
+    }
+    // Sort by days until earnings
+    earnList.sort((a,b)=>a.daysUntil-b.daysUntil);
+    
+    if(earnList.length===0){
+      ec.innerHTML='<div style="color:#94a3b8;text-align:center;padding:12px">暫無即將公布業績的股票</div>';
+    } else {
+      let eh='<div style="font-size:11px;line-height:1.6">';
+      eh+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="border-bottom:2px solid #e2e8f0">'+
+        '<th style="text-align:left;padding:4px 6px">股票</th>'+
+        '<th style="text-align:center;padding:4px">業績日期</th>'+
+        '<th style="text-align:center;padding:4px">時間</th>'+
+        '<th style="text-align:center;padding:4px">日數</th>'+
+        '<th style="text-align:center;padding:4px">風險</th>'+
+        '<th style="text-align:left;padding:4px 6px">建議</th>'+
+        '</tr></thead><tbody>';
+      for(const e of earnList){
+        const riskCol = e.risk==='極高'?'#dc2626':e.risk==='高'?'#f97316':e.risk==='中'?'#d97706':e.risk==='低'?'#16a34a':'#94a3b8';
+        const riskBg = e.risk==='極高'?'#fef2f2':e.risk==='高'?'#fffbeb':e.risk==='中'?'#fffbeb':'#f0fdf4';
+        const advise = e.risk==='極高'?'⛔ 不宜新建倉位'
+          : e.risk==='高'?'⚠️ 控制倉位，嚴守止蝕'
+          : e.risk==='中'?'🟡 留意績前波動'
+          : '✅ 業績仍遠，正常操作';
+        eh+='<tr style="border-bottom:1px solid #f1f5f9;background:'+riskBg+'">'+
+          '<td style="font-weight:700;padding:4px 6px">'+e.ticker+'</td>'+
+          '<td style="text-align:center;padding:4px">'+e.dateLabel+'</td>'+
+          '<td style="text-align:center;padding:4px;color:#64748b">'+e.timingLabel+'</td>'+
+          '<td style="text-align:center;padding:4px;font-weight:600;color:'+riskCol+'">'+(e.daysUntil>0?e.daysUntil+'日':e.daysUntil===0?'今日':'已過')+'</td>'+
+          '<td style="text-align:center;padding:4px"><span style="display:inline-block;padding:1px 8px;border-radius:4px;color:'+riskCol+';font-weight:700;font-size:10px">'+e.risk+'</span></td>'+
+          '<td style="padding:4px 6px;color:#475569">'+advise+'</td>'+
+          '</tr>';
+      }
+      eh+='</tbody></table></div>';
+      // Summary line
+      const imminent = earnList.filter(e=>e.daysUntil>0 && e.daysUntil<=7);
+      if(imminent.length>0){
+        eh+='<div style="margin-top:8px;padding:8px 10px;background:#fef2f2;border-radius:6px;font-size:11px;color:#dc2626;font-weight:600">'+
+          '⚠️ 未來7日有 '+imminent.length+' 隻出業績：'+imminent.map(e=>e.ticker+'('+e.daysUntil+'日)').join('、')+
+          ' — 績前波動大，不宜重倉</div>';
+      }
+      eh+='</div>';
+      ec.innerHTML=eh;
+    }
+  }
+}
+
+// Helper for frontend: earnings info lookup (mirrors server-side getEarningsInfo)
+function getEarningsInfoJS(ticker, price) {
+  const EARNINGS_JS = {
+    AMD:{date:'2026-08-04',timing:'AMC'},SNDK:{date:'2026-08-05',timing:'AMC'},DDOG:{date:'2026-08-06',timing:'BMO'},
+    AMAT:{date:'2026-08-13',timing:'AMC'},MRVL:{date:'2026-08-19',timing:'AMC'},WDAY:{date:'2026-08-20',timing:'AMC'},
+    DELL:{date:'2026-08-27',timing:'AMC'},CRDO:{date:'2026-09-02',timing:'AMC'},ADBE:{date:'2026-09-10',timing:'AMC'},
+    MU:{date:'2026-09-22',timing:'AMC'},LRCX:{date:'2026-10-21',timing:'AMC'},INTC:{date:'2026-10-22',timing:'AMC'},
+    GLW:{date:'2026-10-27',timing:'AMC'},BE:{date:'2026-10-27',timing:'AMC'},NOW:{date:'2026-10-28',timing:'AMC'},
+    KLAC:{date:'2026-10-28',timing:'AMC'},
+  };
+  const cal=EARNINGS_JS[ticker]; if(!cal) return null;
+  const now=new Date();
+  const earnDate=new Date(cal.date+'T23:59:59Z');
+  const daysUntil=Math.ceil((earnDate-now)/(1000*60*60*24));
+  if(daysUntil<-30) return null;
+  let risk='低';
+  if(daysUntil<=0) risk='已出';
+  else if(daysUntil<=3) risk='極高';
+  else if(daysUntil<=7) risk='高';
+  else if(daysUntil<=14) risk='中';
+  const d=new Date(cal.date);
+  return {
+    date:cal.date, timing:cal.timing,
+    dateLabel:(d.getMonth()+1)+'/'+d.getDate(),
+    timingLabel: cal.timing==='AMC'?'收市後':'開市前',
+    daysUntil, risk,
+  };
 }
 
 // ═══ 月度再平衡渲染 ═══
