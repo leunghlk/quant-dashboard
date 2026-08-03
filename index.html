@@ -324,6 +324,10 @@ function render(data){
     const mr=data.marketRegime;
     let rh='<div style="font-size:14px;font-weight:800;color:'+mr.regimeColor+';margin-bottom:10px;padding:10px 12px;background:'+mr.regimeColor+'15;border-radius:8px">'+mr.regime+'</div>';
     rh+='<div style="font-size:12px;color:#334155;line-height:1.7;margin-bottom:14px">'+mr.outlook+'</div>';
+    if(mr.trendAssessment){
+      rh+='<div style="margin-top:12px;padding:12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;white-space:pre-wrap;font-size:13px;line-height:1.6">'+mr.trendAssessment.replace(/**/g,'<b>').replace(/
+/g,'<br>')+'</div>';
+    }
     rh+='<div class="sec-title">驅動因素</div><table class="kv">';
     mr.drivers.forEach(d=>{
       rh+='<tr><td>'+d.label+'</td><td style="font-weight:700;color:#0f172a">'+d.value+'</td></tr><tr><td></td><td style="font-size:11px;color:#64748b;padding-bottom:6px">'+d.detail+'</td></tr>';
@@ -728,15 +732,35 @@ function renderDailyReport(data){
     const sells=acts.filter(a=>a.type==='SELL');
     const shorts=data.shortSignals||[];
 
-    // BUY/SELL section
+    // BUY/SELL section — with full verification for BUY
     if(buys.length>0||sells.length>0){
       ah+='<div style="font-weight:700;font-size:13px;margin-bottom:6px">持倉操作</div>';
       [...buys,...sells].forEach(a=>{
         const col=a.type==='BUY'?'#16a34a':'#dc2626';
-        ah+='<div style="padding:8px 10px;margin-bottom:6px;border-left:4px solid '+col+';background:#f8fafc;border-radius:6px">';
+        ah+='<div style="padding:10px;margin-bottom:8px;border-left:4px solid '+col+';background:'+(a.type==='BUY'?'#f0fdf4':'#fef2f2')+';border-radius:6px">';
         ah+='<div style="font-weight:700;color:'+col+'">'+a.type+' '+a.ticker+'</div>';
+        if(a.type==='BUY') ah+='<div style="display:inline-block;font-size:10px;padding:1px 6px;background:#dbeafe;color:#1e40af;border-radius:4px;margin-top:2px;margin-bottom:2px;font-weight:600">⏱️ 短線投機（幾日至一個月）</div>';
         ah+='<div style="font-size:11px;color:#475569">'+a.reason+'</div>';
-        if(a.timing)ah+='<div style="font-size:11px">⏰ '+a.timing+'</div>';
+        if(a.timing)ah+='<div style="font-size:11px;margin-top:2px">⏰ 入場：'+a.timing+'</div>';
+        // Full verification for BUY
+        if(a.type==='BUY' && a.strategy){
+          const ls=a.strategy;
+          const earnRiskCol = ls.earnRisk==='極高'?'#dc2626':ls.earnRisk==='高'?'#f97316':'#16a34a';
+          if(ls.earnings && ls.earnings.daysUntil>0){
+            ah+='<div style="display:inline-block;font-size:10px;padding:1px 6px;background:'+earnRiskCol+'20;color:'+earnRiskCol+';border-radius:4px;margin-top:3px;font-weight:600">📅業績 '+ls.earnings.dateLabel+' '+ls.earnings.daysUntil+'日['+ls.earnings.risk+']</div>';
+          }
+          const vrCol = ls.valueRating.includes('高')&&!ls.valueRating.includes('低')?'#16a34a':ls.valueRating.includes('中高')?'#0891b2':ls.valueRating.includes('極低')||ls.valueRating.includes('⛔')?'#dc2626':ls.valueRating.includes('低')?'#f97316':'#64748b';
+          ah+='<div style="display:inline-block;font-size:10px;padding:1px 6px;background:'+vrCol+'15;color:'+vrCol+';border-radius:4px;margin-top:3px;margin-left:6px;font-weight:600">R:R 1:'+ls.riskReward+' ['+ls.valueRating+']</div>';
+          ah+='<div style="font-size:11px;margin-top:3px">🛑 止蝕：'+ls.stopLoss+'</div>';
+          ah+='<div style="font-size:11px;margin-top:2px">🎯 目標：'+ls.takeProfit+'</div>';
+          ah+='<div style="font-size:11px;margin-top:2px">💰 倉位：'+ls.sizing+'</div>';
+          if(ls.earnings && ls.earnings.warning){
+            ah+='<div style="font-size:10px;color:'+earnRiskCol+';margin-top:3px;font-weight:600">'+ls.earnings.warning+'</div>';
+          }
+        }
+        if(a.type==='SELL') {
+          if(a.timing)ah+='<div style="font-size:11px;margin-top:2px">⏰ '+a.timing+'</div>';
+        }
         ah+='</div>';
       });
     }
@@ -764,7 +788,7 @@ function renderDailyReport(data){
           : '';
         ah+='<div style="padding:10px;margin-bottom:8px;border-left:4px solid '+tierCol+';background:'+(s.priority<=2?'#fef2f2':'#fffbeb')+';border-radius:6px">';
         ah+='<div style="display:flex;justify-content:space-between;align-items:center">';
-        ah+='<div style="flex:1"><span style="font-weight:700;color:'+tierCol+'">🔴造淡#'+s.priority+' '+s.ticker+'</span> <span style="font-size:11px;color:#64748b">'+s.budgetTier+'</span>'+earnBadgeHTML+vrBadgeHTML+'</div>';
+        ah+='<div style="flex:1"><span style="font-weight:700;color:'+tierCol+'">🔴造淡#'+s.priority+' '+s.ticker+'</span> <span style="font-size:11px;color:#64748b">'+s.budgetTier+'</span>'+earnBadgeHTML+vrBadgeHTML+' <span style="display:inline-block;font-size:10px;padding:1px 6px;background:#dbeafe;color:#1e40af;border-radius:4px;font-weight:600">⏱️ 短線投機（幾日至一個月）</span></div>';
         ah+='<div style="font-size:11px;color:#64748b;text-align:right">Decel='+s.decel+' · 1M '+Math.round(s.m1m*100)+'% · 5D '+Math.round(s.m5d*100)+'% · 現價$'+rD(s.price)+'</div>';
         ah+='</div>';
         // Entry + ETF
@@ -790,25 +814,50 @@ function renderDailyReport(data){
     ab.innerHTML=ah;
   }
 
+  // ⭐ topPick analysis box — appended to dailyActionsBody
+  if(ab && data.topPick){
+    const tp=data.topPick;
+    let tpHtml='<div style="margin-top:16px;padding:16px;background:linear-gradient(135deg,#dbeafe,#e0e7ff);border:2px solid #2563eb;border-radius:12px">';
+    tpHtml+='<div style="font-size:16px;font-weight:800;color:#1e40af;margin-bottom:8px">⭐ 當前最值得部署：'+(tp.direction==='造好'?'🟢':'🔴')+' '+tp.ticker+' @ $'+tp.price+'</div>';
+    if(tp.whyNow) tpHtml+='<div style="font-size:13px;color:#3730a3;margin-bottom:8px;white-space:pre-wrap">'+tp.whyNow.replace(/
+/g,'<br>')+'</div>';
+    if(tp.vsOthers) tpHtml+='<div style="font-size:12px;color:#6366f1;margin-bottom:8px"><b>對比其他候選：</b> '+tp.vsOthers+'</div>';
+    if(tp.recommendation) tpHtml+='<div style="font-size:13px;color:#1e3a8a;font-weight:600">'+tp.recommendation.replace(/
+/g,'<br>')+'</div>';
+    if(tp.timeframe) tpHtml+='<div style="font-size:11px;color:#64748b;margin-top:8px">⏱️ '+tp.timeframe+'</div>';
+    tpHtml+='</div>';
+    ab.innerHTML+=tpHtml;
+  }
+
   // 部署監察 — 造好候選 + 造淡候選 + 觀望觸發
   const wb=document.getElementById('dailyWatchBody');
   if(wb){
+    // Helper: compute status badge from entry timing text
+    const statusBadge=(timing)=>{
+      if(!timing) return '<span style="display:inline-block;font-size:10px;color:#94a3b8">—</span>';
+      if(timing.includes('現價可入')||timing.includes('現價限價單')) return '<span style="display:inline-block;font-size:10px;padding:1px 5px;background:#dcfce7;color:#16a34a;border-radius:4px;font-weight:700">✅可入</span>';
+      if(timing.includes('等回調')||timing.includes('勿追')||timing.includes('觀察')) return '<span style="display:inline-block;font-size:10px;padding:1px 5px;background:#fef3c7;color:#d97706;border-radius:4px;font-weight:700">⏳等候</span>';
+      if(timing.includes('⛔')) return '<span style="display:inline-block;font-size:10px;padding:1px 5px;background:#fef2f2;color:#dc2626;border-radius:4px;font-weight:700">🚫不宜</span>';
+      return '<span style="display:inline-block;font-size:10px;color:#94a3b8">—</span>';
+    };
     let wh='<div style="font-size:12px;line-height:1.7">';
     // 造好候選
     if(data.bidirectional){
       const longs=data.bidirectional.filter(b=>b.stance==='偏好'&&!data.portfolio?.positions?.[b.ticker]);
       if(longs.length>0){
         wh+='<div style="font-weight:700;margin-bottom:4px;color:#16a34a">🟢 造好候選（'+longs.length+'隻）</div>';
-        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col style="width:220px"></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th style="text-align:left">工具 / 入場</th></tr>';
+        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col style="width:40px"><col style="width:180px"></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>狀態</th><th style="text-align:left">工具 / 入場</th></tr>';
         longs.forEach(b=>{
+          const entry=(b.long&&b.long.entry)?b.long.entry:'';
           wh+='<tr style="border-bottom:1px solid #f1f5f9"><td style="font-weight:600;color:#16a34a;padding:4px 3px">'+b.ticker+'</td>'+
             '<td>'+Math.round(b.score*100)+'</td><td>'+b.decel+'</td>'+
-            '<td style="font-size:10px;color:#475569">'+((b.long&&b.long.vehicle)?b.long.vehicle:'—')+(b.long&&b.long.entry?'<br>'+b.long.entry.substring(0,60):'')+'</td></tr>';
+            '<td>'+statusBadge(entry)+'</td>'+
+            '<td style="font-size:10px;color:#475569">'+((b.long&&b.long.vehicle)?b.long.vehicle:'—')+(entry?'<br>'+entry.substring(0,60):'')+'</td></tr>';
         });
         wh+='</table>';
       } else {
         wh+='<div style="font-weight:700;margin-bottom:4px;color:#94a3b8">🟢 造好候選：暫無</div>';
-        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col style="width:220px"></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th style="text-align:left">工具 / 入場</th></tr></table>';
+        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col style="width:40px"><col style="width:180px"></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>狀態</th><th style="text-align:left">工具 / 入場</th></tr></table>';
       }
     }
     // 觀望名單（留意轉向）
@@ -816,13 +865,14 @@ function renderDailyReport(data){
       const watch=data.bidirectional.filter(b=>b.stance==='觀望');
       if(watch.length>0){
         wh+='<div style="font-weight:700;margin:10px 0 4px;color:#d97706">🟡 觀望名單（'+watch.length+'隻，留意轉向）</div>';
-        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col style="width:220px"></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th style="text-align:left">轉好 / 轉淡觸發</th></tr>';
+        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col style="width:40px"><col style="width:180px"></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>狀態</th><th style="text-align:left">轉好 / 轉淡觸發</th></tr>';
         watch.forEach(b=>{
           const trig=[];
           if(b.long&&b.long.trigger)trig.push('轉好：'+b.long.trigger.substring(0,50));
           if(b.short&&b.short.trigger)trig.push('轉淡：'+b.short.trigger.substring(0,50));
           wh+='<tr style="border-bottom:1px solid #f1f5f9"><td style="font-weight:600;padding:4px 3px">'+b.ticker+'</td>'+
             '<td>'+Math.round(b.score*100)+'</td><td>'+b.decel+'</td>'+
+            '<td>'+statusBadge(trig.join(' '))+'</td>'+
             '<td style="font-size:10px;color:#475569">'+trig.join('<br>')+'</td></tr>';
         });
         wh+='</table>';
@@ -833,12 +883,14 @@ function renderDailyReport(data){
       const shorts=data.bidirectional.filter(b=>b.stance==='偏淡'&&!data.portfolio?.positions?.[b.ticker]);
       if(shorts.length>0){
         wh+='<div style="font-weight:700;margin:10px 0 4px;color:#dc2626">🔴 造淡候選（'+shorts.length+'隻）</div>';
-        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col style="width:220px"></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th style="text-align:left">工具 / 入場</th></tr>';
+        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col style="width:40px"><col style="width:180px"></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>狀態</th><th style="text-align:left">工具 / 入場</th></tr>';
         shorts.forEach(b=>{
           const etf=(b.short&&b.short.vehicle)||'SOXS/SQQQ';
+          const entry=(b.short&&b.short.entry)?b.short.entry:'';
           wh+='<tr style="border-bottom:1px solid #f1f5f9"><td style="font-weight:600;color:#dc2626;padding:4px 3px">'+b.ticker+'</td>'+
             '<td>'+Math.round(b.score*100)+'</td><td>'+b.decel+'</td>'+
-            '<td style="font-size:10px;color:#475569">'+etf+(b.short&&b.short.entry?'<br>'+b.short.entry.substring(0,60):'')+'</td></tr>';
+            '<td>'+statusBadge(entry)+'</td>'+
+            '<td style="font-size:10px;color:#475569">'+etf+(entry?'<br>'+entry.substring(0,60):'')+'</td></tr>';
         });
         wh+='</table>';
       }
@@ -909,7 +961,9 @@ function getEarningsInfoJS(ticker, price) {
     DELL:{date:'2026-08-27',timing:'AMC'},CRDO:{date:'2026-09-02',timing:'AMC'},ADBE:{date:'2026-09-10',timing:'AMC'},
     MU:{date:'2026-09-22',timing:'AMC'},LRCX:{date:'2026-10-21',timing:'AMC'},INTC:{date:'2026-10-22',timing:'AMC'},
     GLW:{date:'2026-10-27',timing:'AMC'},BE:{date:'2026-10-27',timing:'AMC'},NOW:{date:'2026-10-28',timing:'AMC'},
-    KLAC:{date:'2026-10-28',timing:'AMC'},
+    KLAC:{date:'2026-10-28',timing:'AMC'},PANW:{date:'2026-08-17',timing:'AMC'},NVDA:{date:'2026-08-26',timing:'AMC'},
+    MSFT:{date:'2026-10-28',timing:'AMC'},GOOG:{date:'2026-10-28',timing:'AMC'},AMZN:{date:'2026-10-29',timing:'AMC'},
+    AAPL:{date:'2026-10-29',timing:'AMC'},
   };
   const cal=EARNINGS_JS[ticker]; if(!cal) return null;
   const now=new Date();
