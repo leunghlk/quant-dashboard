@@ -420,7 +420,7 @@ function render(data){
         '<tr><td style="padding:3px 8px;color:#22c55e;font-weight:600">S3 (底)</td><td class="n" style="color:#22c55e;font-weight:600">'+rD(t.levels.support3)+'</td></tr>'+
         '</table></div>'+
         '<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
-        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MACD</td><td class="n" style="font-size:12px">'+(ind.macd?ind.macd.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.macd.value+'</span>':'—')+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MACD</td><td class="n" style="font-size:12px">'+(ind.macd?ind.macd.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.macd.value+' · '+ind.macd.sign+' · '+ind.macd.polarity+'</span>':'—')+'</td></tr>'+
         '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MTM</td><td class="n" style="font-size:12px">'+(ind.mtm?ind.mtm.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.mtm.value+'</span>':'—')+'</td></tr>'+
         '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">KDJ</td><td class="n" style="font-size:12px">'+(ind.kdj?ind.kdj.signal+'<br><span style="font-size:10px;color:#94a3b8">J='+ind.kdj.j+' K='+ind.kdj.k+'</span>':'—')+'</td></tr>'+
         '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">RSI</td><td class="n" style="font-size:12px">'+(ind.rsi?ind.rsi.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.rsi.value+'</span>':'—')+'</td></tr>'+
