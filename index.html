@@ -99,6 +99,8 @@ th.n{text-align:right}
   <div id="dailyReportBody" style="padding:16px"></div></div>
   <div class="card"><div class="card-h"><span class="card-t">⚡ 即時活躍訊號</span><span style="font-size:11px;color:#64748b">BUY / SELL / SHORT — 按優先次序</span></div>
   <div id="dailyActionsBody" style="padding:16px"></div></div>
+  <div class="card"><div class="card-h"><span class="card-t">② 大盤形勢 — 美股環境與趨勢預期</span></div>
+  <div id="regimeBody" style="padding:16px"></div></div>
   <div class="card"><div class="card-h"><span class="card-t">📋 部署監察</span><span style="font-size:11px;color:#64748b">造好候選 / 造淡候選 / 觀望觸發條件</span></div>
   <div id="dailyWatchBody" style="padding:16px"></div></div>
   <div class="card"><div class="card-h"><span class="card-t">📅 業績日曆</span><span style="font-size:11px;color:#64748b">每隻 watchlist 股票 · 績前風險評估</span></div>
@@ -120,9 +122,6 @@ th.n{text-align:right}
 <div class="pane" id="pane-strategy">
   <div class="card"><div class="card-h"><span class="card-t">① 部署總覽 — 結論</span><span id="strategyTimestamp" style="font-size:11px;color:#94a3b8"></span></div>
   <div id="summaryBody" style="padding:16px"></div></div>
-
-  <div class="card"><div class="card-h"><span class="card-t">② 大盤形勢 — 美股環境與趨勢預期</span></div>
-  <div id="regimeBody" style="padding:16px"></div></div>
 
   <div class="card"><div class="card-h"><span class="card-t">③ 指數部署 — 費城半導體 · 納斯達克100期貨</span><span style="font-size:11px;color:#64748b">中線睇周線 · 短線睇日線</span></div>
   <div id="indexEtfBody" style="padding:16px"></div></div>
@@ -183,7 +182,7 @@ function dc(d){if(d<=-3)return'decel decel-ex';if(d<=-2)return'decel decel-d';if
 async function loadData(){
   document.getElementById('refresh').disabled=true;
   document.getElementById('refresh').textContent='⏳ 載入中...';
-  try{const r=await fetch(API);const d=await r.json();lastData=d;render(d);
+  try{const r=await fetch(API);const d=await r.json();lastData=d;render(d);checkPriceAlerts(d);
     document.getElementById('lastUpdate').textContent='更新: '+new Date(d.timestamp).toLocaleTimeString('zh-HK');
   }catch(e){document.getElementById('lastUpdate').textContent='❌ '+e.message}
   document.getElementById('refresh').disabled=false;
@@ -1161,5 +1160,44 @@ document.addEventListener('DOMContentLoaded',function(){
   switchTab('daily');
 });
 loadData();setInterval(loadData,60000);
+// ═══ PRICE ALERT SYSTEM ═══
+function checkPriceAlerts(data){
+  if(!data||!data.portfolio||!data.portfolio.positions)return;
+  var alerts=[];
+  var FUND_TARGETS={ADBE:270,DDOG:269};
+  var pos=data.portfolio.positions;
+  for(var t in pos){
+    var p=pos[t]; 
+    var stopLoss=p.cost*0.92;
+    var target=FUND_TARGETS[t]||p.cost*1.15;
+    if(p.price<=stopLoss){
+      alerts.push({type:'stop',ticker:t,price:p.price,stopLoss:stopLoss.toFixed(2),msg:'🔴 止蝕警報：'+t+' 現價 $'+p.price.toFixed(2)+' 已跌穿止蝕位 $'+stopLoss.toFixed(2)+' (-8%)！立即評估是否止蝕。'});
+    }
+    if(p.price>=target){
+      alerts.push({type:'target',ticker:t,price:p.price,target:target,msg:'🟢 到價警報：'+t+' 現價 $'+p.price.toFixed(2)+' 已到達目標價 $'+target+'！考慮減磅鎖利。'});
+    }
+  }
+  // Check Decel deterioration for held positions
+  if(data.watchlist){
+    data.watchlist.forEach(function(s){
+      if(pos[s.ticker]&&s.decel<=-3){
+        alerts.push({type:'decel',ticker:s.ticker,decel:s.decel,msg:'⚠️ 動量惡化：'+s.ticker+' Decel='+s.decel+' 已跌至-3或以下！建議止蝕離場。'});
+      }
+    });
+  }
+  // Show modal if any alerts
+  if(alerts.length>0){
+    var html='<div style="margin-bottom:12px;font-size:16px;font-weight:800;color:#dc2626">⚠️ 價格警報</div>';
+    alerts.forEach(function(a){
+      var bg=a.type==='target'?'#f0fdf4':'#fef2f2';
+      var border=a.type==='target'?'#16a34a':'#dc2626';
+      html+='<div style="padding:12px;margin-bottom:8px;background:'+bg+';border-left:4px solid '+border+';border-radius:6px;font-size:13px;line-height:1.6">'+a.msg+'</div>';
+    });
+    html+='<button onclick="closeModal()" style="margin-top:8px;width:100%;padding:10px;background:#64748b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">知道了</button>';
+    var mo=document.getElementById('modalOverlay');
+    var mc=document.getElementById('modalContent');
+    if(mo&&mc){mc.innerHTML=html;mo.style.display='flex';}
+  }
+}
 </script>
 </body></html>
