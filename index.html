@@ -162,8 +162,8 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
             <li><a class="mega-leaf" data-top="tech" data-sub="us" data-leaf="MAGS">七雄 ETF MAGS</a></li>
             <li><a class="mega-leaf" data-top="tech" data-sub="us" data-leaf="NQ=F">Nasdaq 100 期貨</a></li>
             <li><a class="mega-leaf" data-top="tech" data-sub="us" data-leaf="^SOX">費城半導體 SOX</a></li>
-            <li class="deferred"><span class="mega-leaf deferred">S&P 500 <em style="font-size:9px;opacity:.6;font-style:normal">(暫緩)</em></span></li>
-            <li class="deferred"><span class="mega-leaf deferred">Dow Jones <em style="font-size:9px;opacity:.6;font-style:normal">(暫緩)</em></span></li>
+            <li><a class="mega-leaf" data-top="tech" data-sub="us" data-leaf="^GSPC">S&P 500</a></li>
+            <li><a class="mega-leaf" data-top="tech" data-sub="us" data-leaf="^DJI">Dow Jones</a></li>
           </ul>
         </li>
         <li class="has-l3">
@@ -241,8 +241,6 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
     <div class="card-b" id="dailyReportBody"></div></div>
     <div class="card" id="sec-ov-actions"><div class="card-h"><span class="t"><span class="sec-num">⚡</span>即時活躍訊號</span><span class="meta">BUY / SELL / SHORT — 按優先次序</span></div>
     <div class="card-b" id="dailyActionsBody"></div></div>
-    <div class="card" id="sec-ov-watch"><div class="card-h"><span class="t"><span class="sec-num">📋</span>部署監察</span><span class="meta">造好候選 / 造淡候選 / 觀望觸發條件</span></div>
-    <div class="card-b" id="dailyWatchBody"></div></div>
   </section>
   <!-- 觀察名單 -->
   <section class="subview" data-sub="watchlist">
@@ -266,6 +264,8 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
     <div class="card tech-card" id="techCard-MAGS" data-idx="MAGS"></div>
     <div class="card tech-card" id="techCard-NQ=F" data-idx="NQ=F"></div>
     <div class="card tech-card" id="techCard-^SOX" data-idx="^SOX"></div>
+    <div class="card tech-card" id="techCard-^GSPC" data-idx="^GSPC"></div>
+    <div class="card tech-card" id="techCard-^DJI" data-idx="^DJI"></div>
   </section>
   <section class="subview" data-sub="hk">
     <div class="card tech-card" id="techCard-^HSI" data-idx="^HSI"></div>
@@ -376,10 +376,67 @@ function r2(v){return Math.round(v*100)/100}
 function rD(v){return (v>=1000)?Math.round(v).toLocaleString():((Math.round(v*100)/100).toLocaleString())}
 function cv(v){return v>=0?'#16a34a':'#dc2626'}
 function dc(d){if(d<=-3)return'decel decel-ex';if(d<=-2)return'decel decel-d';if(d<=-1)return'decel decel-c';return''}
+// ===== Live data overlay (local Futu bridge) — real-time prices + real HSTECH index =====
+const BRIDGE_SECRET='qtbridge-K7s2-wolf-9mX4';
+// Bridge URLs tried in order: ?bridge= param > localStorage.qbridge (tunnel URL) > localhost
+const BRIDGE_URLS=(function(){var p=new URLSearchParams(location.search).get('bridge');var ls;try{ls=localStorage.getItem('qbridge');}catch(e){}return [p,ls,'http://127.0.0.1:8765'].filter(Boolean);})();
+let activeBridge=null;
+async function detectBridge(){
+  for(const u of BRIDGE_URLS){
+    try{
+      const ctrl=new AbortController();const t=setTimeout(function(){ctrl.abort();},2500);
+      const r=await fetch(u+'/health',{signal:ctrl.signal});clearTimeout(t);
+      if(r.ok){activeBridge=u;try{document.getElementById('lastUpdate').textContent+=' · 🔴Futu';}catch(e){}return u;}
+    }catch(e){}
+  }
+  activeBridge=null;return null;
+}
+async function loadLiveData(){
+  if(!activeBridge){const b=await detectBridge();if(!b)return;}
+  const d=lastData;if(!d)return;
+  const ticks=new Set();
+  (d.watchlist||[]).forEach(function(w){ticks.add(w.ticker);});
+  (d.portfolio&&d.portfolio.positions?Object.keys(d.portfolio.positions):[]).forEach(function(t){ticks.add(t);});
+  ['MAGS','NQ=F','^SOX','^HSI','HSTECH'].forEach(function(t){ticks.add(t);});
+  try{
+    const r=await fetch(activeBridge+'/snapshot?codes='+encodeURIComponent([...ticks].join(','))+'&secret='+BRIDGE_SECRET);
+    const j=await r.json();
+    const map={};(j.data||[]).forEach(function(x){if(x&&!x.error)map[(x.orig||'').toUpperCase()]=x;});
+    applyLiveData(map);
+  }catch(e){/* bridge fetch failed — keep Worker (Yahoo) data */}
+}
+function liveBadge(sess){
+  const c={'盤中':'#16a34a','盤前':'#3b82f6','盤後':'#6366f1','夜盤':'#7c3aed','收市':'#64748b'}[sess]||'#64748b';
+  return '<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff;background:'+c+';margin-left:4px">'+(sess||'')+'</span>';
+}
+function applyLiveData(map){
+  // patch watchlist + position price cells (.lp)
+  document.querySelectorAll('tr[data-tk]').forEach(function(tr){
+    const s=map[(tr.getAttribute('data-tk')||'').toUpperCase()];if(!s)return;
+    const cell=tr.querySelector('.lp');if(!cell)return;
+    const price=(s.live_price!=null)?s.live_price:s.price;if(price==null)return;
+    const cur=(s.code&&s.code.indexOf('HK.')===0)?'HK$':'$';
+    cell.innerHTML=cur+fmt(price)+liveBadge(s.session);
+  });
+  // index live headers
+  document.querySelectorAll('[data-live]').forEach(function(el){
+    const s=map[(el.getAttribute('data-live')||'').toUpperCase()];if(!s)return;
+    const price=(s.live_price!=null)?s.live_price:s.price;if(price==null)return;
+    const disp=(price>=1000)?Math.round(price).toLocaleString():price;
+    const chg=(s.change_pct!=null)?((s.change_pct>=0?'+':'')+s.change_pct+'%'):'';
+    const chgCol=(s.change_pct==null)?'#64748b':(s.change_pct>=0?'#16a34a':'#dc2626');
+    el.innerHTML='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:10px;background:#ccfbf1;border-radius:8px;border:1px solid #5eead4">'+
+      '<div style="font-weight:800;font-size:15px;color:#115e59">'+(s.name||el.getAttribute('data-live'))+'</div>'+
+      '<div style="margin-left:auto;text-align:right"><div style="font-size:20px;font-weight:800;color:#0d9488">'+disp+'</div>'+
+      '<div style="font-size:11px;font-weight:700;color:'+chgCol+'">'+chg+'</div></div>'+
+      '<div>'+liveBadge(s.session)+'</div></div>';
+  });
+}
+
 async function loadData(){
   document.getElementById('refresh').disabled=true;
   document.getElementById('refresh').textContent='⏳ 載入中...';
-  try{const r=await fetch(API);const d=await r.json();lastData=d;render(d);checkPriceAlerts(d);
+  try{const r=await fetch(API);const d=await r.json();lastData=d;render(d);checkPriceAlerts(d);loadLiveData();
     document.getElementById('lastUpdate').textContent='更新: '+new Date(d.timestamp).toLocaleTimeString('zh-HK');
   }catch(e){document.getElementById('lastUpdate').textContent='❌ '+e.message}
   document.getElementById('refresh').disabled=false;
@@ -549,7 +606,7 @@ function renderPositions(data){
     return '<tr class="clickable" data-tk="'+t+'">'+
       '<td style="font-weight:700">'+t+'</td>'+
       '<td class="r">'+p.shares+'</td>'+
-      '<td class="r">$'+fmt(p.price)+'</td>'+
+      '<td class="r lp">$'+fmt(p.price)+'</td>'+
       '<td class="r '+pnlCls+'">'+(p.pnl>=0?'+':'')+'$'+fmt(p.pnl)+'('+fmt(p.pnlPct,1)+'%)</td>'+
       '<td class="c">'+(s?'<span class="'+dc(decel)+'">'+decel+'</span>':'—')+'</td>'+
       '<td>'+(s?'<span class="'+sigClass(sig)+'">'+sig+'</span>':'—')+'</td>'+
@@ -559,26 +616,105 @@ function renderPositions(data){
     '<div style="font-size:11px;color:#64748b;margin-top:10px;padding:8px 10px;background:#f8fafc;border-radius:6px">📌 <b>到價</b>＝考慮減磅鎖利（非轉弱）；<b>止蝕</b>＝-8% 跌破成本；<b>Decel≤-3</b>＝動量崩潮強制離場。點擊股票查看四因子拆解。</div>';
 }
 
+// ===== 大盤形勢：美股環境與趨勢預期 =====
+function renderRegime(data){
+  if(!data.marketRegime) return;
+  const mr=data.marketRegime;
+  let rh='<div style="font-size:14px;font-weight:800;color:'+mr.regimeColor+';margin-bottom:10px;padding:10px 12px;background:'+mr.regimeColor+'15;border-radius:8px">'+mr.regime+'</div>';
+  rh+='<div style="font-size:12px;color:#334155;line-height:1.7;margin-bottom:14px">'+mr.outlook+'</div>';
+  if(mr.trendAssessment){
+    rh+='<div style="margin-top:12px;padding:12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;white-space:pre-wrap;font-size:13px;line-height:1.6">'+mr.trendAssessment.split('**').join('<b>').split('\\n').join('<br>')+'</div>';
+  }
+  rh+='<div class="sec-title">驅動因素</div><table class="kv">';
+  mr.drivers.forEach(d=>{
+    rh+='<tr><td>'+d.label+'</td><td style="font-weight:700;color:#0f172a">'+d.value+'</td></tr><tr><td></td><td style="font-size:11px;color:#64748b;padding-bottom:6px">'+d.detail+'</td></tr>';
+  });
+  rh+='</table>';
+  // Sector-rotation verdict (full-market view, independent of the screened watchlist)
+  const sr=data.sectorRot||{};
+  if(sr.sectors && sr.sectors.length){
+    const spy=sr.sectors.find(x=>x.t==='SPY');
+    const lead=sr.sectors.filter(x=>x.cls==='leading').map(x=>x.n.split(' ')[0]);
+    const lag=sr.sectors.filter(x=>x.cls==='lagging').map(x=>x.n.split(' ')[0]);
+    const spyD20=spy?spy.d20:0;
+    let verdict;
+    if(lead.includes('科技') && lag.length) verdict='風險胃納回升 — 資金由防禦性板塊（'+lag.join('、')+'）輪動至進攻性板塊（'+lead.join('、')+'），利好大市延續升勢；短線科技已急升，留意獲利回吐。';
+    else if(lag.length && !lead.length) verdict='風險胃納收縮 — 領漲板塊缺位，防禦性板塊相對強，大市短線偏向整固／回調。';
+    else verdict='板塊輪動不明顯，大市處於好淡爭持階段。';
+    rh+='<div style="margin-top:12px;padding:11px 13px;background:#ecfdf5;border-left:4px solid #0d9488;border-radius:8px;font-size:12.5px;line-height:1.65"><b>板塊輪動研判（全市視角・9 大 SPDR 行業 ETF）：</b><br>'+verdict+'<br><span style="color:#64748b;font-size:11px">SPY 1月 '+spyD20.toFixed(1)+'% 為基準 ｜ 領漲：'+(lead.join('、')||'—')+' ｜ 落後：'+(lag.join('、')||'—')+'</span></div>';
+    // 自製 heatmap（用 SPDR ETF 表格顏色系統）
+    rh += '<div style="margin-top:20px;margin-bottom:16px">';
+    rh += '<div style="font-weight:700;font-size:13px;margin-bottom:10px;padding:10px 12px;background:#f8fafc;border-radius:8px">🔥 自製板塊熱力圖（9大SPDR ETF - 全市場視角）</div>';
+    rh += '<table style="width:100%;border-collapse:collapse;font-size:12.5px">';
+    rh += '<tr style="background:#f1f5f9">';
+    rh += '<th style="padding:8px;text-align:left;font-weight:600">ETF</th>';
+    rh += '<th style="padding:8px;text-align:center;font-weight:600">5日</th>';
+    rh += '<th style="padding:8px;text-align:center;font-weight:600">1月</th>';
+    rh += '<th style="padding:8px;text-align:center;font-weight:600">3月</th>';
+    rh += '<th style="padding:8px;text-align:center;font-weight:600">狀態</th>';
+    rh += '</tr>';
+    
+    sr.sectors.forEach(s => {
+        const cl = s.cls;
+        const bg = cl==='leading' ? '#dcfce7' : cl==='lagging' ? '#fee2e2' : '#fef3c7';
+        const color = cl==='leading' ? '#166534' : cl==='lagging' ? '#991b1b' : '#92400e';
+        rh += '<tr style="background:' + bg + '">';
+        rh += '<td style="padding:8px;font-weight:600;color:' + color + '">' + s.n + '</td>';
+        rh += '<td style="padding:8px;text-align:center;font-weight:600">' + (s.d5?s.d5.toFixed(1):'-') + '</td>';
+        rh += '<td style="padding:8px;text-align:center;font-weight:600">' + (s.d20?s.d20.toFixed(1):'-') + '</td>';
+        rh += '<td style="padding:8px;text-align:center;font-weight:600">' + (s.d60?s.d60.toFixed(1):'-') + '</td>';
+        rh += '<td style="padding:8px;text-align:center;font-weight:600">';
+        rh += cl==='leading'?'🟢領漲':cl==='lagging'?'🔴落後':'⚪中性';
+        rh += '</td>';
+        rh += '</tr>';
+    });
+    
+    rh += '</table>';
+    rh += '<div style="margin-top:10px;font-size:11px;color:#64748b">數據源：9大SPDR ETF（真·全市場視角）｜更新時間：' + new Date().toLocaleString('zh-CN') + '</div>';
+    rh += '</div>';
+  }
+  document.getElementById('regimeBody').innerHTML=rh;
+}
+
 // ===== 板塊熱力圖 · 延續概率（大盤形勢；finviz 防盜連故用連結＋由 breadth 推算延續概率）=====
 function renderSector(data){
   const body=document.getElementById('sectorBody');if(!body)return;
-  const mr=data.marketRegime||{};
-  const bear=mr.bearCount||0,bull=mr.bullCount||0,total=mr.total||(bull+bear)||1;
-  const bearPct=mr.bearPct!=null?Math.round(mr.bearPct):Math.round(bear/total*100);
-  let label,col;
-  if(bearPct>=60){label='跌勢延續概率高';col='#dc2626';}
-  else if(bearPct>=40){label='好淡爭持 · 待變';col='#d97706';}
-  else{label='升勢延續概率較高';col='#16a34a';}
-  body.innerHTML=
-    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'+
-    '<div style="flex:1;min-width:150px;padding:14px;background:#f8fafc;border-radius:8px;text-align:center"><div style="font-size:20px;font-weight:800;color:'+col+'">'+label+'</div><div style="font-size:11px;color:#64748b;margin-top:3px">'+bearPct+'% 造淡 ／ '+(100-bearPct)+'% 造好</div></div>'+
-    '<div style="flex:1;min-width:150px;padding:14px;background:#f8fafc;border-radius:8px;text-align:center"><div style="font-size:20px;font-weight:800">'+bull+' <span style="color:#16a34a">▲</span> ／ '+bear+' <span style="color:#dc2626">▼</span></div><div style="font-size:11px;color:#64748b;margin-top:3px">造好／造淡（共 '+total+' 隻）</div></div>'+
-    '</div>'+
-    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-    '<a href="https://finviz.com/map/sec.ashx?t=sec" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:11px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📊 finviz 板塊熱力圖</a>'+
-    '<a href="https://finviz.com/groups.ashx?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:11px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📈 板塊升跌排行</a>'+
-    '</div>'+
-    '<div style="font-size:10px;color:#94a3b8;margin-top:8px;line-height:1.5">註：finviz 熱力圖設防盜連，無法直接內嵌圖片；按上方按鈕開新分頁查看領漲／領跌板塊。延續概率按四因子模型造好／造淡分佈推算。</div>';
+  // Prefer real sector-rotation data (9 SPDR ETFs, full-market breadth) over the
+  // old watchlist-derived distribution.
+  const sr=data.sectorRot||{};
+  let inner='';
+  if(sr.sectors && sr.sectors.length){
+    const spy=sr.sectors.find(x=>x.t==='SPY');
+    const rows=sr.sectors.filter(x=>!x.err).map(s=>{
+      const cls=s.cls||'neutral';
+      const badge=cls==='leading'?'<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:#dcfce7;color:#16a34a;font-weight:700">領漲</span>'
+                 : cls==='lagging'?'<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:#fef2f2;color:#dc2626;font-weight:700">落後</span>'
+                 : '<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:#f1f5f9;color:#64748b;font-weight:700">中性</span>';
+      const col=v=>(v>0?'#16a34a':'#dc2626');
+      return '<tr style="border-bottom:1px solid #f1f5f9">'+
+        '<td style="font-weight:700;padding:5px 4px">'+s.n+'</td>'+
+        '<td style="text-align:right;color:'+col(s.d5)+';font-weight:700">'+s.d5.toFixed(1)+'%</td>'+
+        '<td style="text-align:right;color:'+col(s.d20)+';font-weight:700">'+s.d20.toFixed(1)+'%</td>'+
+        '<td style="text-align:right;color:'+col(s.d60)+'">'+s.d60.toFixed(1)+'%</td>'+
+        '<td style="text-align:center">'+badge+'</td></tr>';
+    }).join('');
+    inner+='<div class="sec-title">板塊輪動 — 9 大 SPDR 行業 ETF（相對 SPY 基準）</div>'+
+      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px">'+
+      '<thead><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:5px 4px">板塊</th><th style="text-align:right">5日</th><th style="text-align:right">1月</th><th style="text-align:right">3月</th><th style="text-align:center">相對大市</th></tr></thead>'+
+      '<tbody>'+rows+'</tbody></table></div>';
+    // leading/lagging summary
+    const lead=sr.sectors.filter(x=>x.cls==='leading').map(x=>x.n.split(' ')[0]);
+    const lag=sr.sectors.filter(x=>x.cls==='lagging').map(x=>x.n.split(' ')[0]);
+    inner+='<div style="margin-top:10px;font-size:12px;line-height:1.6"><b style="color:#16a34a">領漲：</b>'+(lead.join('、')||'—')+'<br><b style="color:#dc2626">落後：</b>'+(lag.join('、')||'—')+'</div>';
+  } else {
+    inner='<div style="color:#94a3b8;font-size:12px">板塊輪動數據載入中…</div>';
+  }
+  // Finviz heatmap embed (best-effort; hotlink may block -> falls back to link)
+  inner+='<div style="margin-top:12px"><img src="https://finviz.com/heatmap.ashx?t=sec&st=w1&d=1" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;min-height:200px" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;;" alt="finviz sector heatmap"><div style="display:none;gap:8px;flex-wrap:wrap">'+
+    '<a href="https://finviz.com/map/sec.ashx?t=sec" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:11px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📊 finviz 板塊熱力圖（開新分頁）</a>'+
+    '<a href="https://finviz.com/groups.ashx?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:11px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📈 板塊升跌排行</a></div></div>';
+  if(sr.updated) inner+='<div style="font-size:10px;color:#94a3b8;margin-top:6px">數據更新：'+sr.updated+'（來源：Yahoo Finance · 9 大 SPDR 行業 ETF）</div>';
+  body.innerHTML=inner;
 }
 
 function render(data){
@@ -592,7 +728,7 @@ function render(data){
   let ph='';
   for(const[t,pos]of Object.entries(p.positions)){
     const wl=data.watchlist.find(w=>w.ticker===t);const decel=wl?wl.decel:0;
-    ph+='<tr class="clickable" data-tk="'+t+'"><td style="font-weight:700">'+t+'</td><td class="r">'+pos.shares+'</td><td class="r" style="color:#64748b">$'+fmt(pos.cost)+'</td><td class="r" style="font-weight:600">$'+fmt(pos.price)+'</td><td class="r">$'+fmt(pos.value)+'</td><td class="r" style="color:'+cv(pos.pnl)+';font-weight:700">$'+fmt(pos.pnl)+'('+fmt(pos.pnlPct,1)+'%)</td><td class="c">'+(decel!==0?'<span class="'+dc(decel)+'">'+decel+'</span>':'—')+'</td></tr>';
+    ph+='<tr class="clickable" data-tk="'+t+'"><td style="font-weight:700">'+t+'</td><td class="r">'+pos.shares+'</td><td class="r" style="color:#64748b">$'+fmt(pos.cost)+'</td><td class="r lp" style="font-weight:600">$'+fmt(pos.price)+'</td><td class="r">$'+fmt(pos.value)+'</td><td class="r" style="color:'+cv(pos.pnl)+';font-weight:700">$'+fmt(pos.pnl)+'('+fmt(pos.pnlPct,1)+'%)</td><td class="c">'+(decel!==0?'<span class="'+dc(decel)+'">'+decel+'</span>':'—')+'</td></tr>';
   }
   ph+='<tr style="background:#f8fafc"><td colspan="4">現金</td><td class="r">$'+fmt(p.cash)+'</td><td></td><td></td></tr>';
   ph+='<tr style="font-weight:700;background:#f1f5f9"><td>總計</td><td></td><td></td><td></td><td class="r">$'+fmt(p.totalValue)+'</td><td class="r" style="color:#0d9488">HKD$'+p.totalValueHKD.toLocaleString()+'</td><td></td></tr>';
@@ -646,7 +782,28 @@ function render(data){
       rh+='<tr><td>'+d.label+'</td><td style="font-weight:700;color:#0f172a">'+d.value+'</td></tr><tr><td></td><td style="font-size:11px;color:#64748b;padding-bottom:6px">'+d.detail+'</td></tr>';
     });
     rh+='</table>';
-    document.getElementById('regimeBody').innerHTML=rh;
+    // Sector-rotation verdict (full-market view, independent of the screened watchlist)
+    const sr=data.sectorRot||{};
+    if(sr.sectors && sr.sectors.length){
+      const spy=sr.sectors.find(x=>x.t==='SPY');
+      const lead=sr.sectors.filter(x=>x.cls==='leading').map(x=>x.n.split(' ')[0]);
+      const lag=sr.sectors.filter(x=>x.cls==='lagging').map(x=>x.n.split(' ')[0]);
+      const spyD20=spy?spy.d20:0;
+      let verdict;
+      if(lead.includes('科技') && lag.length) verdict='風險胃納回升 — 資金由防禦性板塊（'+lag.join('、')+'）輪動至進攻性板塊（'+lead.join('、')+'），利好大市延續升勢；短線科技已急升，留意獲利回吐。';
+      else if(lag.length && !lead.length) verdict='風險胃納收縮 — 領漲板塊缺位，防禦性板塊相對強，大市短線偏向整固／回調。';
+      else verdict='板塊輪動不明顯，大市處於好淡爭持階段。';
+      rh+='<div style="margin-top:12px;padding:11px 13px;background:#ecfdf5;border-left:4px solid #0d9488;border-radius:8px;font-size:12.5px;line-height:1.65"><b>板塊輪動研判（全市視角・9 大 SPDR 行業 ETF）：</b><br>'+verdict+'<br><span style="color:#64748b;font-size:11px">SPY 1月 '+spyD20.toFixed(1)+'% 為基準 ｜ 領漲：'+(lead.join('、')||'—')+' ｜ 落後：'+(lag.join('、')||'—')+'</span></div>';
+      // Finviz heatmap fallback for regimeBody
+      rh+='<div style="margin-top:16px"><a href="https://finviz.com/map/sec.ashx?t=sec" target="_blank" style="display:block;text-align:center;padding:10px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📊 finviz 板塊熱力圖（新視窗）</a></div>';
+    }
+    // DEBUG: 直接測試 regimeBody set
+    try {
+      document.getElementById('regimeBody').innerHTML=rh;
+    } catch(e) {
+      console.error('regimeBody set failed:', e);
+      document.getElementById('regimeBody').innerHTML='<div style="color:red">regimeBody set error: '+e+'</div>';
+    }
   }
 
   // ③ 指數部署（中線周線 + 短線日線）
@@ -708,7 +865,7 @@ function render(data){
       '<td><span class="'+sigClass(b.signal)+'">'+b.signal+'</span></td>'+
       '<td class="c" style="font-weight:700;font-size:15px;color:'+(b.score>=0.55?'#0d9488':b.score>=0.45?'#eab308':'#ef4444')+'">'+fmt(b.score*100,0)+'</td>'+
       '<td class="c">'+(b.decel!==0?'<span class="'+dc(b.decel)+'">'+b.decel+'</span>':'—')+'</td>'+
-      '<td class="r" style="font-weight:600">$'+fmt(b.price)+'</td>'+
+      '<td class="r lp" style="font-weight:600">$'+fmt(b.price)+'</td>'+
       '<td class="r" style="font-size:11px;color:'+cv(b.m5d)+'">'+(b.m5d!=null?(b.m5d*100).toFixed(1)+'%':'—')+'</td>'+
       '<td class="r" style="font-size:11px;color:'+cv(b.m1m)+'">'+(b.m1m!=null?(b.m1m*100).toFixed(1)+'%':'—')+'</td>'+
       '<td class="r" style="font-size:11px;color:'+cv(m3)+'">'+(m3!=null?(m3*100).toFixed(1)+'%':'—')+'</td>'+
@@ -722,7 +879,7 @@ function render(data){
   if(data.techAnalysis){
     for(const k in data.techAnalysis){
       const c=document.getElementById('techCard-'+k);
-      if(c)c.innerHTML=buildTechHTML({[k]:data.techAnalysis[k]})||'<div style="color:#94a3b8">載入中...</div>';
+      if(c)c.innerHTML='<div data-live="'+k+'"></div>'+(buildTechHTML({[k]:data.techAnalysis[k]})||'<div style="color:#94a3b8">載入中...</div>');
     }
   }
 
@@ -928,6 +1085,7 @@ function render(data){
 
   renderPositions(data);
   renderSector(data);
+  renderRegime(data);
   renderDailyReport(data);
   renderMonthly(data);
   renderHK(data);
@@ -976,8 +1134,9 @@ function renderHK(data){
   if(hk.indices){
     for(const k in hk.indices){
       if(!hk.indices[k])continue;
+      const liveKey=(k==='3033.HK')?'HSTECH':k;
       const c=document.getElementById('techCard-'+k);
-      if(c)c.innerHTML=buildTechHTML({[k]:hk.indices[k]})||'<div style="color:#94a3b8">載入中...</div>';
+      if(c)c.innerHTML='<div data-live="'+liveKey+'"></div>'+(buildTechHTML({[k]:hk.indices[k]})||'<div style="color:#94a3b8">載入中...</div>');
     }
   }
 
@@ -1690,6 +1849,18 @@ function checkPriceAlerts(data){
     var mc=document.getElementById('modalContent');
     if(mo&&mc){mc.innerHTML=html;mo.classList.add('show');}
   }
-}
-</script>
-</body></html>
+  }
+  }
+  <script>
+  // Force render regimeBody if not already rendered (fallback)
+  if(document.getElementById('regimeBody') && !document.getElementById('regimeBody').innerHTML.includes('風險偏好')) {
+  setTimeout(()=>{
+  const data = window.dashboardData;
+  if(data && data.marketRegime) {
+    renderRegime(data);
+    console.log('🔥 regimeBody force rendered');
+  }
+  }, 1000);
+  }
+  </script>
+  </body></html>
