@@ -97,6 +97,8 @@ th.n{text-align:right}
 <div class="pane active" id="pane-daily">
   <div class="card privacy-zone"><div class="card-h"><span class="card-t">📊 即市戰報</span><span id="dailyReportTs" style="font-size:11px;color:#94a3b8"></span></div>
   <div id="dailyReportBody" style="padding:16px"></div></div>
+  <div class="card" id="topPickCard" style="display:none"><div class="card-h"><span class="card-t">⭐ 當前最值得部署</span><span style="font-size:11px;color:#64748b">綜合造好 + 造淡 · 即時最優先</span></div>
+  <div id="topPickBody" style="padding:16px"></div></div>
   <div class="card"><div class="card-h"><span class="card-t">⚡ 即時活躍訊號</span><span style="font-size:11px;color:#64748b">BUY / SELL / SHORT — 按優先次序</span></div>
   <div id="dailyActionsBody" style="padding:16px"></div></div>
   <div class="card"><div class="card-h"><span class="card-t">② 大盤形勢 — 美股環境與趨勢預期</span></div>
@@ -212,6 +214,8 @@ function showDetail(ticker,data){
   document.getElementById('modalOverlay').classList.add('show');
 }
 function closeModal(){document.getElementById('modalOverlay').classList.remove('show')}
+// 價格警報專用：關閉 + 記錄已讀，避免 auto-refresh 重複彈
+function dismissAlerts(){closeModal(); if(lastData&&lastData.portfolio){var pos=lastData.portfolio.positions;var FUND_TARGETS={ADBE:270,DDOG:269};for(var t in pos){var p=pos[t];var stopLoss=p.cost*0.92;var target=FUND_TARGETS[t]||p.cost*1.15;if(p.price<=stopLoss)dismissedAlerts[t+'_stop']=true;if(p.price>=target)dismissedAlerts[t+'_target']=true;}if(lastData.watchlist)lastData.watchlist.forEach(function(s){if(pos[s.ticker]&&s.decel<=-3)dismissedAlerts[s.ticker+'_decel']=true;});}}
 function showBidi(ticker){
   const b=(lastData.bidirectional||[]).find(x=>x.ticker===ticker);
   if(!b)return;
@@ -812,17 +816,64 @@ function renderDailyReport(data){
     ab.innerHTML=ah;
   }
 
-  // ⭐ topPick analysis box — appended to dailyActionsBody
-  if(ab && data.topPick){
-    const tp=data.topPick;
-    let tpHtml='<div style="margin-top:16px;padding:16px;background:linear-gradient(135deg,#dbeafe,#e0e7ff);border:2px solid #2563eb;border-radius:12px">';
-    tpHtml+='<div style="font-size:16px;font-weight:800;color:#1e40af;margin-bottom:8px">⭐ 當前最值得部署：'+(tp.direction==='造好'?'🟢':'🔴')+' '+tp.ticker+' @ $'+tp.price+'</div>';
-    if(tp.whyNow) tpHtml+='<div style="font-size:13px;color:#3730a3;margin-bottom:8px;white-space:pre-wrap">'+tp.whyNow.split('\n').join('<br>')+'</div>';
-    if(tp.vsOthers) tpHtml+='<div style="font-size:12px;color:#6366f1;margin-bottom:8px"><b>對比其他候選：</b> '+tp.vsOthers+'</div>';
-    if(tp.recommendation) tpHtml+='<div style="font-size:13px;color:#1e3a8a;font-weight:600">'+tp.recommendation.split('\n').join('<br>')+'</div>';
-    if(tp.timeframe) tpHtml+='<div style="font-size:11px;color:#64748b;margin-top:8px">⏱️ '+tp.timeframe+'</div>';
-    tpHtml+='</div>';
-    ab.innerHTML+=tpHtml;
+  // ⭐ topPick — render to its own dedicated card (above 即時活躍訊號)
+  const tpCard=document.getElementById('topPickCard');
+  const tpBody=document.getElementById('topPickBody');
+  if(tpCard&&tpBody){
+    if(data.topPick){
+      const tp=data.topPick;
+      let html='';
+      const bl=tp.bestLong, bs=tp.bestShort;
+
+      // Helper: render one pick block
+      const renderPick=(p, isPrimary)=>{
+        if(!p) return '';
+        const isLong=p.direction==='造好';
+        const accentCol=isLong?'#16a34a':'#dc2626';
+        const bg=isLong?'linear-gradient(135deg,#dcfce7,#f0fdf4)':'linear-gradient(135deg,#fef2f2,#fff1f2)';
+        const borderCol=isLong?'#16a34a':'#dc2626';
+        const label=isLong?'🟢 造好':'🔴 造淡';
+        const tagStyle='display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;margin-left:6px;';
+        let h='<div style="padding:16px;margin-bottom:12px;background:'+bg+';border:2px solid '+borderCol+';border-radius:12px'+(isPrimary?'':';opacity:0.92')+'">';
+        h+='<div style="font-size:16px;font-weight:800;color:'+accentCol+';margin-bottom:8px">'+(isPrimary?'⭐ ':'')+label+'：'+p.ticker+' @ $'+p.price+'</div>';
+        // Score / Decel / R:R badges
+        let badges='';
+        if(p.score) badges+='<span style="'+tagStyle+'background:#dbeafe;color:#1e40af">Score '+p.score+'</span>';
+        if(p.decel!==undefined) badges+='<span style="'+tagStyle+'background:#fef3c7;color:#92400e">Decel '+p.decel+'</span>';
+        if(p.priority) badges+='<span style="'+tagStyle+'background:#fee2e2;color:#991b1b">造淡#'+p.priority+'</span>';
+        if(p.riskReward) badges+='<span style="'+tagStyle+'background:#f0fdf4;color:#15803d">R:R 1:'+p.riskReward+'</span>';
+        if(badges) h+='<div style="margin-bottom:8px">'+badges+'</div>';
+        if(p.whyNow) h+='<div style="font-size:13px;color:#3730a3;margin-bottom:8px;white-space:pre-wrap">'+p.whyNow.split('\n').join('<br>')+'</div>';
+        if(p.vsOthers) h+='<div style="font-size:12px;color:#6366f1;margin-bottom:8px"><b>對比其他候選：</b> '+p.vsOthers+'</div>';
+        if(p.recommendation) h+='<div style="font-size:13px;color:#1e3a8a;font-weight:600">'+p.recommendation.split('\n').join('<br>')+'</div>';
+        // Key params in compact grid
+        let params='';
+        if(p.stopLoss) params+='<div style="font-size:11px;margin-top:4px">🛑 止蝕：<b>'+p.stopLoss+'</b></div>';
+        if(p.target1) params+='<div style="font-size:11px;margin-top:2px">🎯 目標：<b>'+p.target1+'</b></div>';
+        if(p.target2) params+='<div style="font-size:11px;margin-top:2px">🎯 T2：<b>'+p.target2+'</b></div>';
+        if(p.etf) params+='<div style="font-size:11px;margin-top:2px">💰 標的：'+p.etf+(p.leverage?' ('+p.leverage+')':'')+(p.etfShares?' '+p.etfShares+'股':'')+'</div>';
+        if(params) h+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid '+borderCol+'33">'+params+'</div>';
+        h+='</div>';
+        return h;
+      };
+
+      // Render primary (long takes priority if both exist) + secondary
+      if(bl&&bs){
+        html+='<div style="font-size:12px;color:#64748b;margin-bottom:8px">⚠️ 造好與造淡訊號同時出現 — 建議兩邊同時關注，對沖佈局</div>';
+        html+=renderPick(bl,true);
+        html+=renderPick(bs,false);
+      } else if(bl){
+        html+='<div style="font-size:12px;color:#64748b;margin-bottom:8px">✅ 無造淡訊號 — 集中造好部署</div>';
+        html+=renderPick(bl,true);
+      } else if(bs){
+        html+='<div style="font-size:12px;color:#64748b;margin-bottom:8px">⚠️ 無造好訊號 — 集中造淡部署（嚴格止蝕）</div>';
+        html+=renderPick(bs,true);
+      }
+      tpBody.innerHTML=html;
+      tpCard.style.display='block';
+    } else {
+      tpCard.style.display='none';
+    }
   }
 
   // 部署監察 — 造好候選 + 造淡候選 + 觀望觸發
@@ -1161,30 +1212,38 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 loadData();setInterval(loadData,60000);
 // ═══ PRICE ALERT SYSTEM ═══
+// dismissedKeys: 記錄 user 已關閉嘅警報 (ticker+type)，避免每60秒 auto-refresh 重複彈出
+var dismissedAlerts = {};
 function checkPriceAlerts(data){
   if(!data||!data.portfolio||!data.portfolio.positions)return;
   var alerts=[];
   var FUND_TARGETS={ADBE:270,DDOG:269};
   var pos=data.portfolio.positions;
   for(var t in pos){
-    var p=pos[t]; 
+    var p=pos[t];
     var stopLoss=p.cost*0.92;
     var target=FUND_TARGETS[t]||p.cost*1.15;
     if(p.price<=stopLoss){
-      alerts.push({type:'stop',ticker:t,price:p.price,stopLoss:stopLoss.toFixed(2),msg:'🔴 止蝕警報：'+t+' 現價 $'+p.price.toFixed(2)+' 已跌穿止蝕位 $'+stopLoss.toFixed(2)+' (-8%)！立即評估是否止蝕。'});
+      alerts.push({key:t+'_stop',type:'stop',ticker:t,price:p.price,stopLoss:stopLoss.toFixed(2),msg:'🔴 止蝕警報：'+t+' 現價 $'+p.price.toFixed(2)+' 已跌穿止蝕位 $'+stopLoss.toFixed(2)+' (-8%)！立即評估是否止蝕。'});
     }
     if(p.price>=target){
-      alerts.push({type:'target',ticker:t,price:p.price,target:target,msg:'🟢 到價警報：'+t+' 現價 $'+p.price.toFixed(2)+' 已到達目標價 $'+target+'！考慮減磅鎖利。'});
+      alerts.push({key:t+'_target',type:'target',ticker:t,price:p.price,target:target,msg:'🟢 到價警報：'+t+' 現價 $'+p.price.toFixed(2)+' 已到達目標價 $'+target+'！考慮減磅鎖利。'});
     }
   }
   // Check Decel deterioration for held positions
   if(data.watchlist){
     data.watchlist.forEach(function(s){
       if(pos[s.ticker]&&s.decel<=-3){
-        alerts.push({type:'decel',ticker:s.ticker,decel:s.decel,msg:'⚠️ 動量惡化：'+s.ticker+' Decel='+s.decel+' 已跌至-3或以下！建議止蝕離場。'});
+        alerts.push({key:s.ticker+'_decel',type:'decel',ticker:s.ticker,decel:s.decel,msg:'⚠️ 動量惡化：'+s.ticker+' Decel='+s.decel+' 已跌至-3或以下！建議止蝕離場。'});
       }
     });
   }
+  // 清除已不存在嘅 alert 對應嘅 dismiss 記錄（例如到價後跌穿 target 再升返會重新彈）
+  var liveKeys={};
+  alerts.forEach(function(a){liveKeys[a.key]=true;});
+  Object.keys(dismissedAlerts).forEach(function(k){ if(!liveKeys[k]) delete dismissedAlerts[k]; });
+  // 過濾已 dismiss 嘅 alert
+  alerts=alerts.filter(function(a){return !dismissedAlerts[a.key];});
   // Show modal if any alerts
   if(alerts.length>0){
     var html='<div style="margin-bottom:12px;font-size:16px;font-weight:800;color:#dc2626">⚠️ 價格警報</div>';
@@ -1193,10 +1252,10 @@ function checkPriceAlerts(data){
       var border=a.type==='target'?'#16a34a':'#dc2626';
       html+='<div style="padding:12px;margin-bottom:8px;background:'+bg+';border-left:4px solid '+border+';border-radius:6px;font-size:13px;line-height:1.6">'+a.msg+'</div>';
     });
-    html+='<button onclick="closeModal()" style="margin-top:8px;width:100%;padding:10px;background:#64748b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">知道了</button>';
+    html+='<button onclick="dismissAlerts()" style="margin-top:8px;width:100%;padding:10px;background:#64748b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">知道了</button>';
     var mo=document.getElementById('modalOverlay');
     var mc=document.getElementById('modalContent');
-    if(mo&&mc){mc.innerHTML=html;mo.style.display='flex';}
+    if(mo&&mc){mc.innerHTML=html;mo.classList.add('show');}
   }
 }
 </script>
