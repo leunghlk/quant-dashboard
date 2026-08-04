@@ -67,6 +67,11 @@ th.n{text-align:right}
 /* Colour 3: 月度再平衡 — purple */
 .tab.c3{border-bottom:3px solid #7c3aed}
 .tab.c3.active{background:#7c3aed;border-color:#7c3aed;color:#fff;box-shadow:0 2px 6px rgba(124,58,237,.3)}
+.tab.c4{border-bottom:3px solid #be123c}
+.tab.c4.active{background:#be123c;border-color:#be123c;color:#fff;box-shadow:0 2px 6px rgba(190,18,60,.3)}
+.work-banner{background:#fff1f2;border:1px solid #fecdd3;border-left:4px solid #be123c;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#9f1239;font-weight:600}
+.hkcard{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px}
+.star{color:#f59e0b;letter-spacing:1px}
 .pane{display:none}
 .pane.active{display:block}
 .sec-title{font-size:13px;font-weight:800;color:#0f172a;padding:10px 0 6px;border-bottom:2px solid #e2e8f0;margin-bottom:10px;letter-spacing:.3px}
@@ -91,6 +96,7 @@ th.n{text-align:right}
   <button class="tab c2" id="tabBtn-strategy" onclick="switchTab('strategy')">🎯 策略</button>
   <button class="tab c2" id="tabBtn-wave" onclick="switchTab('wave')">🌊 數浪</button>
   <button class="tab c3" id="tabBtn-monthly" onclick="switchTab('monthly')">📅 月度再平衡</button>
+  <button class="tab c4" id="tabBtn-hk" onclick="switchTab('hk')">🇭🇰 港股（工作）</button>
 </div>
 
 <!-- ═══════════ 即市戰報 PANE (DEFAULT) ═══════════ -->
@@ -156,6 +162,29 @@ th.n{text-align:right}
   <div id="monthlyBody" style="padding:16px"></div></div>
 </div>
 
+<!-- ═══════════ 港股（工作用）PANE ═══════════ -->
+<div class="pane" id="pane-hk">
+  <div class="work-banner">🏢 此頁為工作用途 — 恆生銀行客戶市場情報及 ELN 產品切入點，與個人組合完全分開。所有票息為指示性計算，實際以交易台報價為準。</div>
+
+  <div class="card"><div class="card-h"><span class="card-t">① 大盤形勢 — 恆生指數 · 恆生科技指數</span><span id="hkRegimeTs" style="font-size:11px;color:#94a3b8"></span></div>
+  <div id="hkRegimeBody" style="padding:16px"></div></div>
+
+  <div class="card"><div class="card-h"><span class="card-t">② 指數技術分析 — 支持阻力 · 日線／周線</span><span style="font-size:11px;color:#64748b">中線睡周線 · 短線睡日線</span></div>
+  <div id="hkTechBody" style="padding:16px"></div></div>
+
+  <div class="card"><div class="card-h"><span class="card-t">③ 港股量化評分 — 四因子模型</span><span style="font-size:11px;color:#64748b">點擊股票查看因子拆解</span></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>股票</th><th>行業</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th class="r">波幅</th><th class="r">股息</th><th>業績</th></tr></thead><tbody id="hkListBody"></tbody></table></div></div>
+
+  <div class="card"><div class="card-h"><span class="card-t">④ ELN 策略 — 建議標的</span><span style="font-size:11px;color:#64748b">ELN 即沽出認沽期權，須選不會跌穿行使價之股份</span></div>
+  <div id="hkElnBody" style="padding:16px"></div></div>
+
+  <div class="card"><div class="card-h"><span class="card-t">⑤ Worst-of 籃子 · 不宜掛 ELN 名單</span></div>
+  <div id="hkElnExtraBody" style="padding:16px"></div></div>
+
+  <div class="card"><div class="card-h"><span class="card-t">⑥ 港股業績日曆</span><span style="font-size:11px;color:#64748b">中期／全年業績 · 績前風險評估</span></div>
+  <div id="hkEarningsBody" style="padding:16px"></div></div>
+</div>
+
 <div style="text-align:center;color:#94a3b8;font-size:11px;padding:8px">leungkathy · 四因子量化模型 · 動量減速規則：≥-1 可買入 · ≤-3 須沽出</div>
 </div>
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
@@ -163,7 +192,7 @@ th.n{text-align:right}
 </div>
 <script>
 function switchTab(name){
-  ['daily','portfolio','strategy','wave','monthly'].forEach(n=>{
+  ['daily','portfolio','strategy','wave','monthly','hk'].forEach(n=>{
     const p=document.getElementById('pane-'+n);
     const t=document.getElementById('tabBtn-'+n);
     if(p)p.classList.toggle('active',n===name);
@@ -196,17 +225,23 @@ function fbar(score,label,weight){
   return '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span><b>'+label+'</b> ('+weight+')</span><span style="font-weight:700;color:'+col+'">'+pct+'</span></div><div class="fbar-bar"><div class="fbar-fill" style="width:'+pct+'%;background:'+col+'"></div></div></div>';
 }
 function showDetail(ticker,data){
-  const s=data.watchlist.find(w=>w.ticker===ticker);
+  const s=(data.watchlist||[]).find(w=>w.ticker===ticker)
+        ||((data.hk&&data.hk.watchlist)||[]).find(w=>w.ticker===ticker);
   if(!s)return;
-  const held=data.portfolio.positions[ticker];
+  const isHK=s.ticker&&s.ticker.indexOf('.HK')>0;
+  const cur=isHK?'HK$':'$';
+  const held=(data.portfolio&&data.portfolio.positions)?data.portfolio.positions[ticker]:null;
   const buyBlocked=s.decel<=-3?'<div style="color:#dc2626;font-weight:600;padding:8px;background:#fef2f2;border-radius:6px;margin-top:8px">🔴 Decel='+s.decel+' ≤ -3 → 禁止買入/強制沽出</div>':'';
   const decelInfo=s.decelReasons&&s.decelReasons.length?'<div style="margin-top:8px;font-size:12px;color:#64748b">減速原因:<br>'+s.decelReasons.map(r=>'• '+r).join('<br>')+'</div>':'';
   document.getElementById('modalContent').innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div><span style="font-size:20px;font-weight:800">'+ticker+'</span>'+(held?' <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">持有 '+held.shares+'股</span>':'')+'</div><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></div>'+
-    '<div style="font-size:13px;color:#64748b;margin-bottom:12px">現價 $'+fmt(s.price)+' · RSI Vol '+s.vol30+'% · 12M '+fmtPct(s.m12)+'</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div><span style="font-size:20px;font-weight:800">'+(s.name?(s.code+' '+s.name):ticker)+'</span>'+(held?' <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">持有 '+held.shares+'股</span>':'')+'</div><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></div>'+
+    '<div style="font-size:13px;color:#64748b;margin-bottom:12px">現價 '+cur+fmt(s.price)+' · 30日波幅 '+s.vol30+'% · 12M '+fmtPct(s.m12)+(s.sector?' · '+s.sector:'')+'</div>'+
     '<div style="margin-bottom:16px">'+fbar(s.quality,'Quality 質素','30%')+fbar(s.momentum,'Momentum 動量','25%')+fbar(s.value,'Value 價值','20%')+fbar(s.growth,'Growth 增長','25%')+'</div>'+
     '<div style="padding:10px;background:#f8fafc;border-radius:8px;margin-bottom:8px"><b>總分: '+fmt(s.score*100,0)+'</b> · Decel: <span class="'+dc(s.decel)+'">'+s.decel+'</span></div>'+
-    decelInfo+buyBlocked+
+    decelInfo+
+    (s.earnings?'<div style="margin-top:8px;padding:8px 10px;background:#fffbeb;border-radius:6px;font-size:12px;color:#b45309">📅 業績：'+s.earnings.date+'（'+s.earnings.timingLabel+'）· 距今 '+s.earnings.daysUntil+' 日 · 風險 '+s.earnings.risk+'</div>':'')+
+    (s.levels?'<div style="margin-top:8px;padding:8px 10px;background:#f8fafc;border-radius:6px;font-size:12px;color:#475569">阻力 R1 '+cur+rD(s.levels.resistance1)+' · R2 '+cur+rD(s.levels.resistance2)+'<br>樞紐 '+cur+rD(s.levels.pivot)+'<br>支持 S1 '+cur+rD(s.levels.support1)+' · S2 '+cur+rD(s.levels.support2)+'</div>':'')+
+    buyBlocked+
     '<div style="margin-top:12px;font-size:11px;color:#94a3b8;line-height:1.6">'+
     '<b>Decel規則</b>: ≥-1 正常可買 · -2 降低評級 · ≤-3 禁止買入/強制沽出<br>'+
     '<b>信號規則</b>: BUY≥70 · ACCUMULATE≥55 · HOLD≥45 · REDUCE≥35 · SELL<35</div>'+
@@ -270,6 +305,58 @@ function showCalendar(){
   document.getElementById('modalContent').innerHTML=h;
   document.getElementById('modalOverlay').classList.add('show');
 }
+function buildTechHTML(techObj){
+  let techHTML='';
+  if(techObj){
+    for(const[idx,t]of Object.entries(techObj)){
+      if(t.error){techHTML+='<div style="color:#dc2626">'+(t.name||idx)+': '+t.error+'</div>';continue}
+      const actionColor=t.action.includes('造好')?'#22c55e':t.action.includes('造淡')?'#ef4444':t.action.includes('偏強')?'#3b82f6':t.action.includes('偏弱')?'#eab308':'#94a3b8';
+      const ind=t.indicators||{};
+      techHTML+='<div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #e2e8f0">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+        '<div style="font-weight:700;font-size:15px">'+t.name+'</div>'+
+        '<div style="text-align:right"><span style="font-size:20px;font-weight:700">'+rD(t.price)+'</span>'+
+        '<span style="background:'+actionColor+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;margin-left:8px">'+t.action+'</span></div></div>'+
+        '<div style="font-size:12px;color:#64748b;margin-bottom:10px">'+t.reason+'</div>'+
+        '<div style="display:flex;gap:16px">'+
+        '<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
+        '<tr><td style="padding:3px 8px;color:#dc2626;font-weight:600">R3 (頂)</td><td class="n" style="color:#dc2626;font-weight:600">'+rD(t.levels.resistance3)+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R2</td><td class="n" style="color:#f97316;font-weight:600">'+rD(t.levels.resistance2)+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R1</td><td class="n" style="color:#f97316;font-weight:600">'+rD(t.levels.resistance1)+' <span style="font-size:10px;color:#94a3b8">('+t.distR1+'%)</span></td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b">MA20</td><td class="n" style="color:#64748b">'+rD(t.ma20)+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b">MA50</td><td class="n" style="color:#64748b">'+rD(t.ma50)+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#1e293b;font-weight:700">現價</td><td class="n" style="color:#1e293b;font-weight:700">'+rD(t.price)+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S1</td><td class="n" style="color:#3b82f6;font-weight:600">'+rD(t.levels.support1)+' <span style="font-size:10px;color:#94a3b8">('+t.distS1+'%)</span></td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S2</td><td class="n" style="color:#3b82f6;font-weight:600">'+rD(t.levels.support2)+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#22c55e;font-weight:600">S3 (底)</td><td class="n" style="color:#22c55e;font-weight:600">'+rD(t.levels.support3)+'</td></tr>'+
+        '</table></div>'+
+        '<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
+        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MACD</td><td class="n" style="font-size:12px">'+(ind.macd?ind.macd.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.macd.value+' · '+ind.macd.sign+' · '+ind.macd.polarity+'</span>':'—')+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MTM</td><td class="n" style="font-size:12px">'+(ind.mtm?ind.mtm.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.mtm.value+'</span>':'—')+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">KDJ</td><td class="n" style="font-size:12px">'+(ind.kdj?ind.kdj.signal+'<br><span style="font-size:10px;color:#94a3b8">J='+ind.kdj.j+' K='+ind.kdj.k+'</span>':'—')+'</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">RSI</td><td class="n" style="font-size:12px">'+(ind.rsi?ind.rsi.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.rsi.value+'</span>':'—')+'</td></tr>'+
+        '</table></div>'+
+        '</div>'+
+        (t.weekly?'<div style="margin-top:12px;padding:10px 12px;background:#fffbeb;border-radius:8px;border-left:4px solid #d97706">'+
+        '<div style="font-weight:700;font-size:13px;color:#b45309;margin-bottom:6px">📅 周線定大勢（波浪理論 — 周線判勢）</div>'+
+        '<div style="display:flex;gap:12px;margin-bottom:8px">'+
+        '<div style="flex:1"><table style="width:100%;font-size:11px;border-collapse:collapse">'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周RSI</td><td class="n">'+(t.weekly.rsi?t.weekly.rsi.signal+' <span style="font-size:10px;color:#94a3b8">('+t.weekly.rsi.value+')</span>':'—')+'</td></tr>'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周MACD</td><td class="n">'+(t.weekly.macd?t.weekly.macd.signal+' <span style="font-size:10px;color:#94a3b8">('+t.weekly.macd.value+')</span>':'—')+'</td></tr>'+
+        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周KDJ</td><td class="n">'+(t.weekly.kdj?t.weekly.kdj.signal+' <span style="font-size:10px;color:#94a3b8">(K='+t.weekly.kdj.k+')</span>':'—')+'</td></tr>'+
+        '</table></div>'+
+        '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-left:8px;border-left:1px solid #cbd5e1">'+
+        '<div style="font-size:13px;font-weight:700;margin-bottom:4px;color:'+(t.weekly.bias.includes('看好')?'#16a34a':t.weekly.bias.includes('看淡')?'#dc2626':'#b45309')+'">'+t.weekly.bias+'</div>'+
+        '<div style="font-size:11px;color:#78350f;margin-bottom:4px">'+t.weekly.reason+'</div>'+
+        '<div style="font-size:11px;color:#b45309;font-weight:600">▶ '+t.weekly.action+'</div>'+
+        '</div></div></div>':'')+
+        '<div style="margin-top:8px;padding:8px 12px;background:'+(actionColor==='#22c55e'?'#f0fdf4':actionColor==='#ef4444'?'#fef2f2':'#f8fafc')+';border-radius:6px;font-size:12px;color:#475569;font-weight:600">'+
+        '📋 '+t.strategy+'</div></div>';
+    }
+  }
+  return techHTML;
+}
+
 function render(data){
   const p=data.portfolio;
   document.getElementById('summaryGrid').innerHTML=
@@ -403,54 +490,8 @@ function render(data){
   document.getElementById('neutralListBody').innerHTML=neutrals.map(b=>listRow(b,'neutral')).join('')||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">無</td></tr>';
 
   // ⑦ 指數技術分析（雙欄）
-  let techHTML='';
-  if(data.techAnalysis){
-    for(const[idx,t]of Object.entries(data.techAnalysis)){
-      if(t.error){techHTML+='<div style="color:#dc2626">'+(t.name||idx)+': '+t.error+'</div>';continue}
-      const actionColor=t.action.includes('造好')?'#22c55e':t.action.includes('造淡')?'#ef4444':t.action.includes('偏強')?'#3b82f6':t.action.includes('偏弱')?'#eab308':'#94a3b8';
-      const ind=t.indicators||{};
-      techHTML+='<div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #e2e8f0">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
-        '<div style="font-weight:700;font-size:15px">'+t.name+'</div>'+
-        '<div style="text-align:right"><span style="font-size:20px;font-weight:700">'+rD(t.price)+'</span>'+
-        '<span style="background:'+actionColor+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;margin-left:8px">'+t.action+'</span></div></div>'+
-        '<div style="font-size:12px;color:#64748b;margin-bottom:10px">'+t.reason+'</div>'+
-        '<div style="display:flex;gap:16px">'+
-        '<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
-        '<tr><td style="padding:3px 8px;color:#dc2626;font-weight:600">R3 (頂)</td><td class="n" style="color:#dc2626;font-weight:600">'+rD(t.levels.resistance3)+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R2</td><td class="n" style="color:#f97316;font-weight:600">'+rD(t.levels.resistance2)+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R1</td><td class="n" style="color:#f97316;font-weight:600">'+rD(t.levels.resistance1)+' <span style="font-size:10px;color:#94a3b8">('+t.distR1+'%)</span></td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#64748b">MA20</td><td class="n" style="color:#64748b">'+rD(t.ma20)+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#64748b">MA50</td><td class="n" style="color:#64748b">'+rD(t.ma50)+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#1e293b;font-weight:700">現價</td><td class="n" style="color:#1e293b;font-weight:700">'+rD(t.price)+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S1</td><td class="n" style="color:#3b82f6;font-weight:600">'+rD(t.levels.support1)+' <span style="font-size:10px;color:#94a3b8">('+t.distS1+'%)</span></td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S2</td><td class="n" style="color:#3b82f6;font-weight:600">'+rD(t.levels.support2)+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#22c55e;font-weight:600">S3 (底)</td><td class="n" style="color:#22c55e;font-weight:600">'+rD(t.levels.support3)+'</td></tr>'+
-        '</table></div>'+
-        '<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
-        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MACD</td><td class="n" style="font-size:12px">'+(ind.macd?ind.macd.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.macd.value+' · '+ind.macd.sign+' · '+ind.macd.polarity+'</span>':'—')+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MTM</td><td class="n" style="font-size:12px">'+(ind.mtm?ind.mtm.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.mtm.value+'</span>':'—')+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">KDJ</td><td class="n" style="font-size:12px">'+(ind.kdj?ind.kdj.signal+'<br><span style="font-size:10px;color:#94a3b8">J='+ind.kdj.j+' K='+ind.kdj.k+'</span>':'—')+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">RSI</td><td class="n" style="font-size:12px">'+(ind.rsi?ind.rsi.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.rsi.value+'</span>':'—')+'</td></tr>'+
-        '</table></div>'+
-        '</div>'+
-        (t.weekly?'<div style="margin-top:12px;padding:10px 12px;background:#fffbeb;border-radius:8px;border-left:4px solid #d97706">'+
-        '<div style="font-weight:700;font-size:13px;color:#b45309;margin-bottom:6px">📅 周線定大勢（波浪理論 — 周線判勢）</div>'+
-        '<div style="display:flex;gap:12px;margin-bottom:8px">'+
-        '<div style="flex:1"><table style="width:100%;font-size:11px;border-collapse:collapse">'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周RSI</td><td class="n">'+(t.weekly.rsi?t.weekly.rsi.signal+' <span style="font-size:10px;color:#94a3b8">('+t.weekly.rsi.value+')</span>':'—')+'</td></tr>'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周MACD</td><td class="n">'+(t.weekly.macd?t.weekly.macd.signal+' <span style="font-size:10px;color:#94a3b8">('+t.weekly.macd.value+')</span>':'—')+'</td></tr>'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周KDJ</td><td class="n">'+(t.weekly.kdj?t.weekly.kdj.signal+' <span style="font-size:10px;color:#94a3b8">(K='+t.weekly.kdj.k+')</span>':'—')+'</td></tr>'+
-        '</table></div>'+
-        '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-left:8px;border-left:1px solid #cbd5e1">'+
-        '<div style="font-size:13px;font-weight:700;margin-bottom:4px;color:'+(t.weekly.bias.includes('看好')?'#16a34a':t.weekly.bias.includes('看淡')?'#dc2626':'#b45309')+'">'+t.weekly.bias+'</div>'+
-        '<div style="font-size:11px;color:#78350f;margin-bottom:4px">'+t.weekly.reason+'</div>'+
-        '<div style="font-size:11px;color:#b45309;font-weight:600">▶ '+t.weekly.action+'</div>'+
-        '</div></div></div>':'')+
-        '<div style="margin-top:8px;padding:8px 12px;background:'+(actionColor==='#22c55e'?'#f0fdf4':actionColor==='#ef4444'?'#fef2f2':'#f8fafc')+';border-radius:6px;font-size:12px;color:#475569;font-weight:600">'+
-        '📋 '+t.strategy+'</div></div>';
-    }
-  }
+  let techHTML=buildTechHTML(data.techAnalysis);
+
   document.getElementById('techBody').innerHTML=techHTML||'<div style="color:#94a3b8">載入中...</div>';
 
   // ⑧ ELN 策略
@@ -651,8 +692,158 @@ function render(data){
 
   renderDailyReport(data);
   renderMonthly(data);
+  renderHK(data);
   renderTx();
 }
+
+// 港股（工作用）RENDER
+function renderHK(data){
+  const hk=data.hk; if(!hk) return;
+  const mk=hk.market||{}, eln=hk.eln||{}, list=hk.watchlist||[];
+  const elnAll=(eln.recommended||[]).concat(eln.watch||[]).concat(eln.avoid||[]);
+
+  // ① 大盤形勢
+  let rh='';
+  if(mk.regime){
+    rh+='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#f8fafc;border-radius:10px;border-left:5px solid '+mk.regimeColor+';margin-bottom:12px">'+
+      '<div><div style="font-size:20px;font-weight:800;color:'+mk.regimeColor+'">'+mk.regime+'</div>'+
+      '<div style="font-size:11px;color:#64748b;margin-top:2px">緜合分數 '+mk.score+'（日線＋周線＋市場廣度）</div></div>'+
+      '<div style="text-align:right;font-size:12px;color:#475569">'+
+      (mk.indices&&mk.indices.hsi?'<div>恆指 <b>'+rD(mk.indices.hsi.price)+'</b></div>':'')+
+      (mk.indices&&mk.indices.hstech?'<div>科指 <b>'+rD(mk.indices.hstech.price)+'</b></div>':'')+
+      '</div></div>';
+    if(mk.drivers&&mk.drivers.length){
+      rh+='<div style="margin-bottom:12px">';
+      mk.drivers.forEach(function(d){
+        const dcol=(d.indexOf('看好')>=0||d.indexOf('偏強')>=0||d.indexOf('造好')>=0)?'#16a34a':((d.indexOf('看淡')>=0||d.indexOf('偏弱')>=0||d.indexOf('減速')>=0)?'#dc2626':'#64748b');
+        rh+='<span style="display:inline-block;background:#fff;border:1px solid #e2e8f0;padding:3px 9px;border-radius:6px;margin:3px;font-size:11px;color:'+dcol+';font-weight:600">'+d+'</span>';
+      });
+      rh+='</div>';
+    }
+    const b=mk.breadth||{};
+    rh+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px">'+
+      '<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:#16a34a">'+(b.bull||0)+'/'+(b.total||0)+'</div><div style="font-size:10px;color:#64748b">造好信號</div></div>'+
+      '<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:#dc2626">'+(b.bear||0)+'</div><div style="font-size:10px;color:#64748b">造淡信號</div></div>'+
+      '<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:#ea580c">'+(b.decel||0)+'</div><div style="font-size:10px;color:#64748b">動量減速≤-2</div></div>'+
+      '<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:#2563eb">'+(b.avgScore!=null?Math.round(b.avgScore*100):'—')+'</div><div style="font-size:10px;color:#64748b">平均評分</div></div>'+
+      '<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:'+((b.avg1m||0)>=0?'#16a34a':'#dc2626')+'">'+((b.avg1m||0)>=0?'+':'')+Math.round((b.avg1m||0)*100)+'%</div><div style="font-size:10px;color:#64748b">平均1個月</div></div>'+
+      '</div>';
+    rh+='<div style="padding:10px 12px;background:#eff6ff;border-radius:8px;border-left:4px solid #2563eb;margin-bottom:8px;font-size:12px;color:#1e3a8a;line-height:1.6"><b>📈 交易取態：</b>'+mk.tradeStance+'</div>';
+    rh+='<div style="padding:10px 12px;background:#fff1f2;border-radius:8px;border-left:4px solid #be123c;font-size:12px;color:#9f1239;line-height:1.6"><b>💼 ELN 取態：</b>'+mk.elnStance+'</div>';
+  } else { rh='<div style="color:#94a3b8">載入中...</div>'; }
+  const hkR=document.getElementById('hkRegimeBody'); if(hkR)hkR.innerHTML=rh;
+  const hkTs=document.getElementById('hkRegimeTs'); if(hkTs)hkTs.textContent=new Date().toLocaleString('zh-HK');
+
+  // ② 指數技術分析
+  const hkT=document.getElementById('hkTechBody');
+  if(hkT)hkT.innerHTML=buildTechHTML(hk.indices)||'<div style="color:#94a3b8">載入中...</div>';
+
+  // ③ 港股量化評分
+  let lh='';
+  list.forEach(function(s){
+    const e=s.earnings;
+    const eb=e?('<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:'+(e.risk==='極高'?'#fee2e2':e.risk==='高'?'#ffedd5':e.risk==='中'?'#fef9c3':'#f1f5f9')+';color:'+(e.risk==='極高'?'#dc2626':e.risk==='高'?'#ea580c':e.risk==='中'?'#ca8a04':'#64748b')+'">'+e.dateLabel+' ('+e.daysUntil+'日)</span>'):'—';
+    const f=elnAll.find(function(x){return x.ticker===s.ticker});
+    const dy=(f&&f.divYield)?(f.divYield*100).toFixed(1)+'%':'—';
+    lh+='<tr class="clickable" data-tk="'+s.ticker+'">'+
+      '<td style="font-weight:700">'+s.code+' <span style="font-size:11px;color:#64748b">'+s.name+'</span></td>'+
+      '<td style="font-size:11px;color:#64748b">'+(s.sector||'—')+'</td>'+
+      '<td><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td>'+
+      '<td class="c" style="font-weight:700">'+Math.round(s.score*100)+'</td>'+
+      '<td class="c"><span class="'+dc(s.decel)+'">'+s.decel+'</span></td>'+
+      '<td class="r">'+rD(s.price)+'</td>'+
+      '<td class="r" style="color:'+cv(s.m1m)+'">'+(s.m1m>=0?'+':'')+Math.round(s.m1m*100)+'%</td>'+
+      '<td class="r">'+s.vol30+'%</td>'+
+      '<td class="r">'+dy+'</td>'+
+      '<td>'+eb+'</td></tr>';
+  });
+  const hkL=document.getElementById('hkListBody');
+  if(hkL)hkL.innerHTML=lh||'<tr><td colspan="10" style="color:#94a3b8;text-align:center;padding:16px">載入中...</td></tr>';
+
+  // ④ ELN 策略
+  let eh='';
+  if(eln.bestPick){
+    const bp=eln.bestPick;
+    eh+='<div style="padding:12px 14px;background:#f0fdf4;border-radius:10px;border-left:5px solid #22c55e;margin-bottom:14px">'+
+      '<div style="font-weight:800;font-size:15px;color:#15803d">⭐ 首選：'+bp.code+' '+bp.name+' <span class="star">'+'★'.repeat(bp.stars)+'☆'.repeat(5-bp.stars)+'</span></div>'+
+      '<div style="font-size:12px;color:#475569;margin-top:5px;line-height:1.6">'+eln.rationale+'</div></div>';
+  }
+  if(eln.recommended&&eln.recommended.length){
+    eh+='<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
+      '<tr style="background:#f1f5f9"><th style="padding:7px;text-align:left">股票</th><th class="n">現價</th><th class="n">評分</th><th class="n">質素</th><th class="n">Decel</th><th class="n">波幅</th><th class="n">建議行使價</th><th class="n">年期</th><th class="n">指示票息</th><th class="n">分析員目標</th><th class="n">推薦</th></tr>';
+    eln.recommended.forEach(function(r){
+      eh+='<tr><td style="padding:6px;font-weight:700">'+r.code+' <span style="font-size:11px;color:#64748b">'+r.name+'</span></td>'+
+        '<td class="n">'+rD(r.price)+'</td>'+
+        '<td class="n">'+Math.round(r.score*100)+'</td>'+
+        '<td class="n" style="color:#16a34a">'+Math.round(r.quality*100)+'</td>'+
+        '<td class="n" style="color:'+(r.decel===0?'#16a34a':'#ca8a04')+'">'+r.decel+'</td>'+
+        '<td class="n">'+r.hv+'%</td>'+
+        '<td class="n" style="font-weight:700;color:#be123c">'+r.strikePct+'%<br><span style="font-size:10px;color:#64748b">HK$'+rD(r.strikePrice)+'</span></td>'+
+        '<td class="n">'+r.tenorM+'個月</td>'+
+        '<td class="n" style="font-weight:700;color:#15803d">'+r.indicativeCouponPa+'%</td>'+
+        '<td class="n">'+(r.targetMeanPrice?'HK$'+r.targetMeanPrice+' <span style="font-size:10px;color:'+cv(r.upsidePct)+'">('+(r.upsidePct>=0?'+':'')+r.upsidePct+'%)</span>':'—')+'</td>'+
+        '<td class="n"><span class="star">'+'★'.repeat(r.stars)+'</span></td></tr>'+
+        '<tr><td colspan="11" style="padding:2px 8px 8px;font-size:11px;color:#64748b;border-bottom:1px solid #e2e8f0">'+r.rationale+(r.earnWarning?' <span style="color:#dc2626">⚠️ '+r.earnWarning+'</span>':'')+'</td></tr>';
+    });
+    eh+='</table></div>';
+  } else {
+    eh+='<div style="padding:12px;background:#fffbeb;border-radius:8px;color:#b45309;font-size:12px">現時無標的符合建議條件（3星或以上且非績前）。</div>';
+  }
+  if(eln.watch&&eln.watch.length){
+    eh+='<div style="margin-top:12px"><div class="sec-title">⏳ 條件未足 — 觀察名單</div><div style="font-size:11px;color:#475569;line-height:1.9">';
+    eln.watch.forEach(function(w){
+      eh+='<div>• <b>'+w.code+' '+w.name+'</b>（'+'★'.repeat(w.stars)+'）— '+w.rationale+(w.earnWarning?' <span style="color:#dc2626">⚠️ '+w.earnWarning+'</span>':'')+'</div>';
+    });
+    eh+='</div></div>';
+  }
+  eh+='<div style="margin-top:10px;font-size:11px;color:#64748b;line-height:1.7">'+
+    '<b>ELN 選股原則</b>：動量減速 ≥-2（動量未崩塌）+ 質素 ≥35（基本面站得住）+ 波幅 ≤60%（接貨風險可控）；行使價由波幅／質素／股息率動態調整，並對照技術支持位。<br>'+
+    '<b>計算假設</b>：'+(eln.assumptions||'')+'</div>';
+  const hkE=document.getElementById('hkElnBody'); if(hkE)hkE.innerHTML=eh;
+
+  // ⑤ 籃子 + 迴避
+  let xh='';
+  if(eln.baskets&&eln.baskets.length){
+    xh+='<div class="sec-title">🧺 Worst-of 籃子建議</div>';
+    eln.baskets.forEach(function(bk){
+      xh+='<div class="hkcard" style="margin-bottom:10px">'+
+        '<div style="font-weight:700;font-size:13px;color:#1e293b;margin-bottom:4px">'+bk.name+'</div>'+
+        '<div style="font-size:12px;color:#475569;margin-bottom:4px">成份：'+bk.members.join(' · ')+'</div>'+
+        '<div style="font-size:12px"><span style="color:#be123c;font-weight:700">行使價 '+bk.strikePct+'%</span> · <span style="color:#475569">年期 '+bk.tenorM+' 個月</span> · <span style="color:#15803d;font-weight:700">指示票息約 '+bk.indicativeCouponPa+'% p.a.</span></div>'+
+        '<div style="font-size:11px;color:#94a3b8;margin-top:4px">'+bk.note+'</div></div>';
+    });
+  }
+  if(eln.avoid&&eln.avoid.length){
+    xh+='<div class="sec-title" style="margin-top:12px">🚫 不宜掛 ELN</div><div style="font-size:12px;color:#475569;line-height:1.9">';
+    eln.avoid.forEach(function(a){
+      xh+='<div>• <b style="color:#dc2626">'+a.code+' '+a.name+'</b> — '+a.reason+'</div>';
+    });
+    xh+='</div>';
+  }
+  const hkX=document.getElementById('hkElnExtraBody'); if(hkX)hkX.innerHTML=xh||'<div style="color:#94a3b8">—</div>';
+
+  // ⑥ 業績日曆
+  const withE=list.filter(function(s){return s.earnings}).sort(function(a,b){return a.earnings.daysUntil-b.earnings.daysUntil});
+  let ch='';
+  if(withE.length){
+    ch+='<table style="width:100%;font-size:12px;border-collapse:collapse">'+
+      '<tr style="background:#f1f5f9"><th style="padding:7px;text-align:left">股票</th><th style="text-align:left">業績日期</th><th class="n">距今</th><th style="text-align:left">風險</th><th style="text-align:left">狀態</th><th style="text-align:left">ELN 影響</th></tr>';
+    withE.forEach(function(s){
+      const e=s.earnings;
+      const rc=e.risk==='極高'?'#dc2626':e.risk==='高'?'#ea580c':e.risk==='中'?'#ca8a04':'#16a34a';
+      const impact=e.daysUntil<=0?'業績已出，可正常掛':e.daysUntil<=3?'❌ 暫停新掛，等業績後':e.daysUntil<=7?'⚠️ 只做1個月期或降低行使價':e.daysUntil<=14?'年期宜 ≤1個月，避開業績日':'✅ 可正常部署 3 個月期';
+      ch+='<tr><td style="padding:6px;font-weight:700">'+s.code+' <span style="font-size:11px;color:#64748b">'+s.name+'</span></td>'+
+        '<td>'+e.date+' <span style="font-size:10px;color:#64748b">('+e.timingLabel+')</span></td>'+
+        '<td class="n">'+e.daysUntil+' 日</td>'+
+        '<td><span style="color:'+rc+';font-weight:700">'+e.risk+'</span></td>'+
+        '<td style="font-size:11px;color:#64748b">'+(e.status==='confirmed'?'已確認':'估算')+'</td>'+
+        '<td style="font-size:11px;color:#475569">'+impact+'</td></tr>';
+    });
+    ch+='</table><div style="margin-top:8px;font-size:11px;color:#94a3b8">註：標示「估算」者根據歷史公布模式推算，正式日期以公司公告為準。</div>';
+  }
+  const hkC=document.getElementById('hkEarningsBody'); if(hkC)hkC.innerHTML=ch||'<div style="color:#94a3b8">載入中...</div>';
+}
+
 function renderTx(){
   let html='';
   const txs=TXDATA.length?TXDATA:[
@@ -1011,6 +1202,8 @@ function getEarningsInfoJS(ticker, price) {
     KLAC:{date:'2026-10-28',timing:'AMC'},PANW:{date:'2026-08-17',timing:'AMC'},NVDA:{date:'2026-08-26',timing:'AMC'},
     MSFT:{date:'2026-10-28',timing:'AMC'},GOOG:{date:'2026-10-28',timing:'AMC'},AMZN:{date:'2026-10-29',timing:'AMC'},
     AAPL:{date:'2026-10-29',timing:'AMC'},
+    LITE:{date:'2026-08-11',timing:'AMC'},COHR:{date:'2026-08-12',timing:'AMC'},
+    ALAB:{date:'2026-08-04',timing:'AMC'},TER:{date:'2026-10-21',timing:'AMC'},
   };
   const cal=EARNINGS_JS[ticker]; if(!cal) return null;
   const now=new Date();
