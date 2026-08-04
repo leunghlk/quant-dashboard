@@ -107,89 +107,94 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 <div class="alert-banner" id="alertBanner"></div>
 
 <div class="tabs">
-  <button class="tab c1" id="tabBtn-portfolio" onclick="switchTab('portfolio')">💼 組合</button>
-  <button class="tab c2 active" id="tabBtn-daily" onclick="switchTab('daily')">📊 即市戰報</button>
-  <button class="tab c2" id="tabBtn-strategy" onclick="switchTab('strategy')">🎯 策略</button>
+  <button class="tab c1 active" id="tabBtn-overview" onclick="switchTab('overview')">📊 總覽</button>
+  <button class="tab c2" id="tabBtn-deploy" onclick="switchTab('deploy')">🎯 部署</button>
+  <button class="tab c2" id="tabBtn-market" onclick="switchTab('market')">🌍 大盤技術</button>
   <button class="tab c2" id="tabBtn-wave" onclick="switchTab('wave')">🌊 數浪</button>
+  <button class="tab c4" id="tabBtn-hk" onclick="switchTab('hk')">🇭🇰 港股ELN</button>
   <button class="tab c3" id="tabBtn-monthly" onclick="switchTab('monthly')">📅 月度再平衡</button>
-  <button class="tab c4" id="tabBtn-hk" onclick="switchTab('hk')">🇭🇰 港股（工作）</button>
 </div>
 
-<!-- ════════════ 即市戰報 PANE (DEFAULT) ════════════ -->
-<div class="pane active" id="pane-daily">
-  <div class="subnav" data-pane="daily">
-    <a href="#sec-daily-report" class="active">戰報</a>
-    <a href="#sec-daily-top">最優先</a>
-    <a href="#sec-daily-actions">活躍訊號</a>
-    <a href="#sec-daily-regime">大盤</a>
-    <a href="#sec-daily-watch">部署監察</a>
-    <a href="#sec-daily-earn">業績日曆</a>
+<!-- ════════════ ① 總覽 (OVERVIEW) — 一眼睇晒 PANE (DEFAULT) ════════════ -->
+<div class="pane active" id="pane-overview">
+  <div class="subnav" data-pane="overview">
+    <a href="#sec-ov-portfolio" class="active">組合表現</a>
+    <a href="#sec-ov-report">即市戰報</a>
+    <a href="#sec-ov-top">最優先部署</a>
+    <a href="#sec-ov-actions">活躍訊號</a>
+    <a href="#sec-ov-watch">部署監察</a>
+    <a href="#sec-ov-earn">業績日曆</a>
   </div>
-  <div class="card privacy-zone" id="sec-daily-report"><div class="card-h"><span class="t"><span class="sec-num">📊</span>即市戰報</span><span class="meta" id="dailyReportTs"></span></div>
+  <div class="card privacy-zone" id="sec-ov-portfolio"><div class="grid" id="summaryGrid"></div></div>
+  <div class="card privacy-zone" id="sec-ov-recovery"><div class="card-h"><span class="t"><span class="sec-num">📈</span>回本進度</span><span class="meta">每日目標追蹤</span></div>
+  <div class="card-b" id="recoveryBody"></div></div>
+  <div class="card privacy-zone" id="sec-ov-positions"><div class="card-h"><span class="t"><span class="sec-num">💼</span>現有持倉</span><span class="meta" id="cashInfo"></span></div>
+  <table class="utable"><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">動量減速</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
+  <div class="card privacy-zone" id="sec-ov-tx"><div class="card-h"><span class="t"><span class="sec-num">📝</span>交易紀錄</span><span class="meta">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
+  <table class="utable"><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table></div>
+  <div class="card privacy-zone" id="sec-ov-report"><div class="card-h"><span class="t"><span class="sec-num">📊</span>即市戰報</span><span class="meta" id="dailyReportTs"></span></div>
   <div class="card-b" id="dailyReportBody"></div></div>
   <div class="card" id="topPickCard" style="display:none"><div class="card-h"><span class="t"><span class="sec-num">⭐</span>當前最值得部署</span><span class="meta">綜合造好 + 造淡 · 即時最優先</span></div>
   <div class="card-b" id="topPickBody"></div></div>
-  <div class="card" id="sec-daily-actions"><div class="card-h"><span class="t"><span class="sec-num">⚡</span>即時活躍訊號</span><span class="meta">BUY / SELL / SHORT — 按優先次序</span></div>
+  <div class="card" id="sec-ov-actions"><div class="card-h"><span class="t"><span class="sec-num">⚡</span>即時活躍訊號</span><span class="meta">BUY / SELL / SHORT — 按優先次序</span></div>
   <div class="card-b" id="dailyActionsBody"></div></div>
-  <div class="card" id="sec-daily-regime"><div class="card-h"><span class="t"><span class="sec-num">②</span>大盤形勢 — 美股環境與趨勢預期</span></div>
-  <div class="card-b" id="regimeBody"></div></div>
-  <div class="card" id="sec-daily-watch"><div class="card-h"><span class="t"><span class="sec-num">📋</span>部署監察</span><span class="meta">造好候選 / 造淡候選 / 觀望觸發條件</span></div>
+  <div class="card" id="sec-ov-watch"><div class="card-h"><span class="t"><span class="sec-num">📋</span>部署監察</span><span class="meta">造好候選 / 造淡候選 / 觀望觸發條件</span></div>
   <div class="card-b" id="dailyWatchBody"></div></div>
-  <div class="card" id="sec-daily-earn"><div class="card-h"><span class="t"><span class="sec-num">📅</span>業績日曆</span><span class="meta">每隻 watchlist 股票 · 績前風險評估</span></div>
+  <div class="card" id="sec-ov-earn"><div class="card-h"><span class="t"><span class="sec-num">📅</span>業績日曆</span><span class="meta">每隻 watchlist 股票 · 績前風險評估</span></div>
   <div class="card-b" id="earningsCalendarBody"></div></div>
 </div>
 
-<!-- ════════════ 組合 PANE ════════════ -->
-<div class="pane" id="pane-portfolio">
-  <div class="subnav" data-pane="portfolio">
-    <a href="#sec-pf-summary" class="active">概覽</a>
-    <a href="#sec-pf-recovery">回本進度</a>
-    <a href="#sec-pf-positions">持倉</a>
-    <a href="#sec-pf-tx">交易紀錄</a>
+<!-- ════════════ ② 部署 (DEPLOY / STRATEGY) ════════════ -->
+<div class="pane" id="pane-deploy">
+  <div class="subnav" data-pane="deploy">
+    <a href="#sec-dp-summary" class="active">部署總覽</a>
+    <a href="#sec-dp-index">指數部署</a>
+    <a href="#sec-dp-long">造好名單</a>
+    <a href="#sec-dp-short">造淡名單</a>
+    <a href="#sec-dp-neutral">觀望名單</a>
+    <a href="#sec-dp-eln">ELN 策略</a>
   </div>
-  <div class="card privacy-zone" id="sec-pf-summary"><div class="grid" id="summaryGrid"></div></div>
-  <div class="card privacy-zone" id="sec-pf-recovery"><div class="card-h"><span class="t"><span class="sec-num">📈</span>回本進度</span><span class="meta">每日目標追蹤</span></div>
-  <div class="card-b" id="recoveryBody"></div></div>
-  <div class="card privacy-zone" id="sec-pf-positions"><div class="card-h"><span class="t"><span class="sec-num">💼</span>現有持倉</span><span class="meta" id="cashInfo"></span></div>
-  <table class="utable"><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">動量減速</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
-  <div class="card privacy-zone" id="sec-pf-tx"><div class="card-h"><span class="t"><span class="sec-num">📝</span>交易紀錄</span><span class="meta">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
-  <table class="utable"><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table></div>
-</div>
-
-<!-- ════════════ 策略 PANE ════════════ -->
-<div class="pane" id="pane-strategy">
-  <div class="subnav" data-pane="strategy">
-    <a href="#sec-st-summary" class="active">部署總覽</a>
-    <a href="#sec-st-index">指數部署</a>
-    <a href="#sec-st-long">造好名單</a>
-    <a href="#sec-st-short">造淡名單</a>
-    <a href="#sec-st-neutral">觀望名單</a>
-    <a href="#sec-st-tech">指數技術</a>
-    <a href="#sec-st-eln">ELN 策略</a>
-  </div>
-  <div class="card" id="sec-st-summary"><div class="card-h"><span class="t"><span class="sec-num">①</span>部署總覽 — 結論</span><span class="meta" id="strategyTimestamp"></span></div>
+  <div class="card" id="sec-dp-summary"><div class="card-h"><span class="t"><span class="sec-num">①</span>部署總覽 — 結論</span><span class="meta" id="strategyTimestamp"></span></div>
   <div class="card-b" id="summaryBody"></div></div>
 
-  <div class="card" id="sec-st-index"><div class="card-h"><span class="t"><span class="sec-num">③</span>指數部署 — 費城半導體 · 納斯達克100期貨</span><span class="meta">中線睇周線 · 短線睇日線</span></div>
+  <div class="card" id="sec-dp-index"><div class="card-h"><span class="t"><span class="sec-num">③</span>指數部署 — 費城半導體 · 納斯達克100期貨</span><span class="meta">中線睇周線 · 短線睇日線</span></div>
   <div class="card-b" id="indexEtfBody"></div></div>
 
-  <div class="card" id="sec-st-long"><div class="card-h"><span class="t"><span class="sec-num">④</span>觀察名單 — 造好機會</span><span class="meta">按四因子評分排序 · 點擊股票查看因子拆解</span></div>
+  <div class="card" id="sec-dp-long"><div class="card-h"><span class="t"><span class="sec-num">④</span>觀察名單 — 造好機會</span><span class="meta">按四因子評分排序 · 點擊股票查看因子拆解</span></div>
   <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>操作建議</th></tr></thead><tbody id="longListBody"></tbody></table></div></div>
 
-  <div class="card" id="sec-st-short"><div class="card-h"><span class="t"><span class="sec-num">⑤</span>觀察名單 — 造淡機會</span><span class="meta">按動量減速排序 · 點擊股票查看因子拆解</span></div>
+  <div class="card" id="sec-dp-short"><div class="card-h"><span class="t"><span class="sec-num">⑤</span>觀察名單 — 造淡機會</span><span class="meta">按動量減速排序 · 點擊股票查看因子拆解</span></div>
   <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>操作建議</th></tr></thead><tbody id="shortListBody"></tbody></table></div></div>
 
-  <div class="card" id="sec-st-neutral"><div class="card-h"><span class="t"><span class="sec-num">⑥</span>觀察名單 — 暫時觀望</span><span class="meta">未符合造好或造淡條件</span></div>
+  <div class="card" id="sec-dp-neutral"><div class="card-h"><span class="t"><span class="sec-num">⑥</span>觀察名單 — 暫時觀望</span><span class="meta">未符合造好或造淡條件</span></div>
   <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>轉向條件</th></tr></thead><tbody id="neutralListBody"></tbody></table></div></div>
 
-  <div class="card" id="sec-st-tech"><div class="card-h"><span class="t"><span class="sec-num">⑦</span>指數技術分析 — 支持阻力位</span></div>
-  <div class="card-b" id="techBody"></div></div>
-
-  <div class="card" id="sec-st-eln"><div class="card-h"><span class="t"><span class="sec-num">⑧</span>ELN 策略</span><span class="meta">ELN 即沽出認沽期權，須選不會跌穿行使價之股份</span></div>
+  <div class="card" id="sec-dp-eln"><div class="card-h"><span class="t"><span class="sec-num">⑦</span>ELN 策略（美股）</span><span class="meta">ELN 即沽出認沽期權，須選不會跌穿行使價之股份</span></div>
   <div class="card-b" id="elnBody"></div></div>
 </div>
 
-<!-- ════════════ 數浪 PANE ════════════ -->
+<!-- ════════════ ③ 大盤技術 (MARKET & TECHNICAL) — 去重：港美合併一次 ════════════ -->
+<div class="pane" id="pane-market">
+  <div class="subnav" data-pane="market">
+    <a href="#sec-mk-usregime" class="active">美股大盤</a>
+    <a href="#sec-mk-hkregime">港股大盤</a>
+    <a href="#sec-mk-ustech">美股技術</a>
+    <a href="#sec-mk-hktech">港股技術</a>
+  </div>
+  <div class="card" id="sec-mk-usregime"><div class="card-h"><span class="t"><span class="sec-num">🌎</span>大盤形勢 — 美股環境與趨勢預期</span></div>
+  <div class="card-b" id="regimeBody"></div></div>
+
+  <div class="card" id="sec-mk-hkregime"><div class="card-h"><span class="t"><span class="sec-num">🇭🇰</span>大盤形勢 — 恒生指數 · 恒生科技指數</span><span class="meta" id="hkRegimeTs"></span></div>
+  <div class="card-b" id="hkRegimeBody"></div></div>
+
+  <div class="card" id="sec-mk-ustech"><div class="card-h"><span class="t"><span class="sec-num">📈</span>指數技術分析 — 支持阻力位（美股）</span></div>
+  <div class="card-b" id="techBody"></div></div>
+
+  <div class="card" id="sec-mk-hktech"><div class="card-h"><span class="t"><span class="sec-num">📊</span>指數技術分析 — 支持阻力 · 日線／周線（港股）</span><span class="meta">中線睇周線 · 短線睇日線</span></div>
+  <div class="card-b" id="hkTechBody"></div></div>
+</div>
+
+<!-- ════════════ ④ 數浪 (WAVE) ════════════ -->
 <div class="pane" id="pane-wave">
   <div class="subnav" data-pane="wave">
     <a href="#sec-wave-main" class="active">波浪計算</a>
@@ -198,32 +203,15 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   <div class="card-b" id="waveBody"></div></div>
 </div>
 
-<!-- ════════════ 月度再平衡 PANE ════════════ -->
-<div class="pane" id="pane-monthly">
-  <div class="subnav" data-pane="monthly">
-    <a href="#sec-monthly-main" class="active">再平衡建議</a>
-  </div>
-  <div class="card" id="sec-monthly-main"><div class="card-h"><span class="t"><span class="sec-num">📅</span>月度再平衡</span><span class="meta">每月 1-3 號自動執行</span></div>
-  <div class="card-b" id="monthlyBody"></div></div>
-</div>
-
-<!-- ════════════ 港股（工作用）PANE ════════════ -->
+<!-- ════════════ ⑤ 港股（工作用）PANE ════════════ -->
 <div class="pane" id="pane-hk">
   <div class="work-banner">🏢 此頁為工作用途 — 恒生銀行客戶市場情報及 ELN 產品切入點，與個人組合完全分開。所有票息為指示性計算，實際以交易台報價為準。</div>
   <div class="subnav" data-pane="hk">
-    <a href="#sec-hk-regime" class="active">大盤形勢</a>
-    <a href="#sec-hk-tech">指數技術</a>
-    <a href="#sec-hk-list">量化評分</a>
+    <a href="#sec-hk-list" class="active">量化評分</a>
     <a href="#sec-hk-eln">ELN 策略</a>
     <a href="#sec-hk-basket">Worst-of 籃子</a>
     <a href="#sec-hk-earn">業績日曆</a>
   </div>
-
-  <div class="card" id="sec-hk-regime"><div class="card-h"><span class="t"><span class="sec-num">①</span>大盤形勢 — 恒生指數 · 恒生科技指數</span><span class="meta" id="hkRegimeTs"></span></div>
-  <div class="card-b" id="hkRegimeBody"></div></div>
-
-  <div class="card" id="sec-hk-tech"><div class="card-h"><span class="t"><span class="sec-num">②</span>指數技術分析 — 支持阻力 · 日線／周線</span><span class="meta">中線睇周線 · 短線睇日線</span></div>
-  <div class="card-b" id="hkTechBody"></div></div>
 
   <div class="card" id="sec-hk-list"><div class="card-h"><span class="t"><span class="sec-num">③</span>港股量化評分 — 四因子模型</span><span class="meta">點擊股票查看因子拆解</span></div>
   <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>行業</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th class="r">波幅</th><th class="r">股息</th><th>業績</th></tr></thead><tbody id="hkListBody"></tbody></table></div></div>
@@ -238,6 +226,15 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   <div class="card-b" id="hkEarningsBody"></div></div>
 </div>
 
+<!-- ════════════ ⑥ 月度再平衡 PANE ════════════ -->
+<div class="pane" id="pane-monthly">
+  <div class="subnav" data-pane="monthly">
+    <a href="#sec-monthly-main" class="active">再平衡建議</a>
+  </div>
+  <div class="card" id="sec-monthly-main"><div class="card-h"><span class="t"><span class="sec-num">📅</span>月度再平衡</span><span class="meta">每月 1-3 號自動執行</span></div>
+  <div class="card-b" id="monthlyBody"></div></div>
+</div>
+
 <div class="foot">leungkathy · 四因子量化模型 · 動量減速規則：≥-1 可買入 · ≤-3 建議沽出</div>
 </div>
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
@@ -245,7 +242,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 </div>
 <script>
 function switchTab(name){
-  ['daily','portfolio','strategy','wave','monthly','hk'].forEach(n=>{
+  ['overview','deploy','market','wave','hk','monthly'].forEach(n=>{
     const p=document.getElementById('pane-'+n);
     const t=document.getElementById('tabBtn-'+n);
     if(p)p.classList.toggle('active',n===name);
@@ -255,6 +252,13 @@ function switchTab(name){
   initSubnav(name);
   window.scrollTo(0,0);
 }
+// initial tab from localStorage (fallback to overview if stale)
+(function(){
+  let init='overview';
+  try{const s=localStorage.getItem('qtab');if(s&&document.getElementById('pane-'+s))init=s;}catch(e){}
+  // defer to allow DOM ready
+  if(document.readyState!=='loading')switchTab(init);else window.addEventListener('DOMContentLoaded',()=>switchTab(init));
+})();
 // Section sub-nav: smooth scroll + scroll-spy active highlight
 let _subnavScrollHandler=null;
 function initSubnav(pane){
