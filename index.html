@@ -2,92 +2,106 @@
 <html lang="zh-HK"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Quant Portfolio — Kathy Leung</title>
-<style>
+:root{
+  --bg:#eef2f6; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+  --blue:#2563eb; --emerald:#059669; --purple:#7c3aed; --rose:#be123c;
+  --good:#16a34a; --bad:#dc2626; --warn:#d97706;
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.04);
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#f0f4f8;color:#1e293b;font-family:'PingFang HK',-apple-system,sans-serif;padding:16px}
-.container{max-width:1300px;margin:0 auto}
-.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
-.header h1{font-size:22px}
-.header .sub{font-size:12px;color:#64748b}
-#refresh{background:#2563eb;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
-#refresh:disabled{background:#94a3b8}
-.status-bar{display:flex;gap:12px;align-items:center;font-size:12px;color:#64748b}
-.live-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite}
+body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+.container{max-width:1280px;margin:0 auto;padding:0 14px 40px}
+/* ===== Top app bar (sticky) ===== */
+.appbar{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:10px 0;margin-bottom:14px}
+.appbar-in{max-width:1280px;margin:0 auto;padding:0 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.appbar h1{font-size:18px;font-weight:800;letter-spacing:.2px}
+.appbar .sub{font-size:11px;color:var(--muted);margin-top:1px}
+.appbar-right{display:flex;gap:10px;align-items:center}
+.status-bar{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--muted)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--good);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.card{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:16px;overflow:hidden}
-.card-h{padding:14px 18px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}
-.card-t{font-size:15px;font-weight:700}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
-.grid-item{padding:16px;text-align:center;border-right:1px solid #e2e8f0}
-.grid-item:last-child{border-right:none}
-.grid-val{font-size:26px;font-weight:700}
-.grid-lbl{font-size:11px;color:#64748b;margin-top:3px}
-.grid-sub{font-size:10px;color:#94a3b8}
-.progress{background:#e2e8f0;height:8px;border-radius:4px;margin-top:6px}
-.progress-fill{height:8px;border-radius:4px;background:#2563eb}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{background:#f8fafc;color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;padding:8px 6px;text-align:left;letter-spacing:.5px}
-th.r{text-align:right}th.c{text-align:center}
-td{padding:8px 6px;border-bottom:1px solid #e2e8f0}
-td.r{text-align:right;font-variant-numeric:tabular-nums}
-td.n{text-align:right;font-variant-numeric:tabular-nums}
-td.c{text-align:center}
-tr:hover{background:#f8fafc}
-.sig{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;color:#fff}
+.btn{border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:disabled{background:#94a3b8;cursor:default}
+.btn-ghost{background:#64748b;color:#fff}
+/* ===== Tabs (sticky under appbar) ===== */
+.tabs{position:sticky;top:53px;z-index:150;display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;background:var(--bg);padding:6px 0}
+.tab{background:#fff;border:1px solid #cbd5e1;color:#475569;padding:9px 18px;border-radius:9px;cursor:pointer;font-size:13.5px;font-weight:700;transition:all .15s;border-bottom:3px solid transparent}
+.tab:hover{border-color:var(--blue);color:var(--blue)}
+.tab.c1{border-bottom-color:var(--blue)} .tab.c1.active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.25)}
+.tab.c2{border-bottom-color:var(--emerald)} .tab.c2.active{background:var(--emerald);border-color:var(--emerald);color:#fff;box-shadow:0 2px 6px rgba(5,150,105,.25)}
+.tab.c3{border-bottom-color:var(--purple)} .tab.c3.active{background:var(--purple);border-color:var(--purple);color:#fff;box-shadow:0 2px 6px rgba(124,58,237,.25)}
+.tab.c4{border-bottom-color:var(--rose)} .tab.c4.active{background:var(--rose);border-color:var(--rose);color:#fff;box-shadow:0 2px 6px rgba(190,18,60,.25)}
+/* ===== Section sub-nav (sticky inside each pane) ===== */
+.subnav{position:sticky;top:103px;z-index:120;display:flex;gap:6px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 10px;margin-bottom:14px;box-shadow:var(--shadow)}
+.subnav a{font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;padding:5px 11px;border-radius:7px;transition:all .15s;white-space:nowrap}
+.subnav a:hover{background:#f1f5f9;color:var(--ink)}
+.subnav a.active{background:var(--ink);color:#fff}
+/* ===== Card / section ===== */
+.card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden;border:1px solid var(--line)}
+.card-h{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card-h .t{font-size:14px;font-weight:700;color:var(--ink)}
+.card-h .meta{font-size:11px;color:var(--muted);text-align:right}
+.card-b{padding:14px 16px}
+.sec-num{display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;background:var(--ink);color:#fff;border-radius:6px;font-size:11px;font-weight:700;margin-right:8px;padding:0 5px}
+/* ===== Unified table (ONE format everywhere) ===== */
+.utable{width:100%;border-collapse:collapse;font-size:12.5px}
+.utable thead th{background:#f8fafc;color:#475569;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:9px 8px;text-align:left;border-bottom:2px solid var(--line);white-space:nowrap}
+.utable thead th.r,.utable td.r{text-align:right;font-variant-numeric:tabular-nums}
+.utable thead th.c,.utable td.c{text-align:center}
+.utable tbody td{padding:8px;border-bottom:1px solid #eef2f6;vertical-align:middle}
+.utable tbody tr:last-child td{border-bottom:none}
+.utable tbody tr:hover{background:#f8fafc}
+.utable tbody tr.clickable{cursor:pointer}
+.utable tbody tr.clickable:hover{background:#eff6ff}
+/* signal + decel pills (shared) */
+.sig{padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
 .sig-SELL{background:#ef4444}.sig-REDUCE{background:#f97316}.sig-HOLD{background:#eab308}.sig-ACCUMULATE{background:#3b82f6}.sig-BUY{background:#22c55e}
-.decel{padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600}
+.decel{padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}
 .decel-ex{background:#fee2e2;color:#dc2626}.decel-d{background:#ffedd5;color:#ea580c}.decel-c{background:#fef9c3;color:#ca8a04}
-.pos{color:#16a34a;font-weight:600}.neg{color:#dc2626;font-weight:600}
-.alert-banner{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 18px;margin-bottom:16px;display:none}
+.pos{color:var(--good);font-weight:600}.neg{color:var(--bad);font-weight:600}
+/* ===== KPI grid ===== */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.grid-item{padding:14px 16px;text-align:center;border-right:1px solid var(--line)}
+.grid-item:last-child{border-right:none}
+.grid-val{font-size:24px;font-weight:800;letter-spacing:-.5px}
+.grid-lbl{font-size:11px;color:var(--muted);margin-top:3px}
+.grid-sub{font-size:10px;color:#94a3b8}
+.progress{background:#e2e8f0;height:7px;border-radius:4px;margin-top:6px;overflow:hidden}
+.progress-fill{height:7px;border-radius:4px;background:var(--blue)}
+/* ===== Misc ===== */
+.fbar-bar{background:#e2e8f0;height:6px;border-radius:3px;width:100%;overflow:hidden}
+.fbar-fill{height:6px;border-radius:3px}
+.alert-banner{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:none}
 .alert-banner.show{display:block}
 .alert-item{display:flex;gap:8px;align-items:center;margin:4px 0;font-size:14px}
 .clickable{cursor:pointer}
-.clickable:hover{background:#eff6ff}
-.detail-row{display:none}
-.detail-row.show{display:''}
-.fbar-bar{background:#e2e8f0;height:6px;border-radius:3px;width:100%}
-.fbar-fill{height:6px;border-radius:3px}
-.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:1000}
-.modal-overlay.show{display:flex;justify-content:center;align-items:center}
-.modal{background:#fff;border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto}
-.privacy-btn{background:#64748b;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
-.privacy-on{filter:blur(6px)}
-td.n{text-align:right;font-variant-numeric:tabular-nums}
-th.n{text-align:right}
+.detail-row{display:none}.detail-row.show{display:''}
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,.45);z-index:1000}
+.modal-overlay.show{display:flex;justify-content:center;align-items:center;padding:16px}
+.modal{background:#fff;border-radius:14px;padding:22px;max-width:520px;width:100%;max-height:86vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.privacy-btn{background:#64748b;color:#fff;border:none;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600}
+.privacy-on .privacy-zone{filter:blur(6px)}
 .blurred{filter:blur(5px);transition:filter .2s}
-.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;position:sticky;top:0;z-index:100;background:#f0f4f8;padding:8px 0;border-radius:0}
-.tab{background:#fff;border:1px solid #cbd5e1;color:#475569;padding:10px 22px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;transition:all .15s}
-.tab:hover{border-color:#2563eb;color:#2563eb}
-/* Colour 1: 組合 — blue */
-.tab.c1{border-bottom:3px solid #2563eb}
-.tab.c1.active{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.3)}
-/* Colour 2: 即市戰報 / 策略 / 數浪 — emerald */
-.tab.c2{border-bottom:3px solid #059669}
-.tab.c2.active{background:#059669;border-color:#059669;color:#fff;box-shadow:0 2px 6px rgba(5,150,105,.3)}
-/* Colour 3: 月度再平衡 — purple */
-.tab.c3{border-bottom:3px solid #7c3aed}
-.tab.c3.active{background:#7c3aed;border-color:#7c3aed;color:#fff;box-shadow:0 2px 6px rgba(124,58,237,.3)}
-.tab.c4{border-bottom:3px solid #be123c}
-.tab.c4.active{background:#be123c;border-color:#be123c;color:#fff;box-shadow:0 2px 6px rgba(190,18,60,.3)}
-.work-banner{background:#fff1f2;border:1px solid #fecdd3;border-left:4px solid #be123c;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#9f1239;font-weight:600}
-.hkcard{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px}
+.work-banner{background:#fff1f2;border:1px solid #fecdd3;border-left:4px solid var(--rose);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#9f1239;font-weight:600}
+.hkcard{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px}
 .star{color:#f59e0b;letter-spacing:1px}
-.pane{display:none}
-.pane.active{display:block}
-.sec-title{font-size:13px;font-weight:800;color:#0f172a;padding:10px 0 6px;border-bottom:2px solid #e2e8f0;margin-bottom:10px;letter-spacing:.3px}
-.tf-badge{display:inline-block;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 8px;border-radius:5px;font-size:10px;font-weight:700;margin-right:6px}
-.tf-badge.wk{background:#fffbeb;color:#b45309;border-color:#fde68a}
+.pane{display:none}.pane.active{display:block}
 .kv{width:100%;font-size:12px;border-collapse:collapse}
 .kv td{padding:3px 6px;border:none;vertical-align:top}
 .kv td:first-child{color:#64748b;font-weight:600;white-space:nowrap;width:72px}
-</style>
+.foot{text-align:center;color:#94a3b8;font-size:11px;padding:14px 0 0}
+.tf-badge{display:inline-block;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 8px;border-radius:5px;font-size:10px;font-weight:700;margin-right:6px}
+.tf-badge.wk{background:#fffbeb;color:#b45309;border-color:#fde68a}
 </head><body><div class="container">
-<div class="header"><div><h1>📈 Quant Portfolio</h1>
-<div class="sub">四因子模型 · 動量減速覆蓋 · 每60秒自動更新</div></div>
-<div style="display:flex;gap:10px;align-items:center">
-<button class="privacy-btn" id="privacyBtn" onclick="togglePrivacy()">👁️ 顯示持倉</button>
-<div class="status-bar"><span class="live-dot"></span><span id="lastUpdate">載入中...</span></div>
-<button id="refresh" onclick="loadData()">🔄 更新</button></div></div>
+<div class="appbar"><div class="appbar-in">
+  <div><h1>📈 Quant Portfolio</h1><div class="sub">四因子模型 · 動量減速覆蓋 · 每60秒自動更新</div></div>
+  <div class="appbar-right">
+    <button class="privacy-btn" id="privacyBtn" onclick="togglePrivacy()">👁️ 顯示持倉</button>
+    <div class="status-bar"><span class="live-dot"></span><span id="lastUpdate">載入中...</span></div>
+    <button class="btn btn-primary" id="refresh" onclick="loadData()">🔄 更新</button>
+  </div>
+</div></div>
 <div class="alert-banner" id="alertBanner"></div>
 
 <div class="tabs">
@@ -99,93 +113,130 @@ th.n{text-align:right}
   <button class="tab c4" id="tabBtn-hk" onclick="switchTab('hk')">🇭🇰 港股（工作）</button>
 </div>
 
-<!-- ═══════════ 即市戰報 PANE (DEFAULT) ═══════════ -->
+<!-- ════════════ 即市戰報 PANE (DEFAULT) ════════════ -->
 <div class="pane active" id="pane-daily">
-  <div class="card privacy-zone"><div class="card-h"><span class="card-t">📊 即市戰報</span><span id="dailyReportTs" style="font-size:11px;color:#94a3b8"></span></div>
-  <div id="dailyReportBody" style="padding:16px"></div></div>
-  <div class="card" id="topPickCard" style="display:none"><div class="card-h"><span class="card-t">⭐ 當前最值得部署</span><span style="font-size:11px;color:#64748b">綜合造好 + 造淡 · 即時最優先</span></div>
-  <div id="topPickBody" style="padding:16px"></div></div>
-  <div class="card"><div class="card-h"><span class="card-t">⚡ 即時活躍訊號</span><span style="font-size:11px;color:#64748b">BUY / SELL / SHORT — 按優先次序</span></div>
-  <div id="dailyActionsBody" style="padding:16px"></div></div>
-  <div class="card"><div class="card-h"><span class="card-t">② 大盤形勢 — 美股環境與趨勢預期</span></div>
-  <div id="regimeBody" style="padding:16px"></div></div>
-  <div class="card"><div class="card-h"><span class="card-t">📋 部署監察</span><span style="font-size:11px;color:#64748b">造好候選 / 造淡候選 / 觀望觸發條件</span></div>
-  <div id="dailyWatchBody" style="padding:16px"></div></div>
-  <div class="card"><div class="card-h"><span class="card-t">📅 業績日曆</span><span style="font-size:11px;color:#64748b">每隻 watchlist 股票 · 績前風險評估</span></div>
-  <div id="earningsCalendarBody" style="padding:16px"></div></div>
+  <div class="subnav" data-pane="daily">
+    <a href="#sec-daily-report" class="active">戰報</a>
+    <a href="#sec-daily-top">最優先</a>
+    <a href="#sec-daily-actions">活躍訊號</a>
+    <a href="#sec-daily-regime">大盤</a>
+    <a href="#sec-daily-watch">部署監察</a>
+    <a href="#sec-daily-earn">業績日曆</a>
+  </div>
+  <div class="card privacy-zone" id="sec-daily-report"><div class="card-h"><span class="t"><span class="sec-num">📊</span>即市戰報</span><span class="meta" id="dailyReportTs"></span></div>
+  <div class="card-b" id="dailyReportBody"></div></div>
+  <div class="card" id="topPickCard" style="display:none"><div class="card-h"><span class="t"><span class="sec-num">⭐</span>當前最值得部署</span><span class="meta">綜合造好 + 造淡 · 即時最優先</span></div>
+  <div class="card-b" id="topPickBody"></div></div>
+  <div class="card" id="sec-daily-actions"><div class="card-h"><span class="t"><span class="sec-num">⚡</span>即時活躍訊號</span><span class="meta">BUY / SELL / SHORT — 按優先次序</span></div>
+  <div class="card-b" id="dailyActionsBody"></div></div>
+  <div class="card" id="sec-daily-regime"><div class="card-h"><span class="t"><span class="sec-num">②</span>大盤形勢 — 美股環境與趨勢預期</span></div>
+  <div class="card-b" id="regimeBody"></div></div>
+  <div class="card" id="sec-daily-watch"><div class="card-h"><span class="t"><span class="sec-num">📋</span>部署監察</span><span class="meta">造好候選 / 造淡候選 / 觀望觸發條件</span></div>
+  <div class="card-b" id="dailyWatchBody"></div></div>
+  <div class="card" id="sec-daily-earn"><div class="card-h"><span class="t"><span class="sec-num">📅</span>業績日曆</span><span class="meta">每隻 watchlist 股票 · 績前風險評估</span></div>
+  <div class="card-b" id="earningsCalendarBody"></div></div>
 </div>
 
-<!-- ═══════════ 組合 PANE ═══════════ -->
+<!-- ════════════ 組合 PANE ════════════ -->
 <div class="pane" id="pane-portfolio">
-  <div class="card privacy-zone"><div class="grid" id="summaryGrid"></div></div>
-  <div class="card privacy-zone"><div class="card-h"><span class="card-t">📅 回本進度</span><span style="font-size:11px;color:#64748b">每日目標追蹤</span></div>
-  <div id="recoveryBody" style="padding:16px"></div></div>
-  <div class="card privacy-zone"><div class="card-h"><span class="card-t">📂 現有持倉</span><span id="cashInfo" style="font-size:12px;color:#64748b"></span></div>
-  <table><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">動量減速</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
-  <div class="card privacy-zone"><div class="card-h"><span class="card-t">📝 交易紀錄</span><span style="font-size:12px;color:#64748b">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
-  <table><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table></div>
+  <div class="subnav" data-pane="portfolio">
+    <a href="#sec-pf-summary" class="active">概覽</a>
+    <a href="#sec-pf-recovery">回本進度</a>
+    <a href="#sec-pf-positions">持倉</a>
+    <a href="#sec-pf-tx">交易紀錄</a>
+  </div>
+  <div class="card privacy-zone" id="sec-pf-summary"><div class="grid" id="summaryGrid"></div></div>
+  <div class="card privacy-zone" id="sec-pf-recovery"><div class="card-h"><span class="t"><span class="sec-num">📈</span>回本進度</span><span class="meta">每日目標追蹤</span></div>
+  <div class="card-b" id="recoveryBody"></div></div>
+  <div class="card privacy-zone" id="sec-pf-positions"><div class="card-h"><span class="t"><span class="sec-num">💼</span>現有持倉</span><span class="meta" id="cashInfo"></span></div>
+  <table class="utable"><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">動量減速</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
+  <div class="card privacy-zone" id="sec-pf-tx"><div class="card-h"><span class="t"><span class="sec-num">📝</span>交易紀錄</span><span class="meta">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
+  <table class="utable"><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table></div>
 </div>
 
-<!-- ═══════════ 策略 PANE ═══════════ -->
+<!-- ════════════ 策略 PANE ════════════ -->
 <div class="pane" id="pane-strategy">
-  <div class="card"><div class="card-h"><span class="card-t">① 部署總覽 — 結論</span><span id="strategyTimestamp" style="font-size:11px;color:#94a3b8"></span></div>
-  <div id="summaryBody" style="padding:16px"></div></div>
+  <div class="subnav" data-pane="strategy">
+    <a href="#sec-st-summary" class="active">部署總覽</a>
+    <a href="#sec-st-index">指數部署</a>
+    <a href="#sec-st-long">造好名單</a>
+    <a href="#sec-st-short">造淡名單</a>
+    <a href="#sec-st-neutral">觀望名單</a>
+    <a href="#sec-st-tech">指數技術</a>
+    <a href="#sec-st-eln">ELN 策略</a>
+  </div>
+  <div class="card" id="sec-st-summary"><div class="card-h"><span class="t"><span class="sec-num">①</span>部署總覽 — 結論</span><span class="meta" id="strategyTimestamp"></span></div>
+  <div class="card-b" id="summaryBody"></div></div>
 
-  <div class="card"><div class="card-h"><span class="card-t">③ 指數部署 — 費城半導體 · 納斯達克100期貨</span><span style="font-size:11px;color:#64748b">中線睇周線 · 短線睇日線</span></div>
-  <div id="indexEtfBody" style="padding:16px"></div></div>
+  <div class="card" id="sec-st-index"><div class="card-h"><span class="t"><span class="sec-num">③</span>指數部署 — 費城半導體 · 納斯達克100期貨</span><span class="meta">中線睇周線 · 短線睇日線</span></div>
+  <div class="card-b" id="indexEtfBody"></div></div>
 
-  <div class="card"><div class="card-h"><span class="card-t">④ 觀察名單 — 造好機會</span><span style="font-size:11px;color:#16a34a">按四因子評分排序 · 點擊股票查看因子拆解</span></div>
-  <div style="overflow-x:auto"><table><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>操作建議</th></tr></thead><tbody id="longListBody"></tbody></table></div></div>
+  <div class="card" id="sec-st-long"><div class="card-h"><span class="t"><span class="sec-num">④</span>觀察名單 — 造好機會</span><span class="meta">按四因子評分排序 · 點擊股票查看因子拆解</span></div>
+  <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>操作建議</th></tr></thead><tbody id="longListBody"></tbody></table></div></div>
 
-  <div class="card"><div class="card-h"><span class="card-t">⑤ 觀察名單 — 造淡機會</span><span style="font-size:11px;color:#dc2626">按動量減速排序 · 點擊股票查看因子拆解</span></div>
-  <div style="overflow-x:auto"><table><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>操作建議</th></tr></thead><tbody id="shortListBody"></tbody></table></div></div>
+  <div class="card" id="sec-st-short"><div class="card-h"><span class="t"><span class="sec-num">⑤</span>觀察名單 — 造淡機會</span><span class="meta">按動量減速排序 · 點擊股票查看因子拆解</span></div>
+  <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>操作建議</th></tr></thead><tbody id="shortListBody"></tbody></table></div></div>
 
-  <div class="card"><div class="card-h"><span class="card-t">⑥ 觀察名單 — 暫時觀望</span><span style="font-size:11px;color:#94a3b8">未符合造好或造淡條件</span></div>
-  <div style="overflow-x:auto"><table><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>轉向條件</th></tr></thead><tbody id="neutralListBody"></tbody></table></div></div>
+  <div class="card" id="sec-st-neutral"><div class="card-h"><span class="t"><span class="sec-num">⑥</span>觀察名單 — 暫時觀望</span><span class="meta">未符合造好或造淡條件</span></div>
+  <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>轉向條件</th></tr></thead><tbody id="neutralListBody"></tbody></table></div></div>
 
-  <div class="card"><div class="card-h"><span class="card-t">⑦ 指數技術分析 — 支持阻力位</span></div>
-  <div id="techBody" style="padding:16px"></div></div>
+  <div class="card" id="sec-st-tech"><div class="card-h"><span class="t"><span class="sec-num">⑦</span>指數技術分析 — 支持阻力位</span></div>
+  <div class="card-b" id="techBody"></div></div>
 
-  <div class="card"><div class="card-h"><span class="card-t">⑧ ELN 策略</span><span style="font-size:11px;color:#64748b">ELN 即沽出認沽期權，須選不會跌穿行使價之股份</span></div>
-  <div id="elnBody" style="padding:16px"></div></div>
+  <div class="card" id="sec-st-eln"><div class="card-h"><span class="t"><span class="sec-num">⑧</span>ELN 策略</span><span class="meta">ELN 即沽出認沽期權，須選不會跌穿行使價之股份</span></div>
+  <div class="card-b" id="elnBody"></div></div>
 </div>
 
-<!-- ═══════════ 數浪 PANE ═══════════ -->
+<!-- ════════════ 數浪 PANE ════════════ -->
 <div class="pane" id="pane-wave">
-  <div class="card"><div class="card-h"><span class="card-t">🌊 艾略特波浪計算 — 恒生指數 · 費城半導體 · 納斯達克100期貨</span><span style="font-size:11px;color:#64748b">月線 → 周線 → 日線</span></div>
-  <div id="waveBody" style="padding:16px"></div></div>
+  <div class="subnav" data-pane="wave">
+    <a href="#sec-wave-main" class="active">波浪計算</a>
+  </div>
+  <div class="card" id="sec-wave-main"><div class="card-h"><span class="t"><span class="sec-num">🌊</span>艾略特波浪計算 — 恒生指數 · 費城半導體 · 納斯達克100期貨</span><span class="meta">月線 → 周線 → 日線</span></div>
+  <div class="card-b" id="waveBody"></div></div>
 </div>
 
-<!-- ═══════════ 月度再平衡 PANE ═══════════ -->
+<!-- ════════════ 月度再平衡 PANE ════════════ -->
 <div class="pane" id="pane-monthly">
-  <div class="card"><div class="card-h"><span class="card-t">📅 月度再平衡</span><span style="font-size:11px;color:#64748b">每月1-3號自動執行</span></div>
-  <div id="monthlyBody" style="padding:16px"></div></div>
+  <div class="subnav" data-pane="monthly">
+    <a href="#sec-monthly-main" class="active">再平衡建議</a>
+  </div>
+  <div class="card" id="sec-monthly-main"><div class="card-h"><span class="t"><span class="sec-num">📅</span>月度再平衡</span><span class="meta">每月 1-3 號自動執行</span></div>
+  <div class="card-b" id="monthlyBody"></div></div>
 </div>
 
-<!-- ═══════════ 港股（工作用）PANE ═══════════ -->
+<!-- ════════════ 港股（工作用）PANE ════════════ -->
 <div class="pane" id="pane-hk">
-  <div class="work-banner">🏢 此頁為工作用途 — 恆生銀行客戶市場情報及 ELN 產品切入點，與個人組合完全分開。所有票息為指示性計算，實際以交易台報價為準。</div>
+  <div class="work-banner">🏢 此頁為工作用途 — 恒生銀行客戶市場情報及 ELN 產品切入點，與個人組合完全分開。所有票息為指示性計算，實際以交易台報價為準。</div>
+  <div class="subnav" data-pane="hk">
+    <a href="#sec-hk-regime" class="active">大盤形勢</a>
+    <a href="#sec-hk-tech">指數技術</a>
+    <a href="#sec-hk-list">量化評分</a>
+    <a href="#sec-hk-eln">ELN 策略</a>
+    <a href="#sec-hk-basket">Worst-of 籃子</a>
+    <a href="#sec-hk-earn">業績日曆</a>
+  </div>
 
-  <div class="card"><div class="card-h"><span class="card-t">① 大盤形勢 — 恆生指數 · 恆生科技指數</span><span id="hkRegimeTs" style="font-size:11px;color:#94a3b8"></span></div>
-  <div id="hkRegimeBody" style="padding:16px"></div></div>
+  <div class="card" id="sec-hk-regime"><div class="card-h"><span class="t"><span class="sec-num">①</span>大盤形勢 — 恒生指數 · 恒生科技指數</span><span class="meta" id="hkRegimeTs"></span></div>
+  <div class="card-b" id="hkRegimeBody"></div></div>
 
-  <div class="card"><div class="card-h"><span class="card-t">② 指數技術分析 — 支持阻力 · 日線／周線</span><span style="font-size:11px;color:#64748b">中線睡周線 · 短線睡日線</span></div>
-  <div id="hkTechBody" style="padding:16px"></div></div>
+  <div class="card" id="sec-hk-tech"><div class="card-h"><span class="t"><span class="sec-num">②</span>指數技術分析 — 支持阻力 · 日線／周線</span><span class="meta">中線睇周線 · 短線睇日線</span></div>
+  <div class="card-b" id="hkTechBody"></div></div>
 
-  <div class="card"><div class="card-h"><span class="card-t">③ 港股量化評分 — 四因子模型</span><span style="font-size:11px;color:#64748b">點擊股票查看因子拆解</span></div>
-  <div style="overflow-x:auto"><table><thead><tr><th>股票</th><th>行業</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th class="r">波幅</th><th class="r">股息</th><th>業績</th></tr></thead><tbody id="hkListBody"></tbody></table></div></div>
+  <div class="card" id="sec-hk-list"><div class="card-h"><span class="t"><span class="sec-num">③</span>港股量化評分 — 四因子模型</span><span class="meta">點擊股票查看因子拆解</span></div>
+  <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>行業</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th class="r">波幅</th><th class="r">股息</th><th>業績</th></tr></thead><tbody id="hkListBody"></tbody></table></div></div>
 
-  <div class="card"><div class="card-h"><span class="card-t">④ ELN 策略 — 建議標的</span><span style="font-size:11px;color:#64748b">ELN 即沽出認沽期權，須選不會跌穿行使價之股份</span></div>
-  <div id="hkElnBody" style="padding:16px"></div></div>
+  <div class="card" id="sec-hk-eln"><div class="card-h"><span class="t"><span class="sec-num">④</span>ELN 策略 — 建議標的</span><span class="meta">ELN 即沽出認沽期權，須選不會跌穿行使價之股份</span></div>
+  <div class="card-b" id="hkElnBody"></div></div>
 
-  <div class="card"><div class="card-h"><span class="card-t">⑤ Worst-of 籃子 · 不宜掛 ELN 名單</span></div>
-  <div id="hkElnExtraBody" style="padding:16px"></div></div>
+  <div class="card" id="sec-hk-basket"><div class="card-h"><span class="t"><span class="sec-num">⑤</span>Worst-of 籃子 · 不宜掛 ELN 名單</span></div>
+  <div class="card-b" id="hkElnExtraBody"></div></div>
 
-  <div class="card"><div class="card-h"><span class="card-t">⑥ 港股業績日曆</span><span style="font-size:11px;color:#64748b">中期／全年業績 · 績前風險評估</span></div>
-  <div id="hkEarningsBody" style="padding:16px"></div></div>
+  <div class="card" id="sec-hk-earn"><div class="card-h"><span class="t"><span class="sec-num">⑥</span>港股業績日曆</span><span class="meta">中期／全年業績 · 績前風險評估</span></div>
+  <div class="card-b" id="hkEarningsBody"></div></div>
 </div>
 
-<div style="text-align:center;color:#94a3b8;font-size:11px;padding:8px">leungkathy · 四因子量化模型 · 動量減速規則：≥-1 可買入 · ≤-3 須沽出</div>
+<div class="foot">leungkathy · 四因子量化模型 · 動量減速規則：≥-1 可買入 · ≤-3 建議沽出</div>
 </div>
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
 <div class="modal" id="modalContent"></div>
@@ -199,7 +250,27 @@ function switchTab(name){
     if(t)t.classList.toggle('active',n===name);
   });
   try{localStorage.setItem('qtab',name)}catch(e){}
+  initSubnav(name);
   window.scrollTo(0,0);
+}
+// Section sub-nav: smooth scroll + scroll-spy active highlight
+let _subnavScrollHandler=null;
+function initSubnav(pane){
+  document.querySelectorAll('.subnav[data-pane="'+pane+'"] a').forEach(a=>{
+    a.onclick=function(e){e.preventDefault();const id=this.getAttribute('href').slice(1);const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});};
+  });
+  if(_subnavScrollHandler)window.removeEventListener('scroll',_subnavScrollHandler);
+  const nav=document.querySelector('.subnav[data-pane="'+pane+'"]');
+  if(!nav)return;
+  const links=[...nav.querySelectorAll('a')];
+  const ids=links.map(a=>a.getAttribute('href').slice(1));
+  _subnavScrollHandler=function(){
+    let cur=ids[0];
+    for(const id of ids){const el=document.getElementById(id);if(el&&el.getBoundingClientRect().top<=140)cur=id;}
+    links.forEach(a=>a.classList.toggle('active',a.getAttribute('href').slice(1)===cur));
+  };
+  window.addEventListener('scroll',_subnavScrollHandler,{passive:true});
+  _subnavScrollHandler();
 }
 const API='https://quant-api.leunghlk.workers.dev/api';
 let TXDATA=[];
