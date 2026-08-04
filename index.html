@@ -5,7 +5,8 @@
 <style>
 :root{
   --bg:#eef2f6; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
-  --blue:#2563eb; --emerald:#059669; --purple:#7c3aed; --rose:#be123c;
+  --blue:#0d9488; --teal:#0d9488; --teal-deep:#115e59; --teal-accent:#14b8a6; --teal-tint:#ccfbf1;
+  --emerald:#059669; --purple:#7c3aed; --rose:#be123c;
   --good:#16a34a; --bad:#dc2626; --warn:#d97706;
   --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.04);
 }
@@ -54,7 +55,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 .utable tbody tr:last-child td{border-bottom:none}
 .utable tbody tr:hover{background:#f8fafc}
 .utable tbody tr.clickable{cursor:pointer}
-.utable tbody tr.clickable:hover{background:#eff6ff}
+.utable tbody tr.clickable:hover{background:#ecfdf5}
 /* signal + decel pills (shared) */
 .sig{padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
 .sig-SELL{background:#ef4444}.sig-REDUCE{background:#f97316}.sig-HOLD{background:#eab308}.sig-ACCUMULATE{background:#3b82f6}.sig-BUY{background:#22c55e}
@@ -92,7 +93,33 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 .kv td{padding:3px 6px;border:none;vertical-align:top}
 .kv td:first-child{color:#64748b;font-weight:600;white-space:nowrap;width:72px}
 .foot{text-align:center;color:#94a3b8;font-size:11px;padding:14px 0 0}
-.tf-badge{display:inline-block;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 8px;border-radius:5px;font-size:10px;font-weight:700;margin-right:6px}
+/* ===== Nested mega-menu (replaces flat .tabs) ===== */
+.mega{position:sticky;top:53px;z-index:180;background:var(--bg);padding:6px 0;border-bottom:1px solid var(--line);margin-bottom:14px}
+.mega-l1{display:flex;gap:6px;flex-wrap:wrap;max-width:1280px;margin:0 auto;padding:0 14px;list-style:none}
+.mega-item{position:relative}
+.mega-tab,.mega-sub,.mega-leaf{cursor:pointer;border:none;background:#fff;border:1px solid #cbd5e1;color:#475569;padding:9px 16px;border-radius:9px;font-size:13.5px;font-weight:700;display:block;white-space:nowrap;text-decoration:none;font-family:inherit;text-align:left}
+.mega-tab:hover,.mega-sub:hover,.mega-leaf:hover{border-color:var(--teal);color:var(--teal-deep)}
+.mega-tab.active,.mega-sub.active,.mega-leaf.active{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:0 2px 6px rgba(13,148,136,.25)}
+.mega-tab::after{content:' ▾';font-size:10px;opacity:.5;font-weight:400}
+.mega-l2,.mega-l3{display:none;position:absolute;list-style:none;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.12);padding:6px;z-index:190;margin:0}
+.mega-l2{top:calc(100% + 4px);left:0;min-width:210px}
+.mega-l3{top:-7px;left:calc(100% + 4px);min-width:200px}
+.mega-item:hover>.mega-l2,.mega-item:focus-within>.mega-l2,.mega-item.open>.mega-l2{display:block}
+.mega-l2>li.has-l3:hover>.mega-l3,.mega-l2>li.has-l3:focus-within>.mega-l3,.mega-l2>li.has-l3.open>.mega-l3{display:block}
+.mega-l2 li,.mega-l3 li{padding:2px 0}
+.mega-l2 .mega-leaf,.mega-l3 .mega-leaf{border:none;background:transparent;color:#334155;font-weight:600;padding:7px 12px;border-radius:7px;width:100%}
+.mega-l2 .mega-leaf:hover,.mega-l3 .mega-leaf:hover{background:#ecfdf5;color:var(--teal-deep)}
+.mega-l2 .mega-leaf.active,.mega-l3 .mega-leaf.active{background:var(--teal);color:#fff}
+.mega-sub::after{content:' ▸';font-size:11px;opacity:.5;font-weight:400}
+.mega-leaf.deferred{opacity:.45;cursor:not-allowed}
+.mega-leaf.deferred:hover{background:transparent;color:#94a3b8}
+/* ===== Top panes + subviews (replace flat .pane) ===== */
+.top-pane{display:none}.top-pane.active{display:block}
+.subview{display:none}.subview.active{display:block}
+.hidden{display:none!important}
+.tech-card{padding:14px 16px}
+@media(max-width:640px){.mega-tab,.mega-sub,.mega-leaf{padding:8px 12px;font-size:12.5px}.mega-l2,.mega-l3{min-width:170px}}
+.tf-badge{display:inline-block;background:#ecfdf5;color:#0f766e;border:1px solid #99f6e4;padding:1px 8px;border-radius:5px;font-size:10px;font-weight:700;margin-right:6px}
 .tf-badge.wk{background:#fffbeb;color:#b45309;border-color:#fde68a}
 </style>
 </head><body><div class="container">
@@ -106,133 +133,170 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 </div></div>
 <div class="alert-banner" id="alertBanner"></div>
 
-<div class="tabs">
-  <button class="tab c1 active" id="tabBtn-overview" onclick="switchTab('overview')">📊 總覽</button>
-  <button class="tab c2" id="tabBtn-deploy" onclick="switchTab('deploy')">🎯 部署</button>
-  <button class="tab c2" id="tabBtn-market" onclick="switchTab('market')">🌍 大盤技術</button>
-  <button class="tab c2" id="tabBtn-wave" onclick="switchTab('wave')">🌊 數浪</button>
-  <button class="tab c4" id="tabBtn-hk" onclick="switchTab('hk')">🇭🇰 港股ELN</button>
-  <button class="tab c3" id="tabBtn-monthly" onclick="switchTab('monthly')">📅 月度再平衡</button>
-</div>
+<nav class="mega" role="navigation" aria-label="primary">
+  <ul class="mega-l1">
+    <li class="mega-item">
+      <button class="mega-tab" type="button" data-top="overview">📊 總覽</button>
+      <ul class="mega-l2">
+        <li><a class="mega-leaf" data-top="overview" data-sub="performance">組合表現</a></li>
+        <li><a class="mega-leaf" data-top="overview" data-sub="monthly">Monthly Rebalancing</a></li>
+      </ul>
+    </li>
+    <li class="mega-item">
+      <button class="mega-tab" type="button" data-top="deploy">🎯 部署</button>
+      <ul class="mega-l2">
+        <li><a class="mega-leaf" data-top="deploy" data-sub="regime">大盤形勢</a></li>
+        <li><a class="mega-leaf" data-top="deploy" data-sub="positions">執倉</a></li>
+        <li><a class="mega-leaf" data-top="deploy" data-sub="toppick">最優先部署</a></li>
+        <li><a class="mega-leaf" data-top="deploy" data-sub="signals">活躍訊號</a></li>
+        <li><a class="mega-leaf" data-top="deploy" data-sub="watchlist">觀察名單</a></li>
+        <li><a class="mega-leaf" data-top="deploy" data-sub="earnings">業績日曆</a></li>
+      </ul>
+    </li>
+    <li class="mega-item">
+      <button class="mega-tab" type="button" data-top="tech">📈 指數技術位</button>
+      <ul class="mega-l2">
+        <li class="has-l3">
+          <a class="mega-sub" data-top="tech" data-sub="us">🇺🇸 美股</a>
+          <ul class="mega-l3">
+            <li><a class="mega-leaf" data-top="tech" data-sub="us" data-leaf="MAGS">七雄 ETF MAGS</a></li>
+            <li><a class="mega-leaf" data-top="tech" data-sub="us" data-leaf="NQ=F">Nasdaq 100 期貨</a></li>
+            <li><a class="mega-leaf" data-top="tech" data-sub="us" data-leaf="^SOX">費城半導體 SOX</a></li>
+            <li class="deferred"><span class="mega-leaf deferred">S&P 500 <em style="font-size:9px;opacity:.6;font-style:normal">(暫緩)</em></span></li>
+            <li class="deferred"><span class="mega-leaf deferred">Dow Jones <em style="font-size:9px;opacity:.6;font-style:normal">(暫緩)</em></span></li>
+          </ul>
+        </li>
+        <li class="has-l3">
+          <a class="mega-sub" data-top="tech" data-sub="hk">🇭🇰 港股</a>
+          <ul class="mega-l3">
+            <li><a class="mega-leaf" data-top="tech" data-sub="hk" data-leaf="hsi">恒生指數 HSI</a></li>
+            <li><a class="mega-leaf" data-top="tech" data-sub="hk" data-leaf="hstech">恒生科技 HSTECH</a></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li class="mega-item">
+      <button class="mega-tab" type="button" data-top="wave">🌊 波浪理論</button>
+      <ul class="mega-l2">
+        <li><a class="mega-leaf" data-top="wave" data-sub="wave" data-leaf="^HSI">恒生指數</a></li>
+        <li><a class="mega-leaf" data-top="wave" data-sub="wave" data-leaf="NQ=F">納斯達克100期貨</a></li>
+        <li><a class="mega-leaf" data-top="wave" data-sub="wave" data-leaf="^SOX">費城半導體</a></li>
+      </ul>
+    </li>
+    <li class="mega-item">
+      <button class="mega-tab" type="button" data-top="eln">💼 ELN</button>
+      <ul class="mega-l2">
+        <li><a class="mega-leaf" data-top="eln" data-sub="us">🇺🇸 美股</a></li>
+        <li><a class="mega-leaf" data-top="eln" data-sub="hk">🇭🇰 港股</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
 
 <!-- ════════════ ① 總覽 (OVERVIEW) — 一眼睇晒 PANE (DEFAULT) ════════════ -->
-<div class="pane active" id="pane-overview">
-  <div class="subnav" data-pane="overview">
-    <a href="#sec-ov-portfolio" class="active">組合表現</a>
-    <a href="#sec-ov-report">即市戰報</a>
-    <a href="#sec-ov-top">最優先部署</a>
-    <a href="#sec-ov-actions">活躍訊號</a>
-    <a href="#sec-ov-watch">部署監察</a>
-    <a href="#sec-ov-earn">業績日曆</a>
-  </div>
-  <div class="card privacy-zone" id="sec-ov-portfolio"><div class="grid" id="summaryGrid"></div></div>
-  <div class="card privacy-zone" id="sec-ov-recovery"><div class="card-h"><span class="t"><span class="sec-num">📈</span>回本進度</span><span class="meta">每日目標追蹤</span></div>
-  <div class="card-b" id="recoveryBody"></div></div>
-  <div class="card privacy-zone" id="sec-ov-positions"><div class="card-h"><span class="t"><span class="sec-num">💼</span>現有持倉</span><span class="meta" id="cashInfo"></span></div>
-  <table class="utable"><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">動量減速</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
-  <div class="card privacy-zone" id="sec-ov-tx"><div class="card-h"><span class="t"><span class="sec-num">📝</span>交易紀錄</span><span class="meta">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
-  <table class="utable"><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table></div>
-  <div class="card privacy-zone" id="sec-ov-report"><div class="card-h"><span class="t"><span class="sec-num">📊</span>即市戰報</span><span class="meta" id="dailyReportTs"></span></div>
-  <div class="card-b" id="dailyReportBody"></div></div>
-  <div class="card" id="topPickCard" style="display:none"><div class="card-h"><span class="t"><span class="sec-num">⭐</span>當前最值得部署</span><span class="meta">綜合造好 + 造淡 · 即時最優先</span></div>
-  <div class="card-b" id="topPickBody"></div></div>
-  <div class="card" id="sec-ov-actions"><div class="card-h"><span class="t"><span class="sec-num">⚡</span>即時活躍訊號</span><span class="meta">BUY / SELL / SHORT — 按優先次序</span></div>
-  <div class="card-b" id="dailyActionsBody"></div></div>
-  <div class="card" id="sec-ov-watch"><div class="card-h"><span class="t"><span class="sec-num">📋</span>部署監察</span><span class="meta">造好候選 / 造淡候選 / 觀望觸發條件</span></div>
-  <div class="card-b" id="dailyWatchBody"></div></div>
-  <div class="card" id="sec-ov-earn"><div class="card-h"><span class="t"><span class="sec-num">📅</span>業績日曆</span><span class="meta">每隻 watchlist 股票 · 績前風險評估</span></div>
-  <div class="card-b" id="earningsCalendarBody"></div></div>
+<div class="top-pane active" data-top="overview">
+  <section class="subview active" data-sub="performance">
+    <div class="card privacy-zone" id="sec-ov-portfolio"><div class="grid" id="summaryGrid"></div></div>
+    <div class="card privacy-zone" id="sec-ov-recovery"><div class="card-h"><span class="t"><span class="sec-num">📈</span>回本進度</span><span class="meta">每日目標追蹤 · 領先／落後線性進度</span></div>
+    <div class="card-b" id="recoveryBody"></div></div>
+    <div class="card privacy-zone" id="sec-ov-positions"><div class="card-h"><span class="t"><span class="sec-num">💼</span>現有持倉</span><span class="meta" id="cashInfo"></span></div>
+    <table class="utable"><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">動量減速</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
+    <div class="card privacy-zone" id="sec-ov-tx"><div class="card-h"><span class="t"><span class="sec-num">📝</span>交易紀錄</span><span class="meta">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
+    <table class="utable"><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table></div>
+  </section>
+  <section class="subview" data-sub="monthly">
+    <div class="card" id="sec-monthly-main"><div class="card-h"><span class="t"><span class="sec-num">📅</span>月度再平衡</span><span class="meta">每月 1-3 號自動執行</span></div>
+    <div class="card-b" id="monthlyBody"></div></div>
+  </section>
 </div>
 
 <!-- ════════════ ② 部署 (DEPLOY / STRATEGY) ════════════ -->
-<div class="pane" id="pane-deploy">
-  <div class="subnav" data-pane="deploy">
-    <a href="#sec-dp-summary" class="active">部署總覽</a>
-    <a href="#sec-dp-index">指數部署</a>
-    <a href="#sec-dp-long">造好名單</a>
-    <a href="#sec-dp-short">造淡名單</a>
-    <a href="#sec-dp-neutral">觀望名單</a>
-    <a href="#sec-dp-eln">ELN 策略</a>
-  </div>
-  <div class="card" id="sec-dp-summary"><div class="card-h"><span class="t"><span class="sec-num">①</span>部署總覽 — 結論</span><span class="meta" id="strategyTimestamp"></span></div>
-  <div class="card-b" id="summaryBody"></div></div>
-
-  <div class="card" id="sec-dp-index"><div class="card-h"><span class="t"><span class="sec-num">③</span>指數部署 — 費城半導體 · 納斯達克100期貨</span><span class="meta">中線睇周線 · 短線睇日線</span></div>
-  <div class="card-b" id="indexEtfBody"></div></div>
-
-  <div class="card" id="sec-dp-long"><div class="card-h"><span class="t"><span class="sec-num">④</span>觀察名單 — 造好機會</span><span class="meta">按四因子評分排序 · 點擊股票查看因子拆解</span></div>
-  <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>操作建議</th></tr></thead><tbody id="longListBody"></tbody></table></div></div>
-
-  <div class="card" id="sec-dp-short"><div class="card-h"><span class="t"><span class="sec-num">⑤</span>觀察名單 — 造淡機會</span><span class="meta">按動量減速排序 · 點擊股票查看因子拆解</span></div>
-  <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>操作建議</th></tr></thead><tbody id="shortListBody"></tbody></table></div></div>
-
-  <div class="card" id="sec-dp-neutral"><div class="card-h"><span class="t"><span class="sec-num">⑥</span>觀察名單 — 暫時觀望</span><span class="meta">未符合造好或造淡條件</span></div>
-  <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th>轉向條件</th></tr></thead><tbody id="neutralListBody"></tbody></table></div></div>
-
-  <div class="card" id="sec-dp-eln"><div class="card-h"><span class="t"><span class="sec-num">⑦</span>ELN 策略（美股）</span><span class="meta">ELN 即沽出認沽期權，須選不會跌穿行使價之股份</span></div>
-  <div class="card-b" id="elnBody"></div></div>
+<div class="top-pane" data-top="deploy">
+  <!-- 大盤形勢 -->
+  <section class="subview" data-sub="regime">
+    <div class="card" id="sec-mk-usregime"><div class="card-h"><span class="t"><span class="sec-num">🌎</span>大盤形勢 — 美股環境與趨勢預期</span></div>
+    <div class="card-b" id="regimeBody"></div></div>
+    <div class="card" id="sec-mk-sector"><div class="card-h"><span class="t"><span class="sec-num">🔥</span>板塊熱力圖 · 延續概率</span><span class="meta">美股板塊表現 · 領漲／領跌</span></div>
+    <div class="card-b" id="sectorBody"></div></div>
+    <div class="card" id="sec-mk-hkregime"><div class="card-h"><span class="t"><span class="sec-num">🇭🇰</span>大盤形勢 — 恒生指數 · 恒生科技指數</span><span class="meta" id="hkRegimeTs"></span></div>
+    <div class="card-b" id="hkRegimeBody"></div></div>
+  </section>
+  <!-- 執倉 -->
+  <section class="subview" data-sub="positions">
+    <div class="card privacy-zone" id="sec-dp-positions"><div class="card-h"><span class="t"><span class="sec-num">🎯</span>執倉 — 現有持倉變更建議</span><span class="meta">到價鎖利 ／ 止蝕 ／ 動量減速</span></div>
+    <div class="card-b" id="positionsAdviceBody"></div></div>
+  </section>
+  <!-- 最優先部署 -->
+  <section class="subview" data-sub="toppick">
+    <div class="card" id="topPickCard" style="display:none"><div class="card-h"><span class="t"><span class="sec-num">⭐</span>當前最值得部署</span><span class="meta">綜合造好 + 造淡 · 即時最優先</span></div>
+    <div class="card-b" id="topPickBody"></div></div>
+    <div class="card" id="sec-dp-summary"><div class="card-h"><span class="t"><span class="sec-num">①</span>部署總覽 — 結論</span><span class="meta" id="strategyTimestamp"></span></div>
+    <div class="card-b" id="summaryBody"></div></div>
+    <div class="card" id="sec-dp-index"><div class="card-h"><span class="t"><span class="sec-num">③</span>指數部署 — 費城半導體 · 納斯達克100期貨 · 七雄</span><span class="meta">中線睇周線 · 短線睇日線</span></div>
+    <div class="card-b" id="indexEtfBody"></div></div>
+  </section>
+  <!-- 活躍訊號 -->
+  <section class="subview" data-sub="signals">
+    <div class="card" id="sec-ov-report"><div class="card-h"><span class="t"><span class="sec-num">📊</span>即市戰報</span><span class="meta" id="dailyReportTs"></span></div>
+    <div class="card-b" id="dailyReportBody"></div></div>
+    <div class="card" id="sec-ov-actions"><div class="card-h"><span class="t"><span class="sec-num">⚡</span>即時活躍訊號</span><span class="meta">BUY / SELL / SHORT — 按優先次序</span></div>
+    <div class="card-b" id="dailyActionsBody"></div></div>
+    <div class="card" id="sec-ov-watch"><div class="card-h"><span class="t"><span class="sec-num">📋</span>部署監察</span><span class="meta">造好候選 / 造淡候選 / 觀望觸發條件</span></div>
+    <div class="card-b" id="dailyWatchBody"></div></div>
+  </section>
+  <!-- 觀察名單 -->
+  <section class="subview" data-sub="watchlist">
+    <div class="card" id="sec-dp-long"><div class="card-h"><span class="t"><span class="sec-num">④</span>觀察名單 — 造好機會</span><span class="meta">按值博率排序（評分 × 動量減速）· 點擊股票查看因子拆解</span></div>
+    <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>信號</th><th class="c">總評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">5日</th><th class="r">1個月</th><th class="r">3個月</th><th>操作建議</th></tr></thead><tbody id="longListBody"></tbody></table></div></div>
+    <div class="card" id="sec-dp-short"><div class="card-h"><span class="t"><span class="sec-num">⑤</span>觀察名單 — 造淡機會</span><span class="meta">按動量減速排序 · 點擊股票查看因子拆解</span></div>
+    <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>信號</th><th class="c">總評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">5日</th><th class="r">1個月</th><th class="r">3個月</th><th>操作建議</th></tr></thead><tbody id="shortListBody"></tbody></table></div></div>
+    <div class="card" id="sec-dp-neutral"><div class="card-h"><span class="t"><span class="sec-num">⑥</span>觀察名單 — 暫時觀望</span><span class="meta">未符合造好或造淡條件</span></div>
+    <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>信號</th><th class="c">總評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">5日</th><th class="r">1個月</th><th class="r">3個月</th><th>轉向條件</th></tr></thead><tbody id="neutralListBody"></tbody></table></div></div>
+  </section>
+  <!-- 業績日曆 -->
+  <section class="subview" data-sub="earnings">
+    <div class="card" id="sec-ov-earn"><div class="card-h"><span class="t"><span class="sec-num">📅</span>業績日曆</span><span class="meta">每隻 watchlist 股票 · 績前風險評估</span></div>
+    <div class="card-b" id="earningsCalendarBody"></div></div>
+  </section>
 </div>
 
-<!-- ════════════ ③ 大盤技術 (MARKET & TECHNICAL) — 去重：港美合併一次 ════════════ -->
-<div class="pane" id="pane-market">
-  <div class="subnav" data-pane="market">
-    <a href="#sec-mk-usregime" class="active">美股大盤</a>
-    <a href="#sec-mk-hkregime">港股大盤</a>
-    <a href="#sec-mk-ustech">美股技術</a>
-    <a href="#sec-mk-hktech">港股技術</a>
-  </div>
-  <div class="card" id="sec-mk-usregime"><div class="card-h"><span class="t"><span class="sec-num">🌎</span>大盤形勢 — 美股環境與趨勢預期</span></div>
-  <div class="card-b" id="regimeBody"></div></div>
-
-  <div class="card" id="sec-mk-hkregime"><div class="card-h"><span class="t"><span class="sec-num">🇭🇰</span>大盤形勢 — 恒生指數 · 恒生科技指數</span><span class="meta" id="hkRegimeTs"></span></div>
-  <div class="card-b" id="hkRegimeBody"></div></div>
-
-  <div class="card" id="sec-mk-ustech"><div class="card-h"><span class="t"><span class="sec-num">📈</span>指數技術分析 — 支持阻力位（美股）</span></div>
-  <div class="card-b" id="techBody"></div></div>
-
-  <div class="card" id="sec-mk-hktech"><div class="card-h"><span class="t"><span class="sec-num">📊</span>指數技術分析 — 支持阻力 · 日線／周線（港股）</span><span class="meta">中線睇周線 · 短線睇日線</span></div>
-  <div class="card-b" id="hkTechBody"></div></div>
+<!-- ════════════ ③ 指數技術位 (INDEX TECHNICAL LEVELS) ════════════ -->
+<div class="top-pane" data-top="tech">
+  <section class="subview" data-sub="us">
+    <div class="card tech-card" id="techCard-MAGS" data-idx="MAGS"></div>
+    <div class="card tech-card" id="techCard-NQ=F" data-idx="NQ=F"></div>
+    <div class="card tech-card" id="techCard-^SOX" data-idx="^SOX"></div>
+  </section>
+  <section class="subview" data-sub="hk">
+    <div class="card tech-card" id="techCard-hsi" data-idx="hsi"></div>
+    <div class="card tech-card" id="techCard-hstech" data-idx="hstech"></div>
+  </section>
 </div>
 
-<!-- ════════════ ④ 數浪 (WAVE) ════════════ -->
-<div class="pane" id="pane-wave">
-  <div class="subnav" data-pane="wave">
-    <a href="#sec-wave-main" class="active">波浪計算</a>
-  </div>
-  <div class="card" id="sec-wave-main"><div class="card-h"><span class="t"><span class="sec-num">🌊</span>艾略特波浪計算 — 恒生指數 · 費城半導體 · 納斯達克100期貨</span><span class="meta">月線 → 周線 → 日線</span></div>
-  <div class="card-b" id="waveBody"></div></div>
+<!-- ════════════ ④ 波浪理論 (ELLIOTT WAVE) ════════════ -->
+<div class="top-pane" data-top="wave">
+  <section class="subview" data-sub="wave">
+    <div id="waveBody" style="padding:2px 0"></div>
+  </section>
 </div>
 
-<!-- ════════════ ⑤ 港股（工作用）PANE ════════════ -->
-<div class="pane" id="pane-hk">
-  <div class="work-banner">🏢 此頁為工作用途 — 恒生銀行客戶市場情報及 ELN 產品切入點，與個人組合完全分開。所有票息為指示性計算，實際以交易台報價為準。</div>
-  <div class="subnav" data-pane="hk">
-    <a href="#sec-hk-list" class="active">量化評分</a>
-    <a href="#sec-hk-eln">ELN 策略</a>
-    <a href="#sec-hk-basket">Worst-of 籃子</a>
-    <a href="#sec-hk-earn">業績日曆</a>
-  </div>
-
-  <div class="card" id="sec-hk-list"><div class="card-h"><span class="t"><span class="sec-num">③</span>港股量化評分 — 四因子模型</span><span class="meta">點擊股票查看因子拆解</span></div>
-  <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>行業</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th class="r">波幅</th><th class="r">股息</th><th>業績</th></tr></thead><tbody id="hkListBody"></tbody></table></div></div>
-
-  <div class="card" id="sec-hk-eln"><div class="card-h"><span class="t"><span class="sec-num">④</span>ELN 策略 — 建議標的</span><span class="meta">ELN 即沽出認沽期權，須選不會跌穿行使價之股份</span></div>
-  <div class="card-b" id="hkElnBody"></div></div>
-
-  <div class="card" id="sec-hk-basket"><div class="card-h"><span class="t"><span class="sec-num">⑤</span>Worst-of 籃子 · 不宜掛 ELN 名單</span></div>
-  <div class="card-b" id="hkElnExtraBody"></div></div>
-
-  <div class="card" id="sec-hk-earn"><div class="card-h"><span class="t"><span class="sec-num">⑥</span>港股業績日曆</span><span class="meta">中期／全年業績 · 績前風險評估</span></div>
-  <div class="card-b" id="hkEarningsBody"></div></div>
-</div>
-
-<!-- ════════════ ⑥ 月度再平衡 PANE ════════════ -->
-<div class="pane" id="pane-monthly">
-  <div class="subnav" data-pane="monthly">
-    <a href="#sec-monthly-main" class="active">再平衡建議</a>
-  </div>
-  <div class="card" id="sec-monthly-main"><div class="card-h"><span class="t"><span class="sec-num">📅</span>月度再平衡</span><span class="meta">每月 1-3 號自動執行</span></div>
-  <div class="card-b" id="monthlyBody"></div></div>
+<!-- ════════════ ⑤ ELN ════════════ -->
+<div class="top-pane" data-top="eln">
+  <section class="subview" data-sub="us">
+    <div class="card" id="sec-dp-eln"><div class="card-h"><span class="t"><span class="sec-num">⑦</span>ELN 策略（美股）</span><span class="meta">ELN 即沽出認沽期權，須選不會跌穿行使價之股份</span></div>
+    <div class="card-b" id="elnBody"></div></div>
+  </section>
+  <section class="subview" data-sub="hk">
+    <div class="work-banner">🏢 此頁為工作用途 — 恒生銀行客戶市場情報及 ELN 產品切入點，與個人組合完全分開。所有票息為指示性計算，實際以交易台報價為準。</div>
+    <div class="card" id="sec-hk-list"><div class="card-h"><span class="t"><span class="sec-num">③</span>港股量化評分 — 四因子模型</span><span class="meta">點擊股票查看因子拆解</span></div>
+    <div style="overflow-x:auto"><table class="utable"><thead><tr><th>股票</th><th>行業</th><th>信號</th><th class="c">評分</th><th class="c">動量減速</th><th class="r">現價</th><th class="r">1個月</th><th class="r">波幅</th><th class="r">股息</th><th>業績</th></tr></thead><tbody id="hkListBody"></tbody></table></div></div>
+    <div class="card" id="sec-hk-eln"><div class="card-h"><span class="t"><span class="sec-num">④</span>ELN 策略 — 建議標的</span><span class="meta">ELN 即沽出認沽期權，須選不會跌穿行使價之股份</span></div>
+    <div class="card-b" id="hkElnBody"></div></div>
+    <div class="card" id="sec-hk-basket"><div class="card-h"><span class="t"><span class="sec-num">⑤</span>Worst-of 籃子 · 不宜掛 ELN 名單</span></div>
+    <div class="card-b" id="hkElnExtraBody"></div></div>
+    <div class="card" id="sec-hk-earn"><div class="card-h"><span class="t"><span class="sec-num">⑥</span>港股業績日曆</span><span class="meta">中期／全年業績 · 績前風險評估</span></div>
+    <div class="card-b" id="hkEarningsBody"></div></div>
+  </section>
 </div>
 
 <div class="foot">leungkathy · 四因子量化模型 · 動量減速規則：≥-1 可買入 · ≤-3 建議沽出</div>
@@ -241,43 +305,68 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 <div class="modal" id="modalContent"></div>
 </div>
 <script>
-function switchTab(name){
-  ['overview','deploy','market','wave','hk','monthly'].forEach(n=>{
-    const p=document.getElementById('pane-'+n);
-    const t=document.getElementById('tabBtn-'+n);
-    if(p)p.classList.toggle('active',n===name);
-    if(t)t.classList.toggle('active',n===name);
-  });
-  try{localStorage.setItem('qtab',name)}catch(e){}
-  initSubnav(name);
+// ===== Nested mega-menu navigation (replaces flat switchTab + initSubnav) =====
+const FUND_TARGETS={ADBE:270,DDOG:269}; // consolidated; checkPriceAlerts/dismissAlerts locals removed in cleanup
+const VALID_TOP=['overview','deploy','tech','wave','eln'];
+const QVIEW_DEFAULT={top:'overview',sub:'performance',leaf:null};
+function openView(top,sub,leaf){
+  if(VALID_TOP.indexOf(top)<0)top=QVIEW_DEFAULT.top;
+  if(!sub)sub=QVIEW_DEFAULT.sub;
+  document.querySelectorAll('.top-pane').forEach(function(p){p.classList.toggle('active',p.dataset.top===top);});
+  const pane=document.querySelector('.top-pane[data-top="'+top+'"]');
+  if(!pane)return;
+  let matched=false;
+  pane.querySelectorAll('.subview').forEach(function(v){const on=v.dataset.sub===sub;v.classList.toggle('active',on);if(on)matched=true;});
+  if(!matched){const f=pane.querySelector('.subview');if(f)f.classList.add('active');}
+  const activeSub=pane.querySelector('.subview.active');
+  if(activeSub&&leaf){
+    let any=false;
+    activeSub.querySelectorAll('[data-idx]').forEach(function(c){const on=c.dataset.idx===leaf;c.classList.toggle('hidden',!on);if(on)any=true;});
+    if(!any)activeSub.querySelectorAll('[data-idx]').forEach(function(c){c.classList.remove('hidden');});
+  }else if(activeSub){
+    activeSub.querySelectorAll('[data-idx]').forEach(function(c){c.classList.remove('hidden');});
+  }
+  document.querySelectorAll('.mega .active').forEach(function(a){a.classList.remove('active');});
+  const tt=document.querySelector('.mega-tab[data-top="'+top+'"]');if(tt)tt.classList.add('active');
+  const ss=document.querySelector('.mega-sub[data-top="'+top+'"][data-sub="'+sub+'"]');if(ss)ss.classList.add('active');
+  let leafSel='.mega-leaf[data-top="'+top+'"][data-sub="'+sub+'"]';
+  if(leaf)leafSel+='[data-leaf="'+leaf+'"]';
+  const ll=document.querySelector(leafSel);if(ll)ll.classList.add('active');
+  try{localStorage.setItem('qview',JSON.stringify({top:top,sub:sub,leaf:leaf||null}));}catch(e){}
   window.scrollTo(0,0);
 }
-// initial tab from localStorage (fallback to overview if stale)
 (function(){
-  let init='overview';
-  try{const s=localStorage.getItem('qtab');if(s&&document.getElementById('pane-'+s))init=s;}catch(e){}
-  // defer to allow DOM ready
-  if(document.readyState!=='loading')switchTab(init);else window.addEventListener('DOMContentLoaded',()=>switchTab(init));
+  let v=QVIEW_DEFAULT;
+  try{const s=localStorage.getItem('qview');if(s){const p=JSON.parse(s);if(p&&document.querySelector('.top-pane[data-top="'+p.top+'"]'))v=p;}}catch(e){}
+  const go=function(){openView(v.top||QVIEW_DEFAULT.top,v.sub||QVIEW_DEFAULT.sub,v.leaf||null);};
+  if(document.readyState!=='loading')go();else window.addEventListener('DOMContentLoaded',go);
 })();
-// Section sub-nav: smooth scroll + scroll-spy active highlight
-let _subnavScrollHandler=null;
-function initSubnav(pane){
-  document.querySelectorAll('.subnav[data-pane="'+pane+'"] a').forEach(a=>{
-    a.onclick=function(e){e.preventDefault();const id=this.getAttribute('href').slice(1);const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});};
+(function(){
+  const mega=document.querySelector('.mega');
+  if(!mega)return;
+  mega.addEventListener('click',function(e){
+    const leaf=e.target.closest('.mega-leaf');
+    if(leaf&&!leaf.classList.contains('deferred')){
+      e.preventDefault();
+      document.querySelectorAll('.mega .open').forEach(function(x){x.classList.remove('open');});
+      openView(leaf.dataset.top,leaf.dataset.sub,leaf.dataset.leaf||null);
+      return;
+    }
+    const parent=e.target.closest('.mega-tab,.mega-sub');
+    if(parent){
+      e.preventDefault();e.stopPropagation();
+      const item=parent.closest('.mega-item,li.has-l3');
+      if(!item)return;
+      const wasOpen=item.classList.contains('open');
+      document.querySelectorAll('.mega .open').forEach(function(x){x.classList.remove('open');});
+      if(!wasOpen)item.classList.add('open');
+    }
   });
-  if(_subnavScrollHandler)window.removeEventListener('scroll',_subnavScrollHandler);
-  const nav=document.querySelector('.subnav[data-pane="'+pane+'"]');
-  if(!nav)return;
-  const links=[...nav.querySelectorAll('a')];
-  const ids=links.map(a=>a.getAttribute('href').slice(1));
-  _subnavScrollHandler=function(){
-    let cur=ids[0];
-    for(const id of ids){const el=document.getElementById(id);if(el&&el.getBoundingClientRect().top<=140)cur=id;}
-    links.forEach(a=>a.classList.toggle('active',a.getAttribute('href').slice(1)===cur));
-  };
-  window.addEventListener('scroll',_subnavScrollHandler,{passive:true});
-  _subnavScrollHandler();
-}
+})();
+document.addEventListener('click',function(e){if(!e.target.closest('.mega'))document.querySelectorAll('.mega .open').forEach(function(x){x.classList.remove('open');});});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.mega .open').forEach(function(x){x.classList.remove('open');});});
+
+// (legacy switchTab / initSubnav / _subnavScrollHandler removed — mega-menu openView replaces them)
 const API='https://quant-api.leunghlk.workers.dev/api';
 let TXDATA=[];
 function fmt(v,d=2){return v!=null?Number(v).toFixed(d):'—'}
@@ -311,7 +400,7 @@ function showDetail(ticker,data){
   const buyBlocked=s.decel<=-3?'<div style="color:#dc2626;font-weight:600;padding:8px;background:#fef2f2;border-radius:6px;margin-top:8px">🔴 Decel='+s.decel+' ≤ -3 → 禁止買入/強制沽出</div>':'';
   const decelInfo=s.decelReasons&&s.decelReasons.length?'<div style="margin-top:8px;font-size:12px;color:#64748b">減速原因:<br>'+s.decelReasons.map(r=>'• '+r).join('<br>')+'</div>':'';
   document.getElementById('modalContent').innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div><span style="font-size:20px;font-weight:800">'+(s.name?(s.code+' '+s.name):ticker)+'</span>'+(held?' <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">持有 '+held.shares+'股</span>':'')+'</div><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div><span style="font-size:20px;font-weight:800">'+(s.name?(s.code+' '+s.name):ticker)+'</span>'+(held?' <span style="background:#0d9488;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">持有 '+held.shares+'股</span>':'')+'</div><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></div>'+
     '<div style="font-size:13px;color:#64748b;margin-bottom:12px">現價 '+cur+fmt(s.price)+' · 30日波幅 '+s.vol30+'% · 12M '+fmtPct(s.m12)+(s.sector?' · '+s.sector:'')+'</div>'+
     '<div style="margin-bottom:16px">'+fbar(s.quality,'Quality 質素','30%')+fbar(s.momentum,'Momentum 動量','25%')+fbar(s.value,'Value 價值','20%')+fbar(s.growth,'Growth 增長','25%')+'</div>'+
     '<div style="padding:10px;background:#f8fafc;border-radius:8px;margin-bottom:8px"><b>總分: '+fmt(s.score*100,0)+'</b> · Decel: <span class="'+dc(s.decel)+'">'+s.decel+'</span></div>'+
@@ -327,27 +416,27 @@ function showDetail(ticker,data){
 }
 function closeModal(){document.getElementById('modalOverlay').classList.remove('show')}
 // 價格警報專用：關閉 + 記錄已讀，避免 auto-refresh 重複彈
-function dismissAlerts(){closeModal(); if(lastData&&lastData.portfolio){var pos=lastData.portfolio.positions;var FUND_TARGETS={ADBE:270,DDOG:269};for(var t in pos){var p=pos[t];var stopLoss=p.cost*0.92;var target=FUND_TARGETS[t]||p.cost*1.15;if(p.price<=stopLoss)dismissedAlerts[t+'_stop']=true;if(p.price>=target)dismissedAlerts[t+'_target']=true;}if(lastData.watchlist)lastData.watchlist.forEach(function(s){if(pos[s.ticker]&&s.decel<=-3)dismissedAlerts[s.ticker+'_decel']=true;});}}
+function dismissAlerts(){closeModal(); if(lastData&&lastData.portfolio){var pos=lastData.portfolio.positions;for(var t in pos){var p=pos[t];var stopLoss=p.cost*0.92;var target=FUND_TARGETS[t]||p.cost*1.15;if(p.price<=stopLoss)dismissedAlerts[t+'_stop']=true;if(p.price>=target)dismissedAlerts[t+'_target']=true;}if(lastData.watchlist)lastData.watchlist.forEach(function(s){if(pos[s.ticker]&&s.decel<=-3)dismissedAlerts[s.ticker+'_decel']=true;});}}
 function showBidi(ticker){
   const b=(lastData.bidirectional||[]).find(x=>x.ticker===ticker);
   if(!b)return;
   const row=(l,v,c)=>'<tr><td style="padding:3px 6px;color:#64748b;font-weight:600;white-space:nowrap;vertical-align:top">'+l+'</td><td style="padding:3px 6px;color:'+(c||'#0f172a')+'">'+v+'</td></tr>';
   document.getElementById('modalContent').innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><span style="font-size:20px;font-weight:800">'+b.ticker+'</span> <span style="font-size:13px;color:#64748b">$'+fmt(b.price)+'</span>'+(b.held?' <span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">持有</span>':'')+'</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><span style="font-size:20px;font-weight:800">'+b.ticker+'</span> <span style="font-size:13px;color:#64748b">$'+fmt(b.price)+'</span>'+(b.held?' <span style="background:#0d9488;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">持有</span>':'')+'</div>'+
     '<span style="background:'+(b.stance==='偏淡'?'#dc2626':b.stance==='偏好'?'#16a34a':'#94a3b8')+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700">'+b.stance+'</span></div>'+
     '<div style="font-size:12px;color:#64748b;margin-bottom:12px">Score '+Math.round(b.score*100)+' · Decel '+b.decel+' · 1M '+(b.m1m*100).toFixed(1)+'% · 5D '+(b.m5d*100).toFixed(1)+'% · Vol30 '+b.vol30+'%</div>'+
     '<div style="padding:10px 12px;background:#f0fdf4;border-radius:8px;border-left:4px solid #16a34a;margin-bottom:10px">'+
     '<div style="font-weight:700;font-size:13px;color:#15803d;margin-bottom:6px">🟢 正向（造好）'+b.long.verdict+'</div>'+
     '<table style="width:100%;font-size:12px;border-collapse:collapse">'+
     row('工具',b.long.vehicle)+row('入場',b.long.entry,'#16a34a')+row('分注',b.long.sizing)+
-    row('止蝕',b.long.stopLoss,'#dc2626')+row('目標',b.long.target,'#2563eb')+row('觸發',b.long.trigger,'#78350f')+
+    row('止蝕',b.long.stopLoss,'#dc2626')+row('目標',b.long.target,'#0d9488')+row('觸發',b.long.trigger,'#78350f')+
     '</table></div>'+
     '<div style="padding:10px 12px;background:#fef2f2;border-radius:8px;border-left:4px solid #dc2626">'+
     '<div style="font-weight:700;font-size:13px;color:#b91c1c;margin-bottom:6px">🔴 反向（造淡）'+b.short.verdict+'</div>'+
     '<table style="width:100%;font-size:12px;border-collapse:collapse">'+
     row('工具',b.short.vehicle+(b.short.allETFs!=='—'?' <span style="font-size:10px;color:#94a3b8">['+b.short.allETFs+']</span>':''))+
     row('入場',b.short.entry,'#dc2626')+row('分注',b.short.sizing)+
-    row('止蝕',b.short.stopLoss,'#dc2626')+row('止賺',b.short.takeProfit,'#2563eb')+
+    row('止蝕',b.short.stopLoss,'#dc2626')+row('止賺',b.short.takeProfit,'#0d9488')+
     row('觸發',b.short.trigger,'#78350f')+row('理據',b.short.reason)+
     '</table></div>'+
     '<button onclick="closeModal()" style="margin-top:14px;width:100%;padding:10px;background:#64748b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">關閉</button>';
@@ -362,7 +451,7 @@ function showCalendar(){
     '<span style="font-size:12px;color:#64748b">起始 2026-07-30 → 目標 2026-12-31</span></div>';
   h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">'+
     '<div style="text-align:center;padding:8px;background:#f0fdf4;border-radius:8px"><div style="font-size:18px;font-weight:700;color:#16a34a">'+(ts.metDays||0)+'/'+(ts.totalDays||0)+'</div><div style="font-size:10px;color:#64748b">達標日數</div></div>'+
-    '<div style="text-align:center;padding:8px;background:#eff6ff;border-radius:8px"><div style="font-size:18px;font-weight:700;color:#2563eb">'+(ts.metRate||0)+'%</div><div style="font-size:10px;color:#64748b">達標率</div></div>'+
+    '<div style="text-align:center;padding:8px;background:#ecfdf5;border-radius:8px"><div style="font-size:18px;font-weight:700;color:#0d9488">'+(ts.metRate||0)+'%</div><div style="font-size:10px;color:#64748b">達標率</div></div>'+
     '<div style="text-align:center;padding:8px;background:#fffbeb;border-radius:8px"><div style="font-size:18px;font-weight:700;color:#d97706">HKD $'+(ts.dailyNeedHKD||0).toLocaleString()+'</div><div style="font-size:10px;color:#64748b">每日需賺</div></div></div>';
   h+='<div style="max-height:52vh;overflow-y:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
     '<thead><tr style="background:#f1f5f9;position:sticky;top:0"><th style="padding:6px;text-align:left">日期</th><th class="n">組合(HKD)</th><th class="n">目標線</th><th class="n">差距</th><th class="n">當日±</th><th class="n">累計%</th><th class="c">達標</th></tr></thead><tbody>';
@@ -434,12 +523,70 @@ function buildTechHTML(techObj){
   return techHTML;
 }
 
+// ===== 執倉：持倉變更建議（由 positions + watchlist decel/signal + FUND_TARGETS 推導，無 LLM） =====
+function renderPositions(data){
+  const body=document.getElementById('positionsAdviceBody');
+  if(!body||!data.portfolio)return;
+  const pos=data.portfolio.positions||{};
+  const wl=new Map((data.watchlist||[]).map(function(w){return [w.ticker,w];}));
+  const rows=Object.entries(pos).map(function(entry){
+    const t=entry[0],p=entry[1];
+    const s=wl.get(t);
+    const decel=s?s.decel:0;
+    const sig=s?s.signal:'—';
+    const target=FUND_TARGETS[t]||(p.cost?p.cost*1.15:p.price*1.15);
+    const stop=p.cost?p.cost*0.92:p.price*0.92;
+    let action,cls;
+    if(decel<=-3){action='強制沽出：動量減速崩損 Decel='+decel+'（不論盈虧）';cls='sell';}
+    else if(sig==='SELL'||sig==='REDUCE'){action='減持：信號轉弱 '+sig;cls='reduce';}
+    else if(p.price>=target){action='到價減磅鎖利：現價 $'+fmt(p.price)+' 已達目標 $'+fmt(target)+'（可減 40-60%，非轉弱）';cls='reduce';}
+    else if(p.price<=stop){action='止蝕警戒：現價 $'+fmt(p.price)+' 跌破 -8% 止蝕 $'+fmt(stop);cls='sell';}
+    else if(sig==='BUY'&&decel>=-1){action='可加倉：信號 BUY · Decel '+decel+' 正常';cls='buy';}
+    else if(sig==='ACCUMULATE'&&decel>=-1){action='續持／小注加位：ACCUMULATE · Decel '+decel;cls='hold';}
+    else{action='續持：信號 '+sig+' · Decel '+decel;cls='hold';}
+    const pnlCls=p.pnl>=0?'pos':'neg';
+    const aCol=cls==='sell'||cls==='reduce'?'#dc2626':cls==='buy'?'#16a34a':'#475569';
+    return '<tr class="clickable" data-tk="'+t+'">'+
+      '<td style="font-weight:700">'+t+'</td>'+
+      '<td class="r">'+p.shares+'</td>'+
+      '<td class="r">$'+fmt(p.price)+'</td>'+
+      '<td class="r '+pnlCls+'">'+(p.pnl>=0?'+':'')+'$'+fmt(p.pnl)+'('+fmt(p.pnlPct,1)+'%)</td>'+
+      '<td class="c">'+(s?'<span class="'+dc(decel)+'">'+decel+'</span>':'—')+'</td>'+
+      '<td>'+(s?'<span class="'+sigClass(sig)+'">'+sig+'</span>':'—')+'</td>'+
+      '<td style="font-size:11px;font-weight:600;color:'+aCol+'">'+action+'</td></tr>';
+  }).join('');
+  body.innerHTML='<table class="utable"><thead><tr><th>股票</th><th class="r">股數</th><th class="r">現價</th><th class="r">盈虧</th><th class="c">動量減速</th><th>信號</th><th>操作建議</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">📭 無持倉</td></tr>')+'</tbody></table>'+
+    '<div style="font-size:11px;color:#64748b;margin-top:10px;padding:8px 10px;background:#f8fafc;border-radius:6px">📌 <b>到價</b>＝考慮減磅鎖利（非轉弱）；<b>止蝕</b>＝-8% 跌破成本；<b>Decel≤-3</b>＝動量崩潮強制離場。點擊股票查看四因子拆解。</div>';
+}
+
+// ===== 板塊熱力圖 · 延續概率（大盤形勢；finviz 防盜連故用連結＋由 breadth 推算延續概率）=====
+function renderSector(data){
+  const body=document.getElementById('sectorBody');if(!body)return;
+  const mr=data.marketRegime||{};
+  const bear=mr.bearCount||0,bull=mr.bullCount||0,total=mr.total||(bull+bear)||1;
+  const bearPct=mr.bearPct!=null?Math.round(mr.bearPct):Math.round(bear/total*100);
+  let label,col;
+  if(bearPct>=60){label='跌勢延續概率高';col='#dc2626';}
+  else if(bearPct>=40){label='好淡爭持 · 待變';col='#d97706';}
+  else{label='升勢延續概率較高';col='#16a34a';}
+  body.innerHTML=
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'+
+    '<div style="flex:1;min-width:150px;padding:14px;background:#f8fafc;border-radius:8px;text-align:center"><div style="font-size:20px;font-weight:800;color:'+col+'">'+label+'</div><div style="font-size:11px;color:#64748b;margin-top:3px">'+bearPct+'% 造淡 ／ '+(100-bearPct)+'% 造好</div></div>'+
+    '<div style="flex:1;min-width:150px;padding:14px;background:#f8fafc;border-radius:8px;text-align:center"><div style="font-size:20px;font-weight:800">'+bull+' <span style="color:#16a34a">▲</span> ／ '+bear+' <span style="color:#dc2626">▼</span></div><div style="font-size:11px;color:#64748b;margin-top:3px">造好／造淡（共 '+total+' 隻）</div></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+    '<a href="https://finviz.com/map/sec.ashx?t=sec" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:11px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📊 finviz 板塊熱力圖</a>'+
+    '<a href="https://finviz.com/groups.ashx?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:11px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📈 板塊升跌排行</a>'+
+    '</div>'+
+    '<div style="font-size:10px;color:#94a3b8;margin-top:8px;line-height:1.5">註：finviz 熱力圖設防盜連，無法直接內嵌圖片；按上方按鈕開新分頁查看領漲／領跌板塊。延續概率按四因子模型造好／造淡分佈推算。</div>';
+}
+
 function render(data){
   const p=data.portfolio;
   document.getElementById('summaryGrid').innerHTML=
     '<div class="grid-item"><div class="grid-val">$'+fmt(p.totalValue)+'</div><div class="grid-lbl">組合總值</div><div class="grid-sub">HKD $'+p.totalValueHKD.toLocaleString()+'</div></div>'+
     '<div class="grid-item"><div class="grid-val" style="color:'+cv(-p.gapToTarget)+'">HKD $'+Math.abs(p.gapToTarget).toLocaleString()+'</div><div class="grid-lbl">距回本'+(p.gapToTarget>0?'差距':'✅')+'</div><div class="grid-sub">目標HKD$50,000</div></div>'+
-    '<div class="grid-item"><div class="grid-val" style="color:#2563eb">'+p.progressPct+'%</div><div class="grid-lbl">回本進度</div><div class="progress"><div class="progress-fill" style="width:'+Math.min(100,p.progressPct)+'%"></div></div></div>'+
+    '<div class="grid-item"><div class="grid-val" style="color:#0d9488">'+p.progressPct+'%</div><div class="grid-lbl">回本進度</div><div class="progress"><div class="progress-fill" style="width:'+Math.min(100,p.progressPct)+'%"></div></div></div>'+
     '<div class="grid-item"><div class="grid-val" style="color:'+cv(p.realizedLoss)+'">$'+fmt(p.realizedLoss)+'</div><div class="grid-lbl">已實現盈虧</div><div class="grid-sub">ETF止蝕</div></div>';
   document.getElementById('cashInfo').textContent='現金 $'+fmt(p.cash);
   let ph='';
@@ -448,13 +595,13 @@ function render(data){
     ph+='<tr class="clickable" data-tk="'+t+'"><td style="font-weight:700">'+t+'</td><td class="r">'+pos.shares+'</td><td class="r" style="color:#64748b">$'+fmt(pos.cost)+'</td><td class="r" style="font-weight:600">$'+fmt(pos.price)+'</td><td class="r">$'+fmt(pos.value)+'</td><td class="r" style="color:'+cv(pos.pnl)+';font-weight:700">$'+fmt(pos.pnl)+'('+fmt(pos.pnlPct,1)+'%)</td><td class="c">'+(decel!==0?'<span class="'+dc(decel)+'">'+decel+'</span>':'—')+'</td></tr>';
   }
   ph+='<tr style="background:#f8fafc"><td colspan="4">現金</td><td class="r">$'+fmt(p.cash)+'</td><td></td><td></td></tr>';
-  ph+='<tr style="font-weight:700;background:#f1f5f9"><td>總計</td><td></td><td></td><td></td><td class="r">$'+fmt(p.totalValue)+'</td><td class="r" style="color:#2563eb">HKD$'+p.totalValueHKD.toLocaleString()+'</td><td></td></tr>';
+  ph+='<tr style="font-weight:700;background:#f1f5f9"><td>總計</td><td></td><td></td><td></td><td class="r">$'+fmt(p.totalValue)+'</td><td class="r" style="color:#0d9488">HKD$'+p.totalValueHKD.toLocaleString()+'</td><td></td></tr>';
   document.getElementById('positionsBody').innerHTML=ph;
 
   // ① 部署總覽
   if(data.strategySummary){
     const ss=data.strategySummary;
-    let sh='<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px;padding:10px 12px;background:#eff6ff;border-radius:8px;border-left:4px solid #2563eb">'+ss.headline+'</div>';
+    let sh='<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px;padding:10px 12px;background:#ecfdf5;border-radius:8px;border-left:4px solid #0d9488">'+ss.headline+'</div>';
     sh+='<div style="font-size:11px;color:#64748b;margin-bottom:10px">造好機會：<b style="color:#16a34a">'+ss.longCount+'</b> ｜ 造淡機會：<b style="color:#dc2626">'+ss.shortCount+'</b> ｜ 可動用現金：<b>HKD $'+ss.cashHKD.toLocaleString()+'</b>（USD $'+fmt(ss.cashUSD)+'）</div>';
     ss.items.forEach(it=>{
       const col=it.badge.includes('🟢')?'#16a34a':it.badge.includes('🔴')?'#dc2626':'#64748b';
@@ -521,15 +668,15 @@ function render(data){
         '<table class="kv"><tr><td>工具</td><td>'+x.mid.vehicle+'</td></tr>'+
         '<tr><td>入場</td><td style="color:#0f172a">'+x.mid.entry+'</td></tr>'+
         '<tr><td>止蝕</td><td style="color:#dc2626">'+x.mid.stop+'</td></tr>'+
-        '<tr><td>目標</td><td style="color:#2563eb">'+x.mid.target+'</td></tr>'+
+        '<tr><td>目標</td><td style="color:#0d9488">'+x.mid.target+'</td></tr>'+
         '<tr><td>分注</td><td>'+x.mid.sizing+'</td></tr></table>'+
         '<div style="font-size:11px;color:#78350f;margin-top:4px">理據：'+x.mid.rationale+'</div></div>'+
-        '<div style="padding:9px 11px;background:#eff6ff;border-radius:8px;border-left:4px solid '+shortCol+'">'+
-        '<div style="font-weight:700;font-size:12px;color:#1d4ed8;margin-bottom:4px"><span class="tf-badge">日線．短線</span>'+x.short.side+'</div>'+
+        '<div style="padding:9px 11px;background:#ecfdf5;border-radius:8px;border-left:4px solid '+shortCol+'">'+
+        '<div style="font-weight:700;font-size:12px;color:#0f766e;margin-bottom:4px"><span class="tf-badge">日線．短線</span>'+x.short.side+'</div>'+
         '<table class="kv"><tr><td>工具</td><td>'+x.short.vehicle+'</td></tr>'+
         '<tr><td>入場</td><td style="color:#0f172a">'+x.short.entry+'</td></tr>'+
         '<tr><td>止蝕</td><td style="color:#dc2626">'+x.short.stop+'</td></tr>'+
-        '<tr><td>目標</td><td style="color:#2563eb">'+x.short.target+'</td></tr>'+
+        '<tr><td>目標</td><td style="color:#0d9488">'+x.short.target+'</td></tr>'+
         '<tr><td>分注</td><td>'+x.short.sizing+'</td></tr></table>'+
         '<div style="font-size:11px;color:#475569;margin-top:4px">理據：'+x.short.rationale+'</div></div>'+
         '<div style="font-size:10px;color:#94a3b8;margin-top:6px">正向：'+x.longVehicle+'　｜　反向：'+x.shortVehicle+(x.suggShares!=null?'　｜　建議股數約 '+x.suggShares+' 股（預算 USD $'+x.budgetUSD.toLocaleString()+'）':'')+'</div>'+
@@ -539,37 +686,45 @@ function render(data){
   }
 
   // ④⑤⑥ 觀察名單三張表 — 按對應方向最佳選擇排序
+  const wlMap=new Map((data.watchlist||[]).map(w=>[w.ticker,w]));
+  const worth=b=>b.score+(b.decel<0?b.decel*0.05:0);
   const longs=[],shorts=[],neutrals=[];
   data.bidirectional.forEach(b=>{ if(b.stance==='偏好')longs.push(b); else if(b.stance==='偏淡')shorts.push(b); else neutrals.push(b); });
   // 造好：按 Score 降序（最高分排最前）
-  longs.sort((a,b)=>b.score-a.score);
+  longs.sort((a,b)=>worth(b)-worth(a));
   // 造淡：按 Decel 升序（最負=最有造淡價值排最前），同分再按 1M 跌幅
   shorts.sort((a,b)=>a.decel-b.decel||a.m1m-b.m1m);
   // 觀望：按 Score 降序（最接近造好門檻排最前）
-  neutrals.sort((a,b)=>b.score-a.score);
+  neutrals.sort((a,b)=>worth(b)-worth(a));
   const listRow=(b,kind)=>{
+    const w=wlMap.get(b.ticker);const m3=w?w.m3:null;
     const held=p.positions[b.ticker]?'📌 ':'';
     let lastCell;
     if(kind==='long') lastCell=b.long.entry;
     else if(kind==='short') lastCell=b.short.entry;
     else lastCell=(b.long.trigger&&b.long.trigger!=='—'?b.long.trigger:'待評分回升至造好門檻');
     return '<tr class="clickable" data-tk="'+b.ticker+'">'+
-      '<td style="font-weight:'+(held?'700':'600')+';color:#2563eb;text-decoration:underline">'+held+b.ticker+'</td>'+
+      '<td style="font-weight:'+(held?'700':'600')+';color:#0d9488;text-decoration:underline">'+held+b.ticker+'</td>'+
       '<td><span class="'+sigClass(b.signal)+'">'+b.signal+'</span></td>'+
-      '<td class="c" style="font-weight:700;font-size:15px;color:'+(b.score>=0.55?'#2563eb':b.score>=0.45?'#eab308':'#ef4444')+'">'+fmt(b.score*100,0)+'</td>'+
+      '<td class="c" style="font-weight:700;font-size:15px;color:'+(b.score>=0.55?'#0d9488':b.score>=0.45?'#eab308':'#ef4444')+'">'+fmt(b.score*100,0)+'</td>'+
       '<td class="c">'+(b.decel!==0?'<span class="'+dc(b.decel)+'">'+b.decel+'</span>':'—')+'</td>'+
       '<td class="r" style="font-weight:600">$'+fmt(b.price)+'</td>'+
-      '<td class="r" style="font-size:11px;color:'+cv(b.m1m)+'">'+(b.m1m*100).toFixed(1)+'%</td>'+
+      '<td class="r" style="font-size:11px;color:'+cv(b.m5d)+'">'+(b.m5d!=null?(b.m5d*100).toFixed(1)+'%':'—')+'</td>'+
+      '<td class="r" style="font-size:11px;color:'+cv(b.m1m)+'">'+(b.m1m!=null?(b.m1m*100).toFixed(1)+'%':'—')+'</td>'+
+      '<td class="r" style="font-size:11px;color:'+cv(m3)+'">'+(m3!=null?(m3*100).toFixed(1)+'%':'—')+'</td>'+
       '<td style="font-size:11px;color:#475569;max-width:300px">'+lastCell+'</td></tr>';
   };
-  document.getElementById('longListBody').innerHTML=longs.map(b=>listRow(b,'long')).join('')||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">暫無符合造好條件之股份</td></tr>';
-  document.getElementById('shortListBody').innerHTML=shorts.map(b=>listRow(b,'short')).join('')||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">暫無符合造淡條件之股份</td></tr>';
-  document.getElementById('neutralListBody').innerHTML=neutrals.map(b=>listRow(b,'neutral')).join('')||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">無</td></tr>';
+  document.getElementById('longListBody').innerHTML=longs.map(b=>listRow(b,'long')).join('')||'<tr><td colspan="9" style="color:#94a3b8;text-align:center;padding:16px">暫無符合造好條件之股份</td></tr>';
+  document.getElementById('shortListBody').innerHTML=shorts.map(b=>listRow(b,'short')).join('')||'<tr><td colspan="9" style="color:#94a3b8;text-align:center;padding:16px">暫無符合造淡條件之股份</td></tr>';
+  document.getElementById('neutralListBody').innerHTML=neutrals.map(b=>listRow(b,'neutral')).join('')||'<tr><td colspan="9" style="color:#94a3b8;text-align:center;padding:16px">無</td></tr>';
 
   // ⑦ 指數技術分析（雙欄）
-  let techHTML=buildTechHTML(data.techAnalysis);
-
-  document.getElementById('techBody').innerHTML=techHTML||'<div style="color:#94a3b8">載入中...</div>';
+  if(data.techAnalysis){
+    for(const k in data.techAnalysis){
+      const c=document.getElementById('techCard-'+k);
+      if(c)c.innerHTML=buildTechHTML({[k]:data.techAnalysis[k]})||'<div style="color:#94a3b8">載入中...</div>';
+    }
+  }
 
   // ⑧ ELN 策略
   if(data.elnStrategy){
@@ -602,8 +757,9 @@ function render(data){
   if(data.waveCounts){
     let wh='';
     data.waveCounts.forEach(x=>{
-      if(x.error){wh+='<div style="color:#dc2626;margin-bottom:14px"><b>'+x.name+'</b>：'+x.error+'</div>';return;}
-      wh+='<div style="margin-bottom:22px;padding:14px;border:1px solid #e2e8f0;border-radius:10px">';
+      const wkey=x.name&&x.name.indexOf('恒')>=0?'^HSI':(x.name&&(x.name.indexOf('半')>=0||x.name.indexOf('SOX')>=0))?'^SOX':'NQ=F';
+      if(x.error){wh+='<div data-idx="'+wkey+'" style="color:#dc2626;margin-bottom:14px"><b>'+x.name+'</b>：'+x.error+'</div>';return;}
+      wh+='<div data-idx="'+wkey+'" style="margin-bottom:22px;padding:14px;border:1px solid #e2e8f0;border-radius:10px">';
       wh+='<div style="font-weight:800;font-size:16px;color:#0f172a;margin-bottom:4px">'+x.name+' <span style="font-size:12px;color:#64748b;font-weight:500">現價 '+rD(x.currentPrice)+'</span></div>';
       // 手動數浪格式（MANUAL_WAVE_COUNTS）
       if(x.position && x.pivots && x.currentWaveTargets){
@@ -695,7 +851,7 @@ function render(data){
         }
       } else {
         // 舊格式 fallback（auto count）
-        if(x.conclusion) wh+='<div style="font-size:12px;color:#334155;background:#eff6ff;padding:8px 10px;border-radius:6px;margin-bottom:10px;line-height:1.6">'+x.conclusion+'</div>';
+        if(x.conclusion) wh+='<div style="font-size:12px;color:#334155;background:#ecfdf5;padding:8px 10px;border-radius:6px;margin-bottom:10px;line-height:1.6">'+x.conclusion+'</div>';
         const frames=['monthly','weekly','daily'];
         const frameName={monthly:'月線（全期）',weekly:'周線（近5年）',daily:'日線（近180日）'};
         frames.forEach(fk=>{
@@ -726,7 +882,7 @@ function render(data){
           }
         });
       }
-      if(x.conclusion) wh+='<div style="font-size:12px;color:#334155;background:#eff6ff;padding:8px 10px;border-radius:6px;margin-top:10px;line-height:1.6">'+x.conclusion+'</div>';
+      if(x.conclusion) wh+='<div style="font-size:12px;color:#334155;background:#ecfdf5;padding:8px 10px;border-radius:6px;margin-top:10px;line-height:1.6">'+x.conclusion+'</div>';
       if(x.caveat) wh+='<div style="font-size:10px;color:#94a3b8;margin-top:8px;font-style:italic">'+x.caveat+'</div>';
       wh+='</div>';
     });
@@ -736,14 +892,17 @@ function render(data){
   // 回本進度（組合頁）
   if(data.portfolio && data.portfolio.recoveryTimeline){
     const rt=data.portfolio.recoveryTimeline;
+    const expPct=(rt.daysElapsed&&rt.daysRemaining)?Math.round(rt.daysElapsed/(rt.daysElapsed+rt.daysRemaining)*1000)/10:0;
+    const aheadPct=Math.round((rt.progressPct-expPct)*10)/10;
     let recHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">';
-    recHTML+='<div style="text-align:center;padding:10px;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe"><div style="font-size:20px;font-weight:700;color:#2563eb">'+(rt.dailyTargetHKD>0?'+':'')+'HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">每日目標</div></div>';
+    recHTML+='<div style="text-align:center;padding:10px;background:#ecfdf5;border-radius:8px;border:1px solid #99f6e4"><div style="font-size:20px;font-weight:700;color:#0d9488">'+(rt.dailyTargetHKD>0?'+':'')+'HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">每日目標</div></div>';
     recHTML+='<div style="text-align:center;padding:10px;background:#eef2ff;border-radius:8px;border:1px solid #c7d2fe"><div style="font-size:20px;font-weight:700;color:#6366f1">'+rt.estimatedMonths+'個月</div><div style="font-size:10px;color:#64748b;margin-top:2px">剩餘時間</div></div>';
     recHTML+='<div style="text-align:center;padding:10px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a"><div style="font-size:20px;font-weight:700;color:#d97706">'+rt.daysElapsed+'天</div><div style="font-size:10px;color:#64748b;margin-top:2px">已過天數</div></div>';
     recHTML+='<div style="text-align:center;padding:10px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0"><div style="font-size:20px;font-weight:700;color:#16a34a">'+rt.progressPct+'%</div><div style="font-size:10px;color:#64748b;margin-top:2px">完成進度</div></div>';
     recHTML+='</div>';
-    recHTML+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#64748b">回本進度</span><span style="font-weight:700">'+rt.progressPct+'%</span></div>';
-    recHTML+='<div style="height:12px;background:#e2e8f0;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,rt.progressPct)+'%;background:linear-gradient(90deg,#3b82f6,#6366f1);border-radius:6px"></div></div></div>';
+    recHTML+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#64748b">回本進度</span><span style="font-weight:700">'+rt.progressPct+'%</span><span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;color:#fff;background:'+(aheadPct>=0?'#16a34a':'#dc2626')+'">'+(aheadPct>=0?'領先':'落後')+' '+Math.abs(aheadPct)+'%</span></div>';
+    recHTML+='<div style="height:12px;background:#e2e8f0;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,rt.progressPct)+'%;background:linear-gradient(90deg,#0d9488,#14b8a6);border-radius:6px"></div></div></div>';
+    recHTML+='<button onclick="openView('deploy','positions')" style="margin-top:10px;width:100%;padding:10px;background:#0d9488;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px">🎯 查看執倉建議（持倉變更）</button>';
     recHTML+='<div style="font-size:11px;color:#64748b;text-align:center;padding-top:4px">差距：HKD $'+Math.abs(rt.gapHKD).toLocaleString()+' → 目標 HKD $'+rt.targetHKD.toLocaleString()+' (12月31日前) · 剩餘 '+rt.daysRemaining+' 交易日 · 每日需賺 +HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+' (約 +'+rt.monthlyTargetPct+'%/月)</div>';
     const ts=rt.todayStatus;
     if(ts && !ts.error){
@@ -759,7 +918,7 @@ function render(data){
         '<tr><td style="padding:2px 6px;color:#64748b">當日盈虧</td><td class="n" style="color:'+(ts.dayGainHKD>=0?'#16a34a':'#dc2626')+';font-weight:700">'+(ts.dayGainHKD>=0?'+':'')+'HKD $'+ts.dayGainHKD.toLocaleString()+' ('+(ts.dayGainPct>=0?'+':'')+ts.dayGainPct+'%)</td>'+
         '<td style="padding:2px 6px;color:#64748b">累計達標</td><td class="n">'+ts.metDays+'/'+ts.totalDays+' 日 ('+ts.metRate+'%)</td></tr>'+
         '</table>'+
-        '<button onclick="showCalendar()" style="margin-top:10px;width:100%;padding:9px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px">📅 開啟每日進度月曆（由 7/30 起）</button>'+
+        '<button onclick="showCalendar()" style="margin-top:10px;width:100%;padding:9px;background:#0d9488;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px">📅 開啟每日進度月曆（由 7/30 起）</button>'+
         '</div>';
     } else {
       recHTML+='<div style="margin-top:10px;padding:10px;background:#f8fafc;border-radius:8px;font-size:12px;color:#64748b;text-align:center">每日進度資料載入中'+(ts&&ts.error?'（'+ts.error+'）':'')+'</div>';
@@ -767,6 +926,8 @@ function render(data){
     document.getElementById('recoveryBody').innerHTML=recHTML;
   }
 
+  renderPositions(data);
+  renderSector(data);
   renderDailyReport(data);
   renderMonthly(data);
   renderHK(data);
@@ -802,18 +963,23 @@ function renderHK(data){
       '<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:#16a34a">'+(b.bull||0)+'/'+(b.total||0)+'</div><div style="font-size:10px;color:#64748b">造好信號</div></div>'+
       '<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:#dc2626">'+(b.bear||0)+'</div><div style="font-size:10px;color:#64748b">造淡信號</div></div>'+
       '<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:#ea580c">'+(b.decel||0)+'</div><div style="font-size:10px;color:#64748b">動量減速≤-2</div></div>'+
-      '<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:#2563eb">'+(b.avgScore!=null?Math.round(b.avgScore*100):'—')+'</div><div style="font-size:10px;color:#64748b">平均評分</div></div>'+
+      '<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:#0d9488">'+(b.avgScore!=null?Math.round(b.avgScore*100):'—')+'</div><div style="font-size:10px;color:#64748b">平均評分</div></div>'+
       '<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:'+((b.avg1m||0)>=0?'#16a34a':'#dc2626')+'">'+((b.avg1m||0)>=0?'+':'')+Math.round((b.avg1m||0)*100)+'%</div><div style="font-size:10px;color:#64748b">平均1個月</div></div>'+
       '</div>';
-    rh+='<div style="padding:10px 12px;background:#eff6ff;border-radius:8px;border-left:4px solid #2563eb;margin-bottom:8px;font-size:12px;color:#1e3a8a;line-height:1.6"><b>📈 交易取態：</b>'+mk.tradeStance+'</div>';
+    rh+='<div style="padding:10px 12px;background:#ecfdf5;border-radius:8px;border-left:4px solid #0d9488;margin-bottom:8px;font-size:12px;color:#1e3a8a;line-height:1.6"><b>📈 交易取態：</b>'+mk.tradeStance+'</div>';
     rh+='<div style="padding:10px 12px;background:#fff1f2;border-radius:8px;border-left:4px solid #be123c;font-size:12px;color:#9f1239;line-height:1.6"><b>💼 ELN 取態：</b>'+mk.elnStance+'</div>';
   } else { rh='<div style="color:#94a3b8">載入中...</div>'; }
   const hkR=document.getElementById('hkRegimeBody'); if(hkR)hkR.innerHTML=rh;
   const hkTs=document.getElementById('hkRegimeTs'); if(hkTs)hkTs.textContent=new Date().toLocaleString('zh-HK');
 
   // ② 指數技術分析
-  const hkT=document.getElementById('hkTechBody');
-  if(hkT)hkT.innerHTML=buildTechHTML(hk.indices)||'<div style="color:#94a3b8">載入中...</div>';
+  if(hk.indices){
+    for(const k in hk.indices){
+      if(!hk.indices[k])continue;
+      const c=document.getElementById('techCard-'+k);
+      if(c)c.innerHTML=buildTechHTML({[k]:hk.indices[k]})||'<div style="color:#94a3b8">載入中...</div>';
+    }
+  }
 
   // ③ 港股量化評分
   let lh='';
@@ -948,7 +1114,7 @@ function renderDailyReport(data){
   let h='<div style="font-size:13px;line-height:1.8">';
   // 組合概況
   const p=data.portfolio||{};
-  h+='<div style="padding:12px;background:#eff6ff;border-radius:8px;margin-bottom:12px">';
+  h+='<div style="padding:12px;background:#ecfdf5;border-radius:8px;margin-bottom:12px">';
   h+='<div style="font-weight:700;font-size:14px;margin-bottom:6px">💼 組合概況</div>';
   h+='<div>總值 HKD $'+(p.totalValueHKD||0).toLocaleString()+' (USD $'+fmt(p.totalValue)+') · 現金 USD $'+fmt(p.cash)+'</div>';
   const rt=p.recoveryTimeline||{};
@@ -1009,7 +1175,7 @@ function renderDailyReport(data){
         const col=a.type==='BUY'?'#16a34a':'#dc2626';
         ah+='<div style="padding:10px;margin-bottom:8px;border-left:4px solid '+col+';background:'+(a.type==='BUY'?'#f0fdf4':'#fef2f2')+';border-radius:6px">';
         ah+='<div style="font-weight:700;color:'+col+'">'+a.type+' '+a.ticker+'</div>';
-        if(a.type==='BUY') ah+='<div style="display:inline-block;font-size:10px;padding:1px 6px;background:#dbeafe;color:#1e40af;border-radius:4px;margin-top:2px;margin-bottom:2px;font-weight:600">⏱️ 短線投機（幾日至一個月）</div>';
+        if(a.type==='BUY') ah+='<div style="display:inline-block;font-size:10px;padding:1px 6px;background:#ccfbf1;color:#115e59;border-radius:4px;margin-top:2px;margin-bottom:2px;font-weight:600">⏱️ 短線投機（幾日至一個月）</div>';
         ah+='<div style="font-size:11px;color:#475569">'+a.reason+'</div>';
         if(a.timing)ah+='<div style="font-size:11px;margin-top:2px">⏰ 入場：'+a.timing+'</div>';
         // Full verification for BUY
@@ -1058,7 +1224,7 @@ function renderDailyReport(data){
           : '';
         ah+='<div style="padding:10px;margin-bottom:8px;border-left:4px solid '+tierCol+';background:'+(s.priority<=2?'#fef2f2':'#fffbeb')+';border-radius:6px">';
         ah+='<div style="display:flex;justify-content:space-between;align-items:center">';
-        ah+='<div style="flex:1"><span style="font-weight:700;color:'+tierCol+'">🔴造淡#'+s.priority+' '+s.ticker+'</span> <span style="font-size:11px;color:#64748b">'+s.budgetTier+'</span>'+earnBadgeHTML+vrBadgeHTML+' <span style="display:inline-block;font-size:10px;padding:1px 6px;background:#dbeafe;color:#1e40af;border-radius:4px;font-weight:600">⏱️ 短線投機（幾日至一個月）</span></div>';
+        ah+='<div style="flex:1"><span style="font-weight:700;color:'+tierCol+'">🔴造淡#'+s.priority+' '+s.ticker+'</span> <span style="font-size:11px;color:#64748b">'+s.budgetTier+'</span>'+earnBadgeHTML+vrBadgeHTML+' <span style="display:inline-block;font-size:10px;padding:1px 6px;background:#ccfbf1;color:#115e59;border-radius:4px;font-weight:600">⏱️ 短線投機（幾日至一個月）</span></div>';
         ah+='<div style="font-size:11px;color:#64748b;text-align:right">Decel='+s.decel+' · 1M '+Math.round(s.m1m*100)+'% · 5D '+Math.round(s.m5d*100)+'% · 現價$'+rD(s.price)+'</div>';
         ah+='</div>';
         // Entry + ETF
@@ -1106,7 +1272,7 @@ function renderDailyReport(data){
         h+='<div style="font-size:16px;font-weight:800;color:'+accentCol+';margin-bottom:8px">'+(isPrimary?'⭐ ':'')+label+'：'+p.ticker+' @ $'+p.price+'</div>';
         // Score / Decel / R:R badges
         let badges='';
-        if(p.score) badges+='<span style="'+tagStyle+'background:#dbeafe;color:#1e40af">Score '+p.score+'</span>';
+        if(p.score) badges+='<span style="'+tagStyle+'background:#ccfbf1;color:#115e59">Score '+p.score+'</span>';
         if(p.decel!==undefined) badges+='<span style="'+tagStyle+'background:#fef3c7;color:#92400e">Decel '+p.decel+'</span>';
         if(p.priority) badges+='<span style="'+tagStyle+'background:#fee2e2;color:#991b1b">造淡#'+p.priority+'</span>';
         if(p.riskReward) badges+='<span style="'+tagStyle+'background:#f0fdf4;color:#15803d">R:R 1:'+p.riskReward+'</span>';
@@ -1466,7 +1632,7 @@ function togglePrivacy(){
   privacyOn=!privacyOn;
   const zones=document.querySelectorAll('.privacy-zone');
   const btn=document.getElementById('privacyBtn');
-  if(privacyOn){zones.forEach(z=>z.classList.add('blurred'));btn.textContent='👁️ 顯示';btn.style.background='#2563eb'}
+  if(privacyOn){zones.forEach(z=>z.classList.add('blurred'));btn.textContent='👁️ 顯示';btn.style.background='#0d9488'}
   else{zones.forEach(z=>z.classList.remove('blurred'));btn.textContent='🔒 隱藏持倉';btn.style.background='#64748b'}
 }
 // Init: blur privacy zones on load (default hidden)
@@ -1477,8 +1643,6 @@ document.addEventListener('DOMContentLoaded',function(){
     const row=e.target.closest('[data-tk]');
     if(row){ showDetail(row.getAttribute('data-tk'), lastData); }
   });
-  // 每次開 dashboard 都預設「每日戰報」
-  switchTab('daily');
 });
 loadData();setInterval(loadData,60000);
 // ═══ PRICE ALERT SYSTEM ═══
@@ -1487,7 +1651,6 @@ var dismissedAlerts = {};
 function checkPriceAlerts(data){
   if(!data||!data.portfolio||!data.portfolio.positions)return;
   var alerts=[];
-  var FUND_TARGETS={ADBE:270,DDOG:269};
   var pos=data.portfolio.positions;
   for(var t in pos){
     var p=pos[t];
