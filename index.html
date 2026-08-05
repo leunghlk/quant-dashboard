@@ -491,7 +491,7 @@ function applyHKBreadth(j){
       const x=ind[k];if(!x)return '';
       const r=x.rsi9;const m=x.macd||{};const kd=x.kdj||{};const mt=x.mtm||{};
       const macCol=m.signal==='多頭'?'#16a34a':'#dc2626';
-      const macIcon=m.signal==='多頭'?'὾2':'ὓ4';
+      const macIcon=m.signal==='多頭'?'🟢':'🔴';
       let s=name+' 日RSI '+(r!=null?('<b style="color:'+rsiCol(r)+'">'+r+'</b>'+rsiBias(r)):'—')+' 日MACD '+'<b style="color:'+macCol+'">'+macIcon+(m.signal||'—')+'</b>';
       if(kd&&kd.k!=null) s+=' KDJ K'+kd.k+' D'+kd.d+' J'+kd.j;
       if(mt&&mt.mtm!=null) s+=' MTM '+mt.mtm+(mt.signal?('('+mt.signal+')'):'');
