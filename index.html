@@ -1469,76 +1469,6 @@ function renderDailyReport(data){
     }
   }
 
-  // 部署監察 — 造好候選 + 造淡候選 + 觀望觸發
-  const wb=document.getElementById('dailyWatchBody');
-  if(wb){
-    // Helper: compute status badge from entry timing text
-    const statusBadge=(timing)=>{
-      if(!timing) return '<span style="display:inline-block;font-size:10px;color:#94a3b8">—</span>';
-      if(timing.includes('現價可入')||timing.includes('現價限價單')) return '<span style="display:inline-block;font-size:10px;padding:1px 5px;background:#dcfce7;color:#16a34a;border-radius:4px;font-weight:700">✅可入</span>';
-      if(timing.includes('等回調')||timing.includes('勿追')||timing.includes('觀察')) return '<span style="display:inline-block;font-size:10px;padding:1px 5px;background:#fef3c7;color:#d97706;border-radius:4px;font-weight:700">⏳等候</span>';
-      if(timing.includes('⛔')) return '<span style="display:inline-block;font-size:10px;padding:1px 5px;background:#fef2f2;color:#dc2626;border-radius:4px;font-weight:700">🚫不宜</span>';
-      return '<span style="display:inline-block;font-size:10px;color:#94a3b8">—</span>';
-    };
-    let wh='<div style="font-size:12px;line-height:1.7">';
-    // 造好候選
-    if(data.bidirectional){
-      const longs=data.bidirectional.filter(b=>b.stance==='偏好'&&!data.portfolio?.positions?.[b.ticker]);
-      if(longs.length>0){
-        wh+='<div style="font-weight:700;margin-bottom:4px;color:#16a34a">🟢 造好候選（'+longs.length+'隻）</div>';
-        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col style="width:40px"><col style="width:180px"></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>狀態</th><th style="text-align:left">工具 / 入場</th></tr>';
-        longs.forEach(b=>{
-          const entry=(b.long&&b.long.entry)?b.long.entry:'';
-          wh+='<tr style="border-bottom:1px solid #f1f5f9"><td style="font-weight:600;color:#16a34a;padding:4px 3px">'+b.ticker+'</td>'+
-            '<td>'+Math.round(b.score*100)+'</td><td>'+b.decel+'</td>'+
-            '<td>'+statusBadge(entry)+'</td>'+
-            '<td style="font-size:10px;color:#475569">'+((b.long&&b.long.vehicle)?b.long.vehicle:'—')+(entry?'<br>'+entry.substring(0,60):'')+'</td></tr>';
-        });
-        wh+='</table>';
-      } else {
-        wh+='<div style="font-weight:700;margin-bottom:4px;color:#94a3b8">🟢 造好候選：暫無</div>';
-        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col style="width:40px"><col style="width:180px"></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>狀態</th><th style="text-align:left">工具 / 入場</th></tr></table>';
-      }
-    }
-    // 觀望名單（留意轉向）
-    if(data.bidirectional){
-      const watch=data.bidirectional.filter(b=>b.stance==='觀望');
-      if(watch.length>0){
-        wh+='<div style="font-weight:700;margin:10px 0 4px;color:#d97706">🟡 觀望名單（'+watch.length+'隻，留意轉向）</div>';
-        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col style="width:40px"><col style="width:180px"></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>狀態</th><th style="text-align:left">轉好 / 轉淡觸發</th></tr>';
-        watch.forEach(b=>{
-          const trig=[];
-          if(b.long&&b.long.trigger)trig.push('轉好：'+b.long.trigger.substring(0,50));
-          if(b.short&&b.short.trigger)trig.push('轉淡：'+b.short.trigger.substring(0,50));
-          wh+='<tr style="border-bottom:1px solid #f1f5f9"><td style="font-weight:600;padding:4px 3px">'+b.ticker+'</td>'+
-            '<td>'+Math.round(b.score*100)+'</td><td>'+b.decel+'</td>'+
-            '<td>'+statusBadge(trig.join(' '))+'</td>'+
-            '<td style="font-size:10px;color:#475569">'+trig.join('<br>')+'</td></tr>';
-        });
-        wh+='</table>';
-      }
-    }
-    // 造淡候選（觀察名單 — 偏淡）
-    if(data.bidirectional){
-      const shorts=data.bidirectional.filter(b=>b.stance==='偏淡'&&!data.portfolio?.positions?.[b.ticker]);
-      if(shorts.length>0){
-        wh+='<div style="font-weight:700;margin:10px 0 4px;color:#dc2626">🔴 造淡候選（'+shorts.length+'隻）</div>';
-        wh+='<table style="width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed"><colgroup><col style="width:90px"><col style="width:65px"><col style="width:70px"><col style="width:40px"><col style="width:180px"></colgroup><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:3px">Ticker</th><th>Score</th><th>Decel</th><th>狀態</th><th style="text-align:left">工具 / 入場</th></tr>';
-        shorts.forEach(b=>{
-          const etf=(b.short&&b.short.vehicle)||'SOXS/SQQQ';
-          const entry=(b.short&&b.short.entry)?b.short.entry:'';
-          wh+='<tr style="border-bottom:1px solid #f1f5f9"><td style="font-weight:600;color:#dc2626;padding:4px 3px">'+b.ticker+'</td>'+
-            '<td>'+Math.round(b.score*100)+'</td><td>'+b.decel+'</td>'+
-            '<td>'+statusBadge(entry)+'</td>'+
-            '<td style="font-size:10px;color:#475569">'+etf+(entry?'<br>'+entry.substring(0,60):'')+'</td></tr>';
-        });
-        wh+='</table>';
-      }
-    }
-    wh+='</div>';
-    wb.innerHTML=wh;
-  }
-
   // === EARNINGS CALENDAR (2026-08-03: Kathy 要求每隻都顯示業績日期+風險) ===
   const ec=document.getElementById('earningsCalendarBody');
   if(ec && data.watchlist){
@@ -1849,18 +1779,6 @@ function checkPriceAlerts(data){
     var mc=document.getElementById('modalContent');
     if(mo&&mc){mc.innerHTML=html;mo.classList.add('show');}
   }
-  }
-  }
-  <script>
-  // Force render regimeBody if not already rendered (fallback)
-  if(document.getElementById('regimeBody') && !document.getElementById('regimeBody').innerHTML.includes('風險偏好')) {
-  setTimeout(()=>{
-  const data = window.dashboardData;
-  if(data && data.marketRegime) {
-    renderRegime(data);
-    console.log('🔥 regimeBody force rendered');
-  }
-  }, 1000);
-  }
-  </script>
-  </body></html>
+}
+</script>
+</body></html>
