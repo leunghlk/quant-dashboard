@@ -684,13 +684,30 @@ function renderRegime(data){
   const IDX_DEFS=[['^DJI','道指'],['^GSPC','標指'],['NQ=F','納指100'],['^SOX','費半']];
   const q=(typeof usIdxQuotes!=='undefined')?usIdxQuotes:{};
   rh+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">';
+  // US session（東岸時間推算）：盤前 04:00-09:30 ET ｜ 盤中 09:30-16:00 ｜ 盤後 16:00-20:00
+  const usSession=function(){
+    try{
+      const now=new Date(Date.now()-4*3600e3); // EDT (summer)
+      const day=now.getUTCDay(), hm=now.getUTCHours()*60+now.getUTCMinutes();
+      if(day>=1&&day<=5&&hm>=570&&hm<=960) return '盤中';
+      if(day>=1&&day<=5&&hm>=240&&hm<570) return '盤前';
+      if(day>=1&&day<=5&&hm>960&&hm<=1200) return '盤後';
+      return '收市';
+    }catch(e){return '';}
+  }();
   IDX_DEFS.forEach(function(pair){
     const key=pair[0],label=pair[1];
     const lq=q[key];
     const t=ta[key];
     let price=null,chg=null,session='';
     if(lq){ price=(lq.live_price!=null)?lq.live_price:lq.price; chg=lq.change_pct; session=lq.session||''; }
-    else if(t&&t.price){ price=t.price; }
+    else if(t&&t.price){
+      price=(t.live&&t.live>0)?t.live:t.price;
+      // 用 Yahoo live price 對比上一日收市計變動%
+      const ref=(t.prevClose&&t.prevClose>0)?t.prevClose:null;
+      if(ref){ chg=Math.round((price/ref-1)*1000)/10; }
+      session=usSession;
+    }
     if(price==null)return;
     const disp=(price>=1000)?Math.round(price).toLocaleString():price;
     const chgCol=(chg==null)?'#64748b':(chg>=0?'#16a34a':'#dc2626');
