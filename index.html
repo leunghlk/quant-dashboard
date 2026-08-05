@@ -390,15 +390,15 @@ function cv(v){return v>=0?'#16a34a':'#dc2626'}
 function dc(d){if(d<=-3)return'decel decel-ex';if(d<=-2)return'decel decel-d';if(d<=-1)return'decel decel-c';return''}
 // ===== Live data overlay (local Futu bridge) — real-time prices + real HSTECH index =====
 const BRIDGE_SECRET='qtbridge-K7s2-wolf-9mX4';
-// Bridge URLs tried in order: ?bridge= param > localStorage.qbridge (tunnel URL) > localhost
-const BRIDGE_URLS=(function(){var p=new URLSearchParams(location.search).get('bridge');var ls;try{ls=localStorage.getItem('qbridge');}catch(e){}return [p,ls,'https://eln-dashboard.kathy-leung.workers.dev','https://patent-surprise-roots-potential.trycloudflare.com','http://127.0.0.1:8765'].filter(Boolean);})();
+// Bridge URLs tried in order: ?bridge= param > localStorage.qbridge > localhost (direct) > tunnel URL
+const BRIDGE_URLS=(function(){var p=new URLSearchParams(location.search).get('bridge');var ls;try{ls=localStorage.getItem('qbridge');}catch(e){}return [p,ls,'http://127.0.0.1:8765','https://patent-surprise-roots-potential.trycloudflare.com'].filter(Boolean);})();
 let activeBridge=null;
 async function detectBridge(){
   for(const u of BRIDGE_URLS){
     try{
       const ctrl=new AbortController();const t=setTimeout(function(){ctrl.abort();},2500);
       const r=await fetch(u+'/health',{signal:ctrl.signal});clearTimeout(t);
-      if(r.ok){activeBridge=u;try{document.getElementById('lastUpdate').textContent+=' · 🔴Futu';}catch(e){}return u;}
+      if(r.ok){activeBridge=u;return u;}
     }catch(e){}
   }
   activeBridge=null;return null;
@@ -453,7 +453,7 @@ async function loadData(){
     if(!activeBridge){await detectBridge();}
     if(activeBridge){api=activeBridge+'/api?secret='+encodeURIComponent(BRIDGE_SECRET);}
     const r=await fetch(api);const d=await r.json();lastData=d;render(d);checkPriceAlerts(d);loadLiveData();
-    document.getElementById('lastUpdate').textContent='更新: '+new Date(d.timestamp).toLocaleTimeString('zh-HK');
+    document.getElementById('lastUpdate').textContent='更新: '+new Date(d.timestamp).toLocaleTimeString('zh-HK')+(activeBridge?' · 🔴Futu':'');
   }catch(e){document.getElementById('lastUpdate').textContent='❌ '+e.message}
   document.getElementById('refresh').disabled=false;
   document.getElementById('refresh').textContent='🔄 刷新';
