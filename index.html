@@ -390,18 +390,31 @@ function cv(v){return v>=0?'#16a34a':'#dc2626'}
 function dc(d){if(d<=-3)return'decel decel-ex';if(d<=-2)return'decel decel-d';if(d<=-1)return'decel decel-c';return''}
 // ===== Live data overlay (local Futu bridge) — real-time prices + real HSTECH index =====
 const BRIDGE_SECRET='qtbridge-K7s2-wolf-9mX4';
-// Bridge URLs tried in order: ?bridge= param > localStorage.qbridge > localhost (direct) > tunnel URL
-const BRIDGE_URLS=(function(){var p=new URLSearchParams(location.search).get('bridge');var ls;try{ls=localStorage.getItem('qbridge');}catch(e){}return [p,ls,'http://127.0.0.1:8765','https://patent-surprise-roots-potential.trycloudflare.com'].filter(Boolean);})();
+// Bridge candidates tried in order:
+//   ?bridge= param > localStorage.qbridge > Tailscale MagicDNS (own devices)
+//   > localhost (this Mac) > same-origin Worker proxy (/live -> registered tunnel).
+// The Worker proxy is last because it costs a round trip, but it is the ONLY
+// candidate that works on a phone / off-LAN device, so it must always be present.
+const BRIDGE_PROXY=(location.protocol==='https:'||location.protocol==='http:')?'https://quant-api.leunghlk.workers.dev/live':'';
+const BRIDGE_URLS=(function(){var p=new URLSearchParams(location.search).get('bridge');var ls;try{ls=localStorage.getItem('qbridge');}catch(e){}
+var list=[p,ls];
+// direct hits only make sense from a page that is not itself https (mixed content)
+if(location.protocol!=='https:'){list.push('http://kathys-macbook-air.tailefed71.ts.net:8765','http://127.0.0.1:8765','http://100.112.182.107:8765');}
+list.push(BRIDGE_PROXY);
+return list.filter(Boolean);})();
 let activeBridge=null;
+let bridgeChecked=0;
 async function detectBridge(){
   for(const u of BRIDGE_URLS){
     try{
-      const ctrl=new AbortController();const t=setTimeout(function(){ctrl.abort();},2500);
-      const r=await fetch(u+'/health',{signal:ctrl.signal});clearTimeout(t);
-      if(r.ok){activeBridge=u;return u;}
+      const ctrl=new AbortController();const t=setTimeout(function(){ctrl.abort();},3500);
+      const r=await fetch(u+'/health',{signal:ctrl.signal,cache:'no-store'});clearTimeout(t);
+      if(r.ok){const j=await r.json().catch(function(){return null;});
+        if(j&&j.ok===false)continue;
+        activeBridge=u;bridgeChecked=Date.now();return u;}
     }catch(e){}
   }
-  activeBridge=null;return null;
+  activeBridge=null;bridgeChecked=Date.now();return null;
 }
 async function loadLiveData(){
   if(!activeBridge){const b=await detectBridge();if(!b)return;}
@@ -411,11 +424,16 @@ async function loadLiveData(){
   (d.portfolio&&d.portfolio.positions?Object.keys(d.portfolio.positions):[]).forEach(function(t){ticks.add(t);});
   ['MAGS','NQ=F','^SOX','^HSI','HSTECH'].forEach(function(t){ticks.add(t);});
   try{
-    const r=await fetch(activeBridge+'/snapshot?codes='+encodeURIComponent([...ticks].join(','))+'&secret='+BRIDGE_SECRET);
+    const r=await fetch(activeBridge+'/snapshot?codes='+encodeURIComponent([...ticks].join(','))+'&secret='+BRIDGE_SECRET,{cache:'no-store'});
+    if(!r.ok)throw new Error('http '+r.status);
     const j=await r.json();
+    if(j&&j.error)throw new Error(j.error);
     const map={};(j.data||[]).forEach(function(x){if(x&&!x.error)map[(x.orig||'').toUpperCase()]=x;});
     applyLiveData(map);
-  }catch(e){/* bridge fetch failed — keep Worker (Yahoo) data */}
+  }catch(e){
+    // this bridge went away (Mac asleep, tunnel rotated) — force re-detect next tick
+    activeBridge=null;
+  }
 }
 function liveBadge(sess){
   const c={'盤中':'#16a34a','盤前':'#3b82f6','盤後':'#6366f1','夜盤':'#7c3aed','收市':'#64748b'}[sess]||'#64748b';
@@ -449,11 +467,18 @@ async function loadData(){
   document.getElementById('refresh').disabled=true;
   document.getElementById('refresh').textContent='⏳ 載入中...';
   try{
-    let api=API;
     if(!activeBridge){await detectBridge();}
-    if(activeBridge){api=activeBridge+'/api?secret='+encodeURIComponent(BRIDGE_SECRET);}
-    const r=await fetch(api);const d=await r.json();lastData=d;render(d);checkPriceAlerts(d);loadLiveData();
-    document.getElementById('lastUpdate').textContent='更新: '+new Date(d.timestamp).toLocaleTimeString('zh-HK')+(activeBridge?' · 🔴Futu':'');
+    let d=null;
+    if(activeBridge){
+      // prefer the bridge's own /api (Futu-sourced) but never let it break the page
+      try{
+        const rb=await fetch(activeBridge+'/api?secret='+encodeURIComponent(BRIDGE_SECRET),{cache:'no-store'});
+        if(rb.ok){const jb=await rb.json();if(jb&&!jb.error)d=jb;}
+      }catch(e){activeBridge=null;}
+    }
+    if(!d){const r=await fetch(API,{cache:'no-store'});d=await r.json();}
+    lastData=d;render(d);checkPriceAlerts(d);loadLiveData();
+    document.getElementById('lastUpdate').textContent='更新: '+new Date(d.timestamp).toLocaleTimeString('zh-HK')+(activeBridge?' · 🔴Futu':' · Yahoo');
   }catch(e){document.getElementById('lastUpdate').textContent='❌ '+e.message}
   document.getElementById('refresh').disabled=false;
   document.getElementById('refresh').textContent='🔄 刷新';
