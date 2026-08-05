@@ -445,7 +445,7 @@ function applyHKBreadth(j){
     const a5=(avg5==null?'—':(avg5>=0?'+':'')+avg5+'%');
     let h='<div style="margin:2px 0 8px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:11px;color:#0c4a6e;line-height:1.6">';
     h+='<b>🇭🇰 全市場廣度（Futu · '+total+'隻跨板塊藍籌）</b>：上升 <b style="color:#16a34a">'+up+'</b> / 下跌 <b style="color:#dc2626">'+down+'</b>';
-    if(avg5!=null) h+=' ｜ 平均5日 <b style="color:'+(avg5>=0?'#16a34a':'#dc2626')+'">'+a5+'</b>';
+    if(avg5!=null) h+=' ｜ 42隻平均5日 <b style="color:'+(avg5>=0?'#16a34a':'#dc2626')+'">'+a5+'</b>';
     h+='<br>領漲板塊：'+(lead.join('、')||'—')+' ｜ 落後板塊：'+(lag.join('、')||'—')+'</div>';
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px">';
     h+='<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:#16a34a">'+up+'/'+total+'</div><div style="font-size:10px;color:#64748b">上升家數</div></div>';
@@ -487,20 +487,51 @@ function applyHKBreadth(j){
       const cc=(c==null?'#64748b':(c>=0?'#16a34a':'#dc2626'));
       return '<span style="margin-right:14px">'+name+' 5日 <b style="color:'+cc+'">'+(c==null?'—':fmtPct(c))+'</b> ｜ RSI '+(r!=null?('<b style="color:'+rsiCol(r)+'">'+r+'</b>'+rsiBias(r)):'—')+'</span>';
     };
-    const line2=function(k,name){
+    const macLabel=function(m){
+      if(!m||m.dif==null) return 'MACD —';
+      const bull = m.signal==='多頭';
+      const col = bull ? '#16a34a' : '#dc2626';
+      const icon = bull ? '🟢' : '🔴';
+      let tag='';
+      if(m.dif>0 && (m.dea||0)>0) tag = bull ? '強多頭' : '強空頭';
+      else if(m.dif>0 && (m.dea||0)<0) tag = bull ? '多頭回調' : '多頭回調';
+      else if(m.dif<0 && (m.dea||0)>0) tag = bull ? '空頭回調' : '空頭回調';
+      else if(m.dif<0 && (m.dea||0)<0) tag = bull ? '強多頭' : '強空頭';
+      else tag = bull ? '多頭' : '空頭';
+      return '<span style="font-size:11px">日MACD <b style="color:'+col+'">'+icon+tag+'</b></span>';
+    }
+    const kdjLabel=function(kd){
+      if(!kd||kd.k==null) return '';
+      const bull = parseFloat(kd.k) > parseFloat(kd.d);
+      const col = bull ? '#16a34a' : '#dc2626';
+      const icon = bull ? '🟢' : '🔴';
+      let tag = bull ? 'K>D 金粉交叉強' : 'K<D 死亡交叉弱';
+      if(parseFloat(kd.j)>80) tag += ' J超買';
+      else if(parseFloat(kd.j)<20) tag += ' J超賣';
+      return '<span style="font-size:11px;margin-left:8px">KDJ <b style="color:'+col+'">'+icon+'</b> K'+kd.k+' D'+kd.d+' J'+kd.j+' <span style="color:#64748b">'+tag+'</span></span>';
+    }
+    const mtmLabel=function(mt){
+      if(!mt||mt.mtm==null) return '';
+      const bull = parseFloat(mt.mtm) > 0;
+      const col = bull ? '#16a34a' : '#dc2626';
+      const icon = bull ? '🟢' : '🔴';
+      const tag = bull ? '強勢' : '弱勢';
+      return '<span style="font-size:11px;margin-left:8px">MTM <b style="color:'+col+'">'+icon+mt.mtm+'</b> <span style="color:#64748b">'+tag+'</span></span>';
+    }
+    const block=function(k,name){
       const x=ind[k];if(!x)return '';
-      const r=x.rsi9;const m=x.macd||{};const kd=x.kdj||{};const mt=x.mtm||{};
-      const macCol=m.signal==='多頭'?'#16a34a':'#dc2626';
-      const macIcon=m.signal==='多頭'?'🟢':'🔴';
-      let s=name+' 日RSI '+(r!=null?('<b style="color:'+rsiCol(r)+'">'+r+'</b>'+rsiBias(r)):'—')+' 日MACD '+'<b style="color:'+macCol+'">'+macIcon+(m.signal||'—')+'</b>';
-      if(kd&&kd.k!=null) s+=' KDJ K'+kd.k+' D'+kd.d+' J'+kd.j;
-      if(mt&&mt.mtm!=null) s+=' MTM '+mt.mtm+(mt.signal?('('+mt.signal+')'):'');
-      return s+' ｜ ';
+      const c=x.chg5d;const r=x.rsi9;const m=x.macd||{};const kd=x.kdj||{};const mt=x.mtm||{};
+      const cc=(c==null?'#64748b':(c>=0?'#16a34a':'#dc2626'));
+      const rr=rsiCol(r); const bias=rsiBias(r);
+      let h='<div style="margin:3px 0;padding:5px 8px;background:#f8fafc;border-radius:6px;font-size:12px;line-height:1.5">';
+      h+='<b>'+name+'</b> 5日 <b style="color:'+cc+'">'+fmtPct(c)+'</b> ｜ RSI <b style="color:'+rr+'">'+(r!=null?r:'—')+'</b>'+bias;
+      h+='<br>'+macLabel(m)+' '+kdjLabel(kd)+' '+mtmLabel(mt)+'</div>';
+      return h;
     };
     is.innerHTML=line1('hsi','恆指')+line1('hstech','科指')+'<span style="color:#94a3b8">（真指數 · Futu HK.800700/HK.800000）</span>'
-      + '<div style="margin-top:4px;font-size:12px;color:#475569">'+line2('hsi','恆指')+line2('hstech','科指')+'</div>';
+      + block('hsi','恆指') + block('hstech','科指');
   }
-}
+
 function liveBadge(sess){
   const c={'盤中':'#16a34a','盤前':'#3b82f6','盤後':'#6366f1','夜盤':'#7c3aed','收市':'#64748b'}[sess]||'#64748b';
   return '<span class="sess-tag" style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff;background:'+c+';margin-left:4px">'+(sess||'')+'</span>';
