@@ -1140,6 +1140,40 @@ function renderHK(data){
     rh+='<div style="padding:10px 12px;background:#fff1f2;border-radius:8px;border-left:4px solid #be123c;font-size:12px;color:#9f1239;line-height:1.6"><b>💼 ELN 取態：</b>'+mk.elnStance+'</div>';
   } else { rh='<div style="color:#94a3b8">載入中...</div>'; }
   const hkR=document.getElementById('hkRegimeBody'); if(hkR)hkR.innerHTML=rh;
+
+  // 全市場廣度（Futu bridge data）
+  if (mk.breadth || hk.breadth) {
+    const br = mk.breadth || hk.breadth || {};
+    const upStocks = br.up || 0;
+    const downStocks = br.down || 0;
+    const totalStocks = br.total || 0;
+    const upSectors = br.upSectors || 0;
+    const downSectors = br.downSectors || 0;
+    const totalSectors = br.totalSectors || 0;
+    const avgChg5d = br.avgChg5d || 0;
+    const leadSectors = br.leadSectors || [];
+    const lagSectors = br.lagSectors || [];
+    
+    let brHtml = '<div style="padding:8px 12px;background:#f8fafc;border-radius:8px;margin-bottom:8px;font-size:12px;color:#475569">上升 ' + upStocks + ' 家數 / 下跌 ' + downStocks + ' 家數 ｜ 上升 ' + upSectors + ' 板塊 / 下跌 ' + downSectors + ' 板塊</div>';
+    
+    if (leadSectors.length || lagSectors.length) {
+      brHtml += '<div style="font-size:11px;color:#64748b;padding:4px 12px 8px">';
+      if (leadSectors.length) brHtml += '領漲板塊: ' + leadSectors.join('、') + ' ｜ ';
+      if (lagSectors.length) brHtml += '落後板塊: ' + lagSectors.join('、');
+      brHtml += '</div>';
+    }
+    
+    brHtml += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">' +
+      '<div class="hkcard" style="text-align:center"><div style="font-size:20px;font-weight:800;color:#16a34a">' + upStocks + '/' + totalStocks + '</div><div style="font-size:10px;color:#64748b">上升家數</div></div>' +
+      '<div class="hkcard" style="text-align:center"><div style="font-size:20px;font-weight:800;color:#dc2626">' + downStocks + '</div><div style="font-size:10px;color:#64748b">下跌家數</div></div>' +
+      '<div class="hkcard" style="text-align:center"><div style="font-size:20px;font-weight:800;color:' + (avgChg5d >= 0 ? '#16a34a' : '#dc2626') + '">' + (avgChg5d >= 0 ? '+' : '') + avgChg5d.toFixed(2) + '%</div><div style="font-size:10px;color:#64748b">平均5日</div></div>' +
+      '<div class="hkcard" style="text-align:center"><div style="font-size:20px;font-weight:800;color:#0d9488">' + totalSectors + '</div><div style="font-size:10px;color:#64748b">板塊數</div></div>' +
+    '</div>';
+    
+    const hkBreadth = document.getElementById('hkBreadthBody');
+    if (hkBreadth) hkBreadth.innerHTML = brHtml;
+  }
+
   // 恒指/科指 strip（2-line block）
   const hkIndices = hk.indices || {};
   const hkNames = {'^HSI':'恒生指數','3033.HK':'恒生科技指數'};
