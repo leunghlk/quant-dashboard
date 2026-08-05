@@ -216,7 +216,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   <section class="subview" data-sub="regime">
     <div class="card" id="sec-mk-usregime"><div class="card-h"><span class="t"><span class="sec-num">🌎</span>大盤形勢 — 美股環境與趨勢預期</span></div>
     <div class="card-b" id="regimeBody"></div></div>
-    <div class="card" id="sec-mk-sector"><div class="card-h"><span class="t"><span class="sec-num">🔥</span>板塊熱力圖 · 延續概率</span><span class="meta">美股板塊表現 · 領漲／領跌</span></div>
+    <div class="card" id="sec-mk-sector"><div class="card-h"><span class="t"><span class="sec-num">🔥</span>板塊熱力圖</span><span class="meta">美股板塊表現 · 領漲／領跌</span></div>
     <div class="card-b" id="sectorBody"></div></div>
     <div class="card" id="sec-mk-hkregime"><div class="card-h"><span class="t"><span class="sec-num">🇭🇰</span>大盤形勢 — 恒生指數 · 恒生科技指數</span><span class="meta" id="hkRegimeTs"></span></div>
     <div class="card-b" id="hkRegimeBody"></div></div>
@@ -486,7 +486,7 @@ function labelSessions(){
     const row=cell.closest('tr[data-tk]');
     const key=cell.getAttribute('data-tk')||(row?row.getAttribute('data-tk'):'');
     if(!key) return;
-    cell.innerHTML+='<span class="sess-tag" style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff;background:#64748b;margin-left:4px">'+defaultSessionFor(key)+'</span>';
+    cell.innerHTML+='<span class="sess-tag" style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff;background:#64748b;margin-left:4px">收市</span>';
   });
 }
 function patchCell(cell, s){
@@ -782,7 +782,7 @@ function renderRegime(data){
   document.getElementById('regimeBody').innerHTML=rh;
 }
 
-// ===== 板塊熱力圖 · 延續概率（大盤形勢；finviz 防盜連故用連結＋由 breadth 推算延續概率）=====
+// ===== 板塊熱力圖（大盤形勢；finviz 防盜連故用連結；SPDR 現價經 Futu 實時更新）=====
 function renderSector(data){
   const body=document.getElementById('sectorBody');if(!body)return;
   // Prefer real sector-rotation data (9 SPDR ETFs, full-market breadth) over the
