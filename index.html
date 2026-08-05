@@ -444,8 +444,11 @@ function applyHKBreadth(j){
     const lag=(j.sectors||[]).filter(function(s){return s.chg5d!=null&&s.chg5d<0;}).slice(-3).map(function(s){return s.name;});
     const a5=(avg5==null?'—':(avg5>=0?'+':'')+avg5+'%');
     let h='<div style="margin:2px 0 8px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:11px;color:#0c4a6e;line-height:1.6">';
-    h+='<b>🇭🇰 全市場廣度（Futu · '+total+'隻跨板塊藍籌）</b>：上升 <b style="color:#16a34a">'+up+'</b> / 下跌 <b style="color:#dc2626">'+down+'</b>';
-    if(avg5!=null) h+=' ｜ 42隻平均5日 <b style="color:'+(avg5>=0?'#16a34a':'#dc2626')+'">'+a5+'</b>';
+    h+='<b>🇭🇰 全市場廣度（Futu · '+total+'隻跨板塊藍籌）</b>：上升 <b style="color:#16a34a">'+up+'</b> 家數 / 下跌 <b style="color:#dc2626">'+down+'</b> 家數 ｜ 上升 <b style="color:#16a34a">'+secUp+'</b> 板塊 / 下跌 <b style="color:#dc2626">'+secDown+'</b> 板塊';
+    const secUp=secs.filter(function(s){return s.chg5d!=null&&s.chg5d>0;}).length;
+    const secDown=secs.filter(function(s){return s.chg5d!=null&&s.chg5d<0;}).length;
+    const secs=(j.sectors||[]);
+
     h+='<br>領漲板塊：'+(lead.join('、')||'—')+' ｜ 落後板塊：'+(lag.join('、')||'—')+'</div>';
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px">';
     h+='<div class="hkcard" style="text-align:center"><div style="font-size:19px;font-weight:800;color:#16a34a">'+up+'/'+total+'</div><div style="font-size:10px;color:#64748b">上升家數</div></div>';
@@ -492,12 +495,13 @@ function applyHKBreadth(j){
       const bull = m.signal==='多頭';
       const col = bull ? '#16a34a' : '#dc2626';
       const icon = bull ? '🟢' : '🔴';
-      let tag='';
-      if(m.dif>0 && (m.dea||0)>0) tag = bull ? '強多頭' : '強空頭';
-      else if(m.dif>0 && (m.dea||0)<0) tag = bull ? '多頭回調' : '多頭回調';
-      else if(m.dif<0 && (m.dea||0)>0) tag = bull ? '空頭回調' : '空頭回調';
-      else if(m.dif<0 && (m.dea||0)<0) tag = bull ? '強多頭' : '強空頭';
-      else tag = bull ? '多頭' : '空頭';
+      const bothPos = m.dif>0 && (m.dea||0)>0;
+      const bothNeg = m.dif<0 && (m.dea||0)<0;
+      let tag = bull ? '多頭' : '空頭';
+      if(bothPos) tag = '強多頭';
+      else if(bothNeg) tag = '強空頭';
+      else if(m.dif>0 && (m.dea||0)<0) tag = '多頭回調';
+      else if(m.dif<0 && (m.dea||0)>0) tag = '空頭反彈';
       return '<span style="font-size:11px">日MACD <b style="color:'+col+'">'+icon+tag+'</b></span>';
     }
     const kdjLabel=function(kd){
@@ -505,10 +509,13 @@ function applyHKBreadth(j){
       const bull = parseFloat(kd.k) > parseFloat(kd.d);
       const col = bull ? '#16a34a' : '#dc2626';
       const icon = bull ? '🟢' : '🔴';
-      let tag = bull ? 'K>D 金粉交叉強' : 'K<D 死亡交叉弱';
-      if(parseFloat(kd.j)>80) tag += ' J超買';
-      else if(parseFloat(kd.j)<20) tag += ' J超賣';
-      return '<span style="font-size:11px;margin-left:8px">KDJ <b style="color:'+col+'">'+icon+'</b> K'+kd.k+' D'+kd.d+' J'+kd.j+' <span style="color:#64748b">'+tag+'</span></span>';
+      const j = parseFloat(kd.j);
+      let note = bull ? 'K>D 黃金交叉' : 'K<D 死亡交叉';
+      if(j > 80) note += ' J超買';
+      else if(j < 20) note += ' J超賣';
+      if(j > 80 && bull) note += '(鈍化)';
+      if(j < 20 && !bull) note += '(鈍化)';
+      return '<span style="font-size:11px;margin-left:8px">KDJ <b style="color:'+col+'">'+icon+'</b> K'+kd.k+' D'+kd.d+' J'+kd.j+' <span style="color:#64748b">'+note+'</span></span>';
     }
     const mtmLabel=function(mt){
       if(!mt||mt.mtm==null) return '';
@@ -523,10 +530,22 @@ function applyHKBreadth(j){
       const c=x.chg5d;const r=x.rsi9;const m=x.macd||{};const kd=x.kdj||{};const mt=x.mtm||{};
       const cc=(c==null?'#64748b':(c>=0?'#16a34a':'#dc2626'));
       const rr=rsiCol(r); const bias=rsiBias(r);
-      let h='<div style="margin:3px 0;padding:5px 8px;background:#f8fafc;border-radius:6px;font-size:12px;line-height:1.5">';
-      h+='<b>'+name+'</b> 5日 <b style="color:'+cc+'">'+fmtPct(c)+'</b> ｜ RSI <b style="color:'+rr+'">'+(r!=null?r:'—')+'</b>'+bias;
-      h+='<br>'+macLabel(m)+' '+kdjLabel(kd)+' '+mtmLabel(mt)+'</div>';
+      let h='<div style="margin:6px 0 10px;padding:10px 12px;background:#f8fafc;border-radius:8px;font-size:12px;line-height:1.6">';
+      // line 1: name + 5d + RSI
+      h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">';
+      h+='<b style="font-size:14px;min-width:56px">'+name+'</b>';
+      h+='<span style="color:#64748b;font-size:11px">5日</span> <b style="color:'+cc+'">'+(c==null?'—':fmtPct(c))+'</b>';
+      h+='<span style="color:#64748b;font-size:11px">RSI</span> '+(r!=null?'<b style="color:'+rr+'">'+r+'</b>'+bias:'—');
+      h+='</div>';
+      // line 2: MACD | KDJ | MTM
+      h+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px">';
+      h+=macLabel(m)+' <span style="color:#94a3b8;font-size:10px" title="MACD：DIF/DEA皆正=強多頭；皆負=強空頭；一正一負=回調/反彈；收窄=動能減弱">ⓘ</span>';
+      h+=kdjLabel(kd)+' <span style="color:#94a3b8;font-size:10px" title="KDJ：K>D黃金交叉強、K<D死亡交叉弱。J>80超買、J<20超賣。80以上/20以下鈍化">ⓘ</span>';
+      h+=mtmLabel(mt)+' <span style="color:#94a3b8;font-size:10px" title="MTM：現價與N日前比較。正=強勢、負=弱勢。MTM與股價同向確認趨勢">ⓘ</span>';
+      h+='</div>';
+      h+='</div>';
       return h;
+    }
     };
     is.innerHTML=line1('hsi','恆指')+line1('hstech','科指')+'<span style="color:#94a3b8">（真指數 · Futu HK.800700/HK.800000）</span>'
       + block('hsi','恆指') + block('hstech','科指');
