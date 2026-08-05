@@ -2,9 +2,25 @@
 <html lang="zh-HK"><head><meta charset="UTF-8">
 <meta name="version" content="d3cc73e7" />
   <meta name="viewport" content="width=device-width,initial-scale=1">
+<script>
+// IMMEDIATE cache bust - redirect to new version
+if(!sessionStorage.getItem('v20260805')) {
+  sessionStorage.setItem('v20260805', '1');
+  const u = new URL(window.location.href);
+  u.searchParams.set('v', '63f180a5');
+  window.location.replace(u.toString());
+}
+</script>
 <title>Quant Portfolio — Kathy Leung</title>
 <div id="versionBadge" style="display:none"></div>
-<script>window.__APP_VERSION="d3cc73e7";</script>
+<script>window.__APP_VERSION="63f180a5";
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.unregister()));
+}
+if('caches' in window){
+  caches.keys().then(names=>names.forEach(n=>caches.delete(n)));
+}
+</script>
 
 <style>
 :root{
