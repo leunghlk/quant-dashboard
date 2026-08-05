@@ -392,8 +392,19 @@ async function detectBridge(){
   activeBridge=null;return null;
 }
 async function loadLiveData(){
-  if(!activeBridge){const b=await detectBridge();if(!b){labelSessions();return;}}
   const d=lastData;if(!d)return;
+  // 2026-08-05: prefer Worker self proxy (any device, incl. neo/phone)
+  try{
+    const ticks=new Set();
+    (d.watchlist||[]).forEach(function(w){ticks.add(w.ticker);});
+    (d.portfolio&&d.portfolio.positions?Object.keys(d.portfolio.positions):[]).forEach(function(t){ticks.add(t);});
+    ['MAGS','NQ=F','^SOX','^HSI','HSTECH'].forEach(function(t){ticks.add(t);});
+    ['XLK','XLY','XLF','XLE','XLI','XLB','XLV','XLP','XLU','SPY'].forEach(function(t){ticks.add(t);});
+    (d.hk&&d.hk.watchlist||[]).forEach(function(w){ticks.add(w.ticker);});
+    const r=await fetch('/api/live?codes='+encodeURIComponent([...ticks].join(',')));
+    if(r.ok){const j=await r.json();const map={};(j.data||[]).forEach(function(x){if(x&&!x.error)map[(x.orig||'').toUpperCase()]=x;});applyLiveData(map);loadHKBreadth();return;}
+  }catch(e){/* fall through to localhost bridge */}
+  if(!activeBridge){const b=await detectBridge();if(!b){labelSessions();return;}}
   const ticks=new Set();
   (d.watchlist||[]).forEach(function(w){ticks.add(w.ticker);});
   (d.portfolio&&d.portfolio.positions?Object.keys(d.portfolio.positions):[]).forEach(function(t){ticks.add(t);});
@@ -411,6 +422,10 @@ async function loadLiveData(){
 }
 // 2026-08-05: HK 全市場訊號（Futu 42隻跨板塊籃 + 真指數）— 唔用 watchlist
 async function loadHKBreadth(){
+  try{
+    const r=await fetch('/api/hkbreadth');
+    if(r.ok){const j=await r.json();if(j&&j.ok)applyHKBreadth(j);return;}
+  }catch(e){}
   if(!activeBridge) return;
   try{
     const r=await fetch(activeBridge+'/hkbreadth?secret='+encodeURIComponent(BRIDGE_SECRET));
