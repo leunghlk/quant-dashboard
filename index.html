@@ -448,10 +448,10 @@ function applyHKBreadth(j){
     const lag=(j.sectors||[]).filter(function(s){return s.chg5d!=null&&s.chg5d<0;}).slice(-3).map(function(s){return s.name;});
     const a5=(avg5==null?'—':(avg5>=0?'+':'')+avg5+'%');
     let h='<div style="margin:2px 0 8px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:11px;color:#0c4a6e;line-height:1.6">';
-    h+='<b>🇭🇰 全市場廣度（Futu · '+total+'隻跨板塊藍籌）</b>：上升 <b style="color:#16a34a">'+up+'</b> 家數 / 下跌 <b style="color:#dc2626">'+down+'</b> 家數 ｜ 上升 <b style="color:#16a34a">'+secUp+'</b> 板塊 / 下跌 <b style="color:#dc2626">'+secDown+'</b> 板塊';
+    const secs=(j.sectors||[]);
     const secUp=secs.filter(function(s){return s.chg5d!=null&&s.chg5d>0;}).length;
     const secDown=secs.filter(function(s){return s.chg5d!=null&&s.chg5d<0;}).length;
-    const secs=(j.sectors||[]);
+    h+='<b>🇭🇰 全市場廣度（Futu · '+total+'隻跨板塊藍籌）</b>：上升 <b style="color:#16a34a">'+up+'</b> 家數 / 下跌 <b style="color:#dc2626">'+down+'</b> 家數 ｜ 上升 <b style="color:#16a34a">'+secUp+'</b> 板塊 / 下跌 <b style="color:#dc2626">'+secDown+'</b> 板塊';
 
     h+='<br>領漲板塊：'+(lead.join('、')||'—')+' ｜ 落後板塊：'+(lag.join('、')||'—')+'</div>';
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px">';
