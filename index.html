@@ -448,7 +448,11 @@ function applyLiveData(map){
 async function loadData(){
   document.getElementById('refresh').disabled=true;
   document.getElementById('refresh').textContent='⏳ 載入中...';
-  try{const r=await fetch(API);const d=await r.json();lastData=d;render(d);checkPriceAlerts(d);loadLiveData();
+  try{
+    let api=API;
+    if(!activeBridge){await detectBridge();}
+    if(activeBridge){api=activeBridge+'/api?secret='+encodeURIComponent(BRIDGE_SECRET);}
+    const r=await fetch(api);const d=await r.json();lastData=d;render(d);checkPriceAlerts(d);loadLiveData();
     document.getElementById('lastUpdate').textContent='更新: '+new Date(d.timestamp).toLocaleTimeString('zh-HK');
   }catch(e){document.getElementById('lastUpdate').textContent='❌ '+e.message}
   document.getElementById('refresh').disabled=false;
