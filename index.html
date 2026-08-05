@@ -1109,9 +1109,9 @@ function render(data){
   if(data.portfolio && data.portfolio.recoveryTimeline){
     const rt=data.portfolio.recoveryTimeline;
     // 領先／落後 = 實際進度% − 當日線性目標%（目標線：由 7/30 起始本金線性遞增至 12/31 HKD$50,000）
-    const ts=rt.todayStatus||{};
+    const rtTs=rt.todayStatus||{};
     let expPct=null;
-    if(ts && ts.targetHKD && rt.targetHKD){ expPct=Math.round(ts.targetHKD/rt.targetHKD*1000)/10; }
+    if(rtTs && rtTs.targetHKD && rt.targetHKD){ expPct=Math.round(rtTs.targetHKD/rt.targetHKD*1000)/10; }
     const aheadPct=(expPct!=null)?Math.round((rt.progressPct-expPct)*10)/10:null;
     let recHTML='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">';
     recHTML+='<div style="text-align:center;padding:10px;background:#ecfdf5;border-radius:8px;border:1px solid #99f6e4"><div style="font-size:20px;font-weight:700;color:#0d9488">'+(rt.dailyTargetHKD>0?'+':'')+'HKD $'+Math.abs(rt.dailyTargetHKD).toLocaleString()+'</div><div style="font-size:10px;color:#64748b;margin-top:2px">每日目標</div></div>';
