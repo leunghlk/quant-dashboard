@@ -715,7 +715,7 @@ function renderRegime(data){
   let rh='<div style="font-size:14px;font-weight:800;color:'+mr.regimeColor+';margin-bottom:10px;padding:10px 12px;background:'+mr.regimeColor+'15;border-radius:8px">'+mr.regime+'</div>';
   rh+='<div style="font-size:12px;color:#334155;line-height:1.7;margin-bottom:14px">'+mr.outlook+'</div>';
   if(mr.trendAssessment){
-    rh+='<div style="margin-top:12px;padding:12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;white-space:pre-wrap;font-size:13px;line-height:1.6">'+mr.trendAssessment.split('**').join('<b>').split('\\n').join('<br>')+'</div>';
+    rh+='<div style="margin-top:12px;padding:12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;white-space:pre-wrap;font-size:13px;line-height:1.6">'+mr.trendAssessment.replace(/**([^*]+)**/g, '<b>$1</b>').split('\\n').join('<br>')+'</div>';
   }
   rh+='<div class="sec-title">驅動因素</div><table class="kv">';
   mr.drivers.forEach(d=>{
@@ -882,7 +882,7 @@ function render(data){
     let rh='<div style="font-size:14px;font-weight:800;color:'+mr.regimeColor+';margin-bottom:10px;padding:10px 12px;background:'+mr.regimeColor+'15;border-radius:8px">'+mr.regime+'</div>';
     rh+='<div style="font-size:12px;color:#334155;line-height:1.7;margin-bottom:14px">'+mr.outlook+'</div>';
     if(mr.trendAssessment){
-      rh+='<div style="margin-top:12px;padding:12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;white-space:pre-wrap;font-size:13px;line-height:1.6">'+mr.trendAssessment.split('**').join('<b>').split('\n').join('<br>')+'</div>';
+      rh+='<div style="margin-top:12px;padding:12px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;white-space:pre-wrap;font-size:13px;line-height:1.6">'+mr.trendAssessment.replace(/**([^*]+)**/g, '<b>$1</b>').split('\n').join('<br>')+'</div>';
     }
     rh+='<div class="sec-title">驅動因素</div><table class="kv">';
     mr.drivers.forEach(d=>{
