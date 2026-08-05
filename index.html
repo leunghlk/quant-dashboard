@@ -467,10 +467,16 @@ let usIdxQuotes={};  // 美股四大指數 live 報價（道指/標指/納指100
 async function loadHKBreadth(){
   if(!activeBridge){const b=await detectBridge();if(!b)return;}
   try{
-    const r=await fetch(activeBridge+'/hkbreadth?secret='+encodeURIComponent(BRIDGE_SECRET),{cache:'no-store'});
-    if(!r.ok)throw new Error('http '+r.status);
-    const j=await r.json();
-    if(j&&j.ok===false)throw new Error(j.error||'hkbreadth failed');
+    const r=await fetchTimeout(activeBridge+'/hkbreadth?secret='+encodeURIComponent(BRIDGE_SECRET),15000);
+    if(!r||!r.ok)throw new Error('http '+(r?r.status:'fail'));
+    const j=await r.json().catch(function(){return null;});
+    if(!j||j.ok===false)throw new Error((j&&j.error)||'hkbreadth failed');
+    // 收市後 Futu 有時返空（last_price=0）→ 保留上次有效數據，唔好用空數據覆蓋
+    const hasData=(j.breadth&&(j.breadth.total||0)>0)||(j.indices&&Object.keys(j.indices).length>0)||(j.sectors&&j.sectors.length>0);
+    if(!hasData && hkLive && hkLive.updated){
+      if(lastData&&lastData.hk)renderHK(lastData);
+      return;
+    }
     hkLive=j;
     if(lastData&&lastData.hk)renderHK(lastData);
   }catch(e){activeBridge=null;}
