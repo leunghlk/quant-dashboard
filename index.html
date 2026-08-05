@@ -215,9 +215,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   <!-- 大盤形勢 -->
   <section class="subview" data-sub="regime">
     <div class="card" id="sec-mk-usregime"><div class="card-h"><span class="t"><span class="sec-num">🌎</span>大盤形勢 — 美股環境與趨勢預期</span></div>
-    <div class="card-b" id="regimeBody"></div></div>
-    <div class="card" id="sec-mk-sector"><div class="card-h"><span class="t"><span class="sec-num">🔥</span>板塊熱力圖</span><span class="meta">美股板塊表現 · 領漲／領跌</span></div>
-    <div class="card-b" id="sectorBody"></div></div>
+    <div class="card-b" id="regimeBody"></div></div>    <div class="card-b" id="sectorBody"></div></div>
     <div class="card" id="sec-mk-hkregime"><div class="card-h"><span class="t"><span class="sec-num">🇭🇰</span>大盤形勢 — 恒生指數 · 恒生科技指數</span><span class="meta" id="hkRegimeTs"></span></div>
     <div class="card-b" id="hkRegimeBody"></div></div>
   </section>
@@ -749,95 +747,12 @@ function renderRegime(data){
     else if(lag.length && !lead.length) verdict='風險胃納收縮 — 領漲板塊缺位，防禦性板塊相對強，大市短線偏向整固／回調。';
     else verdict='板塊輪動不明顯，大市處於好淡爭持階段。';
     rh+='<div style="margin-top:12px;padding:11px 13px;background:#ecfdf5;border-left:4px solid #0d9488;border-radius:8px;font-size:12.5px;line-height:1.65"><b>板塊輪動研判（全市視角・9 大 SPDR 行業 ETF）：</b><br>'+verdict+'<br><span style="color:#64748b;font-size:11px">SPY 5日 '+spyD5.toFixed(1)+'% 為基準 ｜ 領漲：'+(lead.join('、')||'—')+' ｜ 落後：'+(lag.join('、')||'—')+'</span></div>';
-    // 自製 heatmap（用 SPDR ETF 表格顏色系統）
-    rh += '<div style="margin-top:20px;margin-bottom:16px">';
-    rh += '<div style="font-weight:700;font-size:13px;margin-bottom:8px;padding:10px 12px;background:#f8fafc;border-radius:8px">🔥 自製板塊熱力圖（9大SPDR ETF - 全市場視角）</div>';
-    // 文字版領漲/領跌（5日變動率基準）— on top of the table
-    rh += '<div style="margin-bottom:8px;font-size:12px;line-height:1.7">';
-    rh += '<b style="color:#16a34a">🟢 領漲：</b>'+(lead.length?lead.join('、'):'—');
-    rh += '　<b style="color:#dc2626">🔴 落後：</b>'+(lag.length?lag.join('、'):'—');
-    rh += '<span style="color:#94a3b8;font-size:11px">（5日變動率 · 相對 SPY 基準）</span></div>';
-    rh += '<table style="width:100%;border-collapse:collapse;font-size:12.5px">';
-    rh += '<tr style="background:#f1f5f9">';
-    rh += '<th style="padding:8px;text-align:left;font-weight:600">ETF</th>';
-    rh += '<th style="padding:8px;text-align:center;font-weight:600">現價</th>';
-    rh += '<th style="padding:8px;text-align:center;font-weight:600">5日</th>';
-    rh += '<th style="padding:8px;text-align:center;font-weight:600">1月</th>';
-    rh += '<th style="padding:8px;text-align:center;font-weight:600">3月</th>';
-    rh += '<th style="padding:8px;text-align:center;font-weight:600">狀態</th>';
-    rh += '</tr>';
-    
-    sr.sectors.forEach(s => {
-        const cl = s.cls;
-        const bg = cl==='leading' ? '#dcfce7' : cl==='lagging' ? '#fee2e2' : '#fef3c7';
-        const color = cl==='leading' ? '#166534' : cl==='lagging' ? '#991b1b' : '#92400e';
-        // 綠升、紅跌（帶正負號）
-        const chg = function(v){ return (v==null||isNaN(v)) ? '-' : '<span style="color:'+(v>0?'#16a34a':'#dc2626')+';font-weight:700">'+(v>0?'+':'')+v.toFixed(1)+'%</span>'; };
-        rh += '<tr style="background:' + bg + '" data-tk="' + s.t + '">';
-        rh += '<td style="padding:8px;font-weight:600;color:' + color + '">' + s.n + '</td>';
-        rh += '<td style="padding:8px;text-align:center" class="lp">' + (s.price!=null?'$'+s.price.toFixed(2):'—') + '</td>';
-        rh += '<td style="padding:8px;text-align:center">' + chg(s.d5) + '</td>';
-        rh += '<td style="padding:8px;text-align:center">' + chg(s.d20) + '</td>';
-        rh += '<td style="padding:8px;text-align:center">' + chg(s.d60) + '</td>';
-        rh += '<td style="padding:8px;text-align:center;font-weight:600">';
-        rh += cl==='leading'?'🟢領漲':cl==='lagging'?'🔴落後':'⚪中性';
-        rh += '</td>';
-        rh += '</tr>';
-    });
-    
-    rh += '</table>';
-    // finviz 熱力圖 + 板塊升跌排行 link buttons（表底 · 等長並置中）
-    rh += '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px">';
-    rh += '<a href="https://finviz.com/map?t=sec&st=w1" target="_blank" rel="noopener" style="flex:1 1 0;min-width:0;max-width:280px;text-align:center;padding:9px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12.5px">📊 finviz 板塊熱力圖（開新分頁）</a>';
-    rh += '<a href="https://finviz.com/groups?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1 1 0;min-width:0;max-width:280px;text-align:center;padding:9px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:12.5px">📈 板塊升跌排行</a>';
-    rh += '</div>';
     rh += '<div style="margin-top:10px;font-size:11px;color:#64748b">數據源：9大SPDR ETF（真·全市場視角）｜更新時間：' + new Date().toLocaleString('zh-CN') + '｜現價經 Futu 實時更新</div>';
     rh += '</div>';
   }
   document.getElementById('regimeBody').innerHTML=rh;
 }
 
-// ===== 板塊熱力圖（大盤形勢；finviz 防盜連故用連結；SPDR 現價經 Futu 實時更新）=====
-function renderSector(data){
-  const body=document.getElementById('sectorBody');if(!body)return;
-  // Prefer real sector-rotation data (9 SPDR ETFs, full-market breadth) over the
-  // old watchlist-derived distribution.
-  const sr=data.sectorRot||{};
-  let inner='';
-  if(sr.sectors && sr.sectors.length){
-    const spy=sr.sectors.find(x=>x.t==='SPY');
-    const rows=sr.sectors.filter(x=>!x.err).map(s=>{
-      const cls=s.cls||'neutral';
-      const badge=cls==='leading'?'<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:#dcfce7;color:#16a34a;font-weight:700">領漲</span>'
-                 : cls==='lagging'?'<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:#fef2f2;color:#dc2626;font-weight:700">落後</span>'
-                 : '<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:#f1f5f9;color:#64748b;font-weight:700">中性</span>';
-      const col=v=>(v>0?'#16a34a':'#dc2626');
-      const sgn=v=>(v>0?'+':'')+v.toFixed(1)+'%';
-      return '<tr style="border-bottom:1px solid #f1f5f9">'+
-        '<td style="font-weight:700;padding:5px 4px">'+s.n+'</td>'+
-        '<td style="text-align:right;color:'+col(s.d5)+';font-weight:700">'+sgn(s.d5)+'</td>'+
-        '<td style="text-align:right;color:'+col(s.d20)+';font-weight:700">'+sgn(s.d20)+'</td>'+
-        '<td style="text-align:right;color:'+col(s.d60)+'">'+sgn(s.d60)+'</td>'+
-        '<td style="text-align:center">'+badge+'</td></tr>';
-    }).join('');
-    inner+='<div class="sec-title">板塊輪動 — 9 大 SPDR 行業 ETF（相對 SPY 基準）</div>'+
-      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px">'+
-      '<thead><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:5px 4px">板塊</th><th style="text-align:right">5日</th><th style="text-align:right">1月</th><th style="text-align:right">3月</th><th style="text-align:center">相對大市</th></tr></thead>'+
-      '<tbody>'+rows+'</tbody></table></div>';
-    // leading/lagging summary
-    const lead=sr.sectors.filter(x=>x.cls==='leading').map(x=>x.n.split(' ')[0]);
-    const lag=sr.sectors.filter(x=>x.cls==='lagging').map(x=>x.n.split(' ')[0]);
-    inner+='<div style="margin-top:10px;font-size:12px;line-height:1.6"><b style="color:#16a34a">領漲：</b>'+(lead.join('、')||'—')+'<br><b style="color:#dc2626">落後：</b>'+(lag.join('、')||'—')+'</div>';
-  } else {
-    inner='<div style="color:#94a3b8;font-size:12px">板塊輪動數據載入中…</div>';
-  }
-  // Finviz links (2026-08-05: finviz removed .ashx — old URLs 301→404; new: /map + /groups) · 等長並置中
-  inner+='<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'+
-    '<a href="https://finviz.com/map?t=sec&st=w1" target="_blank" rel="noopener" style="flex:1 1 0;min-width:0;max-width:280px;text-align:center;padding:11px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📊 finviz 板塊熱力圖（開新分頁）</a>'+
-    '<a href="https://finviz.com/groups?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1 1 0;min-width:0;max-width:280px;text-align:center;padding:11px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📈 板塊升跌排行</a></div>';
-  if(sr.updated) inner+='<div style="font-size:10px;color:#94a3b8;margin-top:6px">數據更新：'+sr.updated+'（來源：Yahoo Finance · 9 大 SPDR 行業 ETF）</div>';
-  body.innerHTML=inner;
-}
 
 function render(data){
   const p=data.portfolio;
@@ -1206,7 +1121,6 @@ function render(data){
   }
 
   renderPositions(data);
-  renderSector(data);
   renderRegime(data);
   renderDailyReport(data);
   renderMonthly(data);
