@@ -392,7 +392,7 @@ async function detectBridge(){
   activeBridge=null;return null;
 }
 async function loadLiveData(){
-  if(!activeBridge){const b=await detectBridge();if(!b)return;}
+  if(!activeBridge){const b=await detectBridge();if(!b){labelSessions();return;}}
   const d=lastData;if(!d)return;
   const ticks=new Set();
   (d.watchlist||[]).forEach(function(w){ticks.add(w.ticker);});
@@ -419,6 +419,11 @@ async function loadHKBreadth(){
   }catch(e){}
 }
 function applyHKBreadth(j){
+  // 訊號唔用 watchlist：隱藏由 watchlist 廣度/動量減速衍生嘅 driver chips（Futu 全市場數據取代）
+  try{
+    const dv=document.getElementById('hkDrivers');
+    if(dv){ dv.querySelectorAll('span').forEach(function(c){ if(c.textContent.indexOf('廣度')>=0||c.textContent.indexOf('動量減速')>=0)c.style.display='none'; }); }
+  }catch(e){}
   const cont=document.getElementById('hkBreadthFutu');
   if(cont){
     const b=j.breadth||{};const up=b.up||0,down=b.down||0,total=b.total||0,avg5=b.avgChg5d;
@@ -460,16 +465,50 @@ function applyHKBreadth(j){
 }
 function liveBadge(sess){
   const c={'盤中':'#16a34a','盤前':'#3b82f6','盤後':'#6366f1','夜盤':'#7c3aed','收市':'#64748b'}[sess]||'#64748b';
-  return '<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff;background:'+c+';margin-left:4px">'+(sess||'')+'</span>';
+  return '<span class="sess-tag" style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff;background:'+c+';margin-left:4px">'+(sess||'')+'</span>';
+}
+// 2026-08-05: 冇 bridge 時都用本地時間推算 session，確保所有價位都有 盤中/盤前/盤後/夜盤/收市 標籤
+function defaultSessionFor(tk){
+  const now=new Date();
+  const day=now.getUTCDay();
+  const mins=now.getUTCHours()*60+now.getUTCMinutes();
+  if(day===0||day===6) return '收市';
+  const hk=(/.HK$/i.test(tk)||tk==='^HSI'||tk==='HSTECH');
+  if(hk) return (mins>=90&&mins<480)?'盤中':'收市'; // 09:30-16:00 HKT = 01:30-08:00 UTC
+  if(mins>=810&&mins<1200) return '盤中';  // 13:30-20:00 UTC = 09:30-16:00 ET
+  if(mins>=480&&mins<810) return '盤前';   // 08:00-13:30 UTC = 04:00-09:30 ET
+  if(mins>=1200) return '盤後';            // 20:00-24:00 UTC = 16:00-20:00 ET
+  return '夜盤';                            // 00:00-08:00 UTC = 20:00-04:00 ET
+}
+function labelSessions(){
+  document.querySelectorAll('.lp[data-tk], tr[data-tk] .lp').forEach(function(cell){
+    if(cell.querySelector('.sess-tag')) return;
+    const row=cell.closest('tr[data-tk]');
+    const key=cell.getAttribute('data-tk')||(row?row.getAttribute('data-tk'):'');
+    if(!key) return;
+    cell.innerHTML+='<span class="sess-tag" style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff;background:#64748b;margin-left:4px">'+defaultSessionFor(key)+'</span>';
+  });
+}
+function patchCell(cell, s){
+  if(!cell) return;
+  const price=(s.live_price!=null)?s.live_price:s.price;if(price==null)return;
+  const code=(s.code||'');
+  const isIndex=(code.indexOf('HK.800')===0||code.indexOf('^')===0||code==='HK.800000'||code==='HK.800700');
+  const cur=(code.indexOf('HK.')===0)?'HK$':'$';
+  if(isIndex) cell.innerHTML=Math.round(price).toLocaleString()+liveBadge(s.session);
+  else cell.innerHTML=cur+fmt(price)+liveBadge(s.session);
 }
 function applyLiveData(map){
-  // patch watchlist + position price cells (.lp)
+  // patch watchlist + position price cells (.lp inside rows)
   document.querySelectorAll('tr[data-tk]').forEach(function(tr){
     const s=map[(tr.getAttribute('data-tk')||'').toUpperCase()];if(!s)return;
-    const cell=tr.querySelector('.lp');if(!cell)return;
-    const price=(s.live_price!=null)?s.live_price:s.price;if(price==null)return;
-    const cur=(s.code&&s.code.indexOf('HK.')===0)?'HK$':'$';
-    cell.innerHTML=cur+fmt(price)+liveBadge(s.session);
+    patchCell(tr.querySelector('.lp'), s);
+  });
+  // patch standalone index price cells (.lp[data-tk] NOT inside a row) — e.g. HK 大盤 header
+  document.querySelectorAll('.lp[data-tk]').forEach(function(cell){
+    if(cell.closest('tr[data-tk]')) return;
+    const s=map[(cell.getAttribute('data-tk')||'').toUpperCase()];if(!s)return;
+    patchCell(cell, s);
   });
   // index live headers
   document.querySelectorAll('[data-live]').forEach(function(el){
@@ -732,10 +771,10 @@ function renderRegime(data){
     });
     
     rh += '</table>';
-    // finviz 熱力圖 + 板塊升跌排行 link buttons（表底）
-    rh += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">';
-    rh += '<a href="https://finviz.com/map?t=sec&st=w1" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:9px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12.5px">📊 finviz 板塊熱力圖（開新分頁）</a>';
-    rh += '<a href="https://finviz.com/groups?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:9px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:12.5px">📈 板塊升跌排行</a>';
+    // finviz 熱力圖 + 板塊升跌排行 link buttons（表底 · 等長並置中）
+    rh += '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px">';
+    rh += '<a href="https://finviz.com/map?t=sec&st=w1" target="_blank" rel="noopener" style="flex:1 1 220px;max-width:280px;text-align:center;padding:9px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12.5px">📊 finviz 板塊熱力圖（開新分頁）</a>';
+    rh += '<a href="https://finviz.com/groups?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1 1 220px;max-width:280px;text-align:center;padding:9px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:12.5px">📈 板塊升跌排行</a>';
     rh += '</div>';
     rh += '<div style="margin-top:10px;font-size:11px;color:#64748b">數據源：9大SPDR ETF（真·全市場視角）｜更新時間：' + new Date().toLocaleString('zh-CN') + '｜現價經 Futu 實時更新</div>';
     rh += '</div>';
@@ -777,10 +816,10 @@ function renderSector(data){
   } else {
     inner='<div style="color:#94a3b8;font-size:12px">板塊輪動數據載入中…</div>';
   }
-  // Finviz links (2026-08-05: finviz removed .ashx — old URLs 301→404; new: /map + /groups)
-  inner+='<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">'+
-    '<a href="https://finviz.com/map?t=sec&st=w1" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:11px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📊 finviz 板塊熱力圖（開新分頁）</a>'+
-    '<a href="https://finviz.com/groups?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:11px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📈 板塊升跌排行</a></div>';
+  // Finviz links (2026-08-05: finviz removed .ashx — old URLs 301→404; new: /map + /groups) · 等長並置中
+  inner+='<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'+
+    '<a href="https://finviz.com/map?t=sec&st=w1" target="_blank" rel="noopener" style="flex:1 1 220px;max-width:280px;text-align:center;padding:11px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📊 finviz 板塊熱力圖（開新分頁）</a>'+
+    '<a href="https://finviz.com/groups?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1 1 220px;max-width:280px;text-align:center;padding:11px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📈 板塊升跌排行</a></div>';
   if(sr.updated) inner+='<div style="font-size:10px;color:#94a3b8;margin-top:6px">數據更新：'+sr.updated+'（來源：Yahoo Finance · 9 大 SPDR 行業 ETF）</div>';
   body.innerHTML=inner;
 }
@@ -1171,14 +1210,14 @@ function renderHK(data){
   if(mk.regime){
     rh+='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#f8fafc;border-radius:10px;border-left:5px solid '+mk.regimeColor+';margin-bottom:12px">'+
       '<div><div style="font-size:20px;font-weight:800;color:'+mk.regimeColor+'">'+mk.regime+'</div>'+
-      '<div style="font-size:11px;color:#64748b;margin-top:2px">緜合分數 '+mk.score+'（日線＋周線＋市場廣度）</div></div>'+
+      '<div style="font-size:11px;color:#64748b;margin-top:2px">綜合分數 '+mk.score+'（日線＋周線＋市場廣度）</div></div>'+
       '<div style="text-align:right;font-size:12px;color:#475569">'+
       (mk.indices&&mk.indices.hsi?'<div>恆指 <b class="lp" data-tk="^HSI">'+rD(mk.indices.hsi.price)+'</b></div>':'')+
       (mk.indices&&mk.indices.hstech?'<div>科指 <b class="lp" data-tk="HSTECH">'+(mk.indices.hstech.price<100?mk.indices.hstech.price.toFixed(2)+' <span style="font-size:9px;color:#94a3b8">3033代理</span>':rD(mk.indices.hstech.price))+'</b></div>':'')+
       '</div></div>';
     rh+='<div id="hkIndexStrip" style="margin:-2px 0 10px;font-size:11px;color:#64748b"></div>';
     if(mk.drivers&&mk.drivers.length){
-      rh+='<div style="margin-bottom:12px">';
+      rh+='<div id="hkDrivers" style="margin-bottom:12px">';
       mk.drivers.forEach(function(d){
         const dcol=(d.indexOf('看好')>=0||d.indexOf('偏強')>=0||d.indexOf('造好')>=0)?'#16a34a':((d.indexOf('看淡')>=0||d.indexOf('偏弱')>=0||d.indexOf('減速')>=0)?'#dc2626':'#64748b');
         rh+='<span style="display:inline-block;background:#fff;border:1px solid #e2e8f0;padding:3px 9px;border-radius:6px;margin:3px;font-size:11px;color:'+dcol+';font-weight:600">'+d+'</span>';
@@ -1243,8 +1282,8 @@ function renderHK(data){
     eh+='<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
       '<tr style="background:#f1f5f9"><th style="padding:7px;text-align:left">股票</th><th class="n">現價</th><th class="n">評分</th><th class="n">質素</th><th class="n">Decel</th><th class="n">波幅</th><th class="n">建議行使價</th><th class="n">年期</th><th class="n">指示票息</th><th class="n">分析員目標</th><th class="n">推薦</th></tr>';
     eln.recommended.forEach(function(r){
-      eh+='<tr><td style="padding:6px;font-weight:700">'+r.code+' <span style="font-size:11px;color:#64748b">'+r.name+'</span></td>'+
-        '<td class="n">'+rD(r.price)+'</td>'+
+      eh+='<tr data-tk="'+r.ticker+'"><td style="padding:6px;font-weight:700">'+r.code+' <span style="font-size:11px;color:#64748b">'+r.name+'</span></td>'+
+        '<td class="n lp">'+rD(r.price)+'</td>'+
         '<td class="n">'+Math.round(r.score*100)+'</td>'+
         '<td class="n" style="color:#16a34a">'+Math.round(r.quality*100)+'</td>'+
         '<td class="n" style="color:'+(r.decel===0?'#16a34a':'#ca8a04')+'">'+r.decel+'</td>'+
