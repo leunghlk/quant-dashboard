@@ -431,7 +431,7 @@ function applyHKBreadth(j){
     const lag=(j.sectors||[]).filter(function(s){return s.chg5d!=null&&s.chg5d<0;}).slice(-3).map(function(s){return s.name;});
     const a5=(avg5==null?'—':(avg5>=0?'+':'')+avg5+'%');
     let h='<div style="margin:2px 0 8px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:11px;color:#0c4a6e;line-height:1.6">';
-    h+='<b>🇭🇰 全市場廣度（Futu · '+total+'隻跨板塊藍籁）</b>：上升 <b style="color:#16a34a">'+up+'</b> / 下跌 <b style="color:#dc2626">'+down+'</b>';
+    h+='<b>🇭🇰 全市場廣度（Futu · '+total+'隻跨板塊藍籌）</b>：上升 <b style="color:#16a34a">'+up+'</b> / 下跌 <b style="color:#dc2626">'+down+'</b>';
     if(avg5!=null) h+=' ｜ 平均5日 <b style="color:'+(avg5>=0?'#16a34a':'#dc2626')+'">'+a5+'</b>';
     h+='<br>領漲板塊：'+(lead.join('、')||'—')+' ｜ 落後板塊：'+(lag.join('、')||'—')+'</div>';
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px">';
@@ -773,8 +773,8 @@ function renderRegime(data){
     rh += '</table>';
     // finviz 熱力圖 + 板塊升跌排行 link buttons（表底 · 等長並置中）
     rh += '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px">';
-    rh += '<a href="https://finviz.com/map?t=sec&st=w1" target="_blank" rel="noopener" style="flex:1 1 220px;max-width:280px;text-align:center;padding:9px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12.5px">📊 finviz 板塊熱力圖（開新分頁）</a>';
-    rh += '<a href="https://finviz.com/groups?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1 1 220px;max-width:280px;text-align:center;padding:9px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:12.5px">📈 板塊升跌排行</a>';
+    rh += '<a href="https://finviz.com/map?t=sec&st=w1" target="_blank" rel="noopener" style="flex:1 1 0;min-width:0;max-width:280px;text-align:center;padding:9px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12.5px">📊 finviz 板塊熱力圖（開新分頁）</a>';
+    rh += '<a href="https://finviz.com/groups?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1 1 0;min-width:0;max-width:280px;text-align:center;padding:9px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:12.5px">📈 板塊升跌排行</a>';
     rh += '</div>';
     rh += '<div style="margin-top:10px;font-size:11px;color:#64748b">數據源：9大SPDR ETF（真·全市場視角）｜更新時間：' + new Date().toLocaleString('zh-CN') + '｜現價經 Futu 實時更新</div>';
     rh += '</div>';
@@ -818,8 +818,8 @@ function renderSector(data){
   }
   // Finviz links (2026-08-05: finviz removed .ashx — old URLs 301→404; new: /map + /groups) · 等長並置中
   inner+='<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">'+
-    '<a href="https://finviz.com/map?t=sec&st=w1" target="_blank" rel="noopener" style="flex:1 1 220px;max-width:280px;text-align:center;padding:11px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📊 finviz 板塊熱力圖（開新分頁）</a>'+
-    '<a href="https://finviz.com/groups?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1 1 220px;max-width:280px;text-align:center;padding:11px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📈 板塊升跌排行</a></div>';
+    '<a href="https://finviz.com/map?t=sec&st=w1" target="_blank" rel="noopener" style="flex:1 1 0;min-width:0;max-width:280px;text-align:center;padding:11px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📊 finviz 板塊熱力圖（開新分頁）</a>'+
+    '<a href="https://finviz.com/groups?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1 1 0;min-width:0;max-width:280px;text-align:center;padding:11px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📈 板塊升跌排行</a></div>';
   if(sr.updated) inner+='<div style="font-size:10px;color:#94a3b8;margin-top:6px">數據更新：'+sr.updated+'（來源：Yahoo Finance · 9 大 SPDR 行業 ETF）</div>';
   body.innerHTML=inner;
 }
