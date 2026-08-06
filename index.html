@@ -495,6 +495,7 @@ function applyLiveData(map){
     const s=map[(tr.getAttribute('data-tk')||'').toUpperCase()];if(!s)return;
     const cell=tr.querySelector('.lp');if(!cell)return;
     const price=(s.live_price!=null)?s.live_price:s.price;if(price==null)return;
+    // Futu live 優先（用家 2026-08-06 指示：live prices for ALL prices，包括夜盤；Yahoo close 只做 fallback）
     const cur=(s.code&&s.code.indexOf('HK.')===0)?'HK$':'$';
     cell.innerHTML=cur+fmt(price)+liveBadge(s.session);
   });
@@ -793,26 +794,28 @@ function renderRegime(data){
   if(secs.length){
     const xlk=g('XLK'),xly=g('XLY'),xlf=g('XLF'),xlu=g('XLU'),xlv=g('XLV'),xlp=g('XLP'),xle=g('XLE');
     const soxT=ta['^SOX'];
-    const by5=secs.slice().sort(function(a,b){return (b.d5||0)-(a.d5||0);});
-    const top=by5.slice(0,3).map(function(x){return x.n.split(' ')[0];});
-    const bot=by5.slice(-2).map(function(x){return x.n.split(' ')[0];});
-    const tech5=(xlk&&xlk.d5!=null)?xlk.d5:null;
-    const spy5=(spy&&spy.d5!=null)?spy.d5:null;
-    const def5=[xlu&&xlu.d5,xlv&&xlv.d5,xlp&&xlp.d5].filter(function(v){return v!=null;});
-    const defAvg=def5.length?def5.reduce(function(a,b){return a+b;},0)/def5.length:null;
+    // 1日比較（2026-08-06 用家指示：整體形勢用 1D，唔用 5D）
+    const pctS=function(v){return ((v>0?'+':'')+v.toFixed(1));};
+    const by1=secs.slice().sort(function(a,b){return (b.d1||0)-(a.d1||0);});
+    const top=by1.slice(0,3).map(function(x){return x.n.split(' ')[0];});
+    const bot=by1.slice(-2).map(function(x){return x.n.split(' ')[0];});
+    const tech1=(xlk&&xlk.d1!=null)?xlk.d1:null;
+    const spy1=(spy&&spy.d1!=null)?spy.d1:null;
+    const def1=[xlu&&xlu.d1,xlv&&xlv.d1,xlp&&xlp.d1].filter(function(v){return v!=null;});
+    const defAvg=def1.length?def1.reduce(function(a,b){return a+b;},0)/def1.length:null;
     const parts=[];
     if(soxT&&!soxT.error&&soxT.price>0){
       if(soxT.price>=soxT.ma20&&soxT.price>=soxT.ma50) parts.push('半導體（SOX '+Math.round(soxT.price).toLocaleString()+'）站穩 MA20/MA50，科技股領漲');
       else if(soxT.price<soxT.ma20&&soxT.price<soxT.ma50) parts.push('半導體（SOX）仍受制 MA20/MA50，科技股拖累大市');
       else parts.push('半導體（SOX）於 MA20 附近爭持');
     }
-    if(tech5!=null&&spy5!=null){
-      if(tech5>=spy5+0.5) parts.push('資金偏好科技（XLK 5日 +'+tech5.toFixed(1)+'% 跑贏 SPY）');
-      else if(tech5<=spy5-0.5) parts.push('資金由科技輪出（XLK 5日 +'+tech5.toFixed(1)+'% 跑輸 SPY）');
+    if(tech1!=null&&spy1!=null){
+      if(tech1>=spy1+0.5) parts.push('資金偏好科技（XLK 1日 '+pctS(tech1)+'% 跑贏 SPY）');
+      else if(tech1<=spy1-0.5) parts.push('資金由科技輪出（XLK 1日 '+pctS(tech1)+'% 跑輸 SPY）');
     }
-    if(defAvg!=null&&spy5!=null&&defAvg>spy5+0.3) parts.push('公用／醫療／必需消費等防守板塊撐市（防禦偏好）');
-    if(xlf&&xlf.d5!=null&&spy5!=null&&xlf.d5>=spy5+0.3) parts.push('金融（XLF +'+xlf.d5.toFixed(1)+'%）相對強勢');
-    if(!parts.length) parts.push('各板塊 5 日表現分歧，資金輪動中');
+    if(defAvg!=null&&spy1!=null&&defAvg>spy1+0.3) parts.push('公用／醫療／必需消費等防守板塊撐市（防禦偏好）');
+    if(xlf&&xlf.d1!=null&&spy1!=null&&xlf.d1>=spy1+0.3) parts.push('金融（XLF '+pctS(xlf.d1)+'%）相對強勢');
+    if(!parts.length) parts.push('各板塊 1 日表現分歧，資金輪動中');
     verdictTxt='整體形勢：'+parts.join('；')+'。';
     if(top.length) verdictTxt+=' 領漲板塊：'+top.join('、')+'。';
     if(bot.length) verdictTxt+=' 領跌板塊：'+bot.join('、')+'。';
@@ -1365,7 +1368,9 @@ function renderHK(data){
   // 恒指/科指 strip — 指數用 RSI9、MACD(12,26,9)、KDJ(9,3,3)、MTM(12,6)
   // 全部附中文解讀，唔淨係報數字。
   const hkbIdx = (hkb && hkb.indices) ? hkb.indices : null;
-  const idxSrc = hkbIdx ? {'^HSI':hkbIdx.hsi,'3033.HK':hkbIdx.hstech} : (hk.indices||{});
+  // Futu 開市前/收市後常返 price=0/None → 用 Yahoo hk.indices 補（bridge 已 scale 3033.HK 至指數水平）
+  const hkbIdxOk = hkbIdx && ((hkbIdx.hsi&&hkbIdx.hsi.price>0)||(hkbIdx.hstech&&hkbIdx.hstech.price>0));
+  const idxSrc = hkbIdxOk ? {'^HSI':hkbIdx.hsi,'3033.HK':hkbIdx.hstech} : (hk.indices||{});
   const hkNames = {'^HSI':'恒生指數','3033.HK':'恒生科技指數'};
   let stripHtml = '';
   for (const key of ['^HSI','3033.HK']) {
@@ -1462,7 +1467,7 @@ function renderHK(data){
       '</div>';
   }
   const hkStrip = document.getElementById('hkIndexStrip');
-  if (hkStrip) hkStrip.innerHTML = stripHtml || '<div style="color:#94a3b8;font-size:12px">載入中...</div>';
+  if (hkStrip) hkStrip.innerHTML = stripHtml || '<div style="color:#94a3b8;font-size:12px">暫無即市報價（港股 09:30 開市後自動更新）</div>';
 
   const hkTs=document.getElementById('hkRegimeTs'); if(hkTs)hkTs.textContent=new Date().toLocaleString('zh-HK')+(hkMarketOpen()?'':' · 已收市（開市先自動更新）');
 
@@ -1801,7 +1806,8 @@ function renderDailyReport(data){
       tpBody.innerHTML=html;
       tpCard.style.display='block';
     } else {
-      tpCard.style.display='none';
+      tpBody.innerHTML='<div style="color:#94a3b8;text-align:center;padding:14px;font-size:12px">今日無單一「最優先」部署訊號 — 參考下方部署總覽／活躍訊號／觀察名單</div>';
+      tpCard.style.display='block';
     }
   }
 
