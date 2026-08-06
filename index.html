@@ -57,6 +57,9 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 .utable tbody tr:hover{background:#f8fafc}
 .utable tbody tr.clickable{cursor:pointer}
 .utable tbody tr.clickable:hover{background:#ecfdf5}
+/* Mobile: every data table scrolls horizontally so no column is cut off on narrow screens */
+.card table,.card-b table,.modal table,.subview table,.top-pane table{display:block!important;width:max-content!important;max-width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
+.mid table{display:table!important;width:100%!important;overflow:visible!important}
 /* signal + decel pills (shared) */
 .sig{padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
 .sig-SELL{background:#ef4444}.sig-REDUCE{background:#f97316}.sig-HOLD{background:#eab308}.sig-ACCUMULATE{background:#3b82f6}.sig-BUY{background:#22c55e}
