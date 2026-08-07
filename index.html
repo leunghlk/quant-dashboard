@@ -824,12 +824,42 @@ function buildTechHTML(techObj){
       if(t.error){techHTML+='<div style="color:#dc2626">'+(t.name||idx)+': '+t.error+'</div>';continue}
       const actionColor=t.action.includes('造好')?'#22c55e':t.action.includes('造淡')?'#ef4444':t.action.includes('偏強')?'#3b82f6':t.action.includes('偏弱')?'#eab308':'#94a3b8';
       const ind=t.indicators||{};
+      const wk=t.weekly||{};
+      // 週線 RSI/MACD/KDJ/MTM 標籤（同指數部署格式）
+      let wkRsiL='—',wkRsiC='#64748b';
+      if(wk.rsi&&wk.rsi.value!=null){ if(wk.rsi.value>=70){wkRsiL='超買';wkRsiC='#dc2626';} else if(wk.rsi.value>=50){wkRsiL='偏強';wkRsiC='#16a34a';} else if(wk.rsi.value>=30){wkRsiL='偏弱';wkRsiC='#ea580c';} else {wkRsiL='超賣';wkRsiC='#16a34a';} }
+      const wMacdSig=(wk.macd&&wk.macd.signal)||'—';
+      const wMacdTxt=(wk.macd&&wk.macd.value!=null)?('DIF '+rD(wk.macd.value)+' ｜ 柱 '+rD(wk.macd.histogram)):'';
+      const wKdjTxt=(wk.kdj&&wk.kdj.k!=null)?('K '+wk.kdj.k+' ｜ D '+wk.kdj.d+' ｜ J '+wk.kdj.j):'';
+      const wMtmTxt=(wk.mtm)?((wk.mtm.signal||'—')+(wk.mtm.value!=null?('（'+rD(wk.mtm.value)+'）'):'')):'—';
+      // 日線 RSI 標籤
+      let dRsiL='—',dRsiC='#64748b';
+      if(ind.rsi&&ind.rsi.value!=null){ if(ind.rsi.value>=70){dRsiL='超買';dRsiC='#dc2626';} else if(ind.rsi.value>=50){dRsiL='偏強';dRsiC='#16a34a';} else if(ind.rsi.value>=30){dRsiL='偏弱';dRsiC='#ea580c';} else {dRsiL='超賣';dRsiC='#16a34a';} }
       techHTML+='<div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #e2e8f0">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
         '<div style="font-weight:700;font-size:15px">'+t.name+'</div>'+
         '<div style="text-align:right"><span style="font-size:20px;font-weight:700">'+rD(t.price)+'</span>'+
         '<span style="background:'+actionColor+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;margin-left:8px">'+t.action+'</span></div></div>'+
         '<div style="font-size:12px;color:#64748b;margin-bottom:10px">'+t.reason+'</div>'+
+        (wk&&wk.rsi?'<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 11px;margin-bottom:8px">'+
+        '<div style="font-weight:700;font-size:11px;color:#b45309;margin-bottom:3px">📈 週線訊號（底層指數）｜ 週線偏向：'+(wk.bias||'—')+'</div>'+
+        '<table class="kv">'+
+        '<tr><td>RSI(9)</td><td style="font-weight:700;color:'+wkRsiC+'">'+(wk.rsi.value!=null?wk.rsi.value:'—')+' '+wkRsiL+'</td></tr>'+
+        '<tr><td>MACD(12,26,9)</td><td style="color:#0f172a">'+wMacdSig+(wMacdTxt?'（'+wMacdTxt+'）':'')+'</td></tr>'+
+        '<tr><td>KDJ(9,3,3)</td><td style="color:#0f172a">'+(wk.kdj?wk.kdj.signal:'—')+(wKdjTxt?'（'+wKdjTxt+'）':'')+'</td></tr>'+
+        '<tr><td>MTM(12,6)</td><td style="color:#0f172a">'+wMtmTxt+'</td></tr>'+
+        '</table>'+
+        (wk.reason?'<div style="font-size:10.5px;color:#78350f;line-height:1.5;margin-top:3px">'+wk.reason+'</div>':'')+
+        (wk.action&&wk.action!=='觀望'?'<div style="font-size:10.5px;color:#b45309;font-weight:600;margin-top:3px">▶ '+wk.action+'</div>':'')+
+        '</div>':'')+
+        '<div style="padding:9px 11px;background:#ecfdf5;border-radius:8px;border-left:4px solid '+actionColor+';margin-bottom:8px">'+
+        '<div style="font-weight:700;font-size:12px;color:#0f766e;margin-bottom:4px"><span class="tf-badge">日線．短線</span>'+t.action+'</div>'+
+        '<table class="kv">'+
+        '<tr><td>RSI(9)</td><td style="font-weight:700;color:'+dRsiC+'">'+(ind.rsi&&ind.rsi.value!=null?ind.rsi.value:'—')+' '+dRsiL+'</td></tr>'+
+        '<tr><td>MACD(12,26,9)</td><td style="color:#0f172a">'+(ind.macd?(ind.macd.signal||'—')+(ind.macd.dif!=null?'（DIF '+rD(ind.macd.dif)+' ｜ DEA '+rD(ind.macd.dea)+' ｜ 柱 '+rD(ind.macd.hist)+'）':''):'—')+'</td></tr>'+
+        '<tr><td>KDJ(9,3,3)</td><td style="color:#0f172a">'+(ind.kdj?(ind.kdj.signal||'—')+(ind.kdj.k!=null?'（K '+ind.kdj.k+' ｜ D '+ind.kdj.d+' ｜ J '+ind.kdj.j+'）':''):'—')+'</td></tr>'+
+        '<tr><td>MTM(12,6)</td><td style="color:#0f172a">'+(ind.mtm?((ind.mtm.signal||'—')+(ind.mtm.value!=null?'（'+rD(ind.mtm.value)+'）':'')):'—')+'</td></tr>'+
+        '</table></div>'+
         '<div style="display:flex;gap:16px">'+
         '<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
         '<tr><td style="padding:3px 8px;color:#dc2626;font-weight:600">R3 (頂)</td><td class="n" style="color:#dc2626;font-weight:600">'+rD(t.levels.resistance3)+'</td></tr>'+
@@ -842,26 +872,11 @@ function buildTechHTML(techObj){
         '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S2</td><td class="n" style="color:#3b82f6;font-weight:600">'+rD(t.levels.support2)+'</td></tr>'+
         '<tr><td style="padding:3px 8px;color:#22c55e;font-weight:600">S3 (底)</td><td class="n" style="color:#22c55e;font-weight:600">'+rD(t.levels.support3)+'</td></tr>'+
         '</table></div>'+
-        '<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
-        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MACD</td><td class="n" style="font-size:12px">'+(ind.macd?ind.macd.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.macd.value+' · '+ind.macd.sign+' · '+ind.macd.polarity+'</span>':'—')+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">MTM</td><td class="n" style="font-size:12px">'+(ind.mtm?ind.mtm.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.mtm.value+'</span>':'—')+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">KDJ</td><td class="n" style="font-size:12px">'+(ind.kdj?ind.kdj.signal+'<br><span style="font-size:10px;color:#94a3b8">J='+ind.kdj.j+' K='+ind.kdj.k+'</span>':'—')+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">RSI</td><td class="n" style="font-size:12px">'+(ind.rsi?ind.rsi.signal+'<br><span style="font-size:10px;color:#94a3b8">'+ind.rsi.value+'</span>':'—')+'</td></tr>'+
-        '</table></div>'+
+        (t.levelNotes&&t.levelNotes.length?'<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
+        '<tr><td style="padding:3px 8px;color:#64748b;font-weight:600">關卡計算方法</td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#475569;font-size:10.5px;line-height:1.6;vertical-align:middle">'+t.levelNotes.join('<br>')+'</td></tr>'+
+        '</table></div>':'')+
         '</div>'+
-        (t.weekly?'<div style="margin-top:12px;padding:10px 12px;background:#fffbeb;border-radius:8px;border-left:4px solid #d97706">'+
-        '<div style="font-weight:700;font-size:13px;color:#b45309;margin-bottom:6px">📅 周線定大勢（波浪理論 — 周線判勢）</div>'+
-        '<div style="display:flex;gap:12px;margin-bottom:8px">'+
-        '<div style="flex:1"><table style="width:100%;font-size:11px;border-collapse:collapse">'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周RSI</td><td class="n">'+(t.weekly.rsi?t.weekly.rsi.signal+' <span style="font-size:10px;color:#94a3b8">('+t.weekly.rsi.value+')</span>':'—')+'</td></tr>'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周MACD</td><td class="n">'+(t.weekly.macd?t.weekly.macd.signal+' <span style="font-size:10px;color:#94a3b8">('+t.weekly.macd.value+')</span>':'—')+'</td></tr>'+
-        '<tr><td style="padding:2px 6px;color:#64748b;font-weight:600">周KDJ</td><td class="n">'+(t.weekly.kdj?t.weekly.kdj.signal+' <span style="font-size:10px;color:#94a3b8">(K='+t.weekly.kdj.k+')</span>':'—')+'</td></tr>'+
-        '</table></div>'+
-        '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding-left:8px;border-left:1px solid #cbd5e1">'+
-        '<div style="font-size:13px;font-weight:700;margin-bottom:4px;color:'+(t.weekly.bias.includes('看好')?'#16a34a':t.weekly.bias.includes('看淡')?'#dc2626':'#b45309')+'">'+t.weekly.bias+'</div>'+
-        '<div style="font-size:11px;color:#78350f;margin-bottom:4px">'+t.weekly.reason+'</div>'+
-        '<div style="font-size:11px;color:#b45309;font-weight:600">▶ '+t.weekly.action+'</div>'+
-        '</div></div></div>':'')+
         '<div style="margin-top:8px;padding:8px 12px;background:'+(actionColor==='#22c55e'?'#f0fdf4':actionColor==='#ef4444'?'#fef2f2':'#f8fafc')+';border-radius:6px;font-size:12px;color:#475569;font-weight:600">'+
         '📋 '+t.strategy+'</div></div>';
     }
