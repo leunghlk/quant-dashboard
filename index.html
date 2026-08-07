@@ -155,7 +155,6 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
         <li><a class="mega-leaf" data-top="deploy" data-sub="regime">大盤形勢</a></li>
         <li><a class="mega-leaf" data-top="deploy" data-sub="positions">執倉</a></li>
         <li><a class="mega-leaf" data-top="deploy" data-sub="toppick">最優先部署</a></li>
-        <li><a class="mega-leaf" data-top="deploy" data-sub="signals">活躍訊號</a></li>
         <li><a class="mega-leaf" data-top="deploy" data-sub="watchlist">觀察名單</a></li>
         <li><a class="mega-leaf" data-top="deploy" data-sub="earnings">業績日曆</a></li>
       </ul>
@@ -259,13 +258,6 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
     <div class="card-b" id="summaryBody"></div></div>
     <div class="card" id="sec-dp-index"><div class="card-h"><span class="t"><span class="sec-num">③</span>指數部署 — 費城半導體 · 納斯達克100期貨 · 七雄</span><span class="meta">中線睇周線 · 短線睇日線</span></div>
     <div class="card-b" id="indexEtfBody"></div></div>
-  </section>
-  <!-- 活躍訊號 -->
-  <section class="subview" data-sub="signals">
-    <div class="card" id="sec-ov-report"><div class="card-h"><span class="t"><span class="sec-num">📊</span>即市戰報</span><span class="meta" id="dailyReportTs"></span></div>
-    <div class="card-b" id="dailyReportBody"></div></div>
-    <div class="card" id="sec-ov-actions"><div class="card-h"><span class="t"><span class="sec-num">⚡</span>即時活躍訊號</span><span class="meta">BUY / SELL / SHORT — 按優先次序</span></div>
-    <div class="card-b" id="dailyActionsBody"></div></div>
   </section>
   <!-- 觀察名單 -->
   <section class="subview" data-sub="watchlist">
@@ -659,6 +651,11 @@ function renderOptionsBlock(j){
   h+='<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px">'+
     '<div style="font-weight:800;font-size:13px;color:#0f172a">🧾 '+j.ticker+' 期權策略<span style="font-weight:400;color:#94a3b8;font-size:11px;margin-left:8px">到期 '+j.tenor.expiry+'（'+j.tenor.dte+'日）</span><span style="font-size:10px;color:#94a3b8;font-weight:400;margin-left:8px">正股 $'+fmt(j.price)+'</span></div>'+
     '<div style="font-size:10px;color:#94a3b8">'+j.note+'</div></div>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center">'+
+    '<span style="display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;background:#0d948811;color:#0d9488;border:1px solid #0d948833">⏱️ 到期約 35 日</span>'+
+    '<span style="display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;background:#6366f111;color:#6366f1;border:1px solid #6366f133">為何揀 35 日：時間夠方向兌現，Theta 損耗細，IV crush 風險低</span>'+
+    (j.tenor.afterEarnings?'<span style="display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;background:#dc262611;color:#dc2626;border:1px solid #dc262633">📅 績前已跳過業績日 → 用業績後第一個到期日（避 IV crush）</span>':'')+
+    '</div>';
   h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px">';
   j.legs.forEach(lg=>{
     const col=lg.dir==='好'?'#16a34a':'#dc2626';
@@ -1138,7 +1135,7 @@ function render(data){
     const ss=data.strategySummary;
     optItems=ss.items||[];
     let sh='<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px;padding:10px 12px;background:#ecfdf5;border-radius:8px;border-left:4px solid #0d9488">'+ss.headline+'</div>';
-    sh+='<div style="font-size:11px;color:#64748b;margin-bottom:10px">造好機會：<b style="color:#16a34a">'+ss.longCount+'</b> ｜ 造淡機會：<b style="color:#dc2626">'+ss.shortCount+'</b> ｜ 可用現金：<b>HKD $'+ss.cashHKD.toLocaleString()+'</b>（USD $'+fmt(ss.cashUSD)+'）</div>';
+    sh+='<div style="font-size:11px;color:#64748b;margin-bottom:10px">造好機會：<b style="color:#16a34a">'+ss.longCount+'</b> ｜ 造淡機會：<b style="color:#dc2626">'+ss.shortCount+'</b> ｜ 可用現金：<b>HKD $'+ss.cashHKD.toLocaleString()+'</b>（USD $'+fmt(ss.cashUSD)+'）　<span style="color:#0d9488">👆 點擊股票列查看完整詳情</span></div>';
     // 值博率最高嘅造好/造淡策略（每次各一個 label）
     let bestLong=null, bestShort=null;
     ss.items.forEach(function(it,bi){ if(it.rr==null||!it.opt) return; if(it.opt.dir==='好'){ if(!bestLong||it.rr>bestLong.rr) bestLong={rr:it.rr,i:bi}; } else if(it.opt.dir==='淡'){ if(!bestShort||it.rr>bestShort.rr) bestShort={rr:it.rr,i:bi}; } });
@@ -1146,6 +1143,11 @@ function render(data){
     ss.items.forEach(function(it,bi){
       const col=it.badge.includes('🟢')?'#16a34a':it.badge.includes('🔴')?'#dc2626':'#64748b';
       const rrCol=it.rr!=null?(it.rr>=2?'#16a34a':it.rr>=1.3?'#0d9488':it.rr>=1?'#d97706':'#94a3b8'):'#94a3b8';
+      // 推薦期權策略 label：好→買入認購；有貨→Covered Call 保頂；淡→買入認沽；有貨→保護性認沽對沖
+      const recLb=it.opt?((it.opt.dir==='好')?(it.opt.held>0?{txt:'Covered Call 持倉保頂',col:'#0d9488'}:{txt:'買入認購 Call',col:'#16a34a'}):(it.opt.held>0?{txt:'保護性認沽 對沖',col:'#b45309'}:{txt:'買入認沽 Put',col:'#dc2626'})):null;
+      // 點擊列 → showDetail：用 item 嘅真實 ticker（index 項冇 ticker 唔加 data-tk）
+      const tk=it.tk||(it.opt&&it.opt.t)||null;
+      const hasDetail=tk&&((data.watchlist||[]).some(function(w){return w.ticker===tk;})||((data.hk&&data.hk.watchlist)||[]).some(function(w){return w.ticker===tk;}));
       let rrHtml='—';
       if(it.rr!=null){
         rrHtml='<b style="color:'+rrCol+';font-size:13px">'+it.rr+':1</b>';
@@ -1153,13 +1155,13 @@ function render(data){
         if(bestShort&&bestShort.i===bi) rrHtml+='<div style="font-size:9px;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 4px;margin-top:2px;white-space:nowrap">🔥 造淡值博率最高</div>';
       }
       const optBtn=it.opt?('<br><button type="button" onclick="toggleOpt('+bi+')" style="margin-top:5px;padding:3px 9px;border:1px solid #0d9488;background:#ecfdf5;color:#0f766e;border-radius:999px;font-size:10px;font-weight:700;cursor:pointer">＋ 期權策略</button>'):'';
-      sh+='<tr style="border-left:3px solid '+col+'">'+
+      sh+='<tr'+(hasDetail?' class="clickable" data-tk="'+tk+'"':'')+' style="border-left:3px solid '+col+'">'+
         '<td style="white-space:nowrap"><span style="display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;color:#fff;background:'+col+'">'+it.badge+' '+it.type+'</span></td>'+
         '<td style="font-weight:700;color:#0f172a;font-size:12px">'+it.title+'</td>'+
         '<td class="r lp" style="font-weight:700">'+(it.opt&&it.opt.p? '$'+fmt(it.opt.p):'—')+'</td>'+
         '<td class="c" style="font-weight:700;font-size:13px;color:'+(it.score!=null?(it.score>=55?'#0d9488':it.score>=45?'#eab308':'#ef4444'):'#94a3b8')+'">'+(it.score!=null?it.score:'—')+'</td>'+
         '<td class="c">'+(it.decel!=null?'<span class="'+dc(it.decel)+'">'+it.decel+'</span>':'—')+'</td>'+
-        '<td style="font-size:11.5px;color:#334155;line-height:1.5">'+it.action+(it.opt&&it.opt.t1?targetTrackHTML(it):'')+'</td>'+
+        '<td style="font-size:11.5px;color:#334155;line-height:1.5">'+(recLb?'<div style="margin-bottom:3px"><span style="display:inline-block;font-size:10px;font-weight:800;padding:1px 7px;border-radius:999px;color:#fff;background:'+recLb.col+'">🧾 '+recLb.txt+'</span></div>':'')+it.action+(it.opt&&it.opt.t1?targetTrackHTML(it):'')+'</td>'+
         '<td style="font-size:11px;color:#64748b;line-height:1.5">'+it.detail+optBtn+'</td>'+
         '<td class="c" style="vertical-align:top;padding-top:8px">'+rrHtml+'</td></tr>'+
         (it.opt?'<tr id="strat-opt-'+bi+'" style="display:none"><td colspan="8" style="padding:0;border-left:3px solid '+col+'"><div id="strat-opt-body-'+bi+'"></div></td></tr>':'');
@@ -1519,7 +1521,7 @@ function render(data){
   try{renderPositions(data);}catch(e){console.error('[render:positions]',e);}
   try{renderSector(data);}catch(e){console.error('[render:sector]',e);}
   try{renderRegime(data);}catch(e){console.error('[render:regime]',e);}
-  try{renderDailyReport(data);}catch(e){console.error('[render:daily]',e);}
+  try{renderExtraCards(data);}catch(e){console.error('[render:extra]',e);}
   try{renderMonthly(data);}catch(e){console.error('[render:monthly]',e);}
   try{renderHK(data);}catch(e){console.error('[render:hk]',e);}
   try{renderTx();}catch(e){console.error('[render:tx]',e);}
@@ -1856,153 +1858,10 @@ function renderTx(){
   document.getElementById('txBody').innerHTML=html;
 }
 
-// ═══ 每日戰報渲染 ═══
-function renderDailyReport(data){
-  const ts=document.getElementById('dailyReportTs');
-  if(ts)ts.textContent='更新: '+new Date(data.timestamp).toLocaleString('zh-HK');
-  const body=document.getElementById('dailyReportBody');
-  if(!body)return;
+// ═══ 其他卡片渲染（最優先部署 + 業績日曆）═══
+function renderExtraCards(data){
 
-  let h='<div style="font-size:13px;line-height:1.8">';
-  // 組合概況
-  const p=data.portfolio||{};
-  h+='<div style="padding:12px;background:#ecfdf5;border-radius:8px;margin-bottom:12px">';
-  h+='<div style="font-weight:700;font-size:14px;margin-bottom:6px">💼 組合概況</div>';
-  h+='<div>總值 HKD $'+(p.totalValueHKD||0).toLocaleString()+' (USD $'+fmt(p.totalValue)+') · 現金 USD $'+fmt(p.cash)+'</div>';
-  const rt=p.recoveryTimeline||{};
-  const ts2=rt.todayStatus||{};
-  if(ts2&&!ts2.error){
-    h+='<div style="margin-top:4px">'+(ts2.met?'✅':'❌')+' 今日'+(ts2.met?'達標':'未達標')+' · 組合值 HKD $'+(ts2.valueHKD||0).toLocaleString()+' vs 目標 HKD $'+(ts2.targetHKD||0).toLocaleString()+' ('+ts2.shortfallText+')</div>';
-    h+='<div style="margin-top:2px">累計達標 '+ts2.metDays+'/'+ts2.totalDays+' 日 ('+ts2.metRate+'%)</div>';
-  }
-  h+='</div>';
-
-  // 持倉表現
-  if(p.positions){
-    h+='<div style="font-weight:700;font-size:14px;margin-bottom:6px">📂 持倉表現</div>';
-    for(const[t,pos]of Object.entries(p.positions)){
-      const pnlCol=pos.pnl>=0?'#16a34a':'#dc2626';
-      h+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9">';
-      h+='<span style="font-weight:600">'+t+' '+pos.shares+'股@$'+fmt(pos.cost)+'</span>';
-      h+='<span>現價 $'+fmt(pos.price)+' · <span style="color:'+pnlCol+';font-weight:700">'+(pos.pnl>=0?'+':'')+'$'+fmt(pos.pnl)+' ('+fmt(pos.pnlPct,1)+'%)</span></span>';
-      h+='</div>';
-    }
-  }
-
-  // 大盤形勢
-  if(data.marketRegime){
-    h+='<div style="margin-top:12px;padding:10px;background:'+(data.marketRegime.regime==='risk-off'?'#fef2f2':data.marketRegime.regime==='risk-on'?'#f0fdf4':'#fffbeb')+';border-radius:8px">';
-    h+='<div style="font-weight:700;font-size:13px">🌍 大盤：'+(data.marketRegime.regime||'—')+'</div>';
-    h+='<div style="font-size:12px;color:#475569;margin-top:4px">'+(data.marketRegime.summary||'')+'</div>';
-    h+='</div>';
-  }
-
-  // 指數概覽
-  if(data.techAnalysis){
-    h+='<div style="margin-top:12px;font-weight:700;font-size:14px">📈 指數</div>';
-    for(const[idx,t]of Object.entries(data.techAnalysis)){
-      h+='<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px">';
-      h+='<span>'+(t.name||idx)+' '+rD(t.price)+'</span>';
-      h+='<span style="color:'+(t.action.includes('造好')?'#16a34a':t.action.includes('造淡')?'#dc2626':'#94a3b8')+'">'+t.action+'</span>';
-      h+='</div>';
-    }
-  }
-  h+='</div>';
-  body.innerHTML=h;
-
-  // 今日活躍訊號 — 統一造淡優先次序格式
-  const ab=document.getElementById('dailyActionsBody');
-  if(ab&&data.actionStrategy){
-    let ah='';
-    const acts=data.actionStrategy.actions||[];
-    // Separate by type
-    const buys=acts.filter(a=>a.type==='BUY');
-    const sells=acts.filter(a=>a.type==='SELL');
-    const shorts=data.shortSignals||[];
-
-    // BUY/SELL section — with full verification for BUY
-    if(buys.length>0||sells.length>0){
-      ah+='<div style="font-weight:700;font-size:13px;margin-bottom:6px">持倉操作</div>';
-      [...buys,...sells].forEach(a=>{
-        const col=a.type==='BUY'?'#16a34a':'#dc2626';
-        ah+='<div style="padding:10px;margin-bottom:8px;border-left:4px solid '+col+';background:'+(a.type==='BUY'?'#f0fdf4':'#fef2f2')+';border-radius:6px">';
-        ah+='<div style="font-weight:700;color:'+col+'">'+a.type+' '+a.ticker+'</div>';
-        if(a.type==='BUY') ah+='<div style="display:inline-block;font-size:10px;padding:1px 6px;background:#ccfbf1;color:#115e59;border-radius:4px;margin-top:2px;margin-bottom:2px;font-weight:600">⏱️ 短線投機（幾日至一個月）</div>';
-        ah+='<div style="font-size:11px;color:#475569">'+a.reason+'</div>';
-        if(a.timing)ah+='<div style="font-size:11px;margin-top:2px">⏰ 入場：'+a.timing+'</div>';
-        // Full verification for BUY
-        if(a.type==='BUY' && a.strategy){
-          const ls=a.strategy;
-          const earnRiskCol = ls.earnRisk==='極高'?'#dc2626':ls.earnRisk==='高'?'#f97316':'#16a34a';
-          if(ls.earnings && ls.earnings.daysUntil>0){
-            ah+='<div style="display:inline-block;font-size:10px;padding:1px 6px;background:'+earnRiskCol+'20;color:'+earnRiskCol+';border-radius:4px;margin-top:3px;font-weight:600">📅業績 '+ls.earnings.dateLabel+' '+ls.earnings.daysUntil+'日['+ls.earnings.risk+']</div>';
-          }
-          const vrCol = ls.valueRating.includes('高')&&!ls.valueRating.includes('低')?'#16a34a':ls.valueRating.includes('中高')?'#0891b2':ls.valueRating.includes('極低')||ls.valueRating.includes('⛔')?'#dc2626':ls.valueRating.includes('低')?'#f97316':'#64748b';
-          ah+='<div style="display:inline-block;font-size:10px;padding:1px 6px;background:'+vrCol+'15;color:'+vrCol+';border-radius:4px;margin-top:3px;margin-left:6px;font-weight:600">R:R 1:'+ls.riskReward+' ['+ls.valueRating+']</div>';
-          ah+='<div style="font-size:11px;margin-top:3px">🛑 止蝕：'+ls.stopLoss+'</div>';
-          ah+='<div style="font-size:11px;margin-top:2px">🎯 目標：'+ls.takeProfit+'</div>';
-          ah+='<div style="font-size:11px;margin-top:2px">💰 倉位：'+ls.sizing+'</div>';
-          if(ls.earnings && ls.earnings.warning){
-            ah+='<div style="font-size:10px;color:'+earnRiskCol+';margin-top:3px;font-weight:600">'+ls.earnings.warning+'</div>';
-          }
-        }
-        if(a.type==='SELL') {
-          if(a.timing)ah+='<div style="font-size:11px;margin-top:2px">⏰ '+a.timing+'</div>';
-        }
-        ah+='</div>';
-      });
-    }
-
-    // SHORT section — priority ranked with full verification
-    if(shorts.length>0){
-      ah+='<div style="font-weight:700;font-size:13px;margin:12px 0 6px;color:#b91c1c">🔴 造淡候選（'+shorts.length+'隻，按優先次序）</div>';
-      ah+='<div style="font-size:10px;color:#94a3b8;margin-bottom:8px">預算 USD $'+Math.round(data.portfolio?.cash||0)+' ｜ 建議：首2隻各注 ~$200，第3-5隻候補</div>';
-      shorts.forEach(s=>{
-        const tierCol=s.priority<=2?'#dc2626':s.priority<=5?'#f97316':'#94a3b8';
-        // Earnings badge color
-        const earnRiskCol = s.earnings && s.earnings.risk==='極高' ? '#dc2626' : s.earnings && s.earnings.risk==='高' ? '#f97316' : '#94a3b8';
-        const earnBadgeHTML = s.earnings && s.earnings.daysUntil > 0
-          ? '<span style="display:inline-block;font-size:10px;padding:1px 6px;background:'+earnRiskCol+'20;color:'+earnRiskCol+';border-radius:4px;margin-left:6px;font-weight:600">📅業績 '+s.earnings.dateLabel+' '+s.earnings.daysUntil+'日['+s.earnings.risk+']</span>'
-          : '';
-        // Value rating badge
-        const vrCol = s.strategy && s.strategy.valueRating
-          ? (s.strategy.valueRating.includes('高')&&!s.strategy.valueRating.includes('低') ? '#16a34a'
-            : s.strategy.valueRating.includes('中高') ? '#0891b2'
-            : s.strategy.valueRating.includes('極低')||s.strategy.valueRating.includes('⛔') ? '#dc2626'
-            : s.strategy.valueRating.includes('低') ? '#f97316' : '#64748b')
-          : '#64748b';
-        const vrBadgeHTML = s.strategy && s.strategy.riskReward
-          ? '<span style="display:inline-block;font-size:10px;padding:1px 6px;background:'+vrCol+'15;color:'+vrCol+';border-radius:4px;margin-left:6px;font-weight:600">R:R 1:'+s.strategy.riskReward+' ['+s.strategy.valueRating+']</span>'
-          : '';
-        ah+='<div style="padding:10px;margin-bottom:8px;border-left:4px solid '+tierCol+';background:'+(s.priority<=2?'#fef2f2':'#fffbeb')+';border-radius:6px">';
-        ah+='<div style="display:flex;justify-content:space-between;align-items:center">';
-        ah+='<div style="flex:1"><span style="font-weight:700;color:'+tierCol+'">🔴造淡#'+s.priority+' '+s.ticker+'</span> <span style="font-size:11px;color:#64748b">'+s.budgetTier+'</span>'+earnBadgeHTML+vrBadgeHTML+' <span style="display:inline-block;font-size:10px;padding:1px 6px;background:#ccfbf1;color:#115e59;border-radius:4px;font-weight:600">⏱️ 短線投機（幾日至一個月）</span></div>';
-        ah+='<div style="font-size:11px;color:#64748b;text-align:right">Decel='+s.decel+' · 1M '+Math.round(s.m1m*100)+'% · 5D '+Math.round(s.m5d*100)+'% · 現價$'+rD(s.price)+'</div>';
-        ah+='</div>';
-        // Entry + ETF
-        ah+='<div style="font-size:11px;margin-top:4px">🛠️ '+s.shortETF+' ('+s.leverage+') · '+(s.strategy?s.strategy.entry:'現價可入')+'</div>';
-        // Stop loss + take profit with specific prices
-        ah+='<div style="font-size:11px;margin-top:3px">🛑 止蝕：'+(s.strategy?s.strategy.stopLoss:'ETF跌15%止蝕')+'</div>';
-        ah+='<div style="font-size:11px;margin-top:2px">🎯 目標：'+(s.strategy?s.strategy.takeProfit:'Decel回升至≥-1離場')+'</div>';
-        // Sizing
-        ah+='<div style="font-size:11px;margin-top:2px">💰 倉位：'+(s.strategy?s.strategy.sizing:'預算30%')+'</div>';
-        // Hold threshold
-        ah+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">⚠️ '+s.holdThreshold+'</div>';
-        // Earnings warning if present
-        if(s.earnings && s.earnings.warning) {
-          ah+='<div style="font-size:10px;color:'+earnRiskCol+';margin-top:3px;font-weight:600">'+s.earnings.warning+'</div>';
-        }
-        ah+='</div>';
-      });
-    }
-
-    if(acts.length===0&&shorts.length===0){
-      ah='<div style="color:#94a3b8;text-align:center;padding:12px">暫無活躍訊號</div>';
-    }
-    ab.innerHTML=ah;
-  }
-
-  // ⭐ topPick — render to its own dedicated card (above 即時活躍訊號)
+  // ⭐ topPick — render to its own dedicated card
   const tpCard=document.getElementById('topPickCard');
   const tpBody=document.getElementById('topPickBody');
   if(tpCard&&tpBody){
@@ -2058,7 +1917,7 @@ function renderDailyReport(data){
       tpBody.innerHTML=html;
       tpCard.style.display='block';
     } else {
-      tpBody.innerHTML='<div style="color:#94a3b8;text-align:center;padding:14px;font-size:12px">今日無單一「最優先」部署訊號 — 參考下方部署總覽／活躍訊號／觀察名單</div>';
+      tpBody.innerHTML='<div style="color:#94a3b8;text-align:center;padding:14px;font-size:12px">今日無單一「最優先」部署訊號 — 參考下方部署總覽／觀察名單</div>';
       tpCard.style.display='block';
     }
   }
