@@ -1411,9 +1411,33 @@ function renderHK(data){
   // 恒指/科指 strip — 指數用 RSI9、MACD(12,26,9)、KDJ(9,3,3)、MTM(12,6)
   // 全部附中文解讀，唔淨係報數字。
   const hkbIdx = (hkb && hkb.indices) ? hkb.indices : null;
-  // Futu 開市前/收市後常返 price=0/None → 用 Yahoo hk.indices 補（bridge 已 scale 3033.HK 至指數水平）
-  const hkbIdxOk = hkbIdx && ((hkbIdx.hsi&&hkbIdx.hsi.price>0)||(hkbIdx.hstech&&hkbIdx.hstech.price>0));
-  const idxSrc = hkbIdxOk ? {'^HSI':hkbIdx.hsi,'3033.HK':hkbIdx.hstech} : (hk.indices||{});
+  const workerIdx = hk.indices || {};
+  // 合併 bridge(/hkbreadth) + worker(hk.indices) 兩邊：邊個有數據就邊個用。
+  // 之前 /hkbreadth price 返空就成段跌返 worker 結構（rsi/indicators.*）→ 全部 ——；
+  // 而家 normalize 成 strip 要用嘅 rsi9/macd.dif/kdj.k/mtm.mtm，兩邊都出到，唔會再冇價冇指標。
+  const normIdx = function(key, b, w){
+    const ind = (w && w.indicators) || {};
+    const wMacd = ind.macd || {};
+    const wKdj = ind.kdj || {};
+    const wMtm = ind.mtm || {};
+    const wRsi = (ind.rsi && ind.rsi.value != null) ? ind.rsi.value : (w ? w.rsi : null);
+    const price = (b && b.price > 0) ? b.price : (w ? ((w.live>0)?w.live:w.price) : null);
+    const prev = (b && b.prevClose>0) ? b.prevClose : (w ? w.prevClose : null);
+    return {
+      price: price, name: (b&&b.name)||(w&&w.name)||key, prevClose: prev,
+      chg1d: (b&&b.chg1d!=null) ? b.chg1d : ((price&&prev)?Math.round((price/prev-1)*10000)/100:null),
+      chg5d: (b&&b.chg5d!=null) ? b.chg5d : null,
+      rsi9: (b&&b.rsi9!=null)?b.rsi9:((b&&b.rsi14!=null)?b.rsi14:wRsi),
+      rsi14: (b&&b.rsi14!=null)?b.rsi14:wRsi,
+      macd: (b&&b.macd&&b.macd.dif!=null)?b.macd:{ dif:(wMacd.value!=null)?wMacd.value:null, dea:(wMacd.dea!=null)?wMacd.dea:null, hist:(wMacd.hist!=null)?wMacd.hist:null, signal:(wMacd.signal!=null)?wMacd.signal:null },
+      kdj: (b&&b.kdj&&b.kdj.k!=null)?b.kdj:{ k:(wKdj.k!=null)?wKdj.k:null, d:(wKdj.d!=null)?wKdj.d:null, j:(wKdj.j!=null)?wKdj.j:null },
+      mtm: (b&&b.mtm&&b.mtm.mtm!=null)?b.mtm:{ mtm:(wMtm.value!=null)?wMtm.value:null, mtma:null, signal:(wMtm.signal!=null)?wMtm.signal:null }
+    };
+  };
+  const idxSrc = {
+    '^HSI': normIdx('^HSI', hkbIdx ? hkbIdx.hsi : null, workerIdx['^HSI']),
+    '3033.HK': normIdx('3033.HK', hkbIdx ? hkbIdx.hstech : null, workerIdx['3033.HK'])
+  };
   const hkNames = {'^HSI':'恒生指數','3033.HK':'恒生科技指數'};
   let stripHtml = '';
   for (const key of ['^HSI','3033.HK']) {
