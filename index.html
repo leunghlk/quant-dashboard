@@ -57,8 +57,8 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 .utable tbody tr:hover{background:#f8fafc}
 .utable tbody tr.clickable{cursor:pointer}
 .utable tbody tr.clickable:hover{background:#ecfdf5}
-/* Mobile: every data table scrolls horizontally so no column is cut off on narrow screens */
-.card table,.card-b table,.modal table,.subview table,.top-pane table{display:block!important;width:max-content!important;max-width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
+/* Desktop: tables fill their card / container width */
+.card table,.card-b table,.modal table,.subview table,.top-pane table{display:table!important;width:100%!important;max-width:100%!important}
 .mid table{display:table!important;width:100%!important;overflow:visible!important}
 /* signal + decel pills (shared) */
 .sig{padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
@@ -125,7 +125,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 .subview{display:none}.subview.active{display:block}
 .hidden{display:none!important}
 .tech-card{padding:14px 16px}
-@media(max-width:640px){.mega-tab,.mega-sub,.mega-leaf{padding:8px 12px;font-size:12.5px}.mega-l2,.mega-l3{min-width:170px}}
+@media(max-width:640px){.mega-tab,.mega-sub,.mega-leaf{padding:8px 12px;font-size:12.5px}.mega-l2,.mega-l3{min-width:170px}.card table,.card-b table,.modal table,.subview table,.top-pane table{display:block!important;width:max-content!important;max-width:100%!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}}
 .tf-badge{display:inline-block;background:#ecfdf5;color:#0f766e;border:1px solid #99f6e4;padding:1px 8px;border-radius:5px;font-size:10px;font-weight:700;margin-right:6px}
 .tf-badge.wk{background:#fffbeb;color:#b45309;border-color:#fde68a}
 </style>
@@ -450,10 +450,11 @@ async function loadLiveData(){
   const d=lastData;if(!d)return;
   const ticks=new Set();
   (d.watchlist||[]).forEach(function(w){ticks.add(w.ticker);});
+  ((d.hk&&d.hk.watchlist)||[]).forEach(function(w){ticks.add(w.ticker);});
   (d.portfolio&&d.portfolio.positions?Object.keys(d.portfolio.positions):[]).forEach(function(t){ticks.add(t);});
-  ['MAGS','NQ=F','^SOX','^DJI','^GSPC','^HSI','HSTECH'].forEach(function(t){ticks.add(t);});
+  ['MAGS','SOXX','QQQ','NQ=F','^SOX','^DJI','^GSPC','^HSI','HSTECH'].forEach(function(t){ticks.add(t);});
   try{
-    const r=await fetch(activeBridge+'/snapshot?codes='+encodeURIComponent([...ticks].join(','))+'&secret='+BRIDGE_SECRET,{cache:'no-store'});
+    const r=await fetchTimeout(activeBridge+'/snapshot?codes='+encodeURIComponent([...ticks].join(','))+'&secret='+BRIDGE_SECRET,12000);
     if(!r.ok)throw new Error('http '+r.status);
     const j=await r.json();
     if(j&&j.error)throw new Error(j.error);
@@ -491,7 +492,9 @@ function liveBadge(sess){
 }
 function applyLiveData(map){
   // 儲存美股四大指數 live 報價（俾大盤形勢 index strip 用）
-  ['^DJI','^GSPC','NQ=F','^SOX'].forEach(function(k){
+  // 注意：^SOX 不存 — bridge snapshot 映射到 US.SOXX ETF (~528) 而非 SOX 指數 (~12,009)，
+  // 存入會令 4-box strip 顯示錯誤 ETF 價；renderRegime 會改用 techAnalysis['^SOX'] (Yahoo 真實指數)
+  ['^DJI','^GSPC','NQ=F'].forEach(function(k){
     const s=map[k.toUpperCase()];if(s)usIdxQuotes[k]=s;
   });
   // patch watchlist + position price cells (.lp)
@@ -505,7 +508,9 @@ function applyLiveData(map){
   });
   // index live headers
   document.querySelectorAll('[data-live]').forEach(function(el){
-    const s=map[(el.getAttribute('data-live')||'').toUpperCase()];if(!s)return;
+    const tk=(el.getAttribute('data-live')||'').toUpperCase();
+    if(tk==='^SOX')return; // Futu 無真 SOX 指數，snapshot 映射到 US.SOXX ETF (~526)；tech card 用 Yahoo 真實指數 (~12,049)
+    const s=map[tk];if(!s)return;
     const price=(s.live_price!=null)?s.live_price:s.price;if(price==null)return;
     const disp=(price>=1000)?Math.round(price).toLocaleString():price;
     const chg=(s.change_pct!=null)?((s.change_pct>=0?'+':'')+s.change_pct+'%'):'';
@@ -515,6 +520,14 @@ function applyLiveData(map){
       '<div style="margin-left:auto;text-align:right"><div style="font-size:20px;font-weight:800;color:#0d9488">'+disp+'</div>'+
       '<div style="font-size:11px;font-weight:700;color:'+chgCol+'">'+chg+'</div></div>'+
       '<div>'+liveBadge(s.session)+'</div></div>';
+  });
+  // 細價位標籤（細 header 用：ETF 價 + session badge，例如 ③ 指數部署 ETF 價）
+  document.querySelectorAll('[data-livepx]').forEach(function(el){
+    const s=map[(el.getAttribute('data-livepx')||'').toUpperCase()];if(!s)return;
+    const price=(s.live_price!=null)?s.live_price:s.price;if(price==null)return;
+    const disp=(price>=1000)?Math.round(price).toLocaleString():(Math.round(price*100)/100);
+    const cur=(s.code&&s.code.indexOf('HK.')===0)?'HK$':'$';
+    el.innerHTML=cur+disp+liveBadge(s.session);
   });
 }
 
@@ -532,10 +545,31 @@ async function fetchTimeout(url, ms){
   try{return await fetch(url,{cache:'no-store',signal:ctrl.signal});}
   finally{clearTimeout(t);}
 }
+// 港股/全日數據本地緩存：收市後（16:10-09:00 HKT）即刻有數據睇，唔使等 refresh
+function hkToday(){ return new Date(Date.now()+8*3600e3).toISOString().slice(0,10); }
+function hkCacheSave(){
+  try{ localStorage.setItem('qhk', JSON.stringify({ date: hkToday(), t: Date.now(), breadth: hkLive||null, hk: (lastData&&lastData.hk)||null })); }catch(e){}
+}
+function hkCacheLoad(){
+  try{ const c=JSON.parse(localStorage.getItem('qhk')); if(c&&c.date===hkToday()&&c.breadth) return c; }catch(e){}
+  return null;
+}
 async function loadData(forceHK){
   const rf=document.getElementById('refresh');
   if(rf){rf.disabled=true;rf.textContent='⏳ 載入中...';}
   try{
+    // 即時畫緩存：先顯示上次數據（港股收市後尤其重要，唔使等 /api 先有嘢睇）
+    try{
+      const cachedFull=JSON.parse(localStorage.getItem('qfull')||'null');
+      if(cachedFull && cachedFull.data && cachedFull.ts && (Date.now()-cachedFull.ts) < 24*3600e3){
+        lastData=cachedFull.data;
+        render(lastData);
+        checkPriceAlerts(lastData);
+        const hc=hkCacheLoad();
+        if(hc && hc.breadth) hkLive=hc.breadth;
+        if(!forceHK) renderHK(lastData);
+      }
+    }catch(e){}
     if(!activeBridge){await detectBridge();}
     let d=null;
     if(activeBridge){
@@ -556,6 +590,8 @@ async function loadData(forceHK){
     }
     lastData=d;render(d);checkPriceAlerts(d);loadLiveData();
     // 港股收市後：auto-refresh 唔再 fetch HK 數據（價位唔會變），首次載入／手動刷新／未載入過先 refresh
+    try{ localStorage.setItem('qfull', JSON.stringify({ ts: Date.now(), data: d })); }catch(e){}
+    hkCacheSave();
     const hkLoaded=(typeof hkLive!=='undefined'&&hkLive&&hkLive.updated);
     if(forceHK||hkMarketOpen()||!hkLoaded){loadHKBreadth();}
     document.getElementById('lastUpdate').textContent='更新: '+new Date(d.timestamp).toLocaleTimeString('zh-HK')+(activeBridge?' · 🔴Futu':' · Yahoo');
@@ -750,7 +786,6 @@ function renderRegime(data){
   if(!data.marketRegime) return;
   const mr=data.marketRegime;
   let rh='<div style="font-size:14px;font-weight:800;color:'+mr.regimeColor+';margin-bottom:10px;padding:10px 12px;background:'+mr.regimeColor+'15;border-radius:8px">'+mr.regime+'</div>';
-  rh+='<div style="font-size:12px;color:#334155;line-height:1.7;margin-bottom:14px">'+mr.outlook+'</div>';
   // ===== 美股四大指數 live 價（道指 / 標指 / 納指100 / 費半）+ session 標籤 =====
   const ta=data.techAnalysis||{};
   const IDX_DEFS=[['^DJI','道指'],['^GSPC','標指'],['NQ=F','納指100'],['^SOX','費半']];
@@ -941,14 +976,18 @@ function render(data){
     const ss=data.strategySummary;
     let sh='<div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px;padding:10px 12px;background:#ecfdf5;border-radius:8px;border-left:4px solid #0d9488">'+ss.headline+'</div>';
     sh+='<div style="font-size:11px;color:#64748b;margin-bottom:10px">造好機會：<b style="color:#16a34a">'+ss.longCount+'</b> ｜ 造淡機會：<b style="color:#dc2626">'+ss.shortCount+'</b> ｜ 可動用現金：<b>HKD $'+ss.cashHKD.toLocaleString()+'</b>（USD $'+fmt(ss.cashUSD)+'）</div>';
+    sh+='<div style="overflow-x:auto"><table class="utable"><thead><tr><th style="width:96px">信號</th><th style="min-width:160px">標的</th><th style="width:64px" class="c">總評分</th><th style="width:76px" class="c">動量減速</th><th style="min-width:280px">部署</th><th>細節</th></tr></thead><tbody>';
     ss.items.forEach(it=>{
       const col=it.badge.includes('🟢')?'#16a34a':it.badge.includes('🔴')?'#dc2626':'#64748b';
-      sh+='<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #f1f5f9">'+
-        '<span style="font-size:18px;line-height:1.2">'+it.badge+'</span>'+
-        '<div style="flex:1"><div style="font-weight:700;font-size:13px;color:#0f172a">['+it.type+'] '+it.title+'</div>'+
-        '<div style="font-size:12px;color:#334155;margin-top:2px"><b style="color:'+col+'">部署：</b>'+it.action+'</div>'+
-        '<div style="font-size:11px;color:#64748b;margin-top:2px">'+it.detail+'</div></div></div>';
+      sh+='<tr style="border-left:3px solid '+col+'">'+
+        '<td style="white-space:nowrap"><span style="display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;color:#fff;background:'+col+'">'+it.badge+' '+it.type+'</span></td>'+
+        '<td style="font-weight:700;color:#0f172a;font-size:12px">'+it.title+'</td>'+
+        '<td class="c" style="font-weight:700;font-size:13px;color:'+(it.score!=null?(it.score>=55?'#0d9488':it.score>=45?'#eab308':'#ef4444'):'#94a3b8')+'">'+(it.score!=null?it.score:'—')+'</td>'+
+        '<td class="c">'+(it.decel!=null?'<span class="'+dc(it.decel)+'">'+it.decel+'</span>':'—')+'</td>'+
+        '<td style="font-size:11.5px;color:#334155;line-height:1.5">'+it.action+'</td>'+
+        '<td style="font-size:11px;color:#64748b;line-height:1.5">'+it.detail+'</td></tr>';
     });
+    sh+='</tbody></table></div>';
     document.getElementById('summaryBody').innerHTML=sh;
   }
 
@@ -977,31 +1016,31 @@ function render(data){
     data.indexEtfStrategy.forEach(x=>{
       const midCol=x.mid.side.includes('造好')?'#16a34a':x.mid.side.includes('造淡')?'#dc2626':'#94a3b8';
       const shortCol=x.short.side.includes('造好')?'#16a34a':x.short.side.includes('造淡')?'#dc2626':'#94a3b8';
-      ieHTML+='<div style="margin-bottom:16px;padding:12px 14px;background:#fafafa;border-radius:8px;border:1px solid #e2e8f0">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
-        '<div><span style="font-weight:800;font-size:15px">'+x.etf+'</span> <span style="font-size:12px;color:#64748b">$'+fmt(x.etfPrice)+' → '+x.indexName+' '+rD(x.indexPrice)+'</span></div>'+
-        '<span style="font-size:10px;color:#94a3b8">日線RSI '+x.dailyRsi+' ｜ 周線 '+(x.weeklyBias||'—')+'</span></div>'+
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px;margin-bottom:10px">'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px">MA20 '+rD(x.ma20)+(x.belowMA20?' ⬇低':' ⬆高')+'</span>'+
-        '<span style="background:#fff;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px">MA50 '+rD(x.ma50)+(x.belowMA50?' ⬇低':' ⬆高')+'</span>'+
-        '<span style="background:#fffbeb;border:1px solid #fde68a;padding:2px 7px;border-radius:4px;color:#b45309">周RSI '+(x.weeklyRsi!=null?x.weeklyRsi:'—')+'</span></div>'+
-        '<div style="padding:9px 11px;background:#fffbeb;border-radius:8px;border-left:4px solid '+midCol+';margin-bottom:8px">'+
+      const wm20=(x.weeklyMa20!=null)?rD(x.weeklyMa20):'—', wm50=(x.weeklyMa50!=null)?rD(x.weeklyMa50):'—';
+      ieHTML+='<div style="margin-bottom:14px;padding:11px 13px;background:#fff;border:1px solid #e2e8f0;border-radius:10px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;margin-bottom:5px">'+
+        '<div><span style="font-weight:800;font-size:15px;color:#0f172a">'+x.etf+'</span> <span style="font-size:12px;color:#334155;font-weight:600">'+x.indexName+'</span></div>'+
+        '<div style="font-size:12px;color:#64748b">ETF <b style="color:#0d9488" data-livepx="'+x.etf+'">$'+fmt(x.etfPrice)+'</b> ｜ 指數 <b>'+rD(x.indexPrice)+'</b></div></div>'+
+        '<div style="font-size:10.5px;color:#64748b;margin-bottom:8px;line-height:1.6">日RSI '+x.dailyRsi+' ｜ 周RSI '+(x.weeklyRsi!=null?x.weeklyRsi:'—')+' ｜ 周線 '+(x.weeklyBias||'—')+' ｜ 日MA20 '+rD(x.ma20)+(x.belowMA20?' ⬇':' ⬆')+' ｜ 日MA50 '+rD(x.ma50)+(x.belowMA50?' ⬇':' ⬆')+' ｜ 周MA20 '+wm20+' ｜ 周MA50 '+wm50+'</div>'+
+        '<div style="display:flex;gap:10px;flex-wrap:wrap">'+
+        '<div style="flex:1;min-width:260px;padding:9px 11px;background:#fffbeb;border-radius:8px;border-left:4px solid '+midCol+'">'+
         '<div style="font-weight:700;font-size:12px;color:#b45309;margin-bottom:4px"><span class="tf-badge wk">周線．中線</span>'+x.mid.side+'</div>'+
         '<table class="kv"><tr><td>工具</td><td>'+x.mid.vehicle+'</td></tr>'+
         '<tr><td>入場</td><td style="color:#0f172a">'+x.mid.entry+'</td></tr>'+
         '<tr><td>止蝕</td><td style="color:#dc2626">'+x.mid.stop+'</td></tr>'+
         '<tr><td>目標</td><td style="color:#0d9488">'+x.mid.target+'</td></tr>'+
         '<tr><td>分注</td><td>'+x.mid.sizing+'</td></tr></table>'+
-        '<div style="font-size:11px;color:#78350f;margin-top:4px">理據：'+x.mid.rationale+'</div></div>'+
-        '<div style="padding:9px 11px;background:#ecfdf5;border-radius:8px;border-left:4px solid '+shortCol+'">'+
+        '<div style="font-size:10.5px;color:#78350f;margin-top:3px;line-height:1.5">'+x.mid.rationale+'</div></div>'+
+        '<div style="flex:1;min-width:260px;padding:9px 11px;background:#ecfdf5;border-radius:8px;border-left:4px solid '+shortCol+'">'+
         '<div style="font-weight:700;font-size:12px;color:#0f766e;margin-bottom:4px"><span class="tf-badge">日線．短線</span>'+x.short.side+'</div>'+
         '<table class="kv"><tr><td>工具</td><td>'+x.short.vehicle+'</td></tr>'+
         '<tr><td>入場</td><td style="color:#0f172a">'+x.short.entry+'</td></tr>'+
         '<tr><td>止蝕</td><td style="color:#dc2626">'+x.short.stop+'</td></tr>'+
         '<tr><td>目標</td><td style="color:#0d9488">'+x.short.target+'</td></tr>'+
         '<tr><td>分注</td><td>'+x.short.sizing+'</td></tr></table>'+
-        '<div style="font-size:11px;color:#475569;margin-top:4px">理據：'+x.short.rationale+'</div></div>'+
-        '<div style="font-size:10px;color:#94a3b8;margin-top:6px">正向：'+x.longVehicle+'　｜　反向：'+x.shortVehicle+(x.suggShares!=null?'　｜　建議股數約 '+x.suggShares+' 股（預算 USD $'+x.budgetUSD.toLocaleString()+'）':'')+'</div>'+
+        '<div style="font-size:10.5px;color:#475569;margin-top:3px;line-height:1.5">'+x.short.rationale+'</div></div>'+
+        '</div>'+
+        '<div style="font-size:10px;color:#94a3b8;margin-top:6px">正向：'+x.longVehicle+'　｜　反向：'+x.shortVehicle+(x.suggShares>0?'　｜　建議股數約 '+x.suggShares+' 股（預算 USD $'+x.budgetUSD.toLocaleString()+'）':'')+'</div>'+
         '</div>';
     });
     document.getElementById('indexEtfBody').innerHTML=ieHTML||'<div style="color:#94a3b8">無指數ETF</div>';
@@ -1498,7 +1537,7 @@ function renderHK(data){
       '<td><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td>'+
       '<td class="c" style="font-weight:700">'+Math.round(s.score*100)+'</td>'+
       '<td class="c"><span class="'+dc(s.decel)+'">'+s.decel+'</span></td>'+
-      '<td class="r">'+rD(s.price)+'</td>'+
+      '<td class="r lp" style="font-weight:600">HK$'+fmt(s.price)+'</td>'+
       '<td class="r" style="color:'+cv(s.m1m)+'">'+(s.m1m>=0?'+':'')+Math.round(s.m1m*100)+'%</td>'+
       '<td class="r">'+s.vol30+'%</td>'+
       '<td class="r">'+dy+'</td>'+
