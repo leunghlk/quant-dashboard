@@ -1014,24 +1014,33 @@ function render(data){
   if(data.indexEtfStrategy){
     let ieHTML='';
     data.indexEtfStrategy.forEach(x=>{
-      const midCol=x.mid.side.includes('造好')?'#16a34a':x.mid.side.includes('造淡')?'#dc2626':'#94a3b8';
       const shortCol=x.short.side.includes('造好')?'#16a34a':x.short.side.includes('造淡')?'#dc2626':'#94a3b8';
       const wm20=(x.weeklyMa20!=null)?rD(x.weeklyMa20):'—', wm50=(x.weeklyMa50!=null)?rD(x.weeklyMa50):'—';
+      // 週線 RSI/MACD/KDJ/MTM 標籤（同大盤形勢港股 section 格式）
+      let wkRsiL='—',wkRsiC='#64748b';
+      if(x.weeklyRsi!=null){ if(x.weeklyRsi>=70){wkRsiL='超買';wkRsiC='#dc2626';} else if(x.weeklyRsi>=50){wkRsiL='偏強';wkRsiC='#16a34a';} else if(x.weeklyRsi>=30){wkRsiL='偏弱';wkRsiC='#ea580c';} else {wkRsiL='超賣';wkRsiC='#16a34a';} }
+      const wMacdSig=x.weeklyMacd||'—';
+      const wMacdTxt=(x.weeklyMacdDif!=null)?('DIF '+rD(x.weeklyMacdDif)+' ｜ DEA '+rD(x.weeklyMacdDea)+' ｜ 柱 '+rD(x.weeklyMacdHist)):'';
+      const wKdjTxt=(x.weeklyKdjK!=null)?('K '+x.weeklyKdjK+' ｜ D '+x.weeklyKdjD+' ｜ J '+x.weeklyKdjJ):'';
+      const wMtmTxt=(x.weeklyMtmSignal||'—')+(x.weeklyMtm!=null?('（'+rD(x.weeklyMtm)+'）'):'');
       ieHTML+='<div style="margin-bottom:14px;padding:11px 13px;background:#fff;border:1px solid #e2e8f0;border-radius:10px">'+
         '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;margin-bottom:5px">'+
         '<div><span style="font-weight:800;font-size:15px;color:#0f172a">'+x.etf+'</span> <span style="font-size:12px;color:#334155;font-weight:600">'+x.indexName+'</span></div>'+
-        '<div style="font-size:12px;color:#64748b">ETF <b style="color:#0d9488" data-livepx="'+x.etf+'">$'+fmt(x.etfPrice)+'</b> ｜ 指數 <b>'+rD(x.indexPrice)+'</b></div></div>'+
-        '<div style="font-size:10.5px;color:#64748b;margin-bottom:8px;line-height:1.6">日RSI '+x.dailyRsi+' ｜ 周RSI '+(x.weeklyRsi!=null?x.weeklyRsi:'—')+' ｜ 周線 '+(x.weeklyBias||'—')+' ｜ 日MA20 '+rD(x.ma20)+(x.belowMA20?' ⬇':' ⬆')+' ｜ 日MA50 '+rD(x.ma50)+(x.belowMA50?' ⬇':' ⬆')+' ｜ 周MA20 '+wm20+' ｜ 周MA50 '+wm50+'</div>'+
-        '<div style="display:flex;gap:10px;flex-wrap:wrap">'+
-        '<div style="flex:1;min-width:260px;padding:9px 11px;background:#fffbeb;border-radius:8px;border-left:4px solid '+midCol+'">'+
-        '<div style="font-weight:700;font-size:12px;color:#b45309;margin-bottom:4px"><span class="tf-badge wk">周線．中線</span>'+x.mid.side+'</div>'+
-        '<table class="kv"><tr><td>工具</td><td>'+x.mid.vehicle+'</td></tr>'+
-        '<tr><td>入場</td><td style="color:#0f172a">'+x.mid.entry+'</td></tr>'+
-        '<tr><td>止蝕</td><td style="color:#dc2626">'+x.mid.stop+'</td></tr>'+
-        '<tr><td>目標</td><td style="color:#0d9488">'+x.mid.target+'</td></tr>'+
-        '<tr><td>分注</td><td>'+x.mid.sizing+'</td></tr></table>'+
-        '<div style="font-size:10.5px;color:#78350f;margin-top:3px;line-height:1.5">'+x.mid.rationale+'</div></div>'+
-        '<div style="flex:1;min-width:260px;padding:9px 11px;background:#ecfdf5;border-radius:8px;border-left:4px solid '+shortCol+'">'+
+        '<div style="font-size:12px;color:#64748b">ETF <b style="color:#0d9488" data-livepx="'+x.etf+'">$'+fmt(x.etfPrice)+'</b>'+
+        (x.etfChg1d!=null?' <span style="color:'+(x.etfChg1d>=0?'#16a34a':'#dc2626')+';font-weight:700">'+(x.etfChg1d>=0?'+':'')+x.etfChg1d+'%</span>':'')+
+        ' ｜ 指數 <b>'+rD(x.indexPrice)+'</b>'+
+        (x.indexChg1d!=null?' <span style="color:'+(x.indexChg1d>=0?'#16a34a':'#dc2626')+';font-weight:700">'+(x.indexChg1d>=0?'+':'')+x.indexChg1d+'%</span>':'')+
+        '</div></div>'+
+        '<div style="font-size:10px;color:#64748b;margin-bottom:6px">日MA20 '+rD(x.ma20)+(x.belowMA20?' ↓':' ↑')+' ｜ 日MA50 '+rD(x.ma50)+(x.belowMA50?' ↓':' ↑')+' ｜ 週MA20 '+wm20+' ｜ 週MA50 '+wm50+'</div>'+
+        '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 11px;margin-bottom:8px">'+
+        '<div style="font-weight:700;font-size:11px;color:#b45309;margin-bottom:3px">📈 週線訊號（底層指數）｜ 週線偏向：'+(x.weeklyBias||'—')+'</div>'+
+        '<table class="kv">'+
+        '<tr><td>RSI(9)</td><td style="font-weight:700;color:'+wkRsiC+'">'+x.weeklyRsi+' '+wkRsiL+'</td></tr>'+
+        '<tr><td>MACD(12,26,9)</td><td style="color:#0f172a">'+wMacdSig+(wMacdTxt?'（'+wMacdTxt+'）':'')+'</td></tr>'+
+        '<tr><td>KDJ(9,3,3)</td><td style="color:#0f172a">'+x.weeklyKdj+(wKdjTxt?'（'+wKdjTxt+'）':'')+'</td></tr>'+
+        '<tr><td>MTM(12,6)</td><td style="color:#0f172a">'+wMtmTxt+'</td></tr>'+
+        '</table></div>'+
+        '<div style="padding:9px 11px;background:#ecfdf5;border-radius:8px;border-left:4px solid '+shortCol+'">'+
         '<div style="font-weight:700;font-size:12px;color:#0f766e;margin-bottom:4px"><span class="tf-badge">日線．短線</span>'+x.short.side+'</div>'+
         '<table class="kv"><tr><td>工具</td><td>'+x.short.vehicle+'</td></tr>'+
         '<tr><td>入場</td><td style="color:#0f172a">'+x.short.entry+'</td></tr>'+
@@ -1039,7 +1048,6 @@ function render(data){
         '<tr><td>目標</td><td style="color:#0d9488">'+x.short.target+'</td></tr>'+
         '<tr><td>分注</td><td>'+x.short.sizing+'</td></tr></table>'+
         '<div style="font-size:10.5px;color:#475569;margin-top:3px;line-height:1.5">'+x.short.rationale+'</div></div>'+
-        '</div>'+
         '<div style="font-size:10px;color:#94a3b8;margin-top:6px">正向：'+x.longVehicle+'　｜　反向：'+x.shortVehicle+(x.suggShares>0?'　｜　建議股數約 '+x.suggShares+' 股（預算 USD $'+x.budgetUSD.toLocaleString()+'）':'')+'</div>'+
         '</div>';
     });
