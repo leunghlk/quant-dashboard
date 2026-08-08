@@ -920,7 +920,58 @@ function renderPositions(data){
       '<td>'+(s?'<span class="'+sigClass(sig)+'">'+sig+'</span>':'—')+'</td>'+
       '<td style="font-size:11px;font-weight:600;color:'+aCol+'">'+action+'</td></tr>';
   }).join('');
-  body.innerHTML='<table class="utable"><thead><tr><th>股票</th><th class="r">股數</th><th class="r">現價</th><th class="r">盈虧</th><th class="c">動量減速</th><th>信號</th><th>操作建議</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">📭 無持倉</td></tr>')+'</tbody></table>'+
+  // ===== 回本進度 catch-up 建議（lagging 時顯示 switching plan）=====
+  let catchupHTML='';
+  try{
+    const pv=data.portfolio, prog=pv.progressPct, rt=pv.recoveryTimeline||{};
+    if(prog!=null && prog<100){
+      // 沽出候選：持倉 + 蝕錢 + 動量弱（Decel≤-2 或信號沽出/減持）
+      const sellC=Object.entries(pos).map(function(e){ const t=e[0],p=e[1],s=wl.get(t);
+        return {t:t,p:p,s:s,decel:s?s.decel:0,sig:s?s.signal:''}; })
+        .filter(function(x){ return x.p.pnl<0 && (x.decel<=-2||x.sig==='SELL'||x.sig==='REDUCE'); });
+      // 買入候選：bidirectional 偏好 + Decel≥0 + 綜合分≥50 + 非持倉
+      const buyC=(data.bidirectional||[]).filter(function(b){ return b.stance==='偏好' && b.decel>=0 && b.score>=0.5 && !pos[b.ticker]; })
+        .sort(function(a,b){ return b.score-a.score; }).slice(0,4)
+        .map(function(b){ const w=wl.get(b.ticker); return {t:b.ticker,price:b.price,score:b.score,decel:b.decel,m5d:w?w.m5d:null,
+          entry:(b.long&&b.long.entry)||'',stop:(b.long&&b.long.stopLoss)||'',target:(b.long&&b.long.target1)||''}; });
+      const sellCash=sellC.reduce(function(a,x){ return a+(x.p.shares||0)*(x.p.price||0); },0);
+      const progTxt=Math.round(prog*10)/10;
+      const gapTxt=pv.gapToTarget!=null?Math.abs(pv.gapToTarget).toLocaleString():'—';
+      const needTxt=(rt.monthlyTargetPct!=null)?(rt.monthlyTargetPct+'%（約 HKD '+(rt.monthlyTargetHKD||'—')+'/月）'):'—';
+      const estTxt=(rt.estimatedMonths!=null)?('約 '+rt.estimatedMonths+' 個月'):'—';
+      let ch='<div style="padding:12px 14px;background:#fefce8;border:1px solid #fde047;border-radius:10px;margin-bottom:14px">'+
+        '<div style="font-weight:800;font-size:14px;color:#854d0e;margin-bottom:6px">🔁 回本進度追趕計劃（現 lagging）</div>'+
+        '<div style="font-size:12px;color:#713f12;line-height:1.7;margin-bottom:10px">回本進度 <b>'+progTxt+'%</b>（目標 HKD 50,000，尚欠 <b>HKD '+gapTxt+'</b>）。按現時節奏要 <b>'+estTxt+'</b> 先回本 — 需要月均 <b>'+needTxt+'</b> 至可以追上。→ 建議將弱勢持倉換成強勢動量股（switching），加快回本。</div>';
+      // SELL table
+      if(sellC.length){
+        ch+='<div style="font-size:12px;font-weight:800;color:#b91c1c;margin-bottom:4px">🔴 建議沽出（弱勢持倉）— 可套現約 <b style="color:#b91c1c">$'+fmt(sellCash,0)+'</b></div>'+
+          '<table class="utable" style="width:100%;font-size:11.5px;border-collapse:collapse;margin-bottom:8px"><thead><tr style="background:#fef2f2"><th style="padding:4px 6px;text-align:left">股票</th><th class="r">股數</th><th class="r">現價</th><th class="r">可套現</th><th class="r">盈虧</th><th style="text-align:left">原因</th></tr></thead><tbody>';
+        sellC.forEach(function(x){
+          ch+='<tr><td style="padding:4px 6px;font-weight:700">'+x.t+'</td><td class="r">'+(x.p.shares||0)+'</td><td class="r">$'+fmt(x.p.price)+'</td><td class="r" style="font-weight:700">$'+fmt((x.p.shares||0)*(x.p.price||0),0)+'</td><td class="r '+(x.p.pnl>=0?'pos':'neg')+'">'+(x.p.pnl>=0?'+':'')+fmt(x.p.pnlPct,1)+'%</td><td style="font-size:11px;color:#7f1d1d">Decel='+x.decel+' '+x.sig+'</td></tr>';
+        });
+        ch+='</tbody></table>';
+      }
+      // BUY table
+      if(buyC.length){
+        ch+='<div style="font-size:12px;font-weight:800;color:#15803d;margin-bottom:4px">🟢 轉入目標（強勢動量股）— 套現資金分注部署</div>'+
+          '<table class="utable" style="width:100%;font-size:11.5px;border-collapse:collapse;margin-bottom:8px"><thead><tr style="background:#f0fdf4"><th style="padding:4px 6px;text-align:left">股票</th><th class="r">現價</th><th class="c">評分</th><th class="c">Decel</th><th class="r">5日</th><th style="text-align:left">部署（入場/止蝕/目標）</th></tr></thead><tbody>';
+        buyC.forEach(function(b){
+          ch+='<tr><td style="padding:4px 6px;font-weight:700">'+b.t+'</td><td class="r">$'+fmt(b.price)+'</td><td class="c">'+Math.round(b.score*100)+'</td><td class="c" style="color:#16a34a">'+b.decel+'</td><td class="r" style="color:'+(b.m5d!=null&&b.m5d>=0?'#16a34a':'#dc2626')+'">'+(b.m5d!=null?(b.m5d*100).toFixed(1)+'%':'—')+'</td><td style="font-size:11px;color:#475569">'+(b.entry||'')+(b.stop?'<br><span style="color:#dc2626">止蝕 '+(b.stop)+'</span>':'')+(b.target?' ｜ <span style="color:#15803d">T1 '+(b.target)+'</span>':'')+'</td></tr>';
+        });
+        ch+='</tbody></table>';
+      }
+      // 轉倉建議一句
+      if(sellCash>0&&buyC.length){
+        ch+='<div style="font-size:12px;color:#713f12;line-height:1.7;padding:8px 10px;background:#fff;border-radius:6px;border:1px dashed #fde047">💡 <b>轉倉建議</b>：沽出上述弱勢持倉（約 <b>$'+fmt(sellCash,0)+'</b>）→ 分注轉入 '+
+          buyC.slice(0,3).map(function(b){ return b.t; }).join(' / ')+' 等強勢動量股（跟「部署」列：等回調 2-3% 分注，唔追高）。如果唔想加大風險，可等回調先轉一半，另一半留返現金應對波動。</div>';
+      } else if(sellCash>0){
+        ch+='<div style="font-size:12px;color:#713f12;line-height:1.7;padding:8px 10px;background:#fff;border-radius:6px">💡 現時無明顯強勢轉入目標 — 先沽弱勢持倉鎖返現金，等新訊號（Decel 轉正 + 綜合分≥50）先再部署。</div>';
+      }
+      ch+='</div>';
+      catchupHTML=ch;
+    }
+  }catch(e){ console.error('[catchup]',e); }
+  body.innerHTML=catchupHTML+'<table class="utable"><thead><tr><th>股票</th><th class="r">股數</th><th class="r">現價</th><th class="r">盈虧</th><th class="c">動量減速</th><th>信號</th><th>操作建議</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">📭 無持倉</td></tr>')+'</tbody></table>'+
     '<div style="font-size:11px;color:#64748b;margin-top:10px;padding:8px 10px;background:#f8fafc;border-radius:6px">📌 <b>到價</b>＝考慮減磅鎖利（非轉弱）；<b>止蝕</b>＝-8% 跌破成本；<b>Decel≤-3</b>＝動量崩潮強制離場。點擊股票查看四因子拆解。</div>';
   }catch(e){
     console.error('[renderPositions]',e);
