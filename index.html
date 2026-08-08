@@ -1197,7 +1197,7 @@ function elnTableHTML(items, region){
     const ivTxt = iv!=null ? iv+'%' : '—';
     const up = (r.targetMeanPrice && r.price) ? ('<span style="font-size:10px;color:'+cv(r.upsidePct)+'">('+((r.upsidePct>=0)?'+':'')+r.upsidePct+'%)</span>') : '';
     h+='<tr>'+
-      '<td style="padding:6px;font-weight:700">'+(r.name? (r.code+' <span style="font-size:11px;color:#64748b">'+r.name+'</span>') : r.ticker)+'</td>'+
+      '<td style="padding:6px;font-weight:700">'+(r.name? (r.code+' <span style="font-size:11px;color:#64748b">'+r.name+'</span>') : r.ticker)+(r.healthy===false?' <span style="display:inline-block;background:#fee2e2;color:#dc2626;padding:1px 5px;border-radius:4px;font-size:9.5px;font-weight:700">⚠虧損</span>':'')+'</td>'+
       '<td class="r">'+cur+fmt(r.price)+'</td>'+
       '<td class="c">'+(r.score!=null?Math.round(r.score*100):'—')+'</td>'+
       '<td class="c" style="color:#16a34a">'+(r.quality!=null?Math.round(r.quality*100):'—')+'</td>'+
@@ -1828,11 +1828,11 @@ function renderHK(data){
   if(eln.recommended&&eln.recommended.length){
     eh+=elnTableHTML(eln.recommended,'HK');
   } else {
-    eh+='<div style="padding:12px;background:#fffbeb;border-radius:8px;color:#b45309;font-size:12px">現時無標的符合建議條件（財務健康 + 動量未崩 + 波幅可控）。</div>';
+    eh+='<div style="padding:12px;background:#fffbeb;border-radius:8px;color:#b45309;font-size:12px">現時無標的符合建議條件（動量未崩 + 波幅可控）。</div>';
   }
   eh+=elnAvoidHTML(eln.avoid,'HK');
   eh+='<div style="margin-top:10px;font-size:11px;color:#64748b;line-height:1.7">'+
-    '<b>ELN 選股原則（2026-08-08 更新）</b>：短年期（3個月）ELN → 動量/技術權重高（Decel≥-1 + 短線動量非負 + 綜合分≥55）+ 財務健康（不可虧損，ROE≤0 排除）+ strike 由 90D IV 決定（高波幅 → strike 壓深，不會接貨）；業績日於 3 個月期內會標示 🚩。<br>'+
+    '<b>ELN 選股原則（2026-08-08 更新）</b>：短年期（3個月）ELN → 動量/技術權重高（Decel≥-1 + 短線動量非負 + 綜合分≥55）+ strike 由 90D IV 決定（高波幅 → strike 壓深，不會接貨）；虧損企業（ROE≤0）仍可掛，但標記 ⚠ 及 strike 要壓更深；動量崩塌（Decel≤-3）排除；業績日於 3 個月期內會標示 🚩。<br>'+
     '<b>計算假設</b>：'+(eln.assumptions||'')+'</div>';
   const hkE=document.getElementById('hkElnBody'); if(hkE)hkE.innerHTML=eh;
 
