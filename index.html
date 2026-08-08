@@ -1328,7 +1328,7 @@ function render(data){
     }
     elnHTML+=elnAvoidHTML(eln.avoid,'US');
     elnHTML+='<div style="margin-top:8px;font-size:11px;color:#64748b;line-height:1.6">'+
-      '<b>ELN選股原則（2026-08-08 更新）</b>：短年期（3個月）ELN → 動量/技術權重高（Decel≥-1 + 短線動量非負 + 綜合分≥55）+ 財務健康（不可虧損，ROE≤0 排除）+ 波幅(90D)≤65%；strike 由 90D IV 決定；業績日於 3 個月期內會標示 🚩。票息為指示性計算。</div>';
+      '<b>ELN選股原則（2026-08-08 更新）</b>：短年期（3個月）ELN → 動量/技術權重高（Decel≥-1 + 短線動量非負 + 綜合分≥55）+ 財務健康（不可虧損，ROE≤0 排除）+ strike 由 90D IV 決定（高波幅 → strike 壓深，不會接貨）；業績日於 3 個月期內會標示 🚩。票息為指示性計算。</div>';
     document.getElementById('elnBody').innerHTML=elnHTML;
   }
 
@@ -1781,7 +1781,7 @@ function renderHK(data){
   }
   eh+=elnAvoidHTML(eln.avoid,'HK');
   eh+='<div style="margin-top:10px;font-size:11px;color:#64748b;line-height:1.7">'+
-    '<b>ELN 選股原則（2026-08-08 更新）</b>：短年期（3個月）ELN → 動量/技術權重高（Decel≥-1 + 短線動量非負 + 綜合分≥55）+ 財務健康（不可虧損，ROE≤0 排除）+ 波幅(90D)≤65%；strike 由 90D IV 決定；業績日於 3 個月期內會標示 🚩。<br>'+
+    '<b>ELN 選股原則（2026-08-08 更新）</b>：短年期（3個月）ELN → 動量/技術權重高（Decel≥-1 + 短線動量非負 + 綜合分≥55）+ 財務健康（不可虧損，ROE≤0 排除）+ strike 由 90D IV 決定（高波幅 → strike 壓深，不會接貨）；業績日於 3 個月期內會標示 🚩。<br>'+
     '<b>計算假設</b>：'+(eln.assumptions||'')+'</div>';
   const hkE=document.getElementById('hkElnBody'); if(hkE)hkE.innerHTML=eh;
 
