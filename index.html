@@ -1149,6 +1149,24 @@ function elnTableHTML(items, region){
   return h;
 }
 
+// 不宜掛 ELN 名單 — 用行列輸出（代碼/名稱/原因垂直對齊，取代一行打晒）
+function elnAvoidHTML(avoid, region){
+  if(!avoid||!avoid.length) return '';
+  const hk = region==='HK';
+  let h='<div style="margin-top:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px">'+
+    '<div style="font-size:12px;color:#dc2626;font-weight:700;margin-bottom:4px">🚫 不宜掛 ELN</div>'+
+    '<table style="width:100%;font-size:11.5px;border-collapse:collapse">'+
+    '<tr style="color:#991b1b"><th style="padding:3px 6px;text-align:left">'+(hk?'代碼':'股票')+'</th>'+(hk?'<th style="padding:3px 6px;text-align:left">名稱</th>':'')+'<th style="padding:3px 6px;text-align:left">原因</th></tr>';
+  avoid.forEach(function(a){
+    h+='<tr>'+
+      '<td style="padding:3px 6px;font-weight:700;white-space:nowrap">'+(a.code||a.ticker||'')+'</td>'+
+      (hk?'<td style="padding:3px 6px">'+(a.name||'')+'</td>':'')+
+      '<td style="padding:3px 6px;color:#7f1d1d">'+(a.reason||'')+'</td></tr>';
+  });
+  h+='</table></div>';
+  return h;
+}
+
 
 function render(data){
   const p=data.portfolio||{};
@@ -1293,10 +1311,7 @@ function render(data){
     } else {
       elnHTML+='<div style="padding:12px;background:#fffbeb;border-radius:8px;color:#b45309;font-size:12px">現時無標的符合建議條件（財務健康 + 動量未崩 + 波幅可控）。</div>';
     }
-    if(eln.avoid&&eln.avoid.length>0){
-      elnHTML+='<div style="margin-top:10px;font-size:12px;color:#dc2626;font-weight:600">🚫 不建議掛ELN：'+
-        eln.avoid.map(a=>a.ticker+'('+a.reason+')').join(' · ')+'</div>';
-    }
+    elnHTML+=elnAvoidHTML(eln.avoid,'US');
     elnHTML+='<div style="margin-top:8px;font-size:11px;color:#64748b;line-height:1.6">'+
       '<b>ELN選股原則（2026-08-08 更新）</b>：短年期（3個月）ELN → 動量/技術權重高（Decel≥-1 + 短線動量非負 + 綜合分≥55）+ 財務健康（不可虧損，ROE≤0 排除）+ 波幅(90D)≤65%；strike 由 90D IV 決定；業績日於 3 個月期內會標示 🚩。票息為指示性計算。</div>';
     document.getElementById('elnBody').innerHTML=elnHTML;
@@ -1749,10 +1764,7 @@ function renderHK(data){
   } else {
     eh+='<div style="padding:12px;background:#fffbeb;border-radius:8px;color:#b45309;font-size:12px">現時無標的符合建議條件（財務健康 + 動量未崩 + 波幅可控）。</div>';
   }
-  if(eln.avoid&&eln.avoid.length){
-    eh+='<div style="margin-top:10px;font-size:12px;color:#dc2626;font-weight:600">🚫 不宜掛 ELN：'+
-      eln.avoid.map(function(a){return a.code+' '+a.name+'('+a.reason+')';}).join(' · ')+'</div>';
-  }
+  eh+=elnAvoidHTML(eln.avoid,'HK');
   eh+='<div style="margin-top:10px;font-size:11px;color:#64748b;line-height:1.7">'+
     '<b>ELN 選股原則（2026-08-08 更新）</b>：短年期（3個月）ELN → 動量/技術權重高（Decel≥-1 + 短線動量非負 + 綜合分≥55）+ 財務健康（不可虧損，ROE≤0 排除）+ 波幅(90D)≤65%；strike 由 90D IV 決定；業績日於 3 個月期內會標示 🚩。<br>'+
     '<b>計算假設</b>：'+(eln.assumptions||'')+'</div>';
