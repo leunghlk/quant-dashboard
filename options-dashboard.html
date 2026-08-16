@@ -15,7 +15,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
 /* ── 品牌 bar ── */
-/* ── leungkathy 品牌 header / footer（跟 main dashboard 一致，⭐ 已定型唔好再改）── */
+/* ── leungkathy 品牌 header / footer（跟 main dashboard 一致，⭐ 已定型不要再改）── */
 .lk-bar{background:linear-gradient(135deg,#1a73e8 0%,#1557b0 100%);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.18);margin-bottom:12px}
 .lk-logo{width:38px;height:38px;background:#fff;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:300;font-style:italic;color:#1a73e8;transform:rotate(-6deg);font-family:'Brush Script MT','Segoe Script',cursive,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.18)}
 .lk-name{font-size:19px;font-weight:700;letter-spacing:.2px;line-height:1}
@@ -32,7 +32,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 .btn-primary{background:var(--blue);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all .15s}
 .btn-primary:hover{background:var(--blue-deep)}
 .btn-primary.loading{opacity:.6;pointer-events:none}
-/* ── tab bar（sticky 喺 appbar 下面）── */
+/* ── tab bar（sticky 在 appbar 下面）── */
 .tabs{position:sticky;top:53px;z-index:120;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:8px;padding:10px 22px;flex-wrap:wrap}
 .tabs button{background:#fff;border:1px solid #cbd5e1;color:#475569;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
 .tabs button:hover{border-color:var(--teal);color:var(--teal-deep)}
@@ -84,7 +84,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 .chartwrap{position:relative;height:340px}
 .chartwrap canvas{display:block}
 .chart-note{font-size:10px;color:var(--muted);margin-top:4px}
-/* ── 寬 table 橫向 scroll（唔好爆出 card／viewport）── */
+/* ── 寬 table 橫向 scroll（不要爆出 card／viewport）── */
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .table-scroll thead th{white-space:nowrap}
 /* ── 期權鏈 frozen header ── */
@@ -140,6 +140,9 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   <button data-pane="positions">📋 持倉管理</button>
   <button data-pane="method">❓ v4_balanced 方法論</button>
 </div>
+<div id="optAlert" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:#dc2626;color:#fff;padding:11px 22px;font-weight:700;font-size:14.5px;cursor:pointer;box-shadow:0 -3px 12px rgba(0,0,0,.3)" onclick="switchPane('positions')">
+  <span id="optAlertTxt"></span><span style="float:right;font-weight:500;opacity:.9">點擊查看持倉 →</span>
+</div>
 <div class="container">
 
   <!-- ═══════════ 總覽 ═══════════ -->
@@ -151,8 +154,14 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
       <div class="k"><div class="lbl">已用按金（Reg-T）</div><div class="val" id="ovUsed">—</div></div>
       <div class="k"><div class="lbl">估算月收入</div><div class="val" id="ovMonthly">—</div></div>
     </div>
-    <div class="card"><div class="card-h"><span class="t">🛤️ v4_balanced 執行欄位（即時）</span><span class="meta" id="railsMeta">跟足下表規則 = 貼近回測結果</span></div>
+    <div class="card"><div class="card-h"><span class="t">🛤️ v4_balanced 執行欄位（即時）</span><span class="meta" id="railsMeta">按照下表規則 = 貼近回測結果</span></div>
       <div class="card-b" id="ovRailsBody"><div class="muted">載入中…</div></div></div>
+    <div class="card"><div class="card-h"><span class="t">資本運用</span><span class="meta">HKD 200,000 組合上限</span></div>
+      <div class="card-b" id="ovCapBody"></div></div>
+    <div class="card"><div class="card-h"><span class="t">開倉位（未實現 mark-to-market）</span><span class="meta" id="ovPosMeta"></span></div>
+      <div class="card-b" id="ovPosBody"></div></div>
+    <div class="card"><div class="card-h"><span class="t">近期平倉紀錄（已實現）</span><span class="meta">紙上賬</span></div>
+      <div class="card-b" id="ovLedgerBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">📊 v4_balanced 回測績效</span><span class="meta">2025 全年 + 2026-01-01→08-15 · HKD 200,000 起步 · 含手續費/滑價</span></div>
       <div class="card-b">
         <div class="table-scroll"><table class="utable">
@@ -169,41 +178,35 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
           <div><div class="small muted">最差單筆（2026）</div><div style="font-weight:800;color:#dc2626">−HKD 20.2k</div></div>
           <div><div class="small muted">最高名義槓桿</div><div style="font-weight:800">0.85×</div></div>
         </div>
-        <div class="small muted" style="margin-top:8px">⚠️ 2026 係強牛市（SOX +75% YTD）；計劃應以 2025 情境（月均 +7k、回撤 −39.5%）做保守底。回測含 $1.10/腿手續費＋滑價＋7%/年按金利息；歷史表現不等於未來。</div>
-        <div class="small" style="margin-top:6px">2026 月度（HKD）：1月 +24.3k · 2月 −1.6k · 3月 −2.8k · 4月 +67.0k · 5月 +100.0k · 6月 +112.3k · 7月 +4.1k · 8月（寬度閘門暫停）</div>
+        <div class="small muted" style="margin-top:8px">⚠️ 2026 是強牛市（SOX +75% YTD）；計劃應以 2025 情境（月均 +7k、回撤 −39.5%）做保守底。回測含 $1.10/腿手續費＋滑價＋7%/年按金利息；歷史表現不等於未來。</div>
+        <div class="small" style="margin-top:6px">2026 月度（HKD）：1月 +24.3k · 2月 −1.6k · 3月 −2.8k · 4月 +67.0k · 5月 +100.0k · 6月 +112.3k · 7月 +4.1k · 8月（寬度閘門暫停：7 月股災後市寬 <50%，引擎依規則不開新倉）</div>
       </div>
     </div>
-    <div class="card"><div class="card-h"><span class="t">資本運用</span><span class="meta">HKD 200,000 組合上限</span></div>
-      <div class="card-b" id="ovCapBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">開倉位（未實現 mark-to-market）</span><span class="meta" id="ovPosMeta"></span></div>
-      <div class="card-b" id="ovPosBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">近期平倉紀錄（已實現）</span><span class="meta">紙上賬</span></div>
-      <div class="card-b" id="ovLedgerBody"></div></div>
   </div>
 
   <!-- ═══════════ 今日最佳 ═══════════ -->
   <div class="pane" id="pane-best">
-    <div class="card"><div class="card-h"><span class="t">🎯 今日最佳交易</span><span class="meta">點「執行」落單（紙上）· 點行開個股詳情</span></div>
+    <div class="card"><div class="card-h"><span class="t">🎯 今日最佳交易</span><span class="meta">點「執行」下單（紙上）· 點行開個股詳情</span></div>
       <div class="card-b" id="bestCard"></div></div>
     <div class="card"><div class="card-h"><span class="t">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
       <div class="card-b" id="candBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">⚡ 賣 Put 勝率排名（入場掃描）</span><span class="meta">按總評分排（最值得做排第一）· 10–14 DTE · Δ≈0.25 · v4_balanced 正式建議以「今日最佳＋候選名單」為準</span></div>
       <div class="card-b" id="winrankBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">你揀咗乜、排緊隊、同埋「今日唔做」</span></div>
+    <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">你的選擇、排隊中訂單、以及「今日不做」</span></div>
       <div class="card-b" id="decBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">已排除</span><span class="meta">業績窗口 / model veto / 槓桿 ETF</span></div>
+    <div class="card"><div class="card-h"><span class="t">已排除</span><span class="meta">業績窗口 / model veto（槓桿 ETF 已按你要求列入勝率排名掃描）</span></div>
       <div class="card-b small muted" id="notesBody"></div></div>
   </div>
 
   <!-- ═══════════ 個股詳情 ═══════════ -->
   <div class="pane" id="pane-detail">
     <div class="card"><div class="card-h"><span class="t" id="dtTitle">個股詳情</span><span class="meta"><span id="dtLive"></span> · <button class="btn btn-ghost" onclick="openBestDetail()">顯示最佳交易</button></span></div>
-      <div class="card-b" id="dtBody"><div class="muted">揀左邊候選名單 / 今日最佳嘅股票。</div></div></div>
+      <div class="card-b" id="dtBody"><div class="muted">請從「今日最佳／候選名單」選擇股票。</div></div></div>
   </div>
 
   <!-- ═══════════ 持倉管理 ═══════════ -->
   <div class="pane" id="pane-positions">
-    <div class="card" id="actCard" style="display:none"><div class="card-h"><span class="t">🔔 Engine 建議動作（出場訊號）</span><span class="meta">PT 50% · cut-before-assignment · roll · 熔斷 —— 跟住做 = 貼近回測路徑</span></div>
+    <div class="card" id="actCard" style="display:none"><div class="card-h"><span class="t">🔔 Engine 建議動作（出場訊號）</span><span class="meta">PT 50% · cut-before-assignment · roll · 熔斷 —— 照著做 = 貼近回測路徑</span></div>
       <div class="card-b" id="actBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">📋 開倉位</span><span class="meta">PT 50% 平倉 · cut 止損 · 業績日必平 · 可手動平倉</span></div>
       <div class="card-b" id="posBody"></div></div>
@@ -213,30 +216,30 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 
   <!-- ═══════════ 方法論（v4_balanced） ═══════════ -->
   <div class="pane" id="pane-method">
-    <div class="card"><div class="card-h"><span class="t">⭐ v4_balanced 模型規格</span><span class="meta">唯一喺 2025＋2026 兩個窗口都正回報嘅參數族 · 2026-08-15 凍結</span></div>
+    <div class="card"><div class="card-h"><span class="t">⭐ v4_balanced 模型規格</span><span class="meta">唯一在 2025＋2026 兩個窗口都正回報的參數族 · 2026-08-15 凍結</span></div>
       <div class="card-b">
         <div class="table-scroll"><table class="utable">
-          <thead><tr><th>參數</th><th>值</th><th>點解</th></tr></thead>
+          <thead><tr><th>參數</th><th>值</th><th>為什麼</th></tr></thead>
           <tbody>
-            <tr><td>按金利用率</td><td><b>70%</b> equity（Reg-T 按金口徑）</td><td class="muted">按金預算 = equity×0.70；唔係現金全鎖</td></tr>
+            <tr><td>按金利用率</td><td><b>70%</b> equity（Reg-T 按金口徑）</td><td class="muted">按金預算 = equity×0.70；不是現金全額鎖定</td></tr>
             <tr><td>最大同時 put 倉</td><td><b>6</b></td><td class="muted">分散 + 保持輪替頻率</td></tr>
             <tr><td>每日新倉上限</td><td><b>2</b></td><td class="muted">避免同日追高掃貨</td></tr>
-            <tr><td>賣 put Delta</td><td><b>0.25–0.30</b></td><td class="muted">被指派機率 ≈25–30%，權利金同安全嘅平衡點</td></tr>
-            <tr><td>DTE</td><td><b>10–14 日</b></td><td class="muted">theta 最斜嘅區段，又避開最後幾日 gamma 爆升</td></tr>
+            <tr><td>賣 put Delta</td><td><b>0.25–0.30</b></td><td class="muted">被指派機率 ≈25–30%，權利金與安全的平衡點</td></tr>
+            <tr><td>DTE</td><td><b>10–14 日</b></td><td class="muted">theta 最陡峭的區段，又避開最後幾日 gamma 急升</td></tr>
             <tr><td>個股股價區間</td><td><b>$10–$200</b></td><td class="muted">max_price 200 = 單名 notional 上限（tail-risk 槓桿）</td></tr>
-            <tr><td>單名按金上限</td><td><b>30%</b> equity</td><td class="muted">單股爆雷唔可以一鋪清袋</td></tr>
+            <tr><td>單名按金上限</td><td><b>30%</b> equity</td><td class="muted">單股爆雷不可令單一持倉清空賬戶</td></tr>
             <tr><td>板塊按金上限</td><td><b>40%</b> 按金預算</td><td class="muted">半導體同漲同跌，要硬性分散</td></tr>
-            <tr><td>利潤平倉 PT</td><td><b>50%</b> 權利金</td><td class="muted">收一半就走，慳返 tail risk 提高輪替</td></tr>
-            <tr><td>熔斷</td><td><b>−15%</b> → 停 10 交易日</td><td class="muted">one-shot；回修到 −8% 之上先 re-arm</td></tr>
-            <tr><td>大盤寬度閘門</td><td><b>≥50%</b> 股價&gt;MA50</td><td class="muted">宇宙寬度唔夠 = 全場休息（2026-08 就係咁停）</td></tr>
+            <tr><td>利潤平倉 PT</td><td><b>50%</b> 權利金</td><td class="muted">收一半就離場，省回 tail risk 並提高輪替</td></tr>
+            <tr><td>熔斷</td><td><b>−15%</b> → 停 10 交易日</td><td class="muted">one-shot；回修到 −8% 之上才 re-arm</td></tr>
+            <tr><td>大盤寬度閘門</td><td><b>≥50%</b> 股價&gt;MA50</td><td class="muted">宇宙寬度不足 = 全場休息（2026-08 就是這樣暫停）</td></tr>
             <tr><td>Covered Call（接貨後）</td><td><b>Δ 0.22–0.30 · 10–14 DTE · PT 50%</b></td><td class="muted">The Wheel 第二腿</td></tr>
           </tbody>
         </table></div>
         <div class="small muted" style="margin-top:8px">成本假設（回測已計）：期權 $1.10/腿/單向 · 股票 $0.005/股（min $1）· 滑價 · 7%/年按金利息。按金公式（Reg-T）：max(20%×現價＋權利金−OTM, 10%×行使價＋權利金)×100。</div>
       </div>
     </div>
-    <div class="card"><div class="card-h"><span class="t">入場：點樣揀「最佳」</span></div><div class="card-b" id="methodBest"></div></div>
-    <div class="card"><div class="card-h"><span class="t">IV 點嚟</span></div><div class="card-b" id="methodIV"></div></div>
+    <div class="card"><div class="card-h"><span class="t">入場：如何選「最佳」</span></div><div class="card-b" id="methodBest"></div></div>
+    <div class="card"><div class="card-h"><span class="t">IV 如何得出</span></div><div class="card-b" id="methodIV"></div></div>
     <div class="card"><div class="card-h"><span class="t">配倉（按金制）＋ 出場規則</span></div><div class="card-b" id="methodSize"></div></div>
     <div class="card"><div class="card-h"><span class="t">風險誠實話</span></div><div class="card-b" id="methodRisk"></div></div>
   </div>
@@ -266,40 +269,40 @@ const BRIDGE_URLS=(function(){
 
 /* ════════════ 詞彙表（layman + 公式）═ hover ⓘ ════════════ */
 const GLOSS={
-  'strike':'<b>行使價 Strike</b>：到期日你若被指派，就係以呢個價錢買入 100 股。越 OTM 越平但越安全。<br>選法：揀 delta≈0.25 嗰個行使價（≈25% 機會被指派）。',
-  'premium':'<b>權利金 Premium</b>：買家俾你嘅錢（你賣出期權即刻收到）。公式：mid×100×張數。<br>你嘅最大利潤就係呢筆錢。',
-  'collateral':'<b>抵押 Collateral（接貨現金）</b>：如果被指派要攞得出嚟嘅錢 = 行使價×100×張數。v4_balanced 用按金戶口（唔使全額鎖現金），但要知接貨成本呢個數。',
-  'margin':'<b>按金 Margin（Reg-T）</b>：券商真正鎖住嘅錢 = max(20%×現價＋權利金−OTM，10%×行使價＋權利金)×100×張數。<br>v4_balanced 嘅倉位預算用呢個口徑：總按金 ≤ equity×70%。',
-  'util':'<b>按金利用率</b>：已用按金 ÷（equity×70%）。<br>70% 上限係回測凍結參數 —— 爆上限 = 唔跟規則 = 結果冇得比。',
-  'breadth':'<b>大盤寬度 Breadth</b>：宇宙入面股價企喺自己 MA50 之上嘅比例。<br>&lt;50% = 大盤弱 → 引擎唔開新倉（2026 年 8 月上半月就係咁停咗）。呢個閘門避咗好多次跌市接貨。',
-  'breaker':'<b>熔斷 Circuit Breaker</b>：帳戶回撤到 −15% → 停止開新倉 10 個交易日，回修到 −8% 之上先 re-arm。<br>one-shot 設計：觸發一次就停，唔會每日重複觸發死循環。',
-  'cut':'<b>Cut-before-assignment（止損離場）</b>：行使價失守 <b>而且</b> 股價 &lt; 0.95×MA50（趨勢壞咗）<b>而且</b> DTE≥5 → 即刻買回平倉，唔等接貨。<br>v4 回測顯示呢條規則係避免大跌市越溝越深嘅關鍵。',
-  'csp':'<b>Cash-Secured Put（賣出認沽）</b>：你收錢「送」一個買入權俾人。股價唔跌穿行使價 → 到期歸零，你全收權利金；跌穿 → 你按行使價接貨（如果本嚟就想買呢隻股，就係折價買入）。',
-  'delta':'<b>Delta</b>：股價升 $1，期權價變幾多（賣 put 嘅 delta 係負數，≈-0.25 即被指派機率近似 25%）。<br>公式：N(d₁)−1（put）。我哋用佢揀行使價。',
-  'gamma':'<b>Gamma</b>：Delta 嘅變化率 —— 股價越近行使價，gamma 越大，short option 嘅風險變化越快。<br>公式：N′(d₁)/(S·σ√T)。到期最後幾日 gamma 會爆升（所以唔做太短年期）。',
-  'theta':'<b>Theta（時間衰減）</b>：每日權利金蝕幾多——係賣方嘅朋友。每日少一個維期權價值嘅部分。<br>公式（put）：[−S·N′(−d₁)·σ/(2√T) + r·K·e⁻ʳᵀ·N(−d₂)]/365。',
-  'vega':'<b>Vega</b>：IV 升 1%，期權價變幾多。short 方怕 IV 爆升（如業績日）。<br>公式：S·N′(d₁)·√T/100。業績日避開就係唔想食 vega。',
-  'iv':'<b>隱含波動率 IV</b>：市場對未來波動嘅定價，直接決定期權價。IV 高 → 權利金貴（賣方有着數）。<br>層一：Yahoo chain 真 IV；層二：歷史波動率（真實回報 std×√252）兜底。',
-  'ivrank':'<b>IV Rank</b>：而家 IV 喺呢隻股近 90 日歷史嘅位置（0-100）。越高代表而家賣特別抵。<br>公式：IV 歷史中 ≤ 而家 IV 嘅比例 ×100。',
-  'histvol':'<b>歷史波動率</b>：用真實股價回報計出嚟嘅波動 = stdev(日回報)×√252。係 IV 嘅「事實根據」。',
-  'itm':'<b>ITM（價內）</b>：put 嚟講即 S_T&lt;行使價 —— 買家會行使，你被指派。概率 = N(−d₂)。',
+  'strike':'<b>行使價 Strike</b>：到期日你若被指派，就是以此價錢買入 100 股。越 OTM 越平但越安全。<br>選法：選 delta≈0.25 的那個行使價（≈25% 機會被指派）。',
+  'premium':'<b>權利金 Premium</b>：買家支付給你的款項（你賣出期權立即收到）。公式：mid×100×張數。<br>你的最大利潤就是這筆錢。',
+  'collateral':'<b>抵押 Collateral（接貨現金）</b>：如被指派需拿出來的款項 = 行使價×100×張數。v4_balanced 用按金戶口（不用全額鎖定現金），但應知道接貨成本此數。',
+  'margin':'<b>按金 Margin（Reg-T）</b>：券商真正鎖住的款項 = max(20%×現價＋權利金−OTM，10%×行使價＋權利金)×100×張數。<br>v4_balanced 的倉位預算採用此口徑：總按金 ≤ equity×70%。',
+  'util':'<b>按金利用率</b>：已用按金 ÷（equity×70%）。<br>70% 上限是回測凍結參數 —— 超出上限 = 不跟規則 = 結果無從比較。',
+  'breadth':'<b>大盤寬度 Breadth</b>：宇宙中股價位於自己 MA50 之上的比例。<br>&lt;50% = 大盤弱 → 引擎不開新倉（2026 年 8 月上半月就是這樣停止）。這個閘門避免了很多次跌市接貨。',
+  'breaker':'<b>熔斷 Circuit Breaker</b>：帳戶回撤到 −15% → 停止開新倉 10 個交易日，回修到 −8% 之上才 re-arm。<br>one-shot 設計：觸發一次即停，不會每日重複觸發無限循環。',
+  'cut':'<b>Cut-before-assignment（止損離場）</b>：行使價失守 <b>而且</b> 股價 &lt; 0.95×MA50（趨勢轉壞）<b>而且</b> DTE≥5 → 立即買回平倉，不等接貨。<br>v4 回測顯示此規則是避免大跌市越溝越深的關鍵。',
+  'csp':'<b>Cash-Secured Put（賣出認沽）</b>：你收取款項並「送出」一個買入權給對手方。股價不跌穿行使價 → 到期歸零，你全收權利金；跌穿 → 你按行使價接貨（如果本來就想買這隻股票，即是折價買入）。',
+  'delta':'<b>Delta</b>：股價升 $1，期權價變多少（賣 put 的 delta 是負數，≈-0.25 即被指派機率近似 25%）。<br>公式：N(d₁)−1（put）。我們用它來選行使價。',
+  'gamma':'<b>Gamma</b>：Delta 的變化率 —— 股價越近行使價，gamma 越大，short option 的風險變化越快。<br>公式：N′(d₁)/(S·σ√T)。到期最後幾日 gamma 會急升（所以不做太短年期）。',
+  'theta':'<b>Theta（時間衰減）</b>：每日權利金虧損多少——是賣方的朋友。每日減少的期權價值部分。<br>公式（put）：[−S·N′(−d₁)·σ/(2√T) + r·K·e⁻ʳᵀ·N(−d₂)]/365。',
+  'vega':'<b>Vega</b>：IV 升 1%，期權價變多少。short 方懼怕 IV 急升（如業績日）。<br>公式：S·N′(d₁)·√T/100。避開業績日就是不想承受 vega 風險。',
+  'iv':'<b>隱含波動率 IV</b>：市場對未來波動的定價，直接決定期權價。IV 高 → 權利金貴（對賣方有利）。<br>層一：Yahoo chain 真 IV；層二：歷史波動率（真實回報 std×√252）兜底。',
+  'ivrank':'<b>IV Rank</b>：現在 IV 在這隻股票近 90 日歷史的位置（0-100）。越高代表現在賣出特別划算。<br>公式：IV 歷史中 ≤ 現在 IV 的比例 ×100。',
+  'histvol':'<b>歷史波動率</b>：用真實股價回報計算出來的波動 = stdev(日回報)×√252。是 IV 的「事實根據」。',
+  'itm':'<b>ITM（價內）</b>：put 而言即 S_T&lt;行使價 —— 買家會行使，你被指派。概率 = N(−d₂)。',
   'otm':'<b>OTM（價外）</b>：S_T&gt;行使價 —— 期權到期歸零，你全收權利金。概率 = N(d₂)。<br>賣 put 賺足權利金機率 = OTM%。',
-  'ann':'<b>年化回報</b>：將週回報化成年率方便比較 = yield%×365/DTE。<br>注意：呢個係「假設每星期都全收」嘅理想數字，真實要扣接貨回吐。',
-  'assign':'<b>被指派 / 接貨</b>：到期日股價低於行使價 → 你按行使價買入 100 股（紙上）。之後可賣 Covered Call 收返權利金（The Wheel）。',
+  'ann':'<b>年化回報</b>：將週回報化成年率方便比較 = yield%×365/DTE。<br>注意：這是「假設每星期都全收」的理想數字，真實要扣除接貨回吐。',
+  'assign':'<b>被指派 / 接貨</b>：到期日股價低於行使價 → 你按行使價買入 100 股（紙上）。之後可賣 Covered Call 收回權利金（The Wheel）。',
   'cc':'<b>Covered Call</b>：持有股票同時賣出認購期權，收權利金但犧牲升幅。Objective：Yield Enhancement。',
-  'close50':'<b>平倉 50%</b>：當權利金已經跌咗 50%（你賺咗一半），就 buy-to-close 鎖利。時間衰減喺尾段先急，早平可以慳返 tail risk。',
-  'earnings':'<b>業績日 / IV crush</b>：業績公佈後 IV 會急跌（vega 爆咗），期權價急插。持倉跨業績日 = 大跳空風險，所以窗口內一律唔做 / 必平。',
-  'breakeven':'<b>盈虧平衡</b>：行使價 − 權利金。股價低過呢度你才開始蝕。例：$60−$3.5=$56.5。',
-  'maxloss':'<b>最大虧損</b>：股價跌到 $0 嘅理論最壞情況 =（行使價−權利金）×100×張數。呢個係 CSP 嘅 tail risk。',
-  'sr':'<b>支援/阻力 S/R</b>：經典 pivot 計法（20 日）→ P=(H20+L20+C)/3、R1=2P−L20、S1=2P−H20。<br>賣 put 揀行使價最好喺支援位之下（有「墊」）。',
-  'pivot':'<b>Pivot Point</b>：即日交易者用嘅市場基準 = (H+L+C)/3。R1/R2 阻力、S1/S2 支援由此推。',
-  'atr':'<b>ATR（真實波幅）</b>：粗略日波幅 = vol30/√252×價。用嚟定止蝕距離（ATR×1.5）。',
-  'scenario':'<b>情境分析</b>：模擬到期日不同股價下你嘅盈虧（權利金 − max(0, K−S_T)）×100×張數。綠色=賺、紅色=蝕。',
-  'score':'<b>分數（揀最佳準則）</b>：annualized_yield ×(0.5+IV_rank/100) ÷ (1+risk)。<br>risk 懲罰：闊 spread、IV&gt;90%、細價股、舊報價。分高 = 回報高而風險抵。',
+  'close50':'<b>平倉 50%</b>：當權利金已跌 50%（你賺了一半），就 buy-to-close 鎖利。時間衰減在尾段才加速，早平可省回 tail risk。',
+  'earnings':'<b>業績日 / IV crush</b>：業績公佈後 IV 會急跌（vega 急跌），期權價急跌。持倉跨業績日 = 大跳空風險，所以窗口內一律不做 / 必平。',
+  'breakeven':'<b>盈虧平衡</b>：行使價 − 權利金。股價低於此水平你才開始虧損。例：$60−$3.5=$56.5。',
+  'maxloss':'<b>最大虧損</b>：股價跌到 $0 的理論最壞情況 =（行使價−權利金）×100×張數。這是 CSP 的 tail risk。',
+  'sr':'<b>支援/阻力 S/R</b>：經典 pivot 計法（20 日）→ P=(H20+L20+C)/3、R1=2P−L20、S1=2P−H20。<br>賣 put 選行使價最好在支援位之下（有「墊」）。',
+  'pivot':'<b>Pivot Point</b>：即日交易者使用的市場基準 = (H+L+C)/3。R1/R2 阻力、S1/S2 支援由此推。',
+  'atr':'<b>ATR（真實波幅）</b>：粗略日波幅 = vol30/√252×價。用來設定止損距離（ATR×1.5）。',
+  'scenario':'<b>情境分析</b>：模擬到期日不同股價下你的盈虧（權利金 − max(0, K−S_T)）×100×張數。綠色=賺、紅色=虧損。',
+  'score':'<b>分數（選最佳準則）</b>：annualized_yield ×(0.5+IV_rank/100) ÷ (1+risk)。<br>risk 懲罰：闊 spread、IV&gt;90%、細價股、舊報價。分高 = 回報高而風險可控。',
   'contracts':'<b>張數 Contracts</b>：1 張 = 100 股掛鈎。建議張數由按金預算計：min(（70%預算−已用）÷每張按金, 30% equity ÷每張按金, 板塊 40% 預算上限, 10)。',
-  'veto':'<b>Model Veto</b>：你個 All-in-One 量化模型（四因子 + 動量減速）話唔好買嘅股 → 唔會叫你賣 put。自己個系統做守門員。',
+  'veto':'<b>Model Veto</b>：你個 All-in-One 量化模型（四因子 + 動量減速）判斷不宜買入的股票 → 不會建議你賣 put。自家系統擔任守門員。',
   'expectation':'<b>概率加權期望值</b>：OTM%×最大利潤 + ITM%×平均虧損（粗略）。正數代表長遠「期望」有得賺。',
-  'premiumsrc':'<b>權利金來源</b>：live = 真實買賣價 mid；live-stale = 報價舊咗用模型兜底；model = 冇報價用 BS 模型計。',
+  'premiumsrc':'<b>權利金來源</b>：live = 真實買賣價 mid；live-stale = 報價過期改用模型兜底；model = 無報價時用 BS 模型計算。',
 };
 function tip(k){const t=GLOSS[k];return t?('<span class="tip" data-tip="'+t.replace(/'/g,'&#39;')+'">ⓘ</span>'):'';}
 
@@ -357,13 +360,13 @@ async function loadRec(force){
     setLive((rec.paper?'📝 紙上':'🔴 LIVE')+' · '+rec.date+(activeBridge&&activeBridge.indexOf('workers')>=0?' · ⚙ proxy':'')+' · 更新 '+lastUpdated.toLocaleTimeString('zh-HK'));
     renderAll();
     loadLive();
-    if(activeTk)loadChain(activeTk);   // ⭐ 刷新實時：期權鏈一齊 refresh
+    if(activeTk)loadChain(activeTk);   // ⭐ 刷新實時：期權鏈一起 refresh
   }catch(e){setLive('載入失敗，重試中…');}
   if(btn)btn.classList.remove('loading');
 }
 function manualRefresh(){
   const b=$('refreshBtn');if(b)b.textContent='🔄 刷新中…';
-  if(activeTk)chainScrollPending[activeTk]=true;   // ⭐ refresh 後 auto-scroll 返建議 strike
+  if(activeTk)chainScrollPending[activeTk]=true;   // ⭐ refresh 後 auto-scroll 回建議 strike
   loadRec(true);
   setTimeout(()=>{if(b)b.textContent='🔄 刷新實時';},4000);
 }
@@ -384,7 +387,28 @@ async function loadLive(){
 function setLive(t){const el=$('liveBadge');if(el)el.textContent=t;}
 
 /* ════════════ render ════════════ */
-function renderAll(){renderOverview();renderBest();renderCandidates();renderWinRank();renderPositions();renderNotes();renderDecisions();renderMethod();if(activeTk)renderDetail();}
+function renderAll(){renderOverview();renderBest();renderCandidates();renderWinRank();renderPositions();renderNotes();renderDecisions();renderMethod();renderAlarm();if(activeTk)renderDetail();}
+/* ⭐ 出場警報：engine actions／熔斷 → 頁面頂部紅 bar + 標題閃 + 提示音（Telegram 已由 engine 即時推送） */
+const BASE_TITLE=document.title;
+let titleFlash=null,lastAlarmSig='';
+function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();const o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=880;g.gain.value=.07;o.start();setTimeout(()=>{try{o.stop();a.close();}catch(e){}},180);}catch(e){}}
+function flashStart(){if(titleFlash)return;const t=BASE_TITLE;titleFlash=setInterval(()=>{document.title=(document.title===t?'🚨 期權警報！':t);},900);}
+function flashStop(){if(titleFlash){clearInterval(titleFlash);titleFlash=null;document.title=BASE_TITLE;}}
+function renderAlarm(){
+  const bar=$('optAlert');if(!bar)return;
+  const acts=(rec&&rec.actions)||[],bk=(rec&&rec.breaker)||{};
+  const cuts=acts.filter(a=>a.indexOf('cut')>=0).length,rolls=acts.filter(a=>a.indexOf('roll')>=0).length;
+  const asn=acts.filter(a=>a.indexOf('指派')>=0).length,clos=acts.filter(a=>a.indexOf('平倉')>=0&&a.indexOf('cut')<0&&a.indexOf('roll')<0&&a.indexOf('指派')<0).length;
+  const msgs=[];
+  if(bk.tripped)msgs.push('熔斷已觸發：停止開新倉'+(bk.paused_until?'（至 '+bk.paused_until+'）':''));
+  if(acts.length)msgs.push(acts.length+' 個持倉警報'+(cuts?'（🔴 cut 止損 '+cuts+'）':'')+(rolls?'（roll 建議 '+rolls+'）':'')+(asn?'（📦 指派 '+asn+'）':'')+(clos?'（平倉訊號 '+clos+'）':''));
+  const sig=bk.tripped+'|'+acts.length+'|'+cuts+'|'+rolls+'|'+asn+'|'+clos;
+  if(!msgs.length){bar.style.display='none';flashStop();lastAlarmSig=sig;return;}
+  bar.style.display='block';
+  $('optAlertTxt').innerHTML='🚨 '+msgs.join(' · ')+' —— engine 已同步推送 Telegram';
+  if(sig!==lastAlarmSig){beep();lastAlarmSig=sig;}
+  flashStart();
+}
 
 function findCandidate(tk){
   const list=[].concat(rec.book||[],rec.best?[rec.best]:[],rec.candidates||[]);
@@ -402,18 +426,18 @@ function renderRails(){
   let h='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">';
   h+='<div><div class="small muted">按金預算運用（70% 上限）'+tip('margin')+tip('util')+'</div>'
     +'<div class="bar" id="railMarginBar" style="margin-top:4px;cursor:help"><div style="width:'+Math.min(100,utilPct)+'%;background:'+(utilPct>90?'#dc2626':utilPct>70?'#d97706':'#1a73e8')+'"></div></div>'
-    +'<div class="small" style="margin-top:3px">$'+fmt(mu)+' / $'+fmt(mb)+' · <b>'+utilPct+'%</b> 預算（equity 嘅 '+utilEq+'%）</div></div>';
+    +'<div class="small" style="margin-top:3px">$'+fmt(mu)+' / $'+fmt(mb)+' · <b>'+utilPct+'%</b> 預算（equity 的 '+utilEq+'%）</div></div>';
   h+='<div><div class="small muted">倉位 / 閘門</div><div class="small" style="margin-top:4px;line-height:1.9">'
     +'Put 倉 <b>'+nputs+'/6</b>'+(ncc?' · CC 倉 <b>'+ncc+'</b>':'')+' · 每日新倉 ≤2'+tip('contracts')+'<br>'
     +'大盤寬度 <b style="color:'+(brOk?'#16a34a':'#dc2626')+'">'+(br==null||isNaN(br)?'—':Math.round(br*100)+'%')+'</b>（閘門 ≥50% '+(brOk?'✓ 開放新倉':'✗ 新倉暫停')+'）'+tip('breadth')+'<br>'
     +'熔斷 '+(bk.tripped?'<b style="color:#dc2626">🔴 已觸發（'+(bk.trip_dd!=null?bk.trip_dd+'%）':'）')+(bk.paused_until?' · 停至 '+bk.paused_until:'')+'</b>':'<b style="color:#16a34a">🟢 未觸發</b>（−15% 停 10 日）')+tip('breaker')
     +'</div></div>';
   h+='</div>';
-  h+='<div class="small muted" style="margin-top:8px">模型：<b>'+esc(rec.model_profile||'v4_balanced')+'</b> · 跟足「今日最佳 → 執行（紙上）」＋上表出場規則 = 貼近回測路徑。'+(bk.paused_until?'<br>⚠️ 熔斷期間唔好手動開新倉。':'')+'</div>';
-  const rm=$('railsMeta'); if(rm){const acts=(rec.actions||[]);rm.textContent=acts.length?('⚠️ '+acts.length+' 個出場建議 → 去「持倉管理」'):'跟足下表規則 = 貼近回測結果';}
+  h+='<div class="small muted" style="margin-top:8px">模型：<b>'+esc(rec.model_profile||'v4_balanced')+'</b> · 按照「今日最佳 → 執行（紙上）」＋上表出場規則 = 貼近回測路徑。'+(bk.paused_until?'<br>⚠️ 熔斷期間請勿手動開新倉。':'')+'</div>';
+  const rm=$('railsMeta'); if(rm){const acts=(rec.actions||[]);rm.textContent=acts.length?('⚠️ '+acts.length+' 個出場建議 → 去「持倉管理」'):'按照下表規則 = 貼近回測結果';}
   el.innerHTML=h;
-  const rmb=$('railMarginBar');   // ⭐ innerHTML 之後先 set（hover bar 睇實數）
-  if(rmb)rmb.dataset.tip='<b>按金預算運用</b><br>已用按金 $'+fmt(mu)+' ／ 預算 $'+fmt(mb)+'（equity×70%）<br>= <b>'+utilPct+'%</b>（equity 嘅 '+utilEq+'%）<br>90% 以上紅 · 70% 以上琥珀';
+  const rmb=$('railMarginBar');   // ⭐ innerHTML 之後先 set（hover bar 看實數）
+  if(rmb)rmb.dataset.tip='<b>按金預算運用</b><br>已用按金 $'+fmt(mu)+' ／ 預算 $'+fmt(mb)+'（equity×70%）<br>= <b>'+utilPct+'%</b>（equity 的 '+utilEq+'%）<br>90% 以上紅 · 70% 以上琥珀';
 }
 function renderOverview(){
   const p=rec.portfolio||{};
@@ -432,14 +456,14 @@ function renderOverview(){
   const cb=$('ovCapBody');
   if(cb){
     cb.innerHTML=
-      '<div class="small muted">① 按金 —— 券商為短倉鎖住嘅錢'+tip('margin')+tip('util')+'（上限 = equity×70% = $'+fmt(mb)+'）</div>'
+      '<div class="small muted">① 按金 —— 券商為短倉鎖住的錢'+tip('margin')+tip('util')+'（上限 = equity×70% = $'+fmt(mb)+'）</div>'
       +'<div class="bar" style="margin:4px 0 10px"><div style="width:'+Math.min(100,muPct)+'%;background:'+(muPct>90?'#dc2626':muPct>70?'#d97706':'#1a73e8')+'"></div></div>'
-      +'<div class="small muted">② 接貨現金 —— 啲 Put 全部被指派時要攞出嚟接貨嘅總數'+tip('collateral')+'（上限 HKD '+fmt(CAPITAL_HKD)+'）</div>'
+      +'<div class="small muted">② 接貨現金 —— 些 Put 全部被指派時要拿出來接貨的總數'+tip('collateral')+'（上限 HKD '+fmt(CAPITAL_HKD)+'）</div>'
       +'<div class="bar" style="margin:4px 0 6px"><div style="width:'+pct+'%;background:'+(pct>85?'#dc2626':'#0d9488')+'"></div></div>'
       +'<div class="small muted">① $'+fmt(mu)+' / $'+fmt(mb)+'（'+muPct+'%）· ② HKD '+fmt(locked)+' / '+fmt(CAPITAL_HKD)+'（'+pct+'%，剩可用 HKD '+fmt(avail)+'）· 開倉 '+p.open_count+'/6 · 排隊 '+decLoad('optdash_queued').length+'</div>';
     const bars=cb.querySelectorAll('.bar');
     if(bars[0]){bars[0].style.cursor='help';bars[0].dataset.tip='<b>① 按金（券商鎖住）</b><br>$'+fmt(mu)+' ／ $'+fmt(mb)+'（= equity×70% 預算）<br>運用 <b>'+muPct+'%</b> —— 超過 70% 琥珀、90% 紅（engine 會 reject 新倉）';}
-    if(bars[1]){bars[1].style.cursor='help';bars[1].dataset.tip='<b>② 接貨現金（最壞情況）</b><br>HKD '+fmt(locked)+' ／ '+fmt(CAPITAL_HKD)+'<br>= <b>'+pct+'%</b> —— 啲 Put 全部被指派時要攞出嚟接貨嘅總數；剩可用 HKD '+fmt(avail);}
+    if(bars[1]){bars[1].style.cursor='help';bars[1].dataset.tip='<b>② 接貨現金（最壞情況）</b><br>HKD '+fmt(locked)+' ／ '+fmt(CAPITAL_HKD)+'<br>= <b>'+pct+'%</b> —— 些 Put 全部被指派時要拿出來接貨的總數；剩可用 HKD '+fmt(avail);}
   }
   $('ovMonthly').textContent=hkd(rec.projected_monthly_hkd&&rec.projected_monthly_hkd.hkd);
   // 開倉位
@@ -453,11 +477,11 @@ function renderOverview(){
       h+='<tr><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+p.entry_prem+' / '+p.cur_prem+'</td><td class="r">'+p.pct_max+'%</td><td class="r">'+(p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span></td><td>'+a+'</td></tr>';
     });
     h+='</tbody></table></div>';
-  }else{h+='<div class="muted">暫無開倉位 — 去「今日最佳」揀一單執行。</div>';}
+  }else{h+='<div class="muted">暫無開倉位 — 請到「今日最佳」選一單執行。</div>';}
   $('ovPosBody').innerHTML=h;
   // 平倉紀錄
   const led=rec.ledger_recent||[];
-  $('ovLedgerBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">未有任何平倉紀錄。</div>';
+  $('ovLedgerBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">尚無任何平倉紀錄。</div>';
 }
 function ledTable(led){
   let h='<table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>張數</th><th>原因</th><th class="r">P&amp;L (USD)</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
@@ -470,7 +494,7 @@ function ledTable(led){
 function renderBest(){
   const b=rec.best;
   const el=$('bestCard');
-  if(!b){el.innerHTML='<div class="muted">今日無符合條件嘅候選。</div>';return;}
+  if(!b){el.innerHTML='<div class="muted">今日無符合條件的候選。</div>';return;}
   const sc=b.scenarios||{};
   let h='';
   h+='<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:stretch">';
@@ -484,7 +508,7 @@ function renderBest(){
   h+='<div style="font-size:13px;font-weight:700;color:#fbbf24;margin-top:6px">回報 '+(b.yield_pct!=null?Number(b.yield_pct).toFixed(2):'—')+'%/週 ≈ '+b.yield_ann+'%/年'+tip('ann')+'</div>';
   if(sc.breakeven){h+='<div style="font-size:11px;color:#94a3b8;margin-top:2px">盈虧平衡 $'+sc.breakeven+tip('breakeven')+' · 最大虧損（股價→0）$'+sc.max_loss+' ≈ HKD '+sc.max_loss_hkd+tip('maxloss')+'</div>';}
   if(b.earnings){h+='<div style="font-size:11px;color:#f59e0b;margin-top:4px">📅 下一業績日 '+b.earnings+tip('earnings')+'</div>';}
-  h+='<div style="margin-top:10px"><button class="btn btn-go" onclick="execCandidate(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+','+(b.contracts||1)+')">✅ 執行（紙上落單）</button> <button class="btn btn-no" onclick="skipTrade(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+')">唔做</button> <button class="btn btn-ghost" onclick="showDetail(\''+b.ticker+'\')">詳情 →</button></div>';
+  h+='<div style="margin-top:10px"><button class="btn btn-go" onclick="execCandidate(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+','+(b.contracts||1)+')">✅ 執行（紙上下單）</button> <button class="btn btn-no" onclick="skipTrade(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+')">不做</button> <button class="btn btn-ghost" onclick="showDetail(\''+b.ticker+'\')">詳情 →</button></div>';
   h+='</div>';
   h+='<div style="flex:1;min-width:240px;background:#1e293b;border-radius:10px;padding:14px;color:#fff">';
   h+='<div style="font-size:12px;color:#94a3b8">資本 + 期望</div>';
@@ -495,14 +519,14 @@ function renderBest(){
   h+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">'+rec.target_monthly_hkd_note+'</div>';
   h+='</div></div>';
   el.innerHTML=h;
-  const bb=el.querySelector('.bar');   // ⭐ hover bar 睇按金實數
+  const bb=el.querySelector('.bar');   // ⭐ hover bar 看按金實數
   if(bb){bb.style.cursor='help';const _bp=rec.margin_budget?Math.round((rec.used_margin_open||0)/rec.margin_budget*100):0;
     bb.dataset.tip='<b>按金運用（成個組合）</b><br>$'+fmt(rec.used_margin_open||0)+' ／ $'+fmt(rec.margin_budget||0)+'（equity×70%）= <b>'+_bp+'%</b><br>6 put 上限 · 每日 ≤2 新倉 · 單名按金 ≤30% equity';}
 }
 function liveSpot(tk,fb){const s=live[tk];return px2(s&&s.live_price!=null?s.live_price:fb);}
 
 function renderCandidates(){
-  // ⭐ 分數高 → 低（engine 已 sort+dedup，呢度再兜底排一次，防止舊 rec）
+  // ⭐ 分數高 → 低（engine 已 sort+dedup，這裡再兜底排一次，防止舊 rec）
   const cands=(rec.candidates||[]).filter(c=>!c.vetoed).sort((a,b)=>(b.score||0)-(a.score||0));
   const meta=$('candMeta');
   if(meta)meta.textContent=cands.length+' 個候選 · '+rec.veto_count+' 隻被 veto · '+(rec.model_profile||'v4_balanced')+' · Δ0.25–0.30 / 10–14DTE / $10–$200';
@@ -523,7 +547,7 @@ function renderCandidates(){
     h+='<td class="c">'+gauge(c.prob_itm,c.prob_otm)+'</td>';
     h+='<td class="r">'+yp+'%</td>';
     h+='<td class="r">'+(c.score!=null?c.score.toFixed(2):'—')+'</td>';
-    h+='<td><button class="btn btn-no" onclick="event.stopPropagation();skipTrade(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+')">唔做</button></td>';
+    h+='<td><button class="btn btn-no" onclick="event.stopPropagation();skipTrade(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+')">不做</button></td>';
     h+='</tr>';
   });
   h+='</tbody></table></div>';
@@ -531,7 +555,7 @@ function renderCandidates(){
 }
 
 /* ⭐ 2026-08-16: 賣 Put 勝率排名（winrank：P(OTM) 由高到低，連動量減速）
-   v4_balanced 冇裸賣 Call —— 沽 Call 只會喺接貨後以 Covered Call 出現（持倉管理），
+   v4_balanced 不裸賣 Call —— 沽 Call 只會在接貨後以 Covered Call 出現（持倉管理），
    所以 engine 只出 PUT 行。行 click → 個股詳情（合成 ctx：期權鏈＋情境分析照用）。 */
 function renderWinRank(){
   const el=$('winrankBody');if(!el)return;
@@ -545,10 +569,10 @@ function renderWinRank(){
     const otm=Math.round(x.prob_otm||0), itm=Math.round(x.prob_itm||0);
     const dec=x.decel!=null?x.decel:'—';
     const dcol=(dec!=='—')?(dec<=-3?'#dc2626':dec<=-2?'#d97706':'#16a34a'):'#94a3b8';
-    const una=x.unaffordable?' <span style="color:#dc2626;font-weight:700" title="單名按金超 30% equity 上限，執行唔到">⚠</span>':'';
+    const una=x.unaffordable?' <span style="color:#dc2626;font-weight:700" title="單名按金超 30% equity 上限，無法執行">⚠</span>':'';
     const n=winRankContracts(x);
     const m1=x.margin1||Math.round(0.22*(x.collateral||1));
-    // 合成 candidate ctx → 「詳情」/執行視窗有齊 spot/mid/OTM（冇日線 → 圖表自動跳過）
+    // 合成 candidate ctx → 「詳情」/執行視窗齊全 spot/mid/OTM（無隨行日線 → 圖表自動補拉）
     window._wrDetail[x.ticker]={ticker:x.ticker,expiry:x.expiry,dte:x.dte||0,strike:x.strike,spot:x.spot,mid:x.mid,
       delta:x.delta,iv:x.iv,iv_rank:x.iv_rank,prob_otm:x.prob_otm,prob_itm:x.prob_itm,
       gamma:null,theta:null,vega:null,levels:{},contracts:n,
@@ -566,21 +590,21 @@ function renderWinRank(){
       '</tr>';
   });
   h+='</tbody></table></div>';
-  h+='<div class="muted" style="font-size:11px;margin-top:4px">⭐ 排序 = <b>總評分</b>由高到低（最值得做排第一，唔係淨睇勝率）：總評分 = 年化回報×IV Rank÷(1+風險) × 股票質素 × 動量健康 —— 即係揉合咗周回報、decel、IV、流動性。勝率只係顯示參考。動量減速 ≤-2 琥珀、≤-3 紅。⚠ = 單名按金超 30% equity 上限（engine 會 reject）。點行 → 個股詳情（實時期權鏈＋情境分析；掃描行冇日線 → K 線跳過）。</div>'
-    +'<div class="muted" style="font-size:11px;margin-top:2px">沽 Call 唔會出現喺呢度 —— v4_balanced 唔裸賣 Call；接貨之後先會喺「持倉管理」以 Covered Call 沽 Call。</div>';
+  h+='<div class="muted" style="font-size:11px;margin-top:4px">⭐ 排序 = <b>總評分</b>由高到低（最值得做排第一，不是只看勝率）：總評分 = 年化回報×IV Rank÷(1+風險) × 股票質素 × 動量健康 —— 也就是揉合了周回報、decel、IV、流動性。勝率只是顯示參考。動量減速 ≤-2 琥珀、≤-3 紅。⚠ = 單名按金超 30% equity 上限（engine 會 reject）。點擊資料列 → 個股詳情（實時期權鏈＋情境分析；掃描行無日線 → K 線自動經 /kline 補拉）。</div>'
+    +'<div class="muted" style="font-size:11px;margin-top:2px">沽 Call 不會出現在這裡 —— v4_balanced 不裸賣 Call；接貨之後才會在「持倉管理」以 Covered Call 沽 Call。</div>';
   el.innerHTML=h;
 }
 
-/* ⭐ 2026-08-14: winrank 執行 —— side-aware（賣 Put→CSP / 賣 Call→短 call）＋ 攞實時 Futu bid */
+/* ⭐ 2026-08-14: winrank 執行 —— side-aware（賣 Put→CSP / 賣 Call→短 call）＋ 取得實時 Futu bid */
 function winRankContracts(x){
   const eq=eqUSD();   // v4_balanced：單名按金 ≤30% equity（同 engine 口徑）
-  const m1=x.margin1||Math.round(0.22*(x.collateral||1));   // winrank 冇 margin1 → 0.22×K×100 近似
+  const m1=x.margin1||Math.round(0.22*(x.collateral||1));   // winrank 無 margin1 → 0.22×K×100 近似
   return Math.max(1,Math.min(10,Math.floor(eq*0.30/m1)));
 }
 function execWinRank(i){
   const x=(rec&&rec.winrank||[])[i];if(!x)return;
   const side=(x.signal==='SELL CALL')?'CALL':'PUT';
-  // winrank 行唔喺 book/best/candidates → 合成 candidate context，modal 先有齊 spot/mid/OTM 顯示
+  // winrank 行不在 book/best/candidates → 合成 candidate context，modal 才齊全 spot/mid/OTM 顯示
   const ctx={ticker:x.ticker,name:x.ticker,expiry:x.expiry,dte:x.dte||0,strike:x.strike,spot:x.spot,mid:x.mid,
     delta:x.delta,iv:x.iv,prob_otm:x.prob_otm,prob_itm:x.prob_itm,
     contracts:winRankContracts(x),premium:x.premium,premium_total:x.premium,
@@ -612,7 +636,7 @@ function renderPositions(){
   body.innerHTML=h;
   const led=rec.ledger_recent||[];
   $('ledMeta').textContent='累計已實現 '+hkd(rec.realized_hkd);
-  $('ledBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">未有紀錄。</div>';
+  $('ledBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">尚無紀錄。</div>';
 }
 
 /* ════════════ 個股詳情 ════════════ */
@@ -624,7 +648,7 @@ function showDetail(tk){
 }
 function renderDetail(){
   const c=findCandidate(activeTk);
-  if(!c){$('dtBody').innerHTML='<div class="muted">呢隻股暫時冇候選資料。</div>';return;}
+  if(!c){$('dtBody').innerHTML='<div class="muted">這隻股票暫時沒有候選資料。</div>';return;}
   $('dtTitle').textContent='📈 '+c.ticker+' 個股詳情';
   const livePx=liveSpot(c.ticker,c.spot);
   $('dtLive').innerHTML='現價 <b>$'+livePx+'</b>'+(live[c.ticker]?(' · '+esc(live[c.ticker].session||'')):'')+' · <button class="btn btn-go" onclick="execCandidate(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+','+(c.contracts||1)+')">✅ 執行</button>';
@@ -643,7 +667,7 @@ function renderDetail(){
   h+='<div class="card-b"><div class="chartwrap" id="chart"><div class="muted" id="chartFallback">圖表載入中…</div></div>';
   h+='<div class="chart-note">S/R：經典 pivot（20 日）P=(H+L+C)/3'+tip('pivot')+' · 支援/阻力'+(c.levels?('：S1 $'+c.levels.support1+' / R1 $'+c.levels.resistance1):'')+tip('sr')+'</div></div></div></div>';
   h+='<div>';
-  h+='<div class="card"><div class="card-h"><span class="t">支援 / 阻力 + 希臘字母</span><span class="meta">hover ⓘ 睇解釋</span></div>';
+  h+='<div class="card"><div class="card-h"><span class="t">支援 / 阻力 + 希臘字母</span><span class="meta">hover ⓘ 查看解釋</span></div>';
   h+='<div class="card-b" id="detailMeta"></div></div>';
   h+='</div></div>';
   // ⭐ Futu 實時期權鏈（買/賣 + IV + Delta，同 Futu App 一樣）
@@ -654,14 +678,14 @@ function renderDetail(){
   h+='<div class="card-b"><div class="payoff-wrap"><svg id="payoffSvg"></svg><div class="payoff-tip" id="payoffTip"></div></div><div id="scenBody"></div></div></div>';
   // 執行
   h+='<div class="card"><div class="card-h"><span class="t">決定</span></div>';
-  h+='<div class="card-b"><button class="btn btn-go" style="font-size:14px;padding:10px 22px" onclick="execCandidate(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+','+(c.contracts||1)+')">✅ 執行呢單（紙上）</button> <button class="btn btn-no" onclick="skipTrade(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+')">今日唔做</button></div></div>';
+  h+='<div class="card-b"><button class="btn btn-go" style="font-size:14px;padding:10px 22px" onclick="execCandidate(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+','+(c.contracts||1)+')">✅ 執行這一單（紙上）</button> <button class="btn btn-no" onclick="skipTrade(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+')">今日不做</button></div></div>';
   $('dtBody').innerHTML=h;
   // 明細元數據
   const lv=c.levels||{};
   let m='<table class="utable"><thead><tr><th class="c">指標</th><th class="r">值</th><th>解釋</th></tr></thead><tbody>';
   m+='<tr><td class="c">Pivot</td><td class="r mono">$'+(lv.pivot||'—')+'</td><td class="small">市場基準'+tip('pivot')+'</td></tr>';
   m+='<tr><td class="c">R1 / R2 阻力</td><td class="r mono">$'+(lv.resistance1||'—')+' / $'+(lv.resistance2||'—')+'</td><td class="small">上方阻力'+tip('sr')+'</td></tr>';
-  m+='<tr><td class="c">S1 / S2 支援</td><td class="r mono">$'+(lv.support1||'—')+' / $'+(lv.support2||'—')+'</td><td class="small">下方支援（行使價揀喺下面更安全）'+tip('sr')+'</td></tr>';
+  m+='<tr><td class="c">S1 / S2 支援</td><td class="r mono">$'+(lv.support1||'—')+' / $'+(lv.support2||'—')+'</td><td class="small">下方支援（行使價選在下方更安全）'+tip('sr')+'</td></tr>';
   m+='<tr><td class="c">ATR（日波幅）</td><td class="r mono">$'+(lv.atr||'—')+'</td><td class="small">粗略日波幅'+tip('atr')+'</td></tr>';
   m+='<tr><td class="c">Delta</td><td class="r mono">'+(c.delta!=null?c.delta:'—')+'</td><td class="small">股價$1變動→權利金變動'+tip('delta')+'</td></tr>';
   m+='<tr><td class="c">Gamma</td><td class="r mono">'+(c.gamma!=null?c.gamma:'—')+'</td><td class="small">delta 變化率'+tip('gamma')+'</td></tr>';
@@ -692,7 +716,7 @@ function payoffSVG(c,n){
   const fn=px=>(prem-Math.max(0,K-px))*mult;
   const arr=[fn(x0),fn(x1),prem*mult,-(K-prem)*mult,0];
   let y0=Math.min.apply(null,arr),y1=Math.max.apply(null,arr);
-  // ⭐ 2026-08-14: max gain 唔好貼住最頂——short put 個 loss 遠大過 gain，淨係 1.15x 乘落 max 會令
+  // ⭐ 2026-08-14: max gain 不要貼住最頂——short put 個 loss 遠大過 gain，只 1.15x 乘到 max 會令
   // gain 端零 headroom、條 curve 被壓扁。正常情況兩端各加 10% range；單邊情況特判。
   if(y0>=0){y0=-prem*mult*0.08;y1=Math.max(y1,prem*mult)*1.15;}
   else if(y1<=0){y1=prem*mult*0.08;y0=Math.min(y0,-(K-prem)*mult)*1.15;}
@@ -711,7 +735,7 @@ function payoffSVG(c,n){
   if(K-prem>0){h+='<line x1="'+X(K-prem).toFixed(1)+'" y1="'+padT+'" x2="'+X(K-prem).toFixed(1)+'" y2="'+(H-padB)+'" stroke="#d97706" stroke-dasharray="5,3" stroke-width="1.4"/>';
     h+='<text x="'+X(K-prem).toFixed(1)+'" y="'+(H-padB+13)+'" font-size="9" fill="#d97706" text-anchor="middle">盈虧平衡 '+(K-prem).toFixed(2)+'</text>';}
   h+='<polyline points="'+pts+'" fill="none" stroke="#0d9488" stroke-width="2.2"/>';
-  // ⭐ 現價 marker（S 位置：垂直虛線 + 曲線上嘅點）
+  // ⭐ 現價 marker（S 位置：垂直虛線 + 曲線上的點）
   if(S>=x0&&S<=x1){
     h+='<line x1="'+X(S).toFixed(1)+'" y1="'+padT+'" x2="'+X(S).toFixed(1)+'" y2="'+(H-padB)+'" stroke="#0ea5e9" stroke-dasharray="4,3" stroke-width="1.3"/>';
     h+='<circle cx="'+X(S).toFixed(1)+'" cy="'+Y(fn(S)).toFixed(1)+'" r="4" fill="#0ea5e9" stroke="#fff" stroke-width="1.2"/>';
@@ -748,22 +772,22 @@ function renderScenarios(c){
   s+='<div><span class="muted">最大利潤</span> <b class="pos">+$'+d.maxProfit+'</b></div>';
   s+='<div><span class="muted">最大虧損（→0）</span> <b class="neg">-$'+d.maxLoss+'</b> '+tip('maxloss')+'</div>';
   s+='<div><span class="muted">盈虧平衡</span> <b>$'+d.be.toFixed(2)+'</b>'+tip('breakeven')+'</div>';
-  s+='<div class="warn-note" style="margin-top:8px">⚠️ 情境係到期日靜態盈虧；hover 圖上任意價位睇即時盈虧，改「張數」會即時重繪。'+tip('scenario')+'</div>';
+  s+='<div class="warn-note" style="margin-top:8px">⚠️ 情境是到期日靜態盈虧；hover 圖上任意價位查看即時盈虧，改「張數」會即時重繪。'+tip('scenario')+'</div>';
   s+='</div>';
   /* ⭐ 08-16：到期前情境 —— 提早平倉 / 觸及行使價 / cut / 指派 → wheel（engine 出場規則） */
   const K=c.strike,S0=c.spot,prem=c.mid,n=scenNval||1,iv=c.iv||0.5,dte=c.dte||12;
   const halfT=Math.max(dte,2)/2/365;
-  const atK=bsPutPrice(K,K,halfT,iv);            // S 跌到 K、剩一半時間 → 張 put 嘅模型價
+  const atK=bsPutPrice(K,K,halfT,iv);            // S 跌到 K、剩一半時間 → 該 put 的模型價
   const mtmK=(atK!=null)?Math.round((prem-atK)*100*n):null;   // 負數 = 浮動虧損
-  const pt=Math.round(prem*0.5*100*n);            // PT 50% 袋到嘅錢
-  s+='<div class="card-h" style="margin-top:14px"><span class="t">⏱️ 到期前會發生嘅事（engine 出場規則）</span><span class="meta">唔使等到到期 —— 4 個可能中途劇本</span></div>';
-  s+='<table class="utable"><thead><tr><th style="width:150px">情境</th><th>觸發條件</th><th class="r">盈虧（'+n+' 張）</th><th>engine 會做乜</th></tr></thead><tbody>';
-  s+='<tr><td><b>🟢 提早平倉</b>（最常見）</td><td class="small">權利金跌咗 50%（時間值衰減）→ 買回</td><td class="r pos">+$'+pt.toLocaleString()+'</td><td class="small">✅ 出「建議平倉」訊號 → 撳平倉，錢落袋，唔使等</td></tr>';
-  s+='<tr><td><b>🟡 中途觸及行使價</b></td><td class="small">股價跌到 $'+px2(K)+'（剩約 '+Math.max(dte,2)/2+' 日時間值）</td><td class="r '+(mtmK!=null&&mtmK<0?'neg':'')+'">'+(mtmK!=null?(mtmK>=0?'+':'')+mtmK.toLocaleString():'—')+'</td><td class="small">浮動虧損（未實現）；delta 侵蝕到 −0.50 → 出「roll」建議（平舊開新，鎖定細損失再收租）</td></tr>';
-  s+='<tr><td><b>🟠 止損離場</b>（cut）</td><td class="small">跌穿行使價 <b>兼</b> 跌穿 0.95×MA50（DTE≥5）= 趨勢壞咗</td><td class="r small">視乎當時權利金</td><td class="small">🔴 出「cut-before-assignment」→ 即刻市價買回止損，<b>唔接貨</b>，避免坐蟹貨</td></tr>';
-  s+='<tr><td><b>🔵 到期被指派</b></td><td class="small">到期日收市價 &lt; $'+px2(K)+'</td><td class="r small">接 '+100*n+' 股 · 成本 $'+px2(K-prem)+'/股</td><td class="small">正常步驟唔係輸：接貨 → 轉入 <b>Covered Call</b>（之後每 10–14 日沽 Call 收租 = wheel）</td></tr>';
+  const pt=Math.round(prem*0.5*100*n);            // PT 50% 可入袋的款項
+  s+='<div class="card-h" style="margin-top:14px"><span class="t">⏱️ 到期前會發生的事（engine 出場規則）</span><span class="meta">不用等到到期 —— 4 個可能中途劇本</span></div>';
+  s+='<table class="utable"><thead><tr><th style="width:150px">情境</th><th>觸發條件</th><th class="r">盈虧（'+n+' 張）</th><th>engine 會做什麼</th></tr></thead><tbody>';
+  s+='<tr><td><b>🟢 提早平倉</b>（最常見）</td><td class="small">權利金跌 50%（時間值衰減）→ 買回</td><td class="r pos">+$'+pt.toLocaleString()+'</td><td class="small">✅ 出「建議平倉」訊號 → 按平倉，款項入袋，不用等</td></tr>';
+  s+='<tr><td><b>🟡 中途觸及行使價</b></td><td class="small">股價跌到 $'+px2(K)+'（剩約 '+Math.max(dte,2)/2+' 日時間值）</td><td class="r '+(mtmK!=null&&mtmK<0?'neg':'')+'">'+(mtmK!=null?(mtmK>=0?'+':'')+mtmK.toLocaleString():'—')+'</td><td class="small">浮動虧損（未實現）；delta 侵虧損到 −0.50 → 出「roll」建議（平舊開新，鎖定小損失再收租）</td></tr>';
+  s+='<tr><td><b>🟠 止損離場</b>（cut）</td><td class="small">跌穿行使價 <b>兼</b> 跌穿 0.95×MA50（DTE≥5）= 趨勢壞了</td><td class="r small">視乎當時權利金</td><td class="small">🔴 出「cut-before-assignment」→ 立即市價買回止損，<b>不接貨</b>，避免長期套牢</td></tr>';
+  s+='<tr><td><b>🔵 到期被指派</b></td><td class="small">到期日收市價 &lt; $'+px2(K)+'</td><td class="r small">接 '+100*n+' 股 · 成本 $'+px2(K-prem)+'/股</td><td class="small">正常步驟不是輸：接貨 → 轉入 <b>Covered Call</b>（之後每 10–14 日沽 Call 收租 = wheel）</td></tr>';
   s+='</tbody></table>';
-  s+='<div class="muted" style="font-size:11px;margin-top:4px">v4_balanced 5 大出場：PT 50% 提早平倉 · Δ−0.50 roll · cut-before-assignment · 業績前平倉 · 指派 → CC。回測入面大部分倉係 PT 50% 走，唔會攞到期。</div>';
+  s+='<div class="muted" style="font-size:11px;margin-top:4px">v4_balanced 5 大出場：PT 50% 提早平倉 · Δ−0.50 roll · cut-before-assignment · 業績前平倉 · 指派 → CC。回測中大部分倉位以 PT 50% 離場，不會持有到期。</div>';
   $('scenBody').innerHTML=s;
 }
 function scenStep(d){
@@ -780,26 +804,26 @@ async function loadChain(tk){
   try{
     const r=await fetchTimeout(activeBridge+'/options/chain?code='+encodeURIComponent(tk)+'&secret='+encodeURIComponent(BRIDGE_SECRET),25000);
     const j=await r.json().catch(()=>null);
-    if(!j||!j.ok){cEl.innerHTML='<div class="muted">Futu 期權鏈唔可用：'+(j&&j.error?esc(j.error):'')+'</div>';return;}
+    if(!j||!j.ok){cEl.innerHTML='<div class="muted">Futu 期權鏈不可用：'+(j&&j.error?esc(j.error):'')+'</div>';return;}
     chainCache[tk]=j;
     renderChain(j,tk);
   }catch(e){cEl.innerHTML='<div class="muted">Futu 期權鏈載入失敗（bridge 是否連線 / 帳戶有無期權權限）。</div>';}
 }
-function setChainExp(tk,i){chainExpIdx[tk]=i;chainScrollPending[tk]=false;renderChain(chainCache[tk],tk);}   // ⭐ 手動切 expiry 唔再 re-scroll
+function setChainExp(tk,i){chainExpIdx[tk]=i;chainScrollPending[tk]=false;renderChain(chainCache[tk],tk);}   // ⭐ 手動切 expiry 不再 re-scroll
 function renderChain(chain,tk){
   const cEl=$('chainCard');if(!cEl)return;
   const idx=chainExpIdx[tk]||0;
   const exp=chain.expiries[idx]||chain.expiries[0];
-  if(!exp){cEl.innerHTML='<div class="muted">冇期權到期日。</div>';return;}
+  if(!exp){cEl.innerHTML='<div class="muted">無期權到期日。</div>';return;}
   const cand=findCandidate(tk);
-  const candStrike=cand?cand.strike:null, candExp=cand?cand.expiry:null;   // ⭐ 建議只喺佢自己嗰個 expiry 度 highlight
+  const candStrike=cand?cand.strike:null, candExp=cand?cand.expiry:null;   // ⭐ 建議只在佢自己那個 expiry 度 highlight
   const spot=chain.spot;
   let h='<div style="margin-bottom:8px;font-size:12px">到期：';
   chain.expiries.forEach((e,i)=>{const isCand=cand&&e.expiry===cand.expiry;
     h+='<button class="btn '+(i===idx?'btn-go':'btn-ghost')+'" style="margin-right:4px" onclick="setChainExp(\''+tk+'\','+i+')">'+e.expiry+'（'+e.days+'D）'+(isCand?' ⭐':'')+'</button> ';});
-  h+='<span class="muted small">· 正股 $'+px2(spot)+' · 來源：'+(chain.source==='yfinance'?'<b style="color:#d97706">Yahoo 兜底</b>（Futu 未有呢隻）':'<b style="color:#0d9488">Futu 實時</b>')+'</span>';
-  h+='<div class="muted small" style="margin-top:3px">到期日按 <b>10–14 DTE（v4_balanced 範圍）排先</b>；短過 10 日嗰啲（例如 5D）係監察現有倉用 —— 未持有嘅話唔好用佢開新倉。</div>';
-  h+='<div id="selReadout"></div>';   // ⭐ 揀咗 strike 之後嘅即時 readout
+  h+='<span class="muted small">· 正股 $'+px2(spot)+' · 來源：'+(chain.source==='yfinance'?'<b style="color:#d97706">Yahoo 兜底</b>（Futu 尚無這隻）':'<b style="color:#0d9488">Futu 實時</b>')+'</span>';
+  h+='<div class="muted small" style="margin-top:3px">到期日按 <b>10–14 DTE（v4_balanced 範圍）優先排列</b>；短於 10 日的（例如 5D）用於監察現有倉位 —— 未持有的話不要用它開新倉。</div>';
+  h+='<div id="selReadout"></div>';   // ⭐ 選定 strike 後的即時 readout
   // merge call/put by strike；只顯示正股 ±40% 內（deep ITM/OTM IV 無意義 + payload 細）
   const m={};
   exp.rows.forEach(r=>{if(!r.strike)return;const K=r.strike;
@@ -815,10 +839,10 @@ function renderChain(chain,tk){
     const cl=m[K].call||{}, pu=m[K].put||{};
     const isRec=candStrike!=null&&candExp===exp.expiry&&Math.abs(Number(K)-candStrike)<0.01;
     const star=isRec?(' '+pill('w','建議')):'';
-    // ⭐ 2026-08-14: highlight 併入單一 style —— 之前行內「cursor」係第二個 style attribute，
-    // 瀏覽器淨係用最後一個 → background:#fffbeb 俾 cursor 覆蓋 → 建議 strike 冇黃底 highlight。
+    // ⭐ 2026-08-14: highlight 併入單一 style —— 之前行內「cursor」是第二個 style attribute，
+    // 瀏覽器只用最後一個 → background:#fffbeb 被 cursor 覆蓋 → 建議 strike 無黃底 highlight。
     const hl=isRec?'background:#fffbeb;':'';
-    // 點行使價行 → 揀呢個 strike（即時 update chart + payoff + OTM/ITM% + 回報%）
+    // 點擊行使價行 → 選此 strike（即時 update chart + payoff + OTM/ITM% + 回報%）
     const pick=pu.bid!=null?('onclick="selChain(\''+tk+'\',\''+exp.expiry+'\','+exp.days+','+K+','+pu.bid+','+pu.ask+','+(pu.iv||0)+','+(pu.delta||0)+','+(spot||0)+')"'):'';
     h+='<tr id="crow-'+K+'" style="'+hl+'cursor:'+(pu.bid!=null?'pointer':'default')+'" '+pick+'><td class="r"><b>'+px2(K)+'</b>'+star+'</td>';
     h+='<td class="r">'+(cl.bid!=null?px2(cl.bid):'—')+'</td><td class="r">'+(cl.ask!=null?px2(cl.ask):'—')+'</td>'+
@@ -832,7 +856,7 @@ function renderChain(chain,tk){
   h+='</tbody></table></div>';
   h+='<div class="chart-note">賣出價 = bid（你實際收到）；買回價 = ask。點任何行使價行 → chart / payoff / OTM-ITM% / 回報% 即時更新。' + tip('premiumsrc') + '</div>';
   cEl.innerHTML=h;
-  // ⭐ auto-scroll 去建議 strike（首次 + refresh / 重入 tab 都做；但淨係喺候選自己嗰個 expiry 先會）
+  // ⭐ auto-scroll 去建議 strike（首次 + refresh / 重入 tab 都做；但只在候選自己的那個 expiry 才會）
   if(candStrike!=null&&candExp===exp.expiry&&(chainScrollPending[tk]||!chainSeen[tk])){
     chainSeen[tk]=true;
     chainScrollPending[tk]=false;
@@ -844,9 +868,9 @@ function execChain(tk,exp,K,type,bid,ask){
   // 賣出價 = bid（真實成交價）；同候選策略一致用 sell-put/sell-call
   openExec(tk,exp,Number(K),1,bid,bid,ask,type);
 }
-/* ════════════ 執行：攞實時 Futu bid 先落單 ════════════ */
+/* ════════════ 執行：取得實時 Futu bid 先下單 ════════════ */
 async function execCandidate(tk,exp,K,contracts,side,fallbackMid,ctx){
-  // ⭐ 2026-08-14: side-aware（賣 Put→CSP / 賣 Call→短 call）；ctx = winrank 等非候選行嘅合成 candidate
+  // ⭐ 2026-08-14: side-aware（賣 Put→CSP / 賣 Call→短 call）；ctx = winrank 等非候選行的合成 candidate
   let bid=null,ask=null;
   if(!chainCache[tk]&&activeBridge){
     try{
@@ -866,7 +890,7 @@ async function execCandidate(tk,exp,K,contracts,side,fallbackMid,ctx){
   const c=ctx||findCandidate(tk);
   openExec(tk,exp,K,contracts||(c?c.contracts:1),bid||(fallbackMid!=null?fallbackMid:(c?c.mid:0)),bid,ask,side||'PUT',ctx);
 }
-/* ════════════ 期權鏈揀 strike → 即時 update chart + payoff + OTM/ITM% + 回報% ════════════ */
+/* ════════════ 期權鏈選 strike → 即時 update chart + payoff + OTM/ITM% + 回報% ════════════ */
 function erfA(x){const sign=x>=0?1:-1;x=Math.abs(x);const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
   const t=1/(1+p*x);const y=1-(((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t)*Math.exp(-x*x);return sign*y;}
 function ncdf(x){return 0.5*(1+erfA(x/Math.SQRT2));}
@@ -878,7 +902,7 @@ function bsPutProbs(S,K,T,iv){
   return {otm:Math.max(0,100-itm),itm:Math.max(0,Math.min(100,itm))};   // 兩邊加埋 = 100
 }
 function bsPutPrice(S,K,T,iv,r){
-  /* Black-Scholes put 理論價（到期前情境用：例如 S 跌到 K 時張 put 值幾多） */
+  /* Black-Scholes put 理論價（到期前情境用：例如 S 跌到 K 時張 put 值多少） */
   if(!(S>0&&K>0&&T>0&&iv>0))return null;
   r=(r==null)?0.04:r;
   const sq=iv*Math.sqrt(T);
@@ -902,7 +926,7 @@ function selChain(tk,expiry,days,K,putBid,putAsk,putIv,putDelta,spot){
   renderSelectionReadout(c,putAsk);
 }
 function applySelection(c){
-  if(activeTk&&c)activeTk=c.ticker;   // 保持 detail 喺同隻股
+  if(activeTk&&c)activeTk=c.ticker;   // 保持 detail 在同隻股
   drawChart(c);
   scenNval=null;
   renderScenarios(c);
@@ -911,15 +935,16 @@ function renderSelectionReadout(c,ask){
   const el=$('selReadout');if(!el)return;
   const bid=c.mid;
   let h='<div style="background:#ecfdf5;border:1px solid #99f6e4;border-radius:9px;padding:8px 12px;font-size:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">';
-  h+='<b>已揀：SELL PUT '+c.ticker+' $'+px2(c.strike)+'（'+c.expiry+' · '+c.dte+'D）</b>';
+  h+='<b>已選：SELL PUT '+c.ticker+' $'+px2(c.strike)+'（'+c.expiry+' · '+c.dte+'D）</b>';
   h+='<span>賣出價(bid) <b>$'+px2(bid)+'</b>/股'+(ask!=null?' · ask $'+px2(ask):'')+'</span>';
   if(c.prob_otm!=null)h+='<span>OTM <b style="color:#16a34a">'+c.prob_otm+'%</b> / ITM <b style="color:#dc2626">'+c.prob_itm+'%</b></span>';
   h+='<span>回報 <b>'+(c.yield_pct!=null?Number(c.yield_pct).toFixed(2):'—')+'%/週</b> ≈ '+c.yield_ann+'%/年</span>';
-  h+='<span style="margin-left:auto"><button class="btn btn-go" onclick="openExec(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+',1,'+bid+','+bid+','+(ask||0)+',\'PUT\')">✅ 用呢個價執行</button></span>';
+  h+='<span style="margin-left:auto"><button class="btn btn-go" onclick="openExec(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+',1,'+bid+','+bid+','+(ask||0)+',\'PUT\')">✅ 用這個價執行</button></span>';
   h+='</div>';
   el.innerHTML=h;
 }
-let chainSeen={}, chainScrollPending={};   // ⭐ 每次 refresh / 重入 tab 都 auto-scroll 返建議 strike
+let chainSeen={}, chainScrollPending={};   // ⭐ 每次 refresh / 重入 tab 都 auto-scroll 回建議 strike
+let klSeq=0;   // ⭐ winrank 掃描行沒有隨行日線（節省 rec 體積）→ 即場經 bridge /kline 拉
 
 function drawChart(c){
   const wrap=$('chart');
@@ -930,8 +955,17 @@ function drawChart(c){
   }
   wrap.innerHTML='';
   if(chart){chart.remove();chart=null;}
-  if(!(c.ohlc||[]).length){   // ⭐ winrank 掃描行冇日線 → 跳過 K 線（期權鏈＋情境分析照用）
-    wrap.innerHTML='<div class="muted" style="padding:56px 0;text-align:center">勝率排名掃描行冇日線數據 —— 拉落睇 ⚡ 實時期權鏈 ＋ 情境分析</div>';
+  if(!(c.ohlc||[]).length){   // ⭐ winrank 掃描行沒有隨行日線 → 即場經 bridge /kline 拉（不用塞滿 rec payload）
+    const seq=++klSeq;
+    wrap.innerHTML='<div class="muted" style="padding:56px 0;text-align:center" id="klLoad">載入日線中（Futu /kline）…</div>';
+    fetchTimeout(activeBridge+'/kline?code='+encodeURIComponent(c.ticker)+'&type=DAY&count=200&secret='+encodeURIComponent(BRIDGE_SECRET),15000)
+      .then(r=>r.json()).then(d=>{
+        if(seq!==klSeq)return;
+        const bars=(d&&d.bars)||[];
+        const kl=$('klLoad');
+        if(!bars.length){if(kl)kl.innerHTML='⚠️ 未能取得日線（'+((d&&d.error)||'無數據')+'）—— 下方期權鏈＋情境分析照常可用';return;}
+        drawChart(Object.assign({},c,{ohlc:bars.map(b=>({t:String(b.t).slice(0,10),o:b.o,h:b.h,l:b.l,c:b.c}))}));
+      }).catch(()=>{const kl=$('klLoad');if(seq===klSeq&&kl)kl.innerHTML='⚠️ 日線取得失敗 —— 下方期權鏈＋情境分析照常可用';});
     return;
   }
   chart=LightweightCharts.createChart(wrap,{
@@ -970,7 +1004,7 @@ function usedMarginUSD(){   // 已開倉 + 排隊中（排隊用 0.22×K×100 �
   decLoad('optdash_queued').forEach(q=>{m+=Math.round(0.22*Number(q.strike)*100*(Number(q.contracts)||1),0);});
   return m;
 }
-function putCount(){   // 已開 put + 排隊 put（唔計 CC）
+function putCount(){   // 已開 put + 排隊 put（不計 CC）
   let n=(rec&&rec.positions||[]).filter(p=>p.status==='open'&&p.side!=='CALL').length;
   decLoad('optdash_queued').forEach(q=>{if(q.side!=='CALL')n++;});
   return n;
@@ -979,13 +1013,13 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
   const c=ctx||findCandidate(tk);
   const box=$('execBox');
   let n=contracts||1;
-  const sellPx=(bid!=null&&bid>0)?bid:mid;   // 賣出價 = bid（真實成交）；冇 bid 用 mid
+  const sellPx=(bid!=null&&bid>0)?bid:mid;   // 賣出價 = bid（真實成交）；無 bid 時用 mid
   const isCall=(side==='CALL');
   const sideTxt=isCall?'SELL CALL':'SELL PUT';
   window._lastExecCtx=c; window._lastExecSide=side;   // ⭐ confirmExec 要知 side + ctx（winrank 合成 candidate）
   const renderBox=()=>{
     const coll=K*100*n, prem=sellPx*100*n;
-    const maxLoss=(K-sellPx)*100*n, be=isCall?(K+sellPx):(K-sellPx);   // 短 call BE = K + 權利金（升穿先蝕）
+    const maxLoss=(K-sellPx)*100*n, be=isCall?(K+sellPx):(K-sellPx);   // 短 call BE = K + 權利金（升穿才虧損）
     const S=c&&c.spot?c.spot:K;
     const mPer=(c&&c.margin1)?c.margin1:marginPerPut(K,sellPx,S);
     const mTot=mPer*n, eq=eqUSD(), budget=(rec&&rec.margin_budget)||0.70*eq;
@@ -996,24 +1030,24 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
     box.innerHTML=
       '<h3>✅ 執行：'+sideTxt+' '+tk+' ×'+n+'</h3>'+
       '<div class="row"><span class="k">行使價</span><span>$'+K+'（現價 $'+liveSpot(tk,c?c.spot:K)+'）</span></div>'+
-      '<div class="row"><span class="k">按金 Reg-T（70% 預算）'+tip('margin')+tip('util')+'</span><span>已用 <b>$'+fmt(usedM)+'</b> / $'+fmt(budget)+' · 呢單需 <b>$'+fmt(mTot)+'</b>（$'+fmt(mPer)+'/張）</span></div>'+
-      '<div class="row"><span class="k">接貨現金（俾你知）</span><span>'+hkd(need)+' · 已鎖 '+hkd(locked)+' · 剩餘現金 '+hkd(avail)+tip('collateral')+'</span></div>'+
+      '<div class="row"><span class="k">按金 Reg-T（70% 預算）'+tip('margin')+tip('util')+'</span><span>已用 <b>$'+fmt(usedM)+'</b> / $'+fmt(budget)+' · 這一單需 <b>$'+fmt(mTot)+'</b>（$'+fmt(mPer)+'/張）</span></div>'+
+      '<div class="row"><span class="k">接貨現金（供你參考）</span><span>'+hkd(need)+' · 已鎖 '+hkd(locked)+' · 剩餘現金 '+hkd(avail)+tip('collateral')+'</span></div>'+
       (insufficient?('<div class="warn-note" style="border-color:#fca5a5;background:#fef2f2;color:#b91c1c">🚫 <b>超過 v4_balanced 欄杆：</b>'+
         (fullPuts?'put 倉已滿 6/6；':'')+
         (overBudget?'按金會爆 70% 預算（$'+fmt(usedM+mTot)+' &gt; $'+fmt(budget)+'）；':'')+
         (overName?'單名按金 $'+fmt(mTot)+' 超過 30% equity 上限（$'+fmt(eq*0.30)+'）；':'')+
-        '減張數／平一倉先做到 —— engine 都會 reject 呢單。</div>'):'')+
+        '減張數／平一倉先做到 —— engine 都會 reject 這一單。</div>'):'')+
       (bid!=null?('<div class="row"><span class="k">實時報價（Futu）</span><span class="mono">買(bid) $'+px2(bid)+' · 賣(ask) $'+px2(ask)+'</span></div>'):'')+
-      (bid!=null&&c&&c.mid&&!c.fromChain&&Math.abs(bid-c.mid)>0.01?('<div class="row"><span class="k">系統建議 vs 實時</span><span>建議 $'+px2(c.mid)+' → 實時 bid $'+px2(bid)+'：'+(bid<c.mid?'<span style="color:#d97706">沽平咗（收少 $'+px2(c.mid-bid)+'/股）</span>':'<span style="color:#16a34a">著數咗（收多 $'+px2(bid-c.mid)+'/股）</span>')+'</span></div>'):'')+
+      (bid!=null&&c&&c.mid&&!c.fromChain&&Math.abs(bid-c.mid)>0.01?('<div class="row"><span class="k">系統建議 vs 實時</span><span>建議 $'+px2(c.mid)+' → 實時 bid $'+px2(bid)+'：'+(bid<c.mid?'<span style="color:#d97706">賣出價偏低（少收 $'+px2(c.mid-bid)+'/股）</span>':'<span style="color:#16a34a">更划算（多收 $'+px2(bid-c.mid)+'/股）</span>')+'</span></div>'):'')+
       '<div class="row"><span class="k">張數</span><span class="stepper"><button onclick="execStepper(-1)">−</button><b>'+n+'</b><button onclick="execStepper(1)">+</button> '+tip('contracts')+'</span></div>'+
       '<div class="row"><span class="k">每股權利金</span><span class="mono" style="font-size:15px;font-weight:700">$'+px2(sellPx)+'/股</span></div>'+
       '<div class="row"><span class="k">權利金（全收）</span><span>'+money(prem)+' USD ≈ '+hkd(prem*HKD_USD)+'</span></div>'+
       '<div class="row"><span class="k">按金（鎖住）</span><span>'+money(mTot)+' USD ≈ '+hkd(mTot*HKD_USD)+tip('margin')+'</span></div>'+
       '<div class="row"><span class="k">最大利潤</span><span class="pos">+'+money(prem)+'</span></div>'+
-      '<div class="row"><span class="k">最大虧損</span><span class="neg">'+(isCall?'<span style="color:#dc2626">無上限（裸賣 call，股價飛升蝕無限）</span>':('-'+money(maxLoss)+' ≈ '+hkd(maxLoss*HKD_USD)+tip('maxloss')))+'</span></div>'+
-      '<div class="row"><span class="k">盈虧平衡</span><span>$'+be.toFixed(2)+(isCall?'<span class="muted small">（升穿先蝕）</span>':'')+tip('breakeven')+'</span></div>'+
+      '<div class="row"><span class="k">最大虧損</span><span class="neg">'+(isCall?'<span style="color:#dc2626">無上限（裸賣 call，股價飛升虧損無限）</span>':('-'+money(maxLoss)+' ≈ '+hkd(maxLoss*HKD_USD)+tip('maxloss')))+'</span></div>'+
+      '<div class="row"><span class="k">盈虧平衡</span><span>$'+be.toFixed(2)+(isCall?'<span class="muted small">（升穿才虧損）</span>':'')+tip('breakeven')+'</span></div>'+
       '<div class="row"><span class="k">OTM 機率</span><span style="color:#16a34a;font-weight:700">'+(c&&c.prob_otm!=null?c.prob_otm+'%':'—')+'</span></div>'+
-      '<div class="warn-note">⚠️ 紙上交易（未實際落盤）。確認後會排隊俾 engine 開倉；engine 用你揀嘅賣出價（bid）落賬。'+(isCall?'<b style="color:#dc2626">裸賣 call 風險無上限</b>，執行前諗清楚。':'')+'</div>'+
+      '<div class="warn-note">⚠️ 紙上交易（未實際下單）。確認後會排隊交給 engine 開倉；engine 用你選的賣出價（bid）記賬。'+(isCall?'<b style="color:#dc2626">裸賣 call 風險無上限</b>，執行前請想清楚。':'')+'</div>'+
       '<div class="modal-actions"><button class="btn btn-ghost" onclick="closeExec()">取消</button> <button class="btn btn-go" '+(insufficient?'style="opacity:.4;pointer-events:none"':'')+' onclick="confirmExec(\''+tk+'\',\''+exp+'\','+K+',\''+n+'\','+sellPx+')">✅ 確認執行</button></div>';
   };
   window.execStepper=function(d){n=Math.max(1,Math.min(10,n+d));renderBox();};   // engine 上限 10（按金/單名 cap 會再夾）
@@ -1024,7 +1058,7 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
 function closeExec(){$('execModal').style.display='none';}
 async function confirmExec(tk,exp,K,n,premium){
   const c=window._lastExecCtx||null;
-  const side=(window._lastExecSide==='CALL')?'CALL':'CSP';   // ⭐ 2026-08-14: 帶 side 俾 engine 開啱方向（賣 Call=短 call）
+  const side=(window._lastExecSide==='CALL')?'CALL':'CSP';   // ⭐ 2026-08-14: 帶 side 給 engine 開對方向（賣 Call=短 call）
   recordDecision('queued',tk,exp,K,{contracts:Number(n),premium:Number(premium),side:side});
   const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{
     action:'open',ticker:tk,expiry:exp,strike:Number(K),contracts:Number(n),premium:Number(premium),
@@ -1032,15 +1066,15 @@ async function confirmExec(tk,exp,K,n,premium){
     side:side
   });
   closeExec();
-  if(r&&r.ok){toast('✅ 已排隊執行 '+tk+' ×'+n+'（engine 下個週期確認，price 到先落賬）');setTimeout(function(){loadRec();},4000);}
+  if(r&&r.ok){toast('✅ 已排隊執行 '+tk+' ×'+n+'（engine 下個週期確認，price 到先記賬）');setTimeout(function(){loadRec();},4000);}
   else toast('❌ 執行失敗：'+(r&&r.error||'bridge 未連接'));
 }
-/* ════════════ 決定記錄（localStorage：執行/排隊/今日唔做） ════════════ */
+/* ════════════ 決定記錄（localStorage：執行/排隊/今日不做） ════════════ */
 function decLoad(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return [];}}
 function decSave(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 function decKey(tk,exp,K){return tk+'|'+exp+'|'+Number(K).toFixed(2);}
 function lockedHKD(){
-  /* 已鎖定資本（HKD）= 開倉位抵押 + 排隊中訂單抵押（未執行都即刻鎖） */
+  /* 已鎖定資本（HKD）= 開倉位抵押 + 排隊中訂單抵押（未執行都立即鎖） */
   let sum=0;
   (rec&&rec.positions||[]).forEach(p=>{if(p.status==='open')sum+=(p.collateral||0)*HKD_USD;});
   decLoad('optdash_queued').forEach(q=>{sum+=(Number(q.strike)*100*(Number(q.contracts)||1))*HKD_USD;});
@@ -1053,7 +1087,7 @@ function recordDecision(kind,tk,exp,K,extra){
   if(!list.some(x=>decKey(x.ticker,x.expiry,x.strike)===key))list.push(Object.assign({ticker:tk,expiry:exp,strike:Number(K),ts:new Date().toISOString()},extra||{}));
   decSave('optdash_'+kind,list);
   renderDecisions();
-  renderOverview();   // ⭐ 決定咗即刻調整已鎖定資本／剩餘現金
+  renderOverview();   // ⭐ 決定後立即調整已鎖定資本／剩餘現金
 }
 function renderDecisions(){
   const el=$('decBody');if(!el)return;
@@ -1066,27 +1100,27 @@ function renderDecisions(){
     h+='<div style="font-weight:700;margin-bottom:6px">🚀 已執行 / 排隊中（'+(queued.length)+'）</div><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">每股權利金</th><th>狀態</th><th></th></tr></thead><tbody>';
     queued.slice().reverse().forEach(q=>{
       const done=posKeys.has(decKey(q.ticker,q.expiry,q.strike));
-      h+='<tr><td><b>'+esc(q.ticker)+'</b>'+(q.side==='CALL'?' <span style="color:#92400e;font-size:10px;font-weight:700">賣Call</span>':' <span style="color:#1d4ed8;font-size:10px;font-weight:700">賣Put</span>')+'</td><td class="r">$'+px2(q.strike)+'</td><td>'+q.expiry+'</td><td class="r">'+(q.contracts||1)+'</td><td class="r">$'+px2(q.premium)+'</td><td>'+(done?'<span style="color:#16a34a;font-weight:700">✅ 已落賬</span>':'<span style="color:#d97706;font-weight:700">⏳ 排隊執行中</span>')+'</td>'+
+      h+='<tr><td><b>'+esc(q.ticker)+'</b>'+(q.side==='CALL'?' <span style="color:#92400e;font-size:10px;font-weight:700">賣Call</span>':' <span style="color:#1d4ed8;font-size:10px;font-weight:700">賣Put</span>')+'</td><td class="r">$'+px2(q.strike)+'</td><td>'+q.expiry+'</td><td class="r">'+(q.contracts||1)+'</td><td class="r">$'+px2(q.premium)+'</td><td>'+(done?'<span style="color:#16a34a;font-weight:700">✅ 已記賬</span>':'<span style="color:#d97706;font-weight:700">⏳ 排隊執行中</span>')+'</td>'+
         '<td>'+(done?'':('<button class="btn btn-ghost" onclick="editQueued(\''+q.ticker+'\',\''+q.expiry+'\','+q.strike+',\''+(q.contracts||1)+'\',\''+(q.premium||0)+'\')">改張數</button> <button class="btn btn-close" onclick="cancelQueued(\''+q.ticker+'\',\''+q.expiry+'\','+q.strike+')">取消</button>'))+'</td></tr>';
     });
     h+='</tbody></table>';
   }
   if(skips.length){
-    h+='<div style="font-weight:700;margin:10px 0 6px">🙅 今日唔做（'+skips.length+'）</div>';
+    h+='<div style="font-weight:700;margin:10px 0 6px">🙅 今日不做（'+skips.length+'）</div>';
     h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
     skips.slice().reverse().slice(0,30).forEach(s=>{
       h+='<span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:999px;padding:3px 10px;font-size:11px;color:#475569">'+esc(s.ticker)+' $'+s.strike+' <span class="muted">'+s.expiry+'</span></span>';
     });
     h+='</div>';
   }
-  if(!queued.length&&!skips.length)h+='<div class="muted">未有決定 — 去候選名單揀「執行」或「唔做」。</div>';
+  if(!queued.length&&!skips.length)h+='<div class="muted">尚無決定 — 去候選名單選「執行」或「不做」。</div>';
   el.innerHTML=h;
 }
 function remQueued(tk,exp,K){
   decSave('optdash_queued',decLoad('optdash_queued').filter(x=>decKey(x.ticker,x.expiry,x.strike)!==decKey(tk,exp,K)));
 }
 async function cancelQueued(tk,exp,K){
-  if(!confirm('取消呢張未執行嘅訂單：'+tk+' $'+K+'？'))return;
+  if(!confirm('取消這張未執行的訂單：'+tk+' $'+K+'？'))return;
   remQueued(tk,exp,K);
   renderDecisions();renderOverview();
   const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'cancel',ticker:tk,expiry:exp,strike:Number(K)});
@@ -1107,11 +1141,11 @@ async function editQueued(tk,exp,K,contracts,premium){
 async function skipTrade(tk,exp,K){
   recordDecision('skips',tk,exp,K);
   const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'skip',ticker:tk,expiry:exp,strike:Number(K)});
-  if(r&&r.ok)toast('已記低：今日唔做 '+tk); else toast('❌ 失敗');
+  if(r&&r.ok)toast('已記下：今日不做 '+tk); else toast('❌ 失敗');
   setTimeout(function(){loadRec();},2000);
 }
 async function closePos(pid){
-  if(!confirm('確定平倉呢個紙上倉位？'))return;
+  if(!confirm('確定平倉這個紙上倉位？'))return;
   const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'close',position_id:pid});
   if(r&&r.ok)toast('已排隊平倉（engine 下個週期確認）'); else toast('❌ 失敗');
   setTimeout(loadRec,4000);
@@ -1121,7 +1155,7 @@ function toast(msg){
   setTimeout(()=>setLive((rec.paper?'📝 紙上':'🔴 LIVE')+' · '+rec.date),3000);
 }
 
-/* ════════════ tooltip（⭐ 08-16：任何有 data-tip 嘅元素都生效 —— bar chart 動態 hover 都用呢個）════════════ */
+/* ════════════ tooltip（⭐ 08-16：任何有 data-tip 的元素都生效 —— bar chart 動態 hover 都用這個）════════════ */
 const tipbox=$('tipbox');
 document.addEventListener('mouseover',function(e){
   const t=e.target.closest('[data-tip]');
@@ -1141,8 +1175,8 @@ function switchPane(id){
   if(id==='positions')renderPositions();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>switchPane(b.dataset.pane)));
-/* ⭐ 08-16 fix：tabs sticky top 實際 = appbar 高度（appbar .sub 換行會高過 53px →
-   tabs 收埋喺 appbar 後面 = 「freeze 咗」撳唔到）。load + resize 都重新對齊。 */
+/* ⭐ 08-16 fix：tabs sticky top 實際 = appbar 高度（appbar .sub 換行會高於 53px →
+   tabs 被遮在 appbar 後面 = 「freeze 了」無法點擊）。load + resize 都重新對齊。 */
 (function(){const _ap=document.querySelector('.appbar'),_tb=document.querySelector('.tabs');
   if(!_ap||!_tb)return;
   const sync=function(){_tb.style.top=_ap.offsetHeight+'px';};
@@ -1151,37 +1185,37 @@ document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',
 /* ═══════════　方法論（v4_balanced） ════════════ */
 function renderMethod(){
   $('methodBest').innerHTML=
-    '<p><b>三層：趨勢過濾 → 分數排序 → 按金配倉。</b>回測 2025＋2026 兩個窗口都正回報嘅唯一參數族。</p>'+
+    '<p><b>三層：趨勢過濾 → 分數排序 → 按金配倉。</b>回測 2025＋2026 兩個窗口都正回報的唯一參數族。</p>'+
     '<ol style="margin:8px 0 0 18px;line-height:2">'+
-    '<li><b>趨勢/質量硬過濾</b>（唔過冇得傾）：收市價 &gt; MA50 而且 ≤1.15×MA50（唔追高）、3 個月動量 ≤+60%、RSI 14 喺 40–70、近 5 日冇單日 ±8%、IV 30–150%、股價 $10–$200。</li>'+
-    '<li><b>大盤寬度閘門</b>：宇宙 ≥50% 股價企穩 MA50 先開新倉'+tip('breadth')+'（2026-08 上半月寬度 28–37% → 引擎自動休息）。</li>'+
+    '<li><b>趨勢/質量硬過濾</b>（不通過則直接排除）：收市價 &gt; MA50 而且 ≤1.15×MA50（不追高）、3 個月動量 ≤+60%、RSI 14 在 40–70、近 5 日無單日 ±8%、IV 30–150%、股價 $10–$200。</li>'+
+    '<li><b>大盤寬度閘門</b>：宇宙 ≥50% 股價站穩 MA50 才開新倉'+tip('breadth')+'（2026-08 上半月寬度 28–37% → 引擎自動休息）。</li>'+
     '<li>硬性排除：業績窗口（持有期＋2 日緩衝）'+tip('earnings')+'、模型 REDUCE/SELL/decel≤−3'+tip('veto')+'、槓桿 ETF（DLLL）、太疏/太舊報價。</li>'+
-    '<li><b>分數排序</b>：annualized_yield ×（0.5 + IV_rank/100）÷（1 + risk）'+tip('score')+' —— 揀 strike 揀 Δ0.25–0.30 嗰檔，DTE 10–14。</li></ol>';
+    '<li><b>分數排序</b>：annualized_yield ×（0.5 + IV_rank/100）÷（1 + risk）'+tip('score')+' —— 選 strike 選 Δ0.25–0.30 那檔，DTE 10–14。</li></ol>';
   $('methodIV').innerHTML=
     '<p><b>IV 三層來源（由靚到醜）＋ v4_balanced IV 帶 30–150%：</b></p>'+
     '<ol style="margin:8px 0 0 18px;line-height:1.9">'+
-    '<li><b>Yahoo chain 真 IV</b>：但要踢走「power-of-2 floor」假值（0.5/0.25/0.125/0.0625 成批出現 = Yahoo 冇 IV 嘅佔位）'+tip('iv')+'。</li>'+
+    '<li><b>Yahoo chain 真 IV</b>：但要踢走「power-of-2 floor」假值（0.5/0.25/0.125/0.0625 成批出現 = Yahoo 無 IV 時的佔位）'+tip('iv')+'。</li>'+
     '<li><b>Sanity cap</b>：chain IV &gt;150% 或比歷史波動率高好多 → 當垃圾，轉用歷史波動率。</li>'+
-    '<li><b>歷史波動率</b>（stdev(日回報)×√252）：真價計出嚟，永遠唔會失敗'+tip('histvol')+'。delta / probITM/OTM / greeks 全部由呢個 effective IV 用 Black-Scholes 計。</li></ol>'+
-    '<p class="small muted" style="margin-top:6px">個股詳情頁嘅期權鏈用 Futu 實時 bid/ask 反推 IV（BS bisection），同 App 顯示一致。</p>';
+    '<li><b>歷史波動率</b>（stdev(日回報)×√252）：真實價格計算出來，永遠不會失敗'+tip('histvol')+'。delta / probITM/OTM / greeks 全部由這個 effective IV 用 Black-Scholes 計。</li></ol>'+
+    '<p class="small muted" style="margin-top:6px">個股詳情頁的期權鏈用 Futu 實時 bid/ask 反推 IV（BS bisection），與 App 顯示一致。</p>';
   $('methodSize').innerHTML=
-    '<p><b>配倉（按金制，唔係現金制）</b>：每張鎖按金 = Reg-T '+tip('margin')+'；建議張數 = min(（70% 預算−已用）÷每張按金，30% equity÷每張按金，板塊 40% 預算，10)'+tip('contracts')+'；最多 6 個 put 倉、每日新開 ≤2。</p>'+
+    '<p><b>配倉（按金制，不是現金制）</b>：每張鎖按金 = Reg-T '+tip('margin')+'；建議張數 = min(（70% 預算−已用）÷每張按金，30% equity÷每張按金，板塊 40% 預算，10)'+tip('contracts')+'；最多 6 個 put 倉、每日新開 ≤2。</p>'+
     '<p style="margin-top:8px"><b>出場規則（5 條，回測凍結）：</b></p>'+
     '<ol style="margin:4px 0 0 18px;line-height:1.9">'+
     '<li>權利金收到 <b>50%</b> → buy-to-close 鎖利'+tip('close50')+'</li>'+
-    '<li><b>Cut-before-assignment</b>：行使價失守＋股價 &lt; 0.95×MA50＋DTE≥5 → 即刻止損離場'+tip('cut')+'</li>'+
-    '<li>業績日喺持有期內 → 必平（避 IV crush / 跳空）'+tip('earnings')+'</li>'+
-    '<li>put delta 侵蝕到 −0.50 → roll down+out 或準備接貨</li>'+
+    '<li><b>Cut-before-assignment</b>：行使價失守＋股價 &lt; 0.95×MA50＋DTE≥5 → 立即止損離場'+tip('cut')+'</li>'+
+    '<li>業績日在持有期內 → 必平（避 IV crush / 跳空）'+tip('earnings')+'</li>'+
+    '<li>put delta 侵虧損到 −0.50 → roll down+out 或準備接貨</li>'+
     '<li>到期價內 → 被指派接貨 → 賣 Covered Call（Δ0.22–0.30 · 10–14 DTE · PT 50%）＝ The Wheel'+tip('cc')+'</li></ol>'+
     '<p class="small muted" style="margin-top:6px">帳戶層面：回撤 −15% → 熔斷停開新倉 10 交易日'+tip('breaker')+'。</p>';
   $('methodRisk').innerHTML=
     '<div class="warn-note">'+
     '<b>誠實話（好重要）：</b><br>'+
-    '· 回測 16 個月平均 <b>+HKD 25.1k/月</b>，但分佈極唔均勻：2026 年 4–6 月三個月賺 +279k，2、3 月係蝕嘅；2025 年要捱 <b>−39.5% 回撤＋2 次強制平倉</b>。月月穩賺 15–20k 喺任何參數下都唔存在。<br>'+
-    '· 2026 +151.7% 係強牛市（SOX +75%）＋70% 按金槓桿嘅產物；同一參數喺 2025 年只有 +24.3%。計劃要用 2025 情境做底。<br>'+
+    '· 回測 16 個月平均 <b>+HKD 25.1k/月</b>，但分佈極不均勻：2026 年 4–6 月三個月賺 +279k，2、3 月是虧損的；2025 年要承受 <b>−39.5% 回撤＋2 次強制平倉</b>。月月穩賺 15–20k 在任何參數下都不存在。<br>'+
+    '· 2026 +151.7% 是強牛市（SOX +75%）＋70% 按金槓桿的產物；同一參數在 2025 年只有 +24.3%。計劃應以 2025 情境為底。<br>'+
     '· 賣 put 最大虧損 =（行使價−權利金）×100×張數'+tip('maxloss')+'；接貨後股票下行風險仲計入組合（按金利息 7%/年已計入回測）。<br>'+
-    '· 槓桿放大兩邊：max_price ≤$200＋單名按金 ≤30% 就係防「一隻股清袋」嘅硬欄杆。<br>'+
-    '· 而家全部係<b>紙上模式</b>，跟足規則驗證 2–4 星期先可以考慮真錢（--live）。</div>';
+    '· 槓桿放大兩邊：max_price ≤$200＋單名按金 ≤30% 就是防「一隻股清空賬戶」的硬欄杆。<br>'+
+    '· 現在全部是<b>紙上模式</b>，嚴格按照規則驗證 2–4 星期才可以考慮真錢（--live）。</div>';
 }
 
 /* ════════════ boot ════════════ */
