@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>期權交易 · Options Income Desk</title>
+<style>
+:root{
+  --bg:#eef2f6; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+  --blue:#1a73e8; --blue-deep:#1557b0; --blue-tint:#e8f0fe;
+  --teal:#0d9488; --teal-deep:#115e59; --teal-accent:#14b8a6; --teal-tint:#ccfbf1;
+  --good:#16a34a; --bad:#dc2626; --warn:#d97706;
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+/* ── 品牌 bar ── */
+/* ── leungkathy 品牌 header / footer（跟 main dashboard 一致，⭐ 已定型唔好再改）── */
+.lk-bar{background:linear-gradient(135deg,#1a73e8 0%,#1557b0 100%);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.18);margin-bottom:12px}
+.lk-logo{width:38px;height:38px;background:#fff;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:300;font-style:italic;color:#1a73e8;transform:rotate(-6deg);font-family:'Brush Script MT','Segoe Script',cursive,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.lk-name{font-size:19px;font-weight:700;letter-spacing:.2px;line-height:1}
+.lk-sub{font-size:11.5px;opacity:.9;margin-top:3px}
+.lk-prod{margin-left:auto;font-size:12.5px;opacity:.92;text-align:right;line-height:1.5}
+.appbar{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:10px 0;margin-bottom:14px}
+.appbar-in{max-width:1280px;margin:0 auto;padding:0 22px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.appbar h1{font-size:18px;font-weight:800;letter-spacing:.2px}
+.appbar .sub{font-size:11px;color:var(--muted);margin-top:1px}
+.appbar-right{display:flex;gap:10px;align-items:center}
+.status-bar{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--muted)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--good);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.btn-primary{background:var(--blue);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all .15s}
+.btn-primary:hover{background:var(--blue-deep)}
+.btn-primary.loading{opacity:.6;pointer-events:none}
+/* ── tab bar（sticky 喺 appbar 下面）── */
+.tabs{position:sticky;top:53px;z-index:120;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:8px;padding:10px 22px;flex-wrap:wrap}
+.tabs button{background:#fff;border:1px solid #cbd5e1;color:#475569;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.tabs button:hover{border-color:var(--teal);color:var(--teal-deep)}
+.tabs button.active{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:0 2px 6px rgba(13,148,136,.25)}
+/* ── container + cards ── */
+.container{max-width:1280px;margin:0 auto;padding:16px 22px 60px}
+.card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden;border:1px solid var(--line)}
+.card-h{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card-h .t{font-size:14px;font-weight:700}
+.card-h .meta{font-size:11px;color:var(--muted);text-align:right}
+.card-b{padding:14px 16px}
+/* ── table ── */
+.utable{width:100%;border-collapse:collapse;font-size:12.5px}
+.utable thead th{background:#f8fafc;color:#475569;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:9px 8px;text-align:left;border-bottom:2px solid var(--line);white-space:nowrap}
+.utable thead th.r,.utable td.r{text-align:right;font-variant-numeric:tabular-nums}
+.utable thead th.c,.utable td.c{text-align:center}
+.utable tbody td{padding:8px;border-bottom:1px solid #eef2f6;vertical-align:middle}
+.utable tbody tr:hover{background:#f8fafc}
+.utable tbody tr.clickable:hover{background:#ecfdf5;cursor:pointer}
+.utable .co{font-weight:700}
+.utable .tk{font-family:ui-monospace,Menlo,monospace;color:var(--muted);font-size:11px}
+/* ── panes ── */
+.pane{display:none}
+.pane.active{display:block;animation:fadein .25s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+/* ── KPI grid ── */
+.kpi{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.kpi .k{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
+.kpi .k .lbl{font-size:11px;color:var(--muted)}
+.kpi .k .val{font-size:22px;font-weight:800;margin-top:2px}
+.kpi .k .val.up{color:var(--good)} .kpi .k .val.dn{color:var(--bad)}
+/* ── gauge ── */
+.gauge{display:flex;height:18px;border-radius:6px;overflow:hidden;font-size:10px;font-weight:700;color:#fff;min-width:120px}
+.gauge div{display:flex;align-items:center;justify-content:center;white-space:nowrap}
+/* ── buttons / pills ── */
+.btn{border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-go{background:var(--teal);color:#fff}.btn-go:hover{background:var(--teal-deep)}
+.btn-no{background:#fff;border:1px solid #cbd5e1;color:#64748b}.btn-no:hover{background:#f1f5f9}
+.btn-close{background:#fff;border:1px solid var(--bad);color:var(--bad)}.btn-close:hover{background:#fef2f2}
+.btn-ghost{background:#fff;border:1px solid #cbd5e1;color:#475569}.btn-ghost:hover{background:#f1f5f9}
+.pill{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;color:#fff}
+.pill.g{background:var(--good)} .pill.r{background:var(--bad)} .pill.w{background:var(--warn)} .pill.b{background:var(--blue)} .pill.t{background:var(--teal)}
+/* ── tooltip ── */
+.tip{display:inline-block;width:13px;height:13px;line-height:13px;border-radius:50%;background:#e2e8f0;color:#475569;font-size:9px;font-weight:800;text-align:center;cursor:help;vertical-align:middle;margin-left:3px;user-select:none}
+#tipbox{position:fixed;z-index:999;display:none;max-width:340px;background:#0f172a;color:#e2e8f0;font-size:12px;line-height:1.55;padding:10px 12px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.35);pointer-events:none}
+#tipbox b{color:#5eead4}
+/* ── chart ── */
+.chartwrap{position:relative;height:340px}
+.chartwrap canvas{display:block}
+.chart-note{font-size:10px;color:var(--muted);margin-top:4px}
+/* ── 寬 table 橫向 scroll（唔好爆出 card／viewport）── */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.table-scroll thead th{white-space:nowrap}
+/* ── 期權鏈 frozen header ── */
+.chain-scroll{max-height:420px;overflow:auto;position:relative}
+.chain-scroll thead th{position:sticky;top:0;z-index:3;background:#f8fafc;box-shadow:0 1px 0 var(--line)}
+/* ── payoff diagram ── */
+.payoff-wrap{position:relative;width:100%;margin-bottom:6px}
+.payoff-wrap svg{width:100%;height:280px;display:block;background:#fff;border:1px solid var(--line);border-radius:8px}
+.payoff-tip{position:absolute;pointer-events:none;background:#0f172a;color:#e2e8f0;font-size:11px;padding:5px 9px;border-radius:6px;display:none;white-space:nowrap;z-index:5}
+.scen-stepper{display:inline-flex;align-items:center;gap:6px;margin-left:8px}
+.scen-stepper button{width:24px;height:24px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;font-size:13px;font-weight:700;cursor:pointer;line-height:1}
+/* ── modal ── */
+#execModal{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;display:none;align-items:flex-start;justify-content:center;padding-top:8vh}
+#execModal .box{background:#fff;border-radius:14px;max-width:520px;width:92%;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+#execModal h3{font-size:15px;margin-bottom:10px}
+#execModal .row{display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px;border-bottom:1px solid #f1f5f9}
+#execModal .row .k{color:var(--muted)}
+#execModal .stepper{display:flex;align-items:center;gap:10px}
+#execModal .stepper button{width:30px;height:30px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;font-size:16px;font-weight:700;cursor:pointer}
+#execModal .modal-actions{display:flex;gap:10px;margin-top:14px;justify-content:flex-end}
+.scen-row .pos{color:var(--good);font-weight:700}.scen-row .neg{color:var(--bad);font-weight:700}
+.warn-note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:11.5px;border-radius:8px;padding:8px 10px;margin-top:8px}
+.muted{color:var(--muted)} .small{font-size:11px}
+.mono{font-family:ui-monospace,Menlo,monospace}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.bar{height:10px;background:#e2e8f0;border-radius:5px;overflow:hidden}
+.bar>div{height:100%;background:var(--teal)}
+.eqline{margin-top:6px}
+.foot{text-align:center;color:#94a3b8;font-size:11px;padding:14px 0 0}
+</style>
+</head>
+<body>
+<div class="lk-bar">
+  <div class="lk-logo">k</div>
+  <div>
+    <div class="lk-name">leungkathy</div>
+    <div class="lk-sub">All-in-One Financial Dashboard Suite</div>
+  </div>
+  <div class="lk-prod">期權交易 · Options Income Desk</div>
+</div>
+<div class="appbar"><div class="appbar-in">
+  <div><h1>💰 期權交易</h1><div class="sub">v4_balanced（按金 70% · 6 puts · Δ 0.25–0.30 · ≤$200 · PT 50%）· Sell Put → Covered Call（The Wheel）· 10–14 DTE · HKD 200,000 組合 · <strong>回測：2025 +24.3% · 2026 +151.7% · 16 個月平均 +HKD 25.1k/月</strong> · 紙上模式 · Futu 實時報價</div></div>
+  <div class="appbar-right">
+    <button class="btn-primary" id="refreshBtn" onclick="manualRefresh()">🔄 刷新實時</button>
+    <div class="status-bar"><span class="live-dot"></span><span id="liveBadge">v4_balanced · 連線中...</span></div>
+  </div>
+</div></div>
+<div class="tabs">
+  <button data-pane="overview" class="active">📊 總覽</button>
+  <button data-pane="best">🎯 今日最佳</button>
+  <button data-pane="detail">📈 個股詳情</button>
+  <button data-pane="positions">📋 持倉管理</button>
+  <button data-pane="method">❓ v4_balanced 方法論</button>
+</div>
+<div class="container">
+
+  <!-- ═══════════ 總覽 ═══════════ -->
+  <div class="pane active" id="pane-overview">
+    <div class="kpi">
+      <div class="k"><div class="lbl">組合權益（HKD）</div><div class="val" id="ovEquity">—</div><div class="small muted" id="ovReturn"></div></div>
+      <div class="k"><div class="lbl">已實現 P&amp;L</div><div class="val up" id="ovRealized">—</div></div>
+      <div class="k"><div class="lbl">未實現 P&amp;L</div><div class="val" id="ovUnrealized">—</div></div>
+      <div class="k"><div class="lbl">已用按金（Reg-T）</div><div class="val" id="ovUsed">—</div></div>
+      <div class="k"><div class="lbl">估算月收入</div><div class="val" id="ovMonthly">—</div></div>
+    </div>
+    <div class="card"><div class="card-h"><span class="t">🛤️ v4_balanced 執行欄位（即時）</span><span class="meta" id="railsMeta">跟足下表規則 = 貼近回測結果</span></div>
+      <div class="card-b" id="ovRailsBody"><div class="muted">載入中…</div></div></div>
+    <div class="card"><div class="card-h"><span class="t">📊 v4_balanced 回測績效</span><span class="meta">2025 全年 + 2026-01-01→08-15 · HKD 200,000 起步 · 含手續費/滑價</span></div>
+      <div class="card-b">
+        <div class="table-scroll"><table class="utable">
+          <thead><tr><th>窗口</th><th class="r">回報</th><th class="r">月均 P&amp;L</th><th class="r">最大回撤</th><th class="r">強制平倉</th><th class="r">交易數</th><th class="r">勝率</th></tr></thead>
+          <tbody>
+            <tr><td><b>2025</b>（牛年＋四月股災）</td><td class="r up">+24.3%</td><td class="r up">+HKD 7.0k</td><td class="r dn">−39.5%</td><td class="r dn">2</td><td class="r">—</td><td class="r">—</td></tr>
+            <tr><td><b>2026</b>（1/1→8/15）</td><td class="r up">+151.7%</td><td class="r up">+HKD 43.3k</td><td class="r dn">−19.3%</td><td class="r">0</td><td class="r">93</td><td class="r">90.3%</td></tr>
+            <tr><td><b>16 個月平均</b></td><td class="r">—</td><td class="r up"><b>+HKD 25.1k</b></td><td class="r">—</td><td class="r">2</td><td class="r">—</td><td class="r">—</td></tr>
+          </tbody>
+        </table></div>
+        <div style="margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center">
+          <div><div class="small muted">2026 Sharpe</div><div style="font-weight:800">3.12</div></div>
+          <div><div class="small muted">2026 獲利因子</div><div style="font-weight:800">3.76</div></div>
+          <div><div class="small muted">最差單筆（2026）</div><div style="font-weight:800;color:#dc2626">−HKD 20.2k</div></div>
+          <div><div class="small muted">最高名義槓桿</div><div style="font-weight:800">0.85×</div></div>
+        </div>
+        <div class="small muted" style="margin-top:8px">⚠️ 2026 係強牛市（SOX +75% YTD）；計劃應以 2025 情境（月均 +7k、回撤 −39.5%）做保守底。回測含 $1.10/腿手續費＋滑價＋7%/年按金利息；歷史表現不等於未來。</div>
+        <div class="small" style="margin-top:6px">2026 月度（HKD）：1月 +24.3k · 2月 −1.6k · 3月 −2.8k · 4月 +67.0k · 5月 +100.0k · 6月 +112.3k · 7月 +4.1k · 8月（寬度閘門暫停）</div>
+      </div>
+    </div>
+    <div class="card"><div class="card-h"><span class="t">資本運用</span><span class="meta">HKD 200,000 組合上限</span></div>
+      <div class="card-b"><div class="bar"><div id="ovCapBar" style="width:0%"></div></div>
+      <div class="small muted" id="ovCapNote" style="margin-top:4px"></div></div></div>
+    <div class="card"><div class="card-h"><span class="t">開倉位（未實現 mark-to-market）</span><span class="meta" id="ovPosMeta"></span></div>
+      <div class="card-b" id="ovPosBody"></div></div>
+    <div class="card"><div class="card-h"><span class="t">近期平倉紀錄（已實現）</span><span class="meta">紙上賬</span></div>
+      <div class="card-b" id="ovLedgerBody"></div></div>
+  </div>
+
+  <!-- ═══════════ 今日最佳 ═══════════ -->
+  <div class="pane" id="pane-best">
+    <div class="card"><div class="card-h"><span class="t">🎯 今日最佳交易</span><span class="meta">點「執行」落單（紙上）· 點行開個股詳情</span></div>
+      <div class="card-b" id="bestCard"></div></div>
+    <div class="card"><div class="card-h"><span class="t">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
+      <div class="card-b" id="candBody"></div></div>
+    <div class="card"><div class="card-h"><span class="t">⚡ 賣 Call / 賣 Put 勝率排名</span><span class="meta">探索用排名（7D/14D · delta≈0.25 · 連動量減速）· v4_balanced 正式建議以「今日最佳＋候選名單」為準</span></div>
+      <div class="card-b" id="winrankBody"></div></div>
+    <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">你揀咗乜、排緊隊、同埋「今日唔做」</span></div>
+      <div class="card-b" id="decBody"></div></div>
+    <div class="card"><div class="card-h"><span class="t">已排除</span><span class="meta">業績窗口 / model veto / 槓桿 ETF</span></div>
+      <div class="card-b small muted" id="notesBody"></div></div>
+  </div>
+
+  <!-- ═══════════ 個股詳情 ═══════════ -->
+  <div class="pane" id="pane-detail">
+    <div class="card"><div class="card-h"><span class="t" id="dtTitle">個股詳情</span><span class="meta"><span id="dtLive"></span> · <button class="btn btn-ghost" onclick="openBestDetail()">顯示最佳交易</button></span></div>
+      <div class="card-b" id="dtBody"><div class="muted">揀左邊候選名單 / 今日最佳嘅股票。</div></div></div>
+  </div>
+
+  <!-- ═══════════ 持倉管理 ═══════════ -->
+  <div class="pane" id="pane-positions">
+    <div class="card" id="actCard" style="display:none"><div class="card-h"><span class="t">🔔 Engine 建議動作（出場訊號）</span><span class="meta">PT 50% · cut-before-assignment · roll · 熔斷 —— 跟住做 = 貼近回測路徑</span></div>
+      <div class="card-b" id="actBody"></div></div>
+    <div class="card"><div class="card-h"><span class="t">📋 開倉位</span><span class="meta">PT 50% 平倉 · cut 止損 · 業績日必平 · 可手動平倉</span></div>
+      <div class="card-b" id="posBody"></div></div>
+    <div class="card"><div class="card-h"><span class="t">📒 交易紀錄（紙上）</span><span class="meta" id="ledMeta"></span></div>
+      <div class="card-b" id="ledBody"></div></div>
+  </div>
+
+  <!-- ═══════════ 方法論（v4_balanced） ═══════════ -->
+  <div class="pane" id="pane-method">
+    <div class="card"><div class="card-h"><span class="t">⭐ v4_balanced 模型規格</span><span class="meta">唯一喺 2025＋2026 兩個窗口都正回報嘅參數族 · 2026-08-15 凍結</span></div>
+      <div class="card-b">
+        <div class="table-scroll"><table class="utable">
+          <thead><tr><th>參數</th><th>值</th><th>點解</th></tr></thead>
+          <tbody>
+            <tr><td>按金利用率</td><td><b>70%</b> equity（Reg-T 按金口徑）</td><td class="muted">按金預算 = equity×0.70；唔係現金全鎖</td></tr>
+            <tr><td>最大同時 put 倉</td><td><b>6</b></td><td class="muted">分散 + 保持輪替頻率</td></tr>
+            <tr><td>每日新倉上限</td><td><b>2</b></td><td class="muted">避免同日追高掃貨</td></tr>
+            <tr><td>賣 put Delta</td><td><b>0.25–0.30</b></td><td class="muted">被指派機率 ≈25–30%，權利金同安全嘅平衡點</td></tr>
+            <tr><td>DTE</td><td><b>10–14 日</b></td><td class="muted">theta 最斜嘅區段，又避開最後幾日 gamma 爆升</td></tr>
+            <tr><td>個股股價區間</td><td><b>$10–$200</b></td><td class="muted">max_price 200 = 單名 notional 上限（tail-risk 槓桿）</td></tr>
+            <tr><td>單名按金上限</td><td><b>30%</b> equity</td><td class="muted">單股爆雷唔可以一鋪清袋</td></tr>
+            <tr><td>板塊按金上限</td><td><b>40%</b> 按金預算</td><td class="muted">半導體同漲同跌，要硬性分散</td></tr>
+            <tr><td>利潤平倉 PT</td><td><b>50%</b> 權利金</td><td class="muted">收一半就走，慳返 tail risk 提高輪替</td></tr>
+            <tr><td>熔斷</td><td><b>−15%</b> → 停 10 交易日</td><td class="muted">one-shot；回修到 −8% 之上先 re-arm</td></tr>
+            <tr><td>大盤寬度閘門</td><td><b>≥50%</b> 股價&gt;MA50</td><td class="muted">宇宙寬度唔夠 = 全場休息（2026-08 就係咁停）</td></tr>
+            <tr><td>Covered Call（接貨後）</td><td><b>Δ 0.22–0.30 · 10–14 DTE · PT 50%</b></td><td class="muted">The Wheel 第二腿</td></tr>
+          </tbody>
+        </table></div>
+        <div class="small muted" style="margin-top:8px">成本假設（回測已計）：期權 $1.10/腿/單向 · 股票 $0.005/股（min $1）· 滑價 · 7%/年按金利息。按金公式（Reg-T）：max(20%×現價＋權利金−OTM, 10%×行使價＋權利金)×100。</div>
+      </div>
+    </div>
+    <div class="card"><div class="card-h"><span class="t">入場：點樣揀「最佳」</span></div><div class="card-b" id="methodBest"></div></div>
+    <div class="card"><div class="card-h"><span class="t">IV 點嚟</span></div><div class="card-b" id="methodIV"></div></div>
+    <div class="card"><div class="card-h"><span class="t">配倉（按金制）＋ 出場規則</span></div><div class="card-b" id="methodSize"></div></div>
+    <div class="card"><div class="card-h"><span class="t">風險誠實話</span></div><div class="card-b" id="methodRisk"></div></div>
+  </div>
+</div>
+
+<div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · All-in-One Financial Dashboard Suite — 期權交易 v4_balanced（Sell Put → Covered Call · 70% 按金 · 6 puts · Δ0.25–0.30 · PT50%）· 紙上模式 · 數據：Futu 實時（bid/ask · IV/Delta 由真實報價 BS 反推）＋ Yahoo 兜底 · 期權賣方有 tail risk · 非投資建議</div>
+
+<div id="tipbox"></div>
+<div id="execModal"><div class="box" id="execBox"></div></div>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+"use strict";
+/* ════════════ 常數 ════════════ */
+const BRIDGE_SECRET='qtbridge-K7s2-wolf-9mX4';
+const HKD_USD=7.8, CAPITAL_HKD=200000;
+const BRIDGE_PROXY=(location.protocol==='https:'||'http:')?'https://quant-api.leunghlk.workers.dev/live':'';
+const BRIDGE_URLS=(function(){
+  const p=new URLSearchParams(location.search).get('bridge');
+  let ls; try{ls=localStorage.getItem('qbridge');}catch(e){}
+  const list=[p,ls];
+  if(location.protocol!=='https:'){
+    list.push('http://127.0.0.1:8765','http://100.112.182.107:8765','http://kathys-macbook-air.tailefed71.ts.net:8765');
+  }
+  list.push(BRIDGE_PROXY);
+  return list.filter(Boolean);
+})();
+
+/* ════════════ 詞彙表（layman + 公式）═ hover ⓘ ════════════ */
+const GLOSS={
+  'strike':'<b>行使價 Strike</b>：到期日你若被指派，就係以呢個價錢買入 100 股。越 OTM 越平但越安全。<br>選法：揀 delta≈0.25 嗰個行使價（≈25% 機會被指派）。',
+  'premium':'<b>權利金 Premium</b>：買家俾你嘅錢（你賣出期權即刻收到）。公式：mid×100×張數。<br>你嘅最大利潤就係呢筆錢。',
+  'collateral':'<b>抵押 Collateral（接貨現金）</b>：如果被指派要攞得出嚟嘅錢 = 行使價×100×張數。v4_balanced 用按金戶口（唔使全額鎖現金），但要知接貨成本呢個數。',
+  'margin':'<b>按金 Margin（Reg-T）</b>：券商真正鎖住嘅錢 = max(20%×現價＋權利金−OTM，10%×行使價＋權利金)×100×張數。<br>v4_balanced 嘅倉位預算用呢個口徑：總按金 ≤ equity×70%。',
+  'util':'<b>按金利用率</b>：已用按金 ÷（equity×70%）。<br>70% 上限係回測凍結參數 —— 爆上限 = 唔跟規則 = 結果冇得比。',
+  'breadth':'<b>大盤寬度 Breadth</b>：宇宙入面股價企喺自己 MA50 之上嘅比例。<br>&lt;50% = 大盤弱 → 引擎唔開新倉（2026 年 8 月上半月就係咁停咗）。呢個閘門避咗好多次跌市接貨。',
+  'breaker':'<b>熔斷 Circuit Breaker</b>：帳戶回撤到 −15% → 停止開新倉 10 個交易日，回修到 −8% 之上先 re-arm。<br>one-shot 設計：觸發一次就停，唔會每日重複觸發死循環。',
+  'cut':'<b>Cut-before-assignment（止損離場）</b>：行使價失守 <b>而且</b> 股價 &lt; 0.95×MA50（趨勢壞咗）<b>而且</b> DTE≥5 → 即刻買回平倉，唔等接貨。<br>v4 回測顯示呢條規則係避免大跌市越溝越深嘅關鍵。',
+  'csp':'<b>Cash-Secured Put（賣出認沽）</b>：你收錢「送」一個買入權俾人。股價唔跌穿行使價 → 到期歸零，你全收權利金；跌穿 → 你按行使價接貨（如果本嚟就想買呢隻股，就係折價買入）。',
+  'delta':'<b>Delta</b>：股價升 $1，期權價變幾多（賣 put 嘅 delta 係負數，≈-0.25 即被指派機率近似 25%）。<br>公式：N(d₁)−1（put）。我哋用佢揀行使價。',
+  'gamma':'<b>Gamma</b>：Delta 嘅變化率 —— 股價越近行使價，gamma 越大，short option 嘅風險變化越快。<br>公式：N′(d₁)/(S·σ√T)。到期最後幾日 gamma 會爆升（所以唔做太短年期）。',
+  'theta':'<b>Theta（時間衰減）</b>：每日權利金蝕幾多——係賣方嘅朋友。每日少一個維期權價值嘅部分。<br>公式（put）：[−S·N′(−d₁)·σ/(2√T) + r·K·e⁻ʳᵀ·N(−d₂)]/365。',
+  'vega':'<b>Vega</b>：IV 升 1%，期權價變幾多。short 方怕 IV 爆升（如業績日）。<br>公式：S·N′(d₁)·√T/100。業績日避開就係唔想食 vega。',
+  'iv':'<b>隱含波動率 IV</b>：市場對未來波動嘅定價，直接決定期權價。IV 高 → 權利金貴（賣方有着數）。<br>層一：Yahoo chain 真 IV；層二：歷史波動率（真實回報 std×√252）兜底。',
+  'ivrank':'<b>IV Rank</b>：而家 IV 喺呢隻股近 90 日歷史嘅位置（0-100）。越高代表而家賣特別抵。<br>公式：IV 歷史中 ≤ 而家 IV 嘅比例 ×100。',
+  'histvol':'<b>歷史波動率</b>：用真實股價回報計出嚟嘅波動 = stdev(日回報)×√252。係 IV 嘅「事實根據」。',
+  'itm':'<b>ITM（價內）</b>：put 嚟講即 S_T&lt;行使價 —— 買家會行使，你被指派。概率 = N(−d₂)。',
+  'otm':'<b>OTM（價外）</b>：S_T&gt;行使價 —— 期權到期歸零，你全收權利金。概率 = N(d₂)。<br>賣 put 賺足權利金機率 = OTM%。',
+  'ann':'<b>年化回報</b>：將週回報化成年率方便比較 = yield%×365/DTE。<br>注意：呢個係「假設每星期都全收」嘅理想數字，真實要扣接貨回吐。',
+  'assign':'<b>被指派 / 接貨</b>：到期日股價低於行使價 → 你按行使價買入 100 股（紙上）。之後可賣 Covered Call 收返權利金（The Wheel）。',
+  'cc':'<b>Covered Call</b>：持有股票同時賣出認購期權，收權利金但犧牲升幅。Objective：Yield Enhancement。',
+  'close50':'<b>平倉 50%</b>：當權利金已經跌咗 50%（你賺咗一半），就 buy-to-close 鎖利。時間衰減喺尾段先急，早平可以慳返 tail risk。',
+  'earnings':'<b>業績日 / IV crush</b>：業績公佈後 IV 會急跌（vega 爆咗），期權價急插。持倉跨業績日 = 大跳空風險，所以窗口內一律唔做 / 必平。',
+  'breakeven':'<b>盈虧平衡</b>：行使價 − 權利金。股價低過呢度你才開始蝕。例：$60−$3.5=$56.5。',
+  'maxloss':'<b>最大虧損</b>：股價跌到 $0 嘅理論最壞情況 =（行使價−權利金）×100×張數。呢個係 CSP 嘅 tail risk。',
+  'sr':'<b>支援/阻力 S/R</b>：經典 pivot 計法（20 日）→ P=(H20+L20+C)/3、R1=2P−L20、S1=2P−H20。<br>賣 put 揀行使價最好喺支援位之下（有「墊」）。',
+  'pivot':'<b>Pivot Point</b>：即日交易者用嘅市場基準 = (H+L+C)/3。R1/R2 阻力、S1/S2 支援由此推。',
+  'atr':'<b>ATR（真實波幅）</b>：粗略日波幅 = vol30/√252×價。用嚟定止蝕距離（ATR×1.5）。',
+  'scenario':'<b>情境分析</b>：模擬到期日不同股價下你嘅盈虧（權利金 − max(0, K−S_T)）×100×張數。綠色=賺、紅色=蝕。',
+  'score':'<b>分數（揀最佳準則）</b>：annualized_yield ×(0.5+IV_rank/100) ÷ (1+risk)。<br>risk 懲罰：闊 spread、IV&gt;90%、細價股、舊報價。分高 = 回報高而風險抵。',
+  'contracts':'<b>張數 Contracts</b>：1 張 = 100 股掛鈎。建議張數由按金預算計：min(（70%預算−已用）÷每張按金, 30% equity ÷每張按金, 板塊 40% 預算上限, 10)。',
+  'veto':'<b>Model Veto</b>：你個 All-in-One 量化模型（四因子 + 動量減速）話唔好買嘅股 → 唔會叫你賣 put。自己個系統做守門員。',
+  'expectation':'<b>概率加權期望值</b>：OTM%×最大利潤 + ITM%×平均虧損（粗略）。正數代表長遠「期望」有得賺。',
+  'premiumsrc':'<b>權利金來源</b>：live = 真實買賣價 mid；live-stale = 報價舊咗用模型兜底；model = 冇報價用 BS 模型計。',
+};
+function tip(k){const t=GLOSS[k];return t?('<span class="tip" data-tip="'+t.replace(/'/g,'&#39;')+'">ⓘ</span>'):'';}
+
+/* ════════════ state ════════════ */
+let rec=null, live={}, activeBridge=null, activeTk=null, chart=null, cseries=null;
+
+function $(id){return document.getElementById(id);}
+function fmt(n,d){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:d==null?0:d});}
+function money(n){return (n>0?'+':'')+fmt(n);}
+function hkd(n){return 'HKD '+fmt(n);}
+function px2(v){return (v==null||isNaN(v))?'—':Number(v).toFixed(2);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+
+function fetchTimeout(url,ms,opts){
+  const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),ms||20000);
+  return fetch(url,opts||{cache:'no-store',signal:ctrl.signal}).finally(()=>clearTimeout(t));
+}
+async function postJSON(url,obj){
+  try{
+    const r=await fetchTimeout(url,15000,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(obj)});
+    return await r.json().catch(()=>({ok:false}));
+  }catch(e){return {ok:false,error:String(e)};}
+}
+async function detectBridge(){
+  for(const u of BRIDGE_URLS){
+    if(!u)continue;
+    try{
+      const r=await fetchTimeout(u+'/health',5000);
+      if(r&&r.ok){const j=await r.json().catch(()=>null);if(j&&j.ok){activeBridge=u;return true;}}
+    }catch(e){}
+  }
+  return false;
+}
+
+/* ════════════ gauge / 表格 helper ════════════ */
+function gauge(itm,otm){
+  const i=Math.max(0,Math.min(100,Math.round(Number(itm)||0)));
+  const o=Math.max(0,100-i);   // OTM = 100 − ITM，兩邊一定加埋 100
+  return '<div class="gauge"><div style="flex:'+o+';background:#16a34a">OTM '+o+'%</div><div style="flex:'+i+';background:#ef4444">ITM '+i+'%</div></div>';
+}
+function pill(k,txt){return '<span class="pill '+k+'">'+txt+'</span>';}
+
+/* ════════════ load + refresh ════════════ */
+let lastUpdated=null;
+async function loadRec(force){
+  const btn=$('refreshBtn');
+  if(btn)btn.classList.add('loading');
+  if(!activeBridge){if(!(await detectBridge())){setLive('bridge 未連接');if(btn)btn.classList.remove('loading');return;}}
+  try{
+    const r=await fetchTimeout(activeBridge+'/options_income?secret='+encodeURIComponent(BRIDGE_SECRET),20000);
+    const j=await r.json().catch(()=>null);
+    if(!j||!j.generated)throw 0;
+    rec=j;
+    lastUpdated=new Date();
+    setLive((rec.paper?'📝 紙上':'🔴 LIVE')+' · '+rec.date+(activeBridge&&activeBridge.indexOf('workers')>=0?' · ⚙ proxy':'')+' · 更新 '+lastUpdated.toLocaleTimeString('zh-HK'));
+    renderAll();
+    loadLive();
+    if(activeTk)loadChain(activeTk);   // ⭐ 刷新實時：期權鏈一齊 refresh
+  }catch(e){setLive('載入失敗，重試中…');}
+  if(btn)btn.classList.remove('loading');
+}
+function manualRefresh(){
+  const b=$('refreshBtn');if(b)b.textContent='🔄 刷新中…';
+  if(activeTk)chainScrollPending[activeTk]=true;   // ⭐ refresh 後 auto-scroll 返建議 strike
+  loadRec(true);
+  setTimeout(()=>{if(b)b.textContent='🔄 刷新實時';},4000);
+}
+async function loadLive(){
+  if(!activeBridge)return;
+  const set=new Set();
+  const c=rec?[].concat(rec.best||[],rec.candidates||[],rec.book||[]):[];
+  c.forEach(x=>{if(x&&x.ticker)set.add(x.ticker);});
+  (rec&&rec.positions||[]).forEach(p=>{if(p.ticker)set.add(p.ticker);});
+  if(!set.size)return;
+  try{
+    const r=await fetchTimeout(activeBridge+'/snapshot?codes='+encodeURIComponent([...set].join(','))+'&secret='+encodeURIComponent(BRIDGE_SECRET),20000);
+    const j=await r.json().catch(()=>null);
+    if(j&&j.data){j.data.forEach(x=>{if(x&&!x.error)live[(x.orig||'').toUpperCase()]=x;});}
+  }catch(e){}
+  if(activeTk)renderDetail(); else if(document.getElementById('pane-detail').classList.contains('active'))renderDetail();
+}
+function setLive(t){const el=$('liveBadge');if(el)el.textContent=t;}
+
+/* ════════════ render ════════════ */
+function renderAll(){renderOverview();renderBest();renderCandidates();renderWinRank();renderPositions();renderNotes();renderDecisions();renderMethod();if(activeTk)renderDetail();}
+
+function findCandidate(tk){
+  const list=[].concat(rec.book||[],rec.best?[rec.best]:[],rec.candidates||[]);
+  return list.find(x=>x&&x.ticker===tk)||null;
+}
+
+function renderRails(){
+  const el=$('ovRailsBody'); if(!el)return;
+  const mu=Number(rec.used_margin_open||0), mb=Number(rec.margin_budget||0), eq=Number(rec.equity_usd||CAPITAL_HKD/HKD_USD);
+  const br=Number(rec.breadth), bk=rec.breaker||{};
+  const pos=(rec.positions||[]).filter(x=>x.status==='open');
+  const nputs=pos.filter(x=>x.side!=='CALL').length, ncc=pos.filter(x=>x.side==='CALL').length;
+  const utilPct=mb?Math.round(mu/mb*100):0, utilEq=Math.round(mu/eq*100);
+  const brOk=br>=0.50;
+  let h='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">';
+  h+='<div><div class="small muted">按金預算運用（70% 上限）'+tip('margin')+tip('util')+'</div>'
+    +'<div class="bar" style="margin-top:4px"><div style="width:'+Math.min(100,utilPct)+'%;background:'+(utilPct>90?'#dc2626':utilPct>70?'#d97706':'#1a73e8')+'"></div></div>'
+    +'<div class="small" style="margin-top:3px">$'+fmt(mu)+' / $'+fmt(mb)+' · <b>'+utilPct+'%</b> 預算（equity 嘅 '+utilEq+'%）</div></div>';
+  h+='<div><div class="small muted">倉位 / 閘門</div><div class="small" style="margin-top:4px;line-height:1.9">'
+    +'Put 倉 <b>'+nputs+'/6</b>'+(ncc?' · CC 倉 <b>'+ncc+'</b>':'')+' · 每日新倉 ≤2'+tip('contracts')+'<br>'
+    +'大盤寬度 <b style="color:'+(brOk?'#16a34a':'#dc2626')+'">'+(br==null||isNaN(br)?'—':Math.round(br*100)+'%')+'</b>（閘門 ≥50% '+(brOk?'✓ 開放新倉':'✗ 新倉暫停')+'）'+tip('breadth')+'<br>'
+    +'熔斷 '+(bk.tripped?'<b style="color:#dc2626">🔴 已觸發（'+(bk.trip_dd!=null?bk.trip_dd+'%）':'）')+(bk.paused_until?' · 停至 '+bk.paused_until:'')+'</b>':'<b style="color:#16a34a">🟢 未觸發</b>（−15% 停 10 日）')+tip('breaker')
+    +'</div></div>';
+  h+='</div>';
+  h+='<div class="small muted" style="margin-top:8px">模型：<b>'+esc(rec.model_profile||'v4_balanced')+'</b> · 跟足「今日最佳 → 執行（紙上）」＋上表出場規則 = 貼近回測路徑。'+(bk.paused_until?'<br>⚠️ 熔斷期間唔好手動開新倉。':'')+'</div>';
+  const rm=$('railsMeta'); if(rm){const acts=(rec.actions||[]);rm.textContent=acts.length?('⚠️ '+acts.length+' 個出場建議 → 去「持倉管理」'):'跟足下表規則 = 貼近回測結果';}
+  el.innerHTML=h;
+}
+function renderOverview(){
+  const p=rec.portfolio||{};
+  $('ovEquity').textContent=hkd(p.equity_hkd);
+  $('ovReturn').textContent='累計回報 '+money(p.return_pct)+'%';
+  $('ovRealized').textContent=hkd(p.realized_hkd);
+  $('ovRealized').className='val '+(p.realized_hkd>=0?'up':'dn');
+  $('ovUnrealized').textContent=hkd(p.unrealized_hkd);
+  $('ovUnrealized').className='val '+(p.unrealized_hkd>=0?'up':'dn');
+  renderRails();
+  const locked=lockedHKD(), avail=availHKD();     // 接貨現金（開倉+排隊）／剩餘
+  const mu=Number(rec.used_margin_open||0), mb=Number(rec.margin_budget||0);
+  $('ovUsed').textContent='$'+fmt(mu)+' ≈ '+hkd(mu*HKD_USD);
+  const pct=Math.min(100,Math.round(locked/CAPITAL_HKD*100));
+  $('ovCapBar').style.width=pct+'%';
+  $('ovCapNote').textContent='按金 '+fmt(mu)+'/'+fmt(mb)+'（'+(mb?Math.round(mu/mb*100):0)+'% 預算）'+tip('margin')+tip('util')+' · 接貨現金 '+pct+'%（'+hkd(locked)+'）· 開倉 '+p.open_count+'/6 · 排隊 '+decLoad('optdash_queued').length;
+  $('ovMonthly').textContent=hkd(rec.projected_monthly_hkd&&rec.projected_monthly_hkd.hkd);
+  // 開倉位
+  const pos=(rec.positions||[]).filter(x=>x.status==='open');
+  $('ovPosMeta').textContent=pos.length+' 開倉';
+  let h='';
+  if(pos.length){
+    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場/現權利金</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th>訊號</th></tr></thead><tbody>';
+    pos.forEach(p=>{
+      const a=p.pct_max>=50?'<span style="color:#16a34a;font-weight:700">✅ 平倉（≥50%）</span>':(p.close_requested?'<span style="color:#d97706">待平倉</span>':'<span class="muted">持有</span>');
+      h+='<tr><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+p.entry_prem+' / '+p.cur_prem+'</td><td class="r">'+p.pct_max+'%</td><td class="r">'+(p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span></td><td>'+a+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+  }else{h+='<div class="muted">暫無開倉位 — 去「今日最佳」揀一單執行。</div>';}
+  $('ovPosBody').innerHTML=h;
+  // 平倉紀錄
+  const led=rec.ledger_recent||[];
+  $('ovLedgerBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">未有任何平倉紀錄。</div>';
+}
+function ledTable(led){
+  let h='<table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>張數</th><th>原因</th><th class="r">P&amp;L (USD)</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
+  led.forEach(t=>{
+    h+='<tr><td><b>'+esc(t.ticker)+'</b></td><td class="r">$'+t.strike+'</td><td class="r">'+(t.contracts||1)+'</td><td>'+esc(t.close_reason)+'</td><td class="r">'+money(t.pnl)+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
+  });
+  return h+'</tbody></table>';
+}
+
+function renderBest(){
+  const b=rec.best;
+  const el=$('bestCard');
+  if(!b){el.innerHTML='<div class="muted">今日無符合條件嘅候選。</div>';return;}
+  const sc=b.scenarios||{};
+  let h='';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:stretch">';
+  h+='<div style="flex:1.3;min-width:300px;background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:10px;padding:14px;color:#fff">';
+  h+='<div style="font-size:12px;color:#4ade80">🟢 最佳交易 · SELL PUT <b>'+b.ticker+'</b> ×'+b.contracts+tip('csp')+'</div>';
+  h+='<div style="font-size:24px;font-weight:800;margin:6px 0">行使價 $'+b.strike+'<span style="font-size:12px;color:#94a3b8;font-weight:400">（現價 $'+liveSpot(b.ticker,b.spot)+'）</span>'+tip('strike')+'</div>';
+  h+='<div style="font-size:13px;color:#cbd5e1">權利金 $'+b.mid+'/股 = <b>$'+b.premium_total+'</b> ≈ HKD '+b.premium_total_hkd+tip('premium')+'</div>';
+  h+=gauge(b.prob_itm,b.prob_otm);
+  h+='<div style="font-size:10px;color:#94a3b8">OTM = 賺足權利金機率 · ITM = 被指派機率'+tip('otm')+tip('itm')+'</div>';
+  h+='<div style="font-size:11px;color:#cbd5e1;margin-top:6px">到期 '+b.expiry+'（'+b.dte+'D）· Delta '+b.delta+tip('delta')+' · IV '+Math.round(b.iv*100)+'%（rank '+b.iv_rank+'）'+tip('ivrank')+' · 按金 $'+fmt(b.margin_total||b.margin1||0)+tip('margin')+' · 接貨現金 $'+b.collateral_total+tip('collateral')+'</div>';
+  h+='<div style="font-size:13px;font-weight:700;color:#fbbf24;margin-top:6px">回報 '+(b.yield_pct!=null?Number(b.yield_pct).toFixed(2):'—')+'%/週 ≈ '+b.yield_ann+'%/年'+tip('ann')+'</div>';
+  if(sc.breakeven){h+='<div style="font-size:11px;color:#94a3b8;margin-top:2px">盈虧平衡 $'+sc.breakeven+tip('breakeven')+' · 最大虧損（股價→0）$'+sc.max_loss+' ≈ HKD '+sc.max_loss_hkd+tip('maxloss')+'</div>';}
+  if(b.earnings){h+='<div style="font-size:11px;color:#f59e0b;margin-top:4px">📅 下一業績日 '+b.earnings+tip('earnings')+'</div>';}
+  h+='<div style="margin-top:10px"><button class="btn btn-go" onclick="execCandidate(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+','+(b.contracts||1)+')">✅ 執行（紙上落單）</button> <button class="btn btn-no" onclick="skipTrade(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+')">唔做</button> <button class="btn btn-ghost" onclick="showDetail(\''+b.ticker+'\')">詳情 →</button></div>';
+  h+='</div>';
+  h+='<div style="flex:1;min-width:240px;background:#1e293b;border-radius:10px;padding:14px;color:#fff">';
+  h+='<div style="font-size:12px;color:#94a3b8">資本 + 期望</div>';
+  h+='<div style="font-size:20px;font-weight:800">HKD '+CAPITAL_HKD.toLocaleString()+'</div>';
+  h+='<div class="bar" style="margin-top:8px"><div style="width:'+Math.min(100,(rec.margin_budget?Math.round((rec.used_margin_open||0)/rec.margin_budget*100):0))+'%;background:#3b82f6"></div></div>';
+  h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">按金 $'+fmt(rec.used_margin_open||0)+'/'+fmt(rec.margin_budget||0)+tip('margin')+'（70% 預算 · 6 put 上限 · 每日 ≤2 新倉）</div>';
+  if(sc.expectation!=null){h+='<div style="font-size:13px;color:#4ade80;margin-top:8px">概率加權期望值 <b>'+money(sc.expectation)+' USD</b>（≈HKD '+fmt(sc.expectation_hkd)+'）'+tip('expectation')+'</div>';}
+  h+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">'+rec.target_monthly_hkd_note+'</div>';
+  h+='</div></div>';
+  el.innerHTML=h;
+}
+function liveSpot(tk,fb){const s=live[tk];return px2(s&&s.live_price!=null?s.live_price:fb);}
+
+function renderCandidates(){
+  // ⭐ 分數高 → 低（engine 已 sort+dedup，呢度再兜底排一次，防止舊 rec）
+  const cands=(rec.candidates||[]).filter(c=>!c.vetoed).sort((a,b)=>(b.score||0)-(a.score||0));
+  const meta=$('candMeta');
+  if(meta)meta.textContent=cands.length+' 個候選 · '+rec.veto_count+' 隻被 veto · '+(rec.model_profile||'v4_balanced')+' · Δ0.25–0.30 / 10–14DTE / $10–$200';
+  let h='<div class="table-scroll"><table class="utable"><thead><tr><th></th><th>股票</th><th class="r">現價</th><th class="r">行使價'+tip('strike')+'</th><th>到期</th><th class="r">權利金/張'+tip('premium')+'</th><th class="r">張數'+tip('contracts')+'</th><th class="r">按金'+tip('margin')+'</th><th class="r">接貨現金'+tip('collateral')+'</th><th class="c">ITM / OTM'+tip('itm')+'</th><th class="r">週回報</th><th class="r">分數'+tip('score')+'</th><th></th></tr></thead><tbody>';
+  cands.slice(0,12).forEach(c=>{
+    const una=!!c.unaffordable;                    // 單名按金超 30% equity 上限 → 禁執行
+    const yp=(c.yield_pct!=null?Number(c.yield_pct).toFixed(2):'—');   // 周回報 2dp
+    h+='<tr class="clickable" onclick="showDetail(\''+c.ticker+'\')">';
+    h+='<td><button class="btn btn-go" '+(una?'style="opacity:.4;pointer-events:none" title="單名按金超 30% equity 上限"':'')+' onclick="event.stopPropagation();execCandidate(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+','+(c.contracts||1)+')">'+(una?'超上限':'執行')+'</button></td>';
+    h+='<td><span class="co">'+c.ticker+'</span><br><span class="tk">'+esc(c.name||c.ticker)+'</span></td>';
+    h+='<td class="r">$'+liveSpot(c.ticker,c.spot)+'</td>';
+    h+='<td class="r">$'+px2(c.strike)+'</td>';
+    h+='<td>'+c.expiry+'<br><span class="muted small">'+c.dte+'D</span></td>';
+    h+='<td class="r">$'+(c.premium!=null?c.premium:'—')+'<br><span class="muted small">≈HKD '+(c.premium_hkd!=null?c.premium_hkd:'—')+'</span></td>';
+    h+='<td class="r">'+(una?'—':(c.contracts||1))+'</td>';
+    h+='<td class="r">$'+fmt(c.margin_total||(c.margin1?(c.margin1*(c.contracts||1)):0))+'<br><span class="muted small">$'+fmt(c.margin1||0)+'/張</span></td>';
+    h+='<td class="r">$'+Number(c.collateral_total||0).toLocaleString()+'</td>';
+    h+='<td class="c">'+gauge(c.prob_itm,c.prob_otm)+'</td>';
+    h+='<td class="r">'+yp+'%</td>';
+    h+='<td class="r">'+(c.score!=null?c.score.toFixed(2):'—')+'</td>';
+    h+='<td><button class="btn btn-no" onclick="event.stopPropagation();skipTrade(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+')">唔做</button></td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  $('candBody').innerHTML=h;
+}
+
+/* ⭐ 2026-08-14: 賣 Call / 賣 Put 勝率排名（winrank：P(OTM) 由高到低，連動量減速） */
+function renderWinRank(){
+  const el=$('winrankBody');if(!el)return;
+  const w=(rec&&rec.winrank)||[];
+  if(!w.length){el.innerHTML='<div class="muted">勝率排名：等待盤前全宇宙掃描（每日更新）。</div>';return;}
+  let h='<div class="table-scroll"><table class="utable"><thead><tr>'+
+    '<th>訊號</th><th>標的</th><th class="r">現價</th><th class="r">行使價</th><th class="r">期權金/張</th><th class="r">抵押</th>'+
+    '<th class="r">總評分</th><th class="r">動量減速</th><th class="c">ITM / OTM</th><th class="r">周回報</th><th></th></tr></thead><tbody>';
+  w.forEach((x,i)=>{
+    const otm=Math.round(x.prob_otm||0), itm=Math.round(x.prob_itm||0);
+    const dec=x.decel!=null?x.decel:'—';
+    const dcol=(dec!=='—')?(dec<=-3?'#dc2626':dec<=-2?'#d97706':'#16a34a'):'#94a3b8';
+    const sig=x.signal==='SELL PUT'
+      ?'<span style="background:#dbeafe;color:#1d4ed8;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700">賣Put</span>'
+      :'<span style="background:#fef3c7;color:#92400e;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700">賣Call</span>';
+    const una=x.unaffordable?' <span style="color:#dc2626;font-weight:700" title="單名按金超 30% equity 上限，執行唔到">⚠</span>':'';
+    h+='<tr>'+
+      '<td>'+sig+'</td><td><b>'+esc(x.ticker)+'</b>'+una+'</td>'+
+      '<td class="r">$'+px2(x.spot)+'</td><td class="r">$'+px2(x.strike)+'</td>'+
+      '<td class="r">$'+x.premium+'</td><td class="r">$'+Number(x.collateral||0).toLocaleString()+'</td>'+
+      '<td class="r"><b>'+(x.total!=null?Number(x.total).toFixed(2):'—')+'</b></td>'+
+      '<td class="r" style="color:'+dcol+';font-weight:700">'+dec+'</td>'+
+      '<td class="c"><span style="color:#16a34a;font-weight:700">'+otm+'%</span> / <span style="color:#dc2626">'+itm+'%</span></td>'+
+      '<td class="r">'+(x.yield_pct!=null?Number(x.yield_pct).toFixed(2):'—')+'%</td>'+
+      '<td><button class="btn btn-go" '+(x.unaffordable?'style="opacity:.4;pointer-events:none" title="單名按金超 30% equity 上限"':'')+' onclick="execWinRank('+i+')">'+(x.unaffordable?'超上限':'執行')+'</button> '+
+      '<button class="btn btn-ghost" onclick="showDetail(\''+x.ticker+'\')">詳情</button></td>'+
+      '</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div class="muted" style="font-size:11px;margin-top:4px">排序 = 勝率 P(OTM) 由高到低。總評分 = 期權分數Ⓘ × 股票質素 × 動量健康；動量減速 ≤-2 琥珀、≤-3 紅。⚠ = 單名按金超 30% equity 上限（engine 會 reject）。執行 → 攞實時 Futu bid 開執行視窗（賣 Put=CSP / 賣 Call=短 call，紙上）。</div>';
+  el.innerHTML=h;
+}
+
+/* ⭐ 2026-08-14: winrank 執行 —— side-aware（賣 Put→CSP / 賣 Call→短 call）＋ 攞實時 Futu bid */
+function winRankContracts(x){
+  const eq=eqUSD();   // v4_balanced：單名按金 ≤30% equity（同 engine 口徑）
+  const m1=x.margin1||Math.round(0.22*(x.collateral||1));   // winrank 冇 margin1 → 0.22×K×100 近似
+  return Math.max(1,Math.min(10,Math.floor(eq*0.30/m1)));
+}
+function execWinRank(i){
+  const x=(rec&&rec.winrank||[])[i];if(!x)return;
+  const side=(x.signal==='SELL CALL')?'CALL':'PUT';
+  // winrank 行唔喺 book/best/candidates → 合成 candidate context，modal 先有齊 spot/mid/OTM 顯示
+  const ctx={ticker:x.ticker,name:x.ticker,expiry:x.expiry,dte:x.dte||0,strike:x.strike,spot:x.spot,mid:x.mid,
+    delta:x.delta,iv:x.iv,prob_otm:x.prob_otm,prob_itm:x.prob_itm,
+    contracts:winRankContracts(x),premium:x.premium,premium_total:x.premium,
+    premium_total_hkd:Math.round(x.premium*HKD_USD),collateral:x.collateral,fromChain:true,signal:x.signal};
+  execCandidate(x.ticker,x.expiry,x.strike,ctx.contracts,side,x.mid,ctx);
+}
+
+function renderNotes(){
+  const notes=rec.notes||[];
+  $('notesBody').innerHTML=notes.length?notes.map(n=>'· '+esc(n)).join('<br>'):'<span class="muted">無。</span>';
+}
+
+function renderPositions(){
+  const acts=(rec&&rec.actions)||[];
+  const ac=$('actCard'), ab=$('actBody');
+  if(ac){ac.style.display=acts.length?'':'none';
+    if(ab)ab.innerHTML=acts.map(a=>'<div style="padding:6px 0;border-bottom:1px dashed #e2e8f0">'+esc(a)+'</div>').join('');}
+  const pos=(rec.positions||[]).filter(x=>x.status==='open');
+  const body=$('posBody');
+  let h='';
+  if(pos.length){
+    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>類型</th><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場權利金</th><th class="r">現權利金</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th>訊號 / 動作</th></tr></thead><tbody>';
+    pos.forEach(p=>{
+      const a=p.pct_max>=50?'<span style="color:#16a34a;font-weight:700">✅ 建議平倉（≥50%）'+tip('close50')+'</span>':(p.close_requested?'<span style="color:#d97706">⏳ 待 engine 確認</span>':'<span class="muted">持有</span>');
+      h+='<tr><td>'+(p.side==='CSP'?'沽 Put':'沽 Call')+'</td><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">$'+p.entry_prem+'</td><td class="r">$'+p.cur_prem+'</td><td class="r">'+p.pct_max+'%</td><td class="r">'+(p.pnl_hkd>=0?'<span style="color:#16a34a;font-weight:700">':'<span style="color:#dc2626;font-weight:700">')+money(p.pnl_hkd)+'</span></td><td>'+a+'<br><button class="btn btn-close" style="margin-top:4px" onclick="closePos(\''+p.id+'\')">平倉</button></td></tr>';
+    });
+    h+='</tbody></table></div>';
+  }else{h+='<div class="muted">暫無開倉位。</div>';}
+  body.innerHTML=h;
+  const led=rec.ledger_recent||[];
+  $('ledMeta').textContent='累計已實現 '+hkd(rec.realized_hkd);
+  $('ledBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">未有紀錄。</div>';
+}
+
+/* ════════════ 個股詳情 ════════════ */
+function openBestDetail(){if(rec&&rec.best)showDetail(rec.best.ticker);}
+function showDetail(tk){
+  activeTk=tk;
+  switchPane('detail');
+  renderDetail();
+}
+function renderDetail(){
+  const c=findCandidate(activeTk);
+  if(!c){$('dtBody').innerHTML='<div class="muted">呢隻股暫時冇候選資料。</div>';return;}
+  $('dtTitle').textContent='📈 '+c.ticker+' 個股詳情';
+  const livePx=liveSpot(c.ticker,c.spot);
+  $('dtLive').innerHTML='現價 <b>$'+livePx+'</b>'+(live[c.ticker]?(' · '+esc(live[c.ticker].session||'')):'')+' · <button class="btn btn-go" onclick="execCandidate(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+','+(c.contracts||1)+')">✅ 執行</button>';
+  let h='';
+  // 交易總結卡
+  h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">';
+  h+='<span class="pill t">SELL PUT ×'+(c.contracts||1)+'</span>';
+  h+='<span class="pill b">行使價 $'+c.strike+'</span>';
+  h+='<span class="pill w">權利金 $'+c.premium_total+'（HKD '+c.premium_total_hkd+'）</span>';
+  h+='<span class="pill g">OTM '+c.prob_otm+'%</span>';
+  if(c.premium_source)h+='<span class="pill t">報價:'+c.premium_source+tip('premiumsrc')+'</span>';
+  h+='</div>';
+  // 圖表 + 右邊 S/R + 希臘字母
+  h+='<div class="grid2">';
+  h+='<div><div class="card"><div class="card-h"><span class="t">日線 K 線（60 日）</span><span class="meta">紅升綠跌（港式）· 紫=行使價 · 橙=盈虧平衡 · 綠/紅虛線=S/R</span></div>';
+  h+='<div class="card-b"><div class="chartwrap" id="chart"><div class="muted" id="chartFallback">圖表載入中…</div></div>';
+  h+='<div class="chart-note">S/R：經典 pivot（20 日）P=(H+L+C)/3'+tip('pivot')+' · 支援/阻力'+(c.levels?('：S1 $'+c.levels.support1+' / R1 $'+c.levels.resistance1):'')+tip('sr')+'</div></div></div></div>';
+  h+='<div>';
+  h+='<div class="card"><div class="card-h"><span class="t">支援 / 阻力 + 希臘字母</span><span class="meta">hover ⓘ 睇解釋</span></div>';
+  h+='<div class="card-b" id="detailMeta"></div></div>';
+  h+='</div></div>';
+  // ⭐ Futu 實時期權鏈（買/賣 + IV + Delta，同 Futu App 一樣）
+  h+='<div class="card"><div class="card-h"><span class="t">⚡ Futu 實時期權鏈</span><span class="meta">買=bid · 賣=ask · IV/Delta 由真實報價 Black-Scholes 反推' + tip('iv') + '</span></div>';
+  h+='<div class="card-b" id="chainCard"><div class="muted">載入實時 Futu 期權鏈…</div></div></div>';
+  // 情境分析（動態 payoff diagram + hover）
+  h+='<div class="card"><div class="card-h"><span class="t">情境分析：到期日 P&amp;L（hover 圖上任意價位）</span><span class="meta">張數 <span class="scen-stepper"><button onclick="scenStep(-1)">−</button><b id="scenN">'+(c.contracts||1)+'</b><button onclick="scenStep(1)">+</button></span>' + tip('contracts') + '</span></div>';
+  h+='<div class="card-b"><div class="payoff-wrap"><svg id="payoffSvg"></svg><div class="payoff-tip" id="payoffTip"></div></div><div id="scenBody"></div></div></div>';
+  // 執行
+  h+='<div class="card"><div class="card-h"><span class="t">決定</span></div>';
+  h+='<div class="card-b"><button class="btn btn-go" style="font-size:14px;padding:10px 22px" onclick="execCandidate(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+','+(c.contracts||1)+')">✅ 執行呢單（紙上）</button> <button class="btn btn-no" onclick="skipTrade(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+')">今日唔做</button></div></div>';
+  $('dtBody').innerHTML=h;
+  // 明細元數據
+  const lv=c.levels||{};
+  let m='<table class="utable"><thead><tr><th class="c">指標</th><th class="r">值</th><th>解釋</th></tr></thead><tbody>';
+  m+='<tr><td class="c">Pivot</td><td class="r mono">$'+(lv.pivot||'—')+'</td><td class="small">市場基準'+tip('pivot')+'</td></tr>';
+  m+='<tr><td class="c">R1 / R2 阻力</td><td class="r mono">$'+(lv.resistance1||'—')+' / $'+(lv.resistance2||'—')+'</td><td class="small">上方阻力'+tip('sr')+'</td></tr>';
+  m+='<tr><td class="c">S1 / S2 支援</td><td class="r mono">$'+(lv.support1||'—')+' / $'+(lv.support2||'—')+'</td><td class="small">下方支援（行使價揀喺下面更安全）'+tip('sr')+'</td></tr>';
+  m+='<tr><td class="c">ATR（日波幅）</td><td class="r mono">$'+(lv.atr||'—')+'</td><td class="small">粗略日波幅'+tip('atr')+'</td></tr>';
+  m+='<tr><td class="c">Delta</td><td class="r mono">'+c.delta+'</td><td class="small">股價$1變動→權利金變動'+tip('delta')+'</td></tr>';
+  m+='<tr><td class="c">Gamma</td><td class="r mono">'+c.gamma+'</td><td class="small">delta 變化率'+tip('gamma')+'</td></tr>';
+  m+='<tr><td class="c">Theta（每日）</td><td class="r mono">'+c.theta+'</td><td class="small">每日時間衰減'+tip('theta')+'</td></tr>';
+  m+='<tr><td class="c">Vega（每1% IV）</td><td class="r mono">'+c.vega+'</td><td class="small">IV+1%→權利金變動'+tip('vega')+'</td></tr>';
+  m+='<tr><td class="c">IV / IV Rank</td><td class="r mono">'+((c.iv||0)*100).toFixed(0)+'% / '+(c.iv_rank!=null?c.iv_rank:'—')+'</td><td class="small">隱含波動率 / 歷史百分位'+tip('ivrank')+'</td></tr>';
+  m+='</tbody></table>';
+  $('detailMeta').innerHTML=m;
+  drawChart(c);
+  loadChain(activeTk);
+  scenNval=null;                       // reset 到候選建議張數
+  renderScenarios(c);
+}
+/* ════════════ 動態 payoff diagram（hover） ════════════ */
+let scenNval=null;
+function payoffData(c,n){
+  const K=c.strike,S=c.spot,prem=c.mid,mult=100*n;
+  const rows=[[c.label0||'+10%',S*1.10],[c.label1||'+5%',S*1.05],['+2%',S*1.02],['0%',S],['-2%',S*0.98],['-5%',S*0.95],['-10%',S*0.90],['到行使價',K],['盈虧平衡',K-prem]];
+  const out=rows.map(r=>({label:r[0],st:r[1],pnl:Math.round((prem-Math.max(0,K-r[1]))*mult),itm:r[1]<K}));
+  return {rows:out,maxProfit:prem*mult,maxLoss:(K-prem)*mult,be:K-prem};
+}
+function payoffSVG(c,n){
+  const svg=$('payoffSvg'),tip=$('payoffTip');
+  if(!svg||!c)return;
+  const W=720,H=280,padL=52,padR=14,padT=18,padB=30;
+  const K=c.strike,S=c.spot,prem=c.mid,mult=100*n;
+  const x0=Math.min(S*0.5,K-prem*2),x1=Math.max(S*1.35,K+prem*2);
+  const fn=px=>(prem-Math.max(0,K-px))*mult;
+  const arr=[fn(x0),fn(x1),prem*mult,-(K-prem)*mult,0];
+  let y0=Math.min.apply(null,arr),y1=Math.max.apply(null,arr);
+  // ⭐ 2026-08-14: max gain 唔好貼住最頂——short put 個 loss 遠大過 gain，淨係 1.15x 乘落 max 會令
+  // gain 端零 headroom、條 curve 被壓扁。正常情況兩端各加 10% range；單邊情況特判。
+  if(y0>=0){y0=-prem*mult*0.08;y1=Math.max(y1,prem*mult)*1.15;}
+  else if(y1<=0){y1=prem*mult*0.08;y0=Math.min(y0,-(K-prem)*mult)*1.15;}
+  else{const rng=(y1-y0)*0.10;y0-=rng;y1+=rng;}
+  const X=px=>padL+(px-x0)/(x1-x0)*(W-padL-padR);
+  const Y=py=>padT+(y1-py)/(y1-y0)*(H-padT-padB);
+  let h='';
+  for(let i=0;i<=4;i++){const py=y0+(y1-y0)*i/4,yy=Y(py);
+    h+='<line x1="'+padL+'" y1="'+yy+'" x2="'+(W-padR)+'" y2="'+yy+'" stroke="#eceff5"/>';
+    h+='<text x="'+(padL-6)+'" y="'+(yy+3)+'" font-size="9" fill="#94a3b8" text-anchor="end">'+Math.round(py)+'</text>';}
+  if(y0<0&&y1>0){h+='<line x1="'+padL+'" y1="'+Y(0)+'" x2="'+(W-padR)+'" y2="'+Y(0)+'" stroke="#cbd5e1" stroke-dasharray="4,3"/>';}
+  let pts='';for(let i=0;i<=120;i++){const px=x0+(x1-x0)*i/120;pts+=(pts?',':'')+X(px).toFixed(1)+','+Y(fn(px)).toFixed(1);}
+  h+='<polygon points="'+padL+','+Y(0).toFixed(1)+' '+pts+' '+(W-padR).toFixed(1)+','+Y(0).toFixed(1)+'" fill="rgba(22,163,74,.10)"/>';
+  h+='<line x1="'+X(K).toFixed(1)+'" y1="'+padT+'" x2="'+X(K).toFixed(1)+'" y2="'+(H-padB)+'" stroke="#7c3aed" stroke-dasharray="5,3" stroke-width="1.4"/>';
+  h+='<text x="'+X(K).toFixed(1)+'" y="'+(padT-4)+'" font-size="9" fill="#7c3aed" text-anchor="middle">行使價 '+K+'</text>';
+  if(K-prem>0){h+='<line x1="'+X(K-prem).toFixed(1)+'" y1="'+padT+'" x2="'+X(K-prem).toFixed(1)+'" y2="'+(H-padB)+'" stroke="#d97706" stroke-dasharray="5,3" stroke-width="1.4"/>';
+    h+='<text x="'+X(K-prem).toFixed(1)+'" y="'+(H-padB+13)+'" font-size="9" fill="#d97706" text-anchor="middle">盈虧平衡 '+(K-prem).toFixed(2)+'</text>';}
+  h+='<polyline points="'+pts+'" fill="none" stroke="#0d9488" stroke-width="2.2"/>';
+  // ⭐ 現價 marker（S 位置：垂直虛線 + 曲線上嘅點）
+  if(S>=x0&&S<=x1){
+    h+='<line x1="'+X(S).toFixed(1)+'" y1="'+padT+'" x2="'+X(S).toFixed(1)+'" y2="'+(H-padB)+'" stroke="#0ea5e9" stroke-dasharray="4,3" stroke-width="1.3"/>';
+    h+='<circle cx="'+X(S).toFixed(1)+'" cy="'+Y(fn(S)).toFixed(1)+'" r="4" fill="#0ea5e9" stroke="#fff" stroke-width="1.2"/>';
+    h+='<text x="'+X(S).toFixed(1)+'" y="'+(H-padB+13)+'" font-size="9" fill="#0369a1" text-anchor="middle">現價 '+S.toFixed(2)+'</text>';
+  }
+  payoffData(c,n).rows.forEach(r=>{if(r.st>=x0&&r.st<=x1)h+='<circle cx="'+X(r.st).toFixed(1)+'" cy="'+Y(r.pnl).toFixed(1)+'" r="3.4" fill="'+(r.pnl>=0?'#16a34a':'#dc2626')+'"><title>'+r.label+' → '+r.pnl+'</title></circle>';});
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.innerHTML=h;
+  svg.onmousemove=function(ev){
+    const r=svg.getBoundingClientRect();
+    const xd=(ev.clientX-r.left)/r.width*W;
+    const px=x0+(xd-padL)/(W-padL-padR)*(x1-x0);
+    if(px<x0||px>x1){tip.style.display='none';return;}
+    const pnl=Math.round(fn(px));
+    tip.style.display='block';
+    tip.style.left=(ev.clientX-r.left+12)+'px';
+    tip.style.top=(ev.clientY-r.top-40)+'px';
+    tip.innerHTML='<b>$'+px.toFixed(2)+'</b> · '+(px<K?'價內（被指派）':'價外（全收權利金）')+' → 盈虧 <b style="color:'+(pnl>=0?'#4ade80':'#f87171')+'">'+money(pnl)+' USD</b> ≈ HKD '+fmt(pnl*HKD_USD);
+  };
+  svg.onmouseleave=function(){tip.style.display='none';};
+}
+function renderScenarios(c){
+  if(!c)return;
+  scenNval=(scenNval==null)?(c.contracts||1):scenNval;
+  const nEl=$('scenN');if(nEl)nEl.textContent=scenNval;
+  payoffSVG(c,scenNval);
+  const d=payoffData(c,scenNval);
+  let s='<table class="utable"><thead><tr><th>到期股價情景</th><th class="r">股價</th><th class="r">盈虧 (USD)</th><th class="r">盈虧 (HKD)</th><th>狀態</th></tr></thead><tbody>';
+  d.rows.slice().reverse().forEach(r=>{
+    s+='<tr class="'+(r.itm?'scen-row neg':'scen-row pos')+'"><td>'+esc(r.label)+'</td><td class="r">$'+r.st.toFixed(2)+'</td><td class="r">'+money(r.pnl)+'</td><td class="r">'+money(r.pnl*HKD_USD)+'</td><td class="small">'+(r.itm?'價內 → 被指派':'價外 → 全收權利金')+'</td></tr>';
+  });
+  s+='</tbody></table>';
+  s+='<div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap">';
+  s+='<div><span class="muted">最大利潤</span> <b class="pos">+$'+d.maxProfit+'</b></div>';
+  s+='<div><span class="muted">最大虧損（→0）</span> <b class="neg">-$'+d.maxLoss+'</b> '+tip('maxloss')+'</div>';
+  s+='<div><span class="muted">盈虧平衡</span> <b>$'+d.be.toFixed(2)+'</b>'+tip('breakeven')+'</div>';
+  s+='<div class="warn-note" style="margin-top:8px">⚠️ 情境係到期日靜態盈虧；hover 圖上任意價位睇即時盈虧，改「張數」會即時重繪。'+tip('scenario')+'</div>';
+  s+='</div>';
+  $('scenBody').innerHTML=s;
+}
+function scenStep(d){
+  scenNval=Math.max(1,Math.min(5,(scenNval||1)+d));
+  const c=activeTk?findCandidate(activeTk):null;
+  if(c)renderScenarios(c);
+}
+/* ════════════ Futu 實時期權鏈 ════════════ */
+let chainCache={}, chainExpIdx={};
+async function loadChain(tk){
+  const cEl=$('chainCard');
+  if(!cEl)return;
+  if(!activeBridge){cEl.innerHTML='<div class="muted">bridge 未連接。</div>';return;}
+  try{
+    const r=await fetchTimeout(activeBridge+'/options/chain?code='+encodeURIComponent(tk)+'&secret='+encodeURIComponent(BRIDGE_SECRET),25000);
+    const j=await r.json().catch(()=>null);
+    if(!j||!j.ok){cEl.innerHTML='<div class="muted">Futu 期權鏈唔可用：'+(j&&j.error?esc(j.error):'')+'</div>';return;}
+    chainCache[tk]=j;
+    renderChain(j,tk);
+  }catch(e){cEl.innerHTML='<div class="muted">Futu 期權鏈載入失敗（bridge 是否連線 / 帳戶有無期權權限）。</div>';}
+}
+function setChainExp(tk,i){chainExpIdx[tk]=i;chainScrollPending[tk]=false;renderChain(chainCache[tk],tk);}   // ⭐ 手動切 expiry 唔再 re-scroll
+function renderChain(chain,tk){
+  const cEl=$('chainCard');if(!cEl)return;
+  const idx=chainExpIdx[tk]||0;
+  const exp=chain.expiries[idx]||chain.expiries[0];
+  if(!exp){cEl.innerHTML='<div class="muted">冇期權到期日。</div>';return;}
+  const cand=findCandidate(tk);
+  const candStrike=cand?cand.strike:null, candExp=cand?cand.expiry:null;   // ⭐ 建議只喺佢自己嗰個 expiry 度 highlight
+  const spot=chain.spot;
+  let h='<div style="margin-bottom:8px;font-size:12px">到期：';
+  chain.expiries.forEach((e,i)=>{const isCand=cand&&e.expiry===cand.expiry;
+    h+='<button class="btn '+(i===idx?'btn-go':'btn-ghost')+'" style="margin-right:4px" onclick="setChainExp(\''+tk+'\','+i+')">'+e.expiry+'（'+e.days+'D）'+(isCand?' ⭐':'')+'</button> ';});
+  h+='<span class="muted small">· 正股 $'+px2(spot)+' · 來源：'+(chain.source==='yfinance'?'<b style="color:#d97706">Yahoo 兜底</b>（Futu 未有呢隻）':'<b style="color:#0d9488">Futu 實時</b>')+'</span></div>';
+  h+='<div id="selReadout"></div>';   // ⭐ 揀咗 strike 之後嘅即時 readout
+  // merge call/put by strike；只顯示正股 ±40% 內（deep ITM/OTM IV 無意義 + payload 細）
+  const m={};
+  exp.rows.forEach(r=>{if(!r.strike)return;const K=r.strike;
+    if(K< (spot||0)*0.6||K>(spot||1e9)*1.6)return;
+    (m[K]=m[K]||{})[r.type==='CALL'?'call':'put']=r;});
+  const keys=Object.keys(m).sort((a,b)=>Number(a)-Number(b));
+  h+='<div class="chain-scroll"><table class="utable"><thead><tr>'+
+    '<th class="r">行使價</th>'+
+    '<th class="c">CALL 買</th><th class="c">CALL 賣</th><th class="c">IV'+tip('iv')+'</th><th class="c">Delta'+tip('delta')+'</th><th></th>'+
+    '<th class="c">PUT 買</th><th class="c">PUT 賣</th><th class="c">IV'+tip('iv')+'</th><th class="c">Delta'+tip('delta')+'</th><th></th>'+
+    '</tr></thead><tbody>';
+  keys.forEach(K=>{
+    const cl=m[K].call||{}, pu=m[K].put||{};
+    const isRec=candStrike!=null&&candExp===exp.expiry&&Math.abs(Number(K)-candStrike)<0.01;
+    const star=isRec?(' '+pill('w','建議')):'';
+    // ⭐ 2026-08-14: highlight 併入單一 style —— 之前行內「cursor」係第二個 style attribute，
+    // 瀏覽器淨係用最後一個 → background:#fffbeb 俾 cursor 覆蓋 → 建議 strike 冇黃底 highlight。
+    const hl=isRec?'background:#fffbeb;':'';
+    // 點行使價行 → 揀呢個 strike（即時 update chart + payoff + OTM/ITM% + 回報%）
+    const pick=pu.bid!=null?('onclick="selChain(\''+tk+'\',\''+exp.expiry+'\','+exp.days+','+K+','+pu.bid+','+pu.ask+','+(pu.iv||0)+','+(pu.delta||0)+','+(spot||0)+')"'):'';
+    h+='<tr id="crow-'+K+'" style="'+hl+'cursor:'+(pu.bid!=null?'pointer':'default')+'" '+pick+'><td class="r"><b>'+px2(K)+'</b>'+star+'</td>';
+    h+='<td class="r">'+(cl.bid!=null?px2(cl.bid):'—')+'</td><td class="r">'+(cl.ask!=null?px2(cl.ask):'—')+'</td>'+
+       '<td class="r">'+(cl.iv!=null?Math.round(cl.iv*100)+'%':'—')+'</td><td class="r">'+(cl.delta!=null?cl.delta:'—')+'</td>'+
+       '<td>'+(cl.bid!=null?'<button class="btn btn-no" onclick="event.stopPropagation();execChain(\''+tk+'\',\''+exp.expiry+'\','+K+',\'CALL\','+cl.bid+','+cl.ask+')">賣</button>':'')+'</td>';
+    h+='<td class="r">'+(pu.bid!=null?px2(pu.bid):'—')+'</td><td class="r">'+(pu.ask!=null?px2(pu.ask):'—')+'</td>'+
+       '<td class="r">'+(pu.iv!=null?Math.round(pu.iv*100)+'%':'—')+'</td><td class="r">'+(pu.delta!=null?pu.delta:'—')+'</td>'+
+       '<td>'+(pu.bid!=null?'<button class="btn btn-go" onclick="event.stopPropagation();execChain(\''+tk+'\',\''+exp.expiry+'\','+K+',\'PUT\','+pu.bid+','+pu.ask+')">賣</button>':'')+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div class="chart-note">賣出價 = bid（你實際收到）；買回價 = ask。點任何行使價行 → chart / payoff / OTM-ITM% / 回報% 即時更新。' + tip('premiumsrc') + '</div>';
+  cEl.innerHTML=h;
+  // ⭐ auto-scroll 去建議 strike（首次 + refresh / 重入 tab 都做；但淨係喺候選自己嗰個 expiry 先會）
+  if(candStrike!=null&&candExp===exp.expiry&&(chainScrollPending[tk]||!chainSeen[tk])){
+    chainSeen[tk]=true;
+    chainScrollPending[tk]=false;
+    const r=document.getElementById('crow-'+candStrike);
+    if(r)setTimeout(()=>{try{r.scrollIntoView({block:'center'});}catch(e){}},100);
+  }
+}
+function execChain(tk,exp,K,type,bid,ask){
+  // 賣出價 = bid（真實成交價）；同候選策略一致用 sell-put/sell-call
+  openExec(tk,exp,Number(K),1,bid,bid,ask,type);
+}
+/* ════════════ 執行：攞實時 Futu bid 先落單 ════════════ */
+async function execCandidate(tk,exp,K,contracts,side,fallbackMid,ctx){
+  // ⭐ 2026-08-14: side-aware（賣 Put→CSP / 賣 Call→短 call）；ctx = winrank 等非候選行嘅合成 candidate
+  let bid=null,ask=null;
+  if(!chainCache[tk]&&activeBridge){
+    try{
+      const r=await fetchTimeout(activeBridge+'/options/chain?code='+encodeURIComponent(tk)+'&secret='+encodeURIComponent(BRIDGE_SECRET),25000);
+      const j=await r.json().catch(()=>null);
+      if(j&&j.ok)chainCache[tk]=j;
+    }catch(e){}
+  }
+  const ch=chainCache[tk];
+  const want=(side==='CALL')?'CALL':'PUT';
+  if(ch)for(const e of ch.expiries){
+    if(e.expiry!==exp)continue;
+    for(const row of e.rows){
+      if(row.type===want&&Math.abs(row.strike-K)<0.01&&row.bid!=null){bid=row.bid;ask=row.ask;break;}
+    }
+  }
+  const c=ctx||findCandidate(tk);
+  openExec(tk,exp,K,contracts||(c?c.contracts:1),bid||(fallbackMid!=null?fallbackMid:(c?c.mid:0)),bid,ask,side||'PUT',ctx);
+}
+/* ════════════ 期權鏈揀 strike → 即時 update chart + payoff + OTM/ITM% + 回報% ════════════ */
+function erfA(x){const sign=x>=0?1:-1;x=Math.abs(x);const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const t=1/(1+p*x);const y=1-(((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t)*Math.exp(-x*x);return sign*y;}
+function ncdf(x){return 0.5*(1+erfA(x/Math.SQRT2));}
+function bsPutProbs(S,K,T,iv){
+  if(!(S>0&&K>0&&T>0&&iv>0))return {otm:null,itm:null};
+  const d1=(Math.log(S/K)+(0.04+iv*iv/2)*T)/(iv*Math.sqrt(T));
+  const d2=d1-iv*Math.sqrt(T);
+  const itm=Math.round((1-ncdf(d2))*100);
+  return {otm:Math.max(0,100-itm),itm:Math.max(0,Math.min(100,itm))};   // 兩邊加埋 = 100
+}
+function makeChainCandidate(tk,expiry,days,K,spot,put,ohlc){
+  const bid=put.bid!=null?put.bid:0;
+  const probs=(put.iv)?bsPutProbs(spot,K,days/365,put.iv):{otm:null,itm:null};
+  const yld=K>0?(bid/K*100):0;
+  return {ticker:tk,name:tk,expiry:expiry,dte:days,strike:K,spot:spot,mid:bid,delta:put.delta,iv:put.iv,
+    prob_otm:probs.otm,prob_itm:probs.itm,premium:Math.round(bid*100),collateral:Math.round(K*100),
+    premium_hkd:Math.round(bid*100*HKD_USD),collateral_hkd:Math.round(K*100*HKD_USD),
+    yield_pct:Math.round(yld*100)/100,yield_ann:Math.round(yld*365/days*100)/100,
+    ohlc:ohlc,levels:null,scenarios:null,contracts:1,fromChain:true,src:'chain'};
+}
+function selChain(tk,expiry,days,K,putBid,putAsk,putIv,putDelta,spot){
+  const ohlc=(findCandidate(tk)||{}).ohlc||null;
+  const c=makeChainCandidate(tk,expiry,days,K,spot,{bid:putBid,ask:putAsk,iv:putIv,delta:putDelta},ohlc);
+  applySelection(c);
+  renderSelectionReadout(c,putAsk);
+}
+function applySelection(c){
+  if(activeTk&&c)activeTk=c.ticker;   // 保持 detail 喺同隻股
+  drawChart(c);
+  scenNval=null;
+  renderScenarios(c);
+}
+function renderSelectionReadout(c,ask){
+  const el=$('selReadout');if(!el)return;
+  const bid=c.mid;
+  let h='<div style="background:#ecfdf5;border:1px solid #99f6e4;border-radius:9px;padding:8px 12px;font-size:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">';
+  h+='<b>已揀：SELL PUT '+c.ticker+' $'+px2(c.strike)+'（'+c.expiry+' · '+c.dte+'D）</b>';
+  h+='<span>賣出價(bid) <b>$'+px2(bid)+'</b>/股'+(ask!=null?' · ask $'+px2(ask):'')+'</span>';
+  if(c.prob_otm!=null)h+='<span>OTM <b style="color:#16a34a">'+c.prob_otm+'%</b> / ITM <b style="color:#dc2626">'+c.prob_itm+'%</b></span>';
+  h+='<span>回報 <b>'+(c.yield_pct!=null?Number(c.yield_pct).toFixed(2):'—')+'%/週</b> ≈ '+c.yield_ann+'%/年</span>';
+  h+='<span style="margin-left:auto"><button class="btn btn-go" onclick="openExec(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+',1,'+bid+','+bid+','+(ask||0)+',\'PUT\')">✅ 用呢個價執行</button></span>';
+  h+='</div>';
+  el.innerHTML=h;
+}
+let chainSeen={}, chainScrollPending={};   // ⭐ 每次 refresh / 重入 tab 都 auto-scroll 返建議 strike
+
+function drawChart(c){
+  const wrap=$('chart');
+  if(!wrap)return;
+  if(!window.LightweightCharts){
+    $('chartFallback').innerHTML='⚠️ 圖表庫（CDN）未能載入 —— 檢查網絡或 CDN 封鎖。';
+    return;
+  }
+  wrap.innerHTML='';
+  if(chart){chart.remove();chart=null;}
+  chart=LightweightCharts.createChart(wrap,{
+    layout:{background:{color:'#ffffff'},textColor:'#1a2540'},
+    grid:{vertLines:{color:'#eceff5'},horzLines:{color:'#eceff5'}},
+    rightPriceScale:{borderColor:'#d0d8e5'},
+    timeScale:{borderColor:'#d0d8e5',rightOffset:2,fixLeftEdge:false},
+    crosshair:{mode:1},
+    height:320
+  });
+  cseries=chart.addCandlestickSeries({
+    upColor:'rgba(196,24,24,0)',downColor:'#099960',borderUpColor:'#c41818',borderDownColor:'#099960',
+    wickUpColor:'#c41818',wickDownColor:'#099960'
+  });
+  const data=(c.ohlc||[]).map(x=>({time:x.t,open:x.o,high:x.h,low:x.l,close:x.c}));
+  cseries.setData(data);
+  const addLine=(price,color,title)=>{
+    if(price==null||isNaN(price))return;
+    cseries.createPriceLine({price:price,color:color,lineWidth:1,lineStyle:2,axisLabelVisible:true,title:title});
+  };
+  const lv=c.levels||{};
+  addLine(lv.support1,'#16a34a','S1'); addLine(lv.support2,'#86efac','S2');
+  addLine(lv.resistance1,'#dc2626','R1'); addLine(lv.resistance2,'#fca5a5','R2');
+  addLine(c.strike,'#7c3aed','行使價');
+  if(c.scenarios)addLine(c.scenarios.breakeven,'#d97706','盈虧平衡');
+  chart.timeScale().fitContent();
+  chart.timeScale().scrollToRealTime();
+}
+
+/* ════════════ 執行 / 平倉 / skip（POST） ════════════ */
+/* v4_balanced 按金口徑（同 engine apply_decisions 一致） */
+function marginPerPut(K,prem1,S){return Math.round(Math.max(0.20*S+prem1-Math.max(0,S-K), 0.10*K+prem1)*100,0);}
+function eqUSD(){return (rec&&rec.equity_usd)||CAPITAL_HKD/HKD_USD;}
+function usedMarginUSD(){   // 已開倉 + 排隊中（排隊用 0.22×K×100 近似，同 engine fallback 一致）
+  let m=Number(rec&&rec.used_margin_open||0);
+  decLoad('optdash_queued').forEach(q=>{m+=Math.round(0.22*Number(q.strike)*100*(Number(q.contracts)||1),0);});
+  return m;
+}
+function putCount(){   // 已開 put + 排隊 put（唔計 CC）
+  let n=(rec&&rec.positions||[]).filter(p=>p.status==='open'&&p.side!=='CALL').length;
+  decLoad('optdash_queued').forEach(q=>{if(q.side!=='CALL')n++;});
+  return n;
+}
+function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
+  const c=ctx||findCandidate(tk);
+  const box=$('execBox');
+  let n=contracts||1;
+  const sellPx=(bid!=null&&bid>0)?bid:mid;   // 賣出價 = bid（真實成交）；冇 bid 用 mid
+  const isCall=(side==='CALL');
+  const sideTxt=isCall?'SELL CALL':'SELL PUT';
+  window._lastExecCtx=c; window._lastExecSide=side;   // ⭐ confirmExec 要知 side + ctx（winrank 合成 candidate）
+  const renderBox=()=>{
+    const coll=K*100*n, prem=sellPx*100*n;
+    const maxLoss=(K-sellPx)*100*n, be=isCall?(K+sellPx):(K-sellPx);   // 短 call BE = K + 權利金（升穿先蝕）
+    const S=c&&c.spot?c.spot:K;
+    const mPer=(c&&c.margin1)?c.margin1:marginPerPut(K,sellPx,S);
+    const mTot=mPer*n, eq=eqUSD(), budget=(rec&&rec.margin_budget)||0.70*eq;
+    const usedM=usedMarginUSD(), openAfter=putCount()+((side!=='CALL')?1:0);
+    const overBudget=(usedM+mTot>budget+1), overName=(mTot>eq*0.30+1), fullPuts=((side!=='CALL')&&putCount()>=6);
+    const insufficient=overBudget||overName||fullPuts;   // 同 engine 硬檢查同款 → 紅警示 + 鎖確認掣
+    const locked=lockedHKD(), avail=availHKD(), need=coll*HKD_USD;
+    box.innerHTML=
+      '<h3>✅ 執行：'+sideTxt+' '+tk+' ×'+n+'</h3>'+
+      '<div class="row"><span class="k">行使價</span><span>$'+K+'（現價 $'+liveSpot(tk,c?c.spot:K)+'）</span></div>'+
+      '<div class="row"><span class="k">按金 Reg-T（70% 預算）'+tip('margin')+tip('util')+'</span><span>已用 <b>$'+fmt(usedM)+'</b> / $'+fmt(budget)+' · 呢單需 <b>$'+fmt(mTot)+'</b>（$'+fmt(mPer)+'/張）</span></div>'+
+      '<div class="row"><span class="k">接貨現金（俾你知）</span><span>'+hkd(need)+' · 已鎖 '+hkd(locked)+' · 剩餘現金 '+hkd(avail)+tip('collateral')+'</span></div>'+
+      (insufficient?('<div class="warn-note" style="border-color:#fca5a5;background:#fef2f2;color:#b91c1c">🚫 <b>超過 v4_balanced 欄杆：</b>'+
+        (fullPuts?'put 倉已滿 6/6；':'')+
+        (overBudget?'按金會爆 70% 預算（$'+fmt(usedM+mTot)+' &gt; $'+fmt(budget)+'）；':'')+
+        (overName?'單名按金 $'+fmt(mTot)+' 超過 30% equity 上限（$'+fmt(eq*0.30)+'）；':'')+
+        '減張數／平一倉先做到 —— engine 都會 reject 呢單。</div>'):'')+
+      (bid!=null?('<div class="row"><span class="k">實時報價（Futu）</span><span class="mono">買(bid) $'+px2(bid)+' · 賣(ask) $'+px2(ask)+'</span></div>'):'')+
+      (bid!=null&&c&&c.mid&&!c.fromChain&&Math.abs(bid-c.mid)>0.01?('<div class="row"><span class="k">系統建議 vs 實時</span><span>建議 $'+px2(c.mid)+' → 實時 bid $'+px2(bid)+'：'+(bid<c.mid?'<span style="color:#d97706">沽平咗（收少 $'+px2(c.mid-bid)+'/股）</span>':'<span style="color:#16a34a">著數咗（收多 $'+px2(bid-c.mid)+'/股）</span>')+'</span></div>'):'')+
+      '<div class="row"><span class="k">張數</span><span class="stepper"><button onclick="execStepper(-1)">−</button><b>'+n+'</b><button onclick="execStepper(1)">+</button> '+tip('contracts')+'</span></div>'+
+      '<div class="row"><span class="k">每股權利金</span><span class="mono" style="font-size:15px;font-weight:700">$'+px2(sellPx)+'/股</span></div>'+
+      '<div class="row"><span class="k">權利金（全收）</span><span>'+money(prem)+' USD ≈ '+hkd(prem*HKD_USD)+'</span></div>'+
+      '<div class="row"><span class="k">按金（鎖住）</span><span>'+money(mTot)+' USD ≈ '+hkd(mTot*HKD_USD)+tip('margin')+'</span></div>'+
+      '<div class="row"><span class="k">最大利潤</span><span class="pos">+'+money(prem)+'</span></div>'+
+      '<div class="row"><span class="k">最大虧損</span><span class="neg">'+(isCall?'<span style="color:#dc2626">無上限（裸賣 call，股價飛升蝕無限）</span>':('-'+money(maxLoss)+' ≈ '+hkd(maxLoss*HKD_USD)+tip('maxloss')))+'</span></div>'+
+      '<div class="row"><span class="k">盈虧平衡</span><span>$'+be.toFixed(2)+(isCall?'<span class="muted small">（升穿先蝕）</span>':'')+tip('breakeven')+'</span></div>'+
+      '<div class="row"><span class="k">OTM 機率</span><span style="color:#16a34a;font-weight:700">'+(c&&c.prob_otm!=null?c.prob_otm+'%':'—')+'</span></div>'+
+      '<div class="warn-note">⚠️ 紙上交易（未實際落盤）。確認後會排隊俾 engine 開倉；engine 用你揀嘅賣出價（bid）落賬。'+(isCall?'<b style="color:#dc2626">裸賣 call 風險無上限</b>，執行前諗清楚。':'')+'</div>'+
+      '<div class="modal-actions"><button class="btn btn-ghost" onclick="closeExec()">取消</button> <button class="btn btn-go" '+(insufficient?'style="opacity:.4;pointer-events:none"':'')+' onclick="confirmExec(\''+tk+'\',\''+exp+'\','+K+',\''+n+'\','+sellPx+')">✅ 確認執行</button></div>';
+  };
+  window.execStepper=function(d){n=Math.max(1,Math.min(10,n+d));renderBox();};   // engine 上限 10（按金/單名 cap 會再夾）
+  window.renderBox=renderBox;
+  renderBox();
+  $('execModal').style.display='flex';
+}
+function closeExec(){$('execModal').style.display='none';}
+async function confirmExec(tk,exp,K,n,premium){
+  const c=window._lastExecCtx||null;
+  const side=(window._lastExecSide==='CALL')?'CALL':'CSP';   // ⭐ 2026-08-14: 帶 side 俾 engine 開啱方向（賣 Call=短 call）
+  recordDecision('queued',tk,exp,K,{contracts:Number(n),premium:Number(premium),side:side});
+  const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{
+    action:'open',ticker:tk,expiry:exp,strike:Number(K),contracts:Number(n),premium:Number(premium),
+    delta:(c&&c.delta!=null)?c.delta:((findCandidate(tk)||{}).delta),iv:(c&&c.iv!=null)?c.iv:((findCandidate(tk)||{}).iv),
+    side:side
+  });
+  closeExec();
+  if(r&&r.ok){toast('✅ 已排隊執行 '+tk+' ×'+n+'（engine 下個週期確認，price 到先落賬）');setTimeout(function(){loadRec();},4000);}
+  else toast('❌ 執行失敗：'+(r&&r.error||'bridge 未連接'));
+}
+/* ════════════ 決定記錄（localStorage：執行/排隊/今日唔做） ════════════ */
+function decLoad(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return [];}}
+function decSave(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function decKey(tk,exp,K){return tk+'|'+exp+'|'+Number(K).toFixed(2);}
+function lockedHKD(){
+  /* 已鎖定資本（HKD）= 開倉位抵押 + 排隊中訂單抵押（未執行都即刻鎖） */
+  let sum=0;
+  (rec&&rec.positions||[]).forEach(p=>{if(p.status==='open')sum+=(p.collateral||0)*HKD_USD;});
+  decLoad('optdash_queued').forEach(q=>{sum+=(Number(q.strike)*100*(Number(q.contracts)||1))*HKD_USD;});
+  return Math.round(sum);
+}
+function availHKD(){return CAPITAL_HKD-lockedHKD();}
+function recordDecision(kind,tk,exp,K,extra){
+  const list=decLoad('optdash_'+kind);
+  const key=decKey(tk,exp,K);
+  if(!list.some(x=>decKey(x.ticker,x.expiry,x.strike)===key))list.push(Object.assign({ticker:tk,expiry:exp,strike:Number(K),ts:new Date().toISOString()},extra||{}));
+  decSave('optdash_'+kind,list);
+  renderDecisions();
+  renderOverview();   // ⭐ 決定咗即刻調整已鎖定資本／剩餘現金
+}
+function renderDecisions(){
+  const el=$('decBody');if(!el)return;
+  const queued=decLoad('optdash_queued'), skips=decLoad('optdash_skips');
+  const pos=rec?rec.positions||[]:[];
+  const posKeys=new Set(pos.filter(p=>p.status==='open'||p.status==='closed'||p.status==='expired'||p.status==='assigned')
+    .map(p=>decKey(p.ticker,p.expiry,p.strike)));
+  let h='';
+  if(queued.length){
+    h+='<div style="font-weight:700;margin-bottom:6px">🚀 已執行 / 排隊中（'+(queued.length)+'）</div><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">每股權利金</th><th>狀態</th><th></th></tr></thead><tbody>';
+    queued.slice().reverse().forEach(q=>{
+      const done=posKeys.has(decKey(q.ticker,q.expiry,q.strike));
+      h+='<tr><td><b>'+esc(q.ticker)+'</b>'+(q.side==='CALL'?' <span style="color:#92400e;font-size:10px;font-weight:700">賣Call</span>':' <span style="color:#1d4ed8;font-size:10px;font-weight:700">賣Put</span>')+'</td><td class="r">$'+px2(q.strike)+'</td><td>'+q.expiry+'</td><td class="r">'+(q.contracts||1)+'</td><td class="r">$'+px2(q.premium)+'</td><td>'+(done?'<span style="color:#16a34a;font-weight:700">✅ 已落賬</span>':'<span style="color:#d97706;font-weight:700">⏳ 排隊執行中</span>')+'</td>'+
+        '<td>'+(done?'':('<button class="btn btn-ghost" onclick="editQueued(\''+q.ticker+'\',\''+q.expiry+'\','+q.strike+',\''+(q.contracts||1)+'\',\''+(q.premium||0)+'\')">改張數</button> <button class="btn btn-close" onclick="cancelQueued(\''+q.ticker+'\',\''+q.expiry+'\','+q.strike+')">取消</button>'))+'</td></tr>';
+    });
+    h+='</tbody></table>';
+  }
+  if(skips.length){
+    h+='<div style="font-weight:700;margin:10px 0 6px">🙅 今日唔做（'+skips.length+'）</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    skips.slice().reverse().slice(0,30).forEach(s=>{
+      h+='<span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:999px;padding:3px 10px;font-size:11px;color:#475569">'+esc(s.ticker)+' $'+s.strike+' <span class="muted">'+s.expiry+'</span></span>';
+    });
+    h+='</div>';
+  }
+  if(!queued.length&&!skips.length)h+='<div class="muted">未有決定 — 去候選名單揀「執行」或「唔做」。</div>';
+  el.innerHTML=h;
+}
+function remQueued(tk,exp,K){
+  decSave('optdash_queued',decLoad('optdash_queued').filter(x=>decKey(x.ticker,x.expiry,x.strike)!==decKey(tk,exp,K)));
+}
+async function cancelQueued(tk,exp,K){
+  if(!confirm('取消呢張未執行嘅訂單：'+tk+' $'+K+'？'))return;
+  remQueued(tk,exp,K);
+  renderDecisions();renderOverview();
+  const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'cancel',ticker:tk,expiry:exp,strike:Number(K)});
+  if(r&&r.ok)toast('已取消：'+tk+' $'+K); else toast('❌ 取消失敗');
+  setTimeout(loadRec,3000);
+}
+async function editQueued(tk,exp,K,contracts,premium){
+  const nStr=prompt('改張數（1-5）：',contracts||'1');
+  const n=parseInt(nStr,10);
+  if(isNaN(n)||n<1||n>5)return;
+  remQueued(tk,exp,K);
+  recordDecision('queued',tk,exp,K,{contracts:n,premium:Number(premium)});
+  await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'cancel',ticker:tk,expiry:exp,strike:Number(K)});
+  const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'open',ticker:tk,expiry:exp,strike:Number(K),contracts:n,premium:Number(premium)});
+  toast(r&&r.ok?('已改為 ×'+n+'，重新排隊'):'❌ 修改失敗');
+  setTimeout(loadRec,3000);
+}
+async function skipTrade(tk,exp,K){
+  recordDecision('skips',tk,exp,K);
+  const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'skip',ticker:tk,expiry:exp,strike:Number(K)});
+  if(r&&r.ok)toast('已記低：今日唔做 '+tk); else toast('❌ 失敗');
+  setTimeout(function(){loadRec();},2000);
+}
+async function closePos(pid){
+  if(!confirm('確定平倉呢個紙上倉位？'))return;
+  const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'close',position_id:pid});
+  if(r&&r.ok)toast('已排隊平倉（engine 下個週期確認）'); else toast('❌ 失敗');
+  setTimeout(loadRec,4000);
+}
+function toast(msg){
+  const el=$('liveBadge');el.textContent=msg;
+  setTimeout(()=>setLive((rec.paper?'📝 紙上':'🔴 LIVE')+' · '+rec.date),3000);
+}
+
+/* ════════════ tooltip ════════════ */
+const tipbox=$('tipbox');
+document.addEventListener('mouseover',function(e){
+  const t=e.target.closest('.tip');
+  if(t){tipbox.innerHTML=t.dataset.tip;tipbox.style.display='block';
+    const x=e.clientX+14,y=e.clientY+16;
+    tipbox.style.left=Math.min(x,window.innerWidth-360)+'px';tipbox.style.top=Math.min(y,window.innerHeight-160)+'px';}
+});
+document.addEventListener('mouseout',function(e){if(e.target.closest('.tip'))tipbox.style.display='none';});
+
+/* ════════════ tabs ════════════ */
+function switchPane(id){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.pane===id));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+id));
+  if(id==='detail'){if(activeTk){chainScrollPending[activeTk]=true;renderDetail();}else if(rec&&rec.best){activeTk=rec.best.ticker;chainScrollPending[activeTk]=true;renderDetail();}}
+  if(id==='best')renderBest();
+  if(id==='overview')renderOverview();
+  if(id==='positions')renderPositions();
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>switchPane(b.dataset.pane)));
+
+/* ═══════════　方法論（v4_balanced） ════════════ */
+function renderMethod(){
+  $('methodBest').innerHTML=
+    '<p><b>三層：趨勢過濾 → 分數排序 → 按金配倉。</b>回測 2025＋2026 兩個窗口都正回報嘅唯一參數族。</p>'+
+    '<ol style="margin:8px 0 0 18px;line-height:2">'+
+    '<li><b>趨勢/質量硬過濾</b>（唔過冇得傾）：收市價 &gt; MA50 而且 ≤1.15×MA50（唔追高）、3 個月動量 ≤+60%、RSI 14 喺 40–70、近 5 日冇單日 ±8%、IV 30–150%、股價 $10–$200。</li>'+
+    '<li><b>大盤寬度閘門</b>：宇宙 ≥50% 股價企穩 MA50 先開新倉'+tip('breadth')+'（2026-08 上半月寬度 28–37% → 引擎自動休息）。</li>'+
+    '<li>硬性排除：業績窗口（持有期＋2 日緩衝）'+tip('earnings')+'、模型 REDUCE/SELL/decel≤−3'+tip('veto')+'、槓桿 ETF（DLLL）、太疏/太舊報價。</li>'+
+    '<li><b>分數排序</b>：annualized_yield ×（0.5 + IV_rank/100）÷（1 + risk）'+tip('score')+' —— 揀 strike 揀 Δ0.25–0.30 嗰檔，DTE 10–14。</li></ol>';
+  $('methodIV').innerHTML=
+    '<p><b>IV 三層來源（由靚到醜）＋ v4_balanced IV 帶 30–150%：</b></p>'+
+    '<ol style="margin:8px 0 0 18px;line-height:1.9">'+
+    '<li><b>Yahoo chain 真 IV</b>：但要踢走「power-of-2 floor」假值（0.5/0.25/0.125/0.0625 成批出現 = Yahoo 冇 IV 嘅佔位）'+tip('iv')+'。</li>'+
+    '<li><b>Sanity cap</b>：chain IV &gt;150% 或比歷史波動率高好多 → 當垃圾，轉用歷史波動率。</li>'+
+    '<li><b>歷史波動率</b>（stdev(日回報)×√252）：真價計出嚟，永遠唔會失敗'+tip('histvol')+'。delta / probITM/OTM / greeks 全部由呢個 effective IV 用 Black-Scholes 計。</li></ol>'+
+    '<p class="small muted" style="margin-top:6px">個股詳情頁嘅期權鏈用 Futu 實時 bid/ask 反推 IV（BS bisection），同 App 顯示一致。</p>';
+  $('methodSize').innerHTML=
+    '<p><b>配倉（按金制，唔係現金制）</b>：每張鎖按金 = Reg-T '+tip('margin')+'；建議張數 = min(（70% 預算−已用）÷每張按金，30% equity÷每張按金，板塊 40% 預算，10)'+tip('contracts')+'；最多 6 個 put 倉、每日新開 ≤2。</p>'+
+    '<p style="margin-top:8px"><b>出場規則（5 條，回測凍結）：</b></p>'+
+    '<ol style="margin:4px 0 0 18px;line-height:1.9">'+
+    '<li>權利金收到 <b>50%</b> → buy-to-close 鎖利'+tip('close50')+'</li>'+
+    '<li><b>Cut-before-assignment</b>：行使價失守＋股價 &lt; 0.95×MA50＋DTE≥5 → 即刻止損離場'+tip('cut')+'</li>'+
+    '<li>業績日喺持有期內 → 必平（避 IV crush / 跳空）'+tip('earnings')+'</li>'+
+    '<li>put delta 侵蝕到 −0.50 → roll down+out 或準備接貨</li>'+
+    '<li>到期價內 → 被指派接貨 → 賣 Covered Call（Δ0.22–0.30 · 10–14 DTE · PT 50%）＝ The Wheel'+tip('cc')+'</li></ol>'+
+    '<p class="small muted" style="margin-top:6px">帳戶層面：回撤 −15% → 熔斷停開新倉 10 交易日'+tip('breaker')+'。</p>';
+  $('methodRisk').innerHTML=
+    '<div class="warn-note">'+
+    '<b>誠實話（好重要）：</b><br>'+
+    '· 回測 16 個月平均 <b>+HKD 25.1k/月</b>，但分佈極唔均勻：2026 年 4–6 月三個月賺 +279k，2、3 月係蝕嘅；2025 年要捱 <b>−39.5% 回撤＋2 次強制平倉</b>。月月穩賺 15–20k 喺任何參數下都唔存在。<br>'+
+    '· 2026 +151.7% 係強牛市（SOX +75%）＋70% 按金槓桿嘅產物；同一參數喺 2025 年只有 +24.3%。計劃要用 2025 情境做底。<br>'+
+    '· 賣 put 最大虧損 =（行使價−權利金）×100×張數'+tip('maxloss')+'；接貨後股票下行風險仲計入組合（按金利息 7%/年已計入回測）。<br>'+
+    '· 槓桿放大兩邊：max_price ≤$200＋單名按金 ≤30% 就係防「一隻股清袋」嘅硬欄杆。<br>'+
+    '· 而家全部係<b>紙上模式</b>，跟足規則驗證 2–4 星期先可以考慮真錢（--live）。</div>';
+}
+
+/* ════════════ boot ════════════ */
+setInterval(loadRec,60000);
+loadRec();
+</script>
+</body>
+</html>
