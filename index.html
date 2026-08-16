@@ -359,7 +359,7 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
     <div class="card-b" id="topPickBody"></div></div>
     <div class="card" id="sec-dp-summary"><div class="card-h"><span class="t"><span class="sec-num">①</span>部署總覽 — 結論</span><span class="meta" id="strategyTimestamp"></span></div>
     <div class="card-b" id="summaryBody"></div></div>
-    <div class="card" id="sec-dp-winrank"><div class="card-h"><span class="t"><span class="sec-num">⚡</span>賣 Put 勝率排名（入場掃描）</span><span class="meta">勝率 P(OTM) 由高至低 · 10–14 DTE · delta≈0.25 · 總評分 = 期權分數 × 股票質素 × 動量健康 · v4_balanced 唔裸賣 Call（接貨後先 Covered Call）</span></div>
+    <div class="card" id="sec-dp-winrank"><div class="card-h"><span class="t"><span class="sec-num">⚡</span>賣 Put 勝率排名（入場掃描）</span><span class="meta">按總評分排（最值得做排第一）· 10–14 DTE · delta≈0.25 · 總評分 = 年化回報×IV Rank÷(1+風險) × 股票質素 × 動量健康 · v4_balanced 唔裸賣 Call（接貨後先 Covered Call）</span></div>
     <div class="card-b" id="winrankBody"></div></div>
     <div class="card" id="sec-dp-index"><div class="card-h"><span class="t"><span class="sec-num">③</span>指數部署 — 費城半導體 · 納斯達克100期貨 · 七雄</span><span class="meta">中線睇周線 · 短線睇日線</span></div>
     <div class="card-b" id="indexEtfBody"></div></div>
@@ -768,7 +768,7 @@ function renderWinRank(d){
       '</tr>';
   });
   h+='</tbody></table></div>';
-  h+='<div style="font-size:11px;color:#64748b;margin-top:4px">排序 = 勝率 P(OTM) 由高到低（到期時收足權利金機率）。總評分 = 期權分數Ⓘ（yield_ann×(0.5+IV rank%)/(1+風險)）× 股票質素 × 動量健康；動量減速 ≤-2 琥珀、≤-3 紅。⚠ = 單倉超 90% 資本（執行唔到）。</div>';
+  h+='<div style="font-size:11px;color:#64748b;margin-top:4px">⭐ 排序 = 總評分由高到低（最值得做排第一，揉合周回報/IV/decel/股票質素；勝率只係顯示）。動量減速 ≤-2 琥珀、≤-3 紅。⚠ = 單名按金超 30% equity（engine 會 reject）。</div>';
   el.innerHTML=h;
 }
 function liveBadge(sess){
