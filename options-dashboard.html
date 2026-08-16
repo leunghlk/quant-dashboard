@@ -654,7 +654,7 @@ function showDetail(tk){
   renderDetail();
 }
 function renderDetail(){
-  const c=findCandidate(activeTk);
+  const c=detailCtx(activeTk);   // ⭐ _klStore 補齊 levels/greeks（winrank 行）
   if(!c){$('dtBody').innerHTML='<div class="muted">這隻股票暫時沒有候選資料。</div>';return;}
   $('dtTitle').textContent='📈 '+c.ticker+' 個股詳情';
   const livePx=liveSpot(c.ticker,c.spot);
@@ -670,7 +670,7 @@ function renderDetail(){
   h+='</div>';
   // 圖表 + 右邊 S/R + 希臘字母
   h+='<div class="grid2">';
-  h+='<div><div class="card"><div class="card-h"><span class="t">日線 K 線（60 日）</span><span class="meta">紅升綠跌（港式）· 紫=行使價 · 橙=盈虧平衡 · 綠/紅虛線=S/R</span></div>';
+  h+='<div><div class="card"><div class="card-h"><span class="t">日線 K 線<span id="chartDays"></span></span><span class="meta">紅升綠跌（港式）· 紫=行使價 · 橙=盈虧平衡 · 綠/紅虛線=S/R</span></div>';
   h+='<div class="card-b"><div class="chartwrap" id="chart"><div class="muted" id="chartFallback">圖表載入中…</div></div>';
   h+='<div class="chart-note">S/R：經典 pivot（20 日）P=(H+L+C)/3'+tip('pivot')+' · 支援/阻力'+(c.levels?('：S1 $'+c.levels.support1+' / R1 $'+c.levels.resistance1):'')+tip('sr')+'</div></div></div></div>';
   h+='<div>';
@@ -687,7 +687,15 @@ function renderDetail(){
   h+='<div class="card"><div class="card-h"><span class="t">決定</span></div>';
   h+='<div class="card-b"><button class="btn btn-go" style="font-size:14px;padding:10px 22px" onclick="execCandidate(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+','+(c.contracts||1)+')">✅ 執行這一單（紙上）</button> <button class="btn btn-no" onclick="skipTrade(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+')">今日不做</button></div></div>';
   $('dtBody').innerHTML=h;
-  // 明細元數據
+  // 明細元數據（⭐ 抽成 renderDetailMeta —— /kline 到手後 applyKlData 可單獨重刷這卡）
+  renderDetailMeta(c);
+  drawChart(c);
+  if(chainCache[activeTk])renderChain(chainCache[activeTk],activeTk);   // ⭐ 60s refresh：先即時重繪快取鏈（建議 strike 保持黃底+可見），loadChain 背景再更新
+  loadChain(activeTk);
+  scenNval=null;                       // reset 到候選建議張數
+  renderScenarios(c);
+}
+function renderDetailMeta(c){
   const lv=c.levels||{};
   let m='<table class="utable"><thead><tr><th class="c">指標</th><th class="r">值</th><th>解釋</th></tr></thead><tbody>';
   m+='<tr><td class="c">Pivot</td><td class="r mono">$'+(lv.pivot||'—')+'</td><td class="small">市場基準'+tip('pivot')+'</td></tr>';
@@ -701,12 +709,7 @@ function renderDetail(){
   m+='<tr><td class="c">IV / IV Rank</td><td class="r mono">'+((c.iv||0)*100).toFixed(0)+'% / '+(c.iv_rank!=null?c.iv_rank:'—')+'</td><td class="small">隱含波動率 / 歷史百分位'+tip('ivrank')+'</td></tr>';
   m+='</tbody></table>';
   $('detailMeta').innerHTML=m;
-  drawChart(c);
-  loadChain(activeTk);
-  scenNval=null;                       // reset 到候選建議張數
-  renderScenarios(c);
-}
-/* ════════════ 動態 payoff diagram（hover） ════════════ */
+}/* ════════════ 動態 payoff diagram（hover） ════════════ */
 let scenNval=null;
 function payoffData(c,n){
   const K=c.strike,S=c.spot,prem=c.mid,mult=100*n;
@@ -837,7 +840,7 @@ function renderChain(chain,tk){
     if(K< (spot||0)*0.6||K>(spot||1e9)*1.6)return;
     (m[K]=m[K]||{})[r.type==='CALL'?'call':'put']=r;});
   const keys=Object.keys(m).sort((a,b)=>Number(a)-Number(b));
-  h+='<div class="chain-scroll"><table class="utable"><thead><tr>'+
+  h+='<div class="chain-scroll" onscroll="chainScrollPos[\''+tk+'\']=this.scrollTop"><table class="utable"><thead><tr>'+
     '<th class="r">行使價</th>'+
     '<th class="c">CALL 買</th><th class="c">CALL 賣</th><th class="c">IV'+tip('iv')+'</th><th class="c">Delta'+tip('delta')+'</th><th></th>'+
     '<th class="c">PUT 買</th><th class="c">PUT 賣</th><th class="c">IV'+tip('iv')+'</th><th class="c">Delta'+tip('delta')+'</th><th></th>'+
@@ -863,12 +866,16 @@ function renderChain(chain,tk){
   h+='</tbody></table></div>';
   h+='<div class="chart-note">賣出價 = bid（你實際收到）；買回價 = ask。點任何行使價行 → chart / payoff / OTM-ITM% / 回報% 即時更新。' + tip('premiumsrc') + '</div>';
   cEl.innerHTML=h;
-  // ⭐ auto-scroll 去建議 strike（首次 + refresh / 重入 tab 都做；但只在候選自己的那個 expiry 才會）
+  // ⭐ auto-scroll 去建議 strike（首次 + 手動刷新；但只在候選自己的那個 expiry 才會）
   if(candStrike!=null&&candExp===exp.expiry&&(chainScrollPending[tk]||!chainSeen[tk])){
     chainSeen[tk]=true;
     chainScrollPending[tk]=false;
     const r=document.getElementById('crow-'+candStrike);
-    if(r)setTimeout(()=>{try{r.scrollIntoView({block:'center'});}catch(e){}},100);
+    if(r)setTimeout(()=>{try{r.scrollIntoView({block:'center'});chainScrollPos[tk]=document.querySelector('#chainCard .chain-scroll').scrollTop;}catch(e){}},100);
+  }else{
+    // ⭐ 60s 自動刷新：還原用戶原本捲動位置（建議 strike 黃底 row 保持喺眼前）
+    const sc=document.querySelector('#chainCard .chain-scroll');
+    if(sc&&chainScrollPos[tk])sc.scrollTop=chainScrollPos[tk];
   }
 }
 function execChain(tk,exp,K,type,bid,ask){
@@ -950,8 +957,62 @@ function renderSelectionReadout(c,ask){
   h+='</div>';
   el.innerHTML=h;
 }
-let chainSeen={}, chainScrollPending={};   // ⭐ 每次 refresh / 重入 tab 都 auto-scroll 回建議 strike
+let chainSeen={}, chainScrollPending={}, chainScrollPos={};   // ⭐ 手動刷新 auto-scroll 回建議 strike；chainScrollPos 記住用戶捲動位置 → 60s 自動刷新後還原（建議 row 唔會「消失」）
 let klSeq=0;   // ⭐ winrank 掃描行沒有隨行日線（節省 rec 體積）→ 即場經 bridge /kline 拉
+/* ⭐ 2026-08-17：winrank/chain 行補齊 S/R + ATR + 希臘字母 —— 由 /kline 日線即場計，
+   公式與 engine compute_stock_levels / bs_greeks 逐字同款（RF=4%）→ 候選行與掃描行顯示一致 */
+window._klStore={};   // tk -> {ts, bars, levels, gre}（30 分鐘內重用，60s re-render 唔重拉）
+function _ncdf(x){const t=1/(1+0.2316419*Math.abs(x));const d=0.3989423*Math.exp(-x*x/2);let p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return x>0?1-p:p;}
+function bsGreeksJS(S,K,T,vol,isCall){   // 同 engine bs_greeks（theta=日曆日、vega=每1% IV）
+  const RF=0.04;
+  if(!(S>0&&K>0&&T>0&&vol>0))return null;
+  const sq=vol*Math.sqrt(T);
+  const d1=(Math.log(S/K)+(RF+vol*vol/2)*T)/sq,d2=d1-sq;
+  const nd1=_ncdf(d1),nd2=_ncdf(d2);
+  const pdf1=Math.exp(-d1*d1/2)/Math.sqrt(2*Math.PI),sqrtT=Math.sqrt(T);
+  const gamma=pdf1/(S*vol*sqrtT),vega=S*pdf1*sqrtT/100;
+  let delta,theta;
+  if(isCall){delta=nd1;theta=(-S*pdf1*vol/(2*sqrtT)-RF*K*Math.exp(-RF*T)*nd2)/365;}
+  else{delta=nd1-1;theta=(-S*pdf1*vol/(2*sqrtT)+RF*K*Math.exp(-RF*T)*_ncdf(-d2))/365;}
+  return {delta:Math.round(delta*1000)/1000,gamma:Math.round(gamma*100000)/100000,
+          theta:Math.round(theta*10000)/10000,vega:Math.round(vega*1000)/1000};
+}
+function levelsFromBars(bars,iv){   // 同 engine compute_stock_levels：20日 H/L/C 經典 pivot；ATR 用 IV（engine 傳 c.iv）→ 冇就日線歷史波動
+  if(!bars||bars.length<2)return null;
+  const recent=bars.slice(-20);
+  const h20=Math.max.apply(null,recent.map(b=>b.h)),l20=Math.min.apply(null,recent.map(b=>b.l));
+  const last=bars[bars.length-1].c;
+  const pivot=(h20+l20+last)/3,r1=2*pivot-l20,s1=2*pivot-h20,r2=pivot+(h20-l20),s2=pivot-(h20-l20);
+  const cl=bars.map(b=>b.c),rets=[];
+  for(let i=1;i<cl.length;i++)rets.push(cl[i]/cl[i-1]-1);
+  const r30=rets.slice(-30);
+  const vol=(iv&&iv>0)?iv:Math.sqrt(r30.reduce((a,x)=>a+x*x,0)/Math.max(1,r30.length)*252);
+  const daily=vol/Math.sqrt(252)*last;
+  const f=v=>Math.round(v*100)/100;
+  return {pivot:f(pivot),resistance1:f(r1),resistance2:f(r2),support1:f(s1),support2:f(s2),
+          high20:f(h20),low20:f(l20),atr:f(daily),atrStop:f(Math.max(daily*1.5,last*0.01))};
+}
+function detailCtx(tk){   // findCandidate + _klStore 補齊（60s re-render 後 renderWinRank 會重置 _wrDetail → 呢度恆常補）
+  const c=findCandidate(tk);if(!c)return null;
+  const st=(window._klStore||{})[tk];
+  if(st){
+    if((!c.levels||!c.levels.pivot)&&st.levels)c.levels=st.levels;
+    if(c.gamma==null&&st.gre)c.gamma=st.gre.gamma;
+    if(c.theta==null&&st.gre)c.theta=st.gre.theta;
+    if(c.vega==null&&st.gre)c.vega=st.gre.vega;
+  }
+  return c;
+}
+function applyKlData(c,bars){   // /kline 到手 → 計 levels+greeks 存 _klStore → 即時更新詳情卡
+  try{
+    const tk=c.ticker;
+    const levels=levelsFromBars(bars,c.iv);
+    const T=(c.dte||0)/365;
+    const gre=bsGreeksJS(liveSpot(tk,c.spot),c.strike,T,c.iv,false);
+    window._klStore[tk]={ts:Date.now(),bars:bars,levels:levels,gre:gre};
+    if(activeTk===tk&&document.getElementById('detailMeta'))renderDetailMeta(detailCtx(tk));
+  }catch(e){}
+}
 
 function drawChart(c){
   const wrap=$('chart');
@@ -963,6 +1024,11 @@ function drawChart(c){
   wrap.innerHTML='';
   if(chart){chart.remove();chart=null;}
   if(!(c.ohlc||[]).length){   // ⭐ winrank 掃描行沒有隨行日線 → 即場經 bridge /kline 拉（不用塞滿 rec payload）
+    const st=(window._klStore||{})[c.ticker];   // ⭐ 30 分鐘快取：60s re-render 即時出圖（唔閃「載入中」）
+    if(st&&st.bars&&st.bars.length&&(Date.now()-st.ts)<1800000){
+      drawChart(Object.assign({},c,{ohlc:st.bars,levels:(c.levels&&c.levels.pivot)?c.levels:st.levels}));
+      return;
+    }
     const seq=++klSeq;
     wrap.innerHTML='<div class="muted" style="padding:56px 0;text-align:center" id="klLoad">載入日線中（Futu /kline）…</div>';
     fetchTimeout(activeBridge+'/kline?code='+encodeURIComponent(c.ticker)+'&type=DAY&count=200&secret='+encodeURIComponent(BRIDGE_SECRET),15000)
@@ -971,7 +1037,10 @@ function drawChart(c){
         const bars=(d&&d.bars)||[];
         const kl=$('klLoad');
         if(!bars.length){if(kl)kl.innerHTML='⚠️ 未能取得日線（'+((d&&d.error)||'無數據')+'）—— 下方期權鏈＋情境分析照常可用';return;}
-        drawChart(Object.assign({},c,{ohlc:bars.map(b=>({t:String(b.t).slice(0,10),o:b.o,h:b.h,l:b.l,c:b.c}))}));
+        const ohlc=bars.map(b=>({t:String(b.t).slice(0,10),o:b.o,h:b.h,l:b.l,c:b.c}));
+        applyKlData(c,ohlc);   // ⭐ 補 S/R+ATR+希臘字母（_klStore → 詳情卡即時更新）
+        const st2=window._klStore[c.ticker]||{};
+        drawChart(Object.assign({},c,{ohlc:ohlc,levels:(c.levels&&c.levels.pivot)?c.levels:st2.levels}));
       }).catch(()=>{const kl=$('klLoad');if(seq===klSeq&&kl)kl.innerHTML='⚠️ 日線取得失敗 —— 下方期權鏈＋情境分析照常可用';});
     return;
   }
@@ -989,6 +1058,7 @@ function drawChart(c){
   });
   const data=(c.ohlc||[]).map(x=>({time:x.t,open:x.o,high:x.h,low:x.l,close:x.c}));
   cseries.setData(data);
+  const dt=$('chartDays');if(dt)dt.textContent='（'+data.length+' 日）';
   const addLine=(price,color,title)=>{
     if(price==null||isNaN(price))return;
     cseries.createPriceLine({price:price,color:color,lineWidth:1,lineStyle:2,axisLabelVisible:true,title:title});
@@ -997,7 +1067,7 @@ function drawChart(c){
   addLine(lv.support1,'#16a34a','S1'); addLine(lv.support2,'#86efac','S2');
   addLine(lv.resistance1,'#dc2626','R1'); addLine(lv.resistance2,'#fca5a5','R2');
   addLine(c.strike,'#7c3aed','行使價');
-  if(c.scenarios)addLine(c.scenarios.breakeven,'#d97706','盈虧平衡');
+  addLine((c.scenarios&&c.scenarios.breakeven!=null)?c.scenarios.breakeven:((c.mid!=null&&c.strike!=null)?c.strike-c.mid:null),'#d97706','盈虧平衡');   // ⭐ winrank 行冇 scenarios → K−mid
   chart.timeScale().fitContent();
   chart.timeScale().scrollToRealTime();
 }
