@@ -491,9 +491,14 @@ function ledTable(led){
   return h+'</tbody></table>';
 }
 
+function gateWarnHTML(){
+  const br=(rec&&rec.breadth!=null)?Math.round(rec.breadth*100)+'%':'—';
+  return '<div class="warn-note" style="margin:0 0 10px">🚧 <b>寬度閘門關閉（市寬 '+br+' ＜ 50%）</b>：v4_balanced 規則今日不開新倉。以下排名/候選僅供觀察 —— 執行會被 engine 拒絕（Telegram 會收到拒單原因）。</div>';
+}
 function renderBest(){
   const b=rec.best;
   const el=$('bestCard');
+  if(rec&&rec.gate_closed){el.innerHTML=gateWarnHTML()+'<div class="muted">今日最佳：寬度閘門關閉，今日不開新倉（規則保命掣）。</div>';return;}
   if(!b){el.innerHTML='<div class="muted">今日無符合條件的候選。</div>';return;}
   const sc=b.scenarios||{};
   let h='';
@@ -526,11 +531,12 @@ function renderBest(){
 function liveSpot(tk,fb){const s=live[tk];return px2(s&&s.live_price!=null?s.live_price:fb);}
 
 function renderCandidates(){
+  const gw=(rec&&rec.gate_closed)?gateWarnHTML():'';
   // ⭐ 分數高 → 低（engine 已 sort+dedup，這裡再兜底排一次，防止舊 rec）
   const cands=(rec.candidates||[]).filter(c=>!c.vetoed).sort((a,b)=>(b.score||0)-(a.score||0));
   const meta=$('candMeta');
   if(meta)meta.textContent=cands.length+' 個候選 · '+rec.veto_count+' 隻被 veto · '+(rec.model_profile||'v4_balanced')+' · Δ0.25–0.30 / 10–14DTE / $10–$200';
-  let h='<div class="table-scroll"><table class="utable"><thead><tr><th></th><th>股票</th><th class="r">現價</th><th class="r">行使價'+tip('strike')+'</th><th>到期</th><th class="r">權利金/張'+tip('premium')+'</th><th class="r">張數'+tip('contracts')+'</th><th class="r">按金'+tip('margin')+'</th><th class="r">接貨現金'+tip('collateral')+'</th><th class="c">ITM / OTM'+tip('itm')+'</th><th class="r">週回報</th><th class="r">分數'+tip('score')+'</th><th></th></tr></thead><tbody>';
+  let h=gw+'<div class="table-scroll"><table class="utable"><thead><tr><th></th><th>股票</th><th class="r">現價</th><th class="r">行使價'+tip('strike')+'</th><th>到期</th><th class="r">權利金/張'+tip('premium')+'</th><th class="r">張數'+tip('contracts')+'</th><th class="r">按金'+tip('margin')+'</th><th class="r">接貨現金'+tip('collateral')+'</th><th class="c">ITM / OTM'+tip('itm')+'</th><th class="r">週回報</th><th class="r">分數'+tip('score')+'</th><th></th></tr></thead><tbody>';
   cands.slice(0,12).forEach(c=>{
     const una=!!c.unaffordable;                    // 單名按金超 30% equity 上限 → 禁執行
     const yp=(c.yield_pct!=null?Number(c.yield_pct).toFixed(2):'—');   // 周回報 2dp
@@ -558,11 +564,12 @@ function renderCandidates(){
    v4_balanced 不裸賣 Call —— 沽 Call 只會在接貨後以 Covered Call 出現（持倉管理），
    所以 engine 只出 PUT 行。行 click → 個股詳情（合成 ctx：期權鏈＋情境分析照用）。 */
 function renderWinRank(){
+  const gw=(rec&&rec.gate_closed)?gateWarnHTML():'';
   const el=$('winrankBody');if(!el)return;
   const w=(rec&&rec.winrank)||[];
   if(!w.length){el.innerHTML='<div class="muted">勝率排名：等待盤前全宇宙掃描（每日更新）。</div>';return;}
   window._wrDetail=window._wrDetail||{};
-  let h='<div class="table-scroll"><table class="utable"><thead><tr>'+
+  let h=gw+'<div class="table-scroll"><table class="utable"><thead><tr>'+
     '<th class="c">#</th><th>標的</th><th class="r">現價</th><th class="r">行使價</th><th class="r">到期</th><th class="r">權利金/張</th><th class="r">按金/張</th><th class="r">接貨現金/張</th>'+
     '<th class="r">總評分</th><th class="r">動量減速</th><th class="c">ITM / OTM</th><th class="r">周回報</th><th></th></tr></thead><tbody>';
   w.forEach((x,i)=>{
@@ -1009,7 +1016,16 @@ function putCount(){   // 已開 put + 排隊 put（不計 CC）
   decLoad('optdash_queued').forEach(q=>{if(q.side!=='CALL')n++;});
   return n;
 }
+function gateBlocked(){
+  if(rec&&rec.gate_closed){
+    const br=(rec.breadth!=null)?Math.round(rec.breadth*100)+'%':'—';
+    toast('🚧 寬度閘門關閉（市寬 '+br+' ＜ 50%）：v4_balanced 規則今日不開新倉');
+    return true;
+  }
+  return false;
+}
 function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
+  if(gateBlocked())return;
   const c=ctx||findCandidate(tk);
   const box=$('execBox');
   let n=contracts||1;
