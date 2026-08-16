@@ -137,7 +137,10 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   <button data-pane="best">🎯 今日最佳機會</button>
   <button data-pane="detail">📈 個股詳情分析</button>
   <button data-pane="positions">📋 持倉監控</button>
-  <button data-pane="method">❓ v4_balanced 方法論</button>
+  <button data-pane="v4-best">🏆 v4_balanced 今日最佳</button>
+<button data-pane="v4-candidates">🎯 v4_balanced 候選名單</button>
+<button data-pane="v4-winrank">🎖️ v4_balanced 勝率排行</button>
+<button data-pane="method">❓ v4_balanced 方法論</button>
 </div>
 <div class="container">
 
@@ -280,6 +283,24 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   </div>
 </div>
 
+  <!-- ═══════════ v4_balanced 今日最佳 ═══════════ -->
+  <div class="pane" id="pane-v4-best">
+    <div class="card"><div class="card-h"><span class="t">🏆 v4_balanced 今日最佳交易</span><span class="meta">經過過濾+排序+配倉後嘅最高分候選</span></div>
+      <div class="card-b" id="v4Best"></div></div>
+  </div>
+
+  <!-- ═══════════ v4_balanced 候選名單 ═══════════ -->
+  <div class="pane" id="pane-v4-candidates">
+    <div class="card"><div class="card-h"><span class="t">🎯 v4_balanced 候選名單</span><span class="meta">所有符合條件嘅期權機會，按分數排序</span></div>
+      <div class="card-b" id="v4Candidates"></div></div>
+  </div>
+
+  <!-- ═══════════ v4_balanced 勝率排行 ═══════════ -->
+  <div class="pane" id="pane-v4-winrank">
+    <div class="card"><div class="card-h"><span class="t">🎖️ v4_balanced 勝率排行</span><span class="meta">已結倉交易表現展示 · 赢多輸少係目標</span></div>
+      <div class="card-b" id="v4WinRank"></div></div>
+  </div>
+
 <div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · All-in-One Financial Dashboard Suite — v4_balanced 期權交易（Sell Put → Covered Call）· 目標月入 HKD 15k-20k · 紙上模式 · 數據：Futu 實時（bid/ask · IV/Delta 由真實報價 BS 反推）＋ Yahoo 兜底 · 期權賣方有 tail risk · 非投資建議</div>
 
 <div id="tipbox"></div>
@@ -337,7 +358,7 @@ const GLOSS={
 function tip(k){const t=GLOSS[k];return t?('<span class="tip" data-tip="'+t.replace(/'/g,'&#39;')+'">ⓘ</span>'):'';}
 
 /* ════════════ state ════════════ */
-let rec=null, live={}, activeBridge=null, activeTk=null, chart=null, cseries=null;
+let rec=null, v4Data=null, live={}, activeBridge=null, activeTk=null, chart=null, cseries=null;
 
 function $(id){return document.getElementById(id);}
 function fmt(n,d){return (n==null||isNaN(n))?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:d==null?0:d});}
@@ -1151,22 +1172,6 @@ function renderV4BalancedDetail(data) {
   $('v4BalancedDetail').innerHTML = perfHtml + positionsHtml + configHtml;
 }
 
-async function loadV4Profile() {
-  const profile = $('v4ProfileSelect').value;
-
-  try {
-    const response = await fetchTimeout(`https://quant-api.leunghlk.workers.dev/api/options-v4?profile=${profile}`, 10000);
-    if (!response.ok) throw new Error('Failed to load v4 profile data');
-
-    const data = await response.json();
-    renderV4ProfileDetail(data);
-
-  } catch (error) {
-    console.error('V4 profile error:', error);
-    $('v4ProfileDetail').innerHTML = '<div class="muted">載入失敗，請稍後再試</div>';
-  }
-}
-
 function renderV4ComparisonTable(data) {
   const profiles = ['balanced', 'goal', 'steady', 'mid', 'robust'];
   const profileLabels = {
@@ -1287,6 +1292,30 @@ function renderV4EquityCurve(data) {
   chart.timeScale().fitContent();
 }
 
+/* ═══════════　v4_balanced 函數 ════════════ */
+async function execV4Candidate(tk, exp, K, contracts){
+  recordDecision('queued', tk, exp, K, {contracts: contracts || 1, premium: 0});
+  const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'open',ticker:tk,expiry:exp,strike:Number(K),contracts:contracts||1,premium:0});
+  toast(r&&r.ok?`已排隊：${tk} $${K}`:'❌ 失敗');
+  setTimeout(loadRec,4000);
+}
+async function skipV4Trade(tk, exp, K){
+  recordDecision('skips', tk, exp, K);
+  const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'skip',ticker:tk,expiry:exp,strike:Number(K)});
+  toast(r&&r.ok?`已記低：今日唔做 ${tk}`:'❌ 失敗');
+  setTimeout(loadRec,2000);
+}
+async function execV4WinRank(i){
+  const wr=v4Data.winrank[i];
+  if(wr.ticker&&wr.expiry&&wr.strike){
+    const contracts=wr.contracts||1;
+    recordDecision('queued', wr.ticker, wr.expiry, wr.strike, {contracts, premium: 0});
+    const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'open',ticker:wr.ticker,expiry:wr.expiry,strike:Number(wr.strike),contracts,premium:0});
+    toast(r&&r.ok?`已排隊：${wr.ticker} $${wr.strike}`:'❌ 失敗');
+    setTimeout(loadRec,4000);
+  }
+}
+
 /* ═══════════　方法論 ════════════ */
 function renderMethod(){
   $('methodBest').innerHTML=
@@ -1312,13 +1341,81 @@ function renderMethod(){
   $('methodRisk').innerHTML=
     '<div class="warn-note">'+
     '<b>v4_balanced 績效（基於回測）：</b><br>'+
-    '· <strong>2025: +24.3%</strong> | <strong>2026: +151.7%</strong> | <strong>16個月平均: HKD 25.1k</strong><br>'+
+    '· <strong>2025: +24.3%</strong> | <strong>2026: +151.7%</strong> | <strong>月均: HKD 25.1k</strong><br>'+
     '· 最大虧損: 2025年 -39.5%, 2026年 -19.3%<br>'+
     '· 強制平倉: 2025年 2 次，2026年 0 次<br>'+
-    '· 策略特點：70% 按金利用率，6 個 Put 最大，目標 Delta 0.25–0.30</div>';
+    '· 策略特點：<strong>70% 按金利用率</strong>，6 個 Put 最大，目標 Delta 0.25–0.30<br>'+
+    '· 槓桿配置：70% 資本利用率，約 4-5x 名義槓桿，目標月收入 HKD 15-20k</div>';
 }
 
 /* ════════════ boot ════════════ */
+async function loadV4Balanced(){
+  if(!activeBridge)return;
+  try{
+    const r=await fetchTimeout(activeBridge+'/api/options-v4?profile=balanced&secret='+encodeURIComponent(BRIDGE_SECRET),15000);
+    const j=await r.json().catch(()=>null);
+    if(j&&j.data){
+      v4Data=j.data;
+      renderV4Best();
+      renderV4Candidates();
+      renderV4WinRank();
+    }
+  }catch(e){}
+}
+function renderV4Best(){
+  const b=v4Data.best_trade;
+  if(!b){$('v4Best').innerHTML='<div class="muted">今日無符合條件嘅候選。</div>';return;}
+  let h='<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:stretch">';
+  h+='<div style="flex:1.3;min-width:300px;background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:10px;padding:14px;color:#fff">';
+  h+='<div style="font-size:12px;color:#4ade80">🟢 v4_balanced 最佳交易 · SELL PUT <b>'+b.ticker+'</b> ×'+b.contracts+tip('csp')+'</div>';
+  h+='<div style="font-size:24px;font-weight:800;margin:6px 0">行使價 $'+b.strike+'<span style="font-size:12px;color:#94a3b8;font-weight:400">（現價 $'+(b.spot||'—')+'）</span>'+tip('strike')+'</div>';
+  h+='<div style="font-size:13px;color:#cbd5e1">權利金 $'+b.mid+'/股 = <b>$'+b.premium_total+'</b> ≈ HKD '+b.premium_total_hkd+tip('premium')+'</div>';
+  h+=gauge(b.prob_itm,b.prob_otm);
+  h+='<div style="font-size:10px;color:#94a3b8">OTM = 賺足權利金機率 · ITM = 被指派機率'+tip('otm')+tip('itm')+'</div>';
+  h+='<div style="font-size:11px;color:#cbd5e1;margin-top:6px">到期 '+b.expiry+'（'+b.dte+'D）· Delta '+b.delta+tip('delta')+' · IV '+Math.round(b.iv*100)+'%（rank '+b.iv_rank+'）'+tip('ivrank')+' · 抵押 $'+b.collateral_total+tip('collateral')+'</div>';
+  h+='<div style="font-size:13px;font-weight:700;color:#fbbf24;margin-top:6px">回報 '+b.yield_pct+'%/週 ≈ '+b.yield_ann+'%/年'+tip('ann')+'</div>';
+  if(b.scenarios){h+='<div style="font-size:11px;color:#94a3b8;margin-top:2px">盈虧平衡 $'+b.scenarios.breakeven+tip('breakeven')+' · 最大虧損（股價→0）$'+b.scenarios.max_loss+' ≈ HKD '+b.scenarios.max_loss_hkd+tip('maxloss')+'</div>';}
+  if(b.earnings){h+='<div style="font-size:11px;color:#f59e0b;margin-top:4px">📅 下一業績日 '+b.earnings+tip('earnings')+'</div>';}
+  h+='<div style="margin-top:10px"><button class="btn btn-go" onclick="execV4Candidate(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+','+b.contracts+')">✅ v4_balanced 執行（紙上）</button> <button class="btn btn-no" onclick="skipV4Trade(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+')">唔做</button> <button class="btn btn-ghost" onclick="showDetail(\''+b.ticker+'\')">詳情 →</button></div>';
+  h+='</div>';
+  h+='<div style="flex:1;min-width:240px;background:#1e293b;border-radius:10px;padding:14px;color:#fff">';
+  h+='<div style="font-size:12px;color:#94a3b8">v4_balanced 配置</div>';
+  h+='<div style="font-size:20px;font-weight:800">HKD '+v4Data.profile_config.initial_capital.toLocaleString()+'</div>';
+  h+='<div class="bar" style="margin-top:8px"><div style="width:'+v4Data.summary.used_pct+'%;background:#3b82f6"></div></div>';
+  h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">已用 '+v4Data.summary.used_pct+'% · 抵押 $'+v4Data.summary.used_usd.toLocaleString()+'</div>';
+  if(v4Data.scenarios){h+='<div style="font-size:13px;color:#4ade80;margin-top:8px">概率加權期望值 <b>'+money(v4Data.scenarios.expectation)+' USD</b>（≈HKD '+fmt(v4Data.scenarios.expectation_hkd)+'）'+tip('expectation')+'</div>';}
+  h+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">'+v4Data.target_monthly_hkd_note+'</div>';
+  h+='</div></div>';
+  $('v4Best').innerHTML=h;
+}
+function renderV4Candidates(){
+  const cands=(v4Data.candidates||[]).filter(c=>!c.vetoed).sort((a,b)=>(b.score||0)-(a.score||0));
+  let h='';
+  if(cands.length){
+    h+='<table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">權利金</th><th class="r">年化回報</th><th class="r">分數</th><th>操作</th></tr></thead><tbody>';
+    cands.forEach(c=>{
+      const una=v4Data.profile_config.max_per_name_bp*200000/100<(c.strike*100*(c.contracts||1));
+      h+='<tr><td><b>'+c.ticker+'</b></td><td class="r">$'+c.strike+'</td><td>'+c.expiry+'</td><td class="r">'+(c.contracts||1)+'</td><td class="r">$'+c.premium_total+'</td><td class="r">'+c.yield_ann+'%</td><td class="r">'+(c.score||0).toFixed(1)+'</td><td><button class="btn btn-go" '+(una?'style="opacity:.4;pointer-events:none" title="單倉超 70% 資本限制"':'')+' onclick="event.stopPropagation();execV4Candidate(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+','+c.contracts+')">'+(una?'超資本':'執行')+'</button></td></tr>';
+    });
+    h+='</tbody></table>';
+  }else{h+='<div class="muted">暫無候選選擇 — 去概覽睇持倉狀況。</div>';}
+  $('v4Candidates').innerHTML=h;
+}
+function renderV4WinRank(){
+  const wr=v4Data.winrank||[];
+  let h='';
+  if(wr.length){
+    h+='<table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">當初權利金</th><th class="r">當初回報率</th><th class="r">未實現</th><th>操作</th></tr></thead><tbody>';
+    wr.forEach((x,i)=>{
+      const una=v4Data.profile_config.max_per_name_bp*200000/100<(x.strike*100*(x.contracts||1));
+      h+='<tr><td><b>'+x.ticker+'</b></td><td class="r">$'+x.strike+'</td><td>'+x.expiry+'</td><td class="r">'+(x.contracts||1)+'</td><td class="r">$'+x.initial_premium+'</td><td class="r">'+x.initial_yield+'%</td><td class="r">'+(x.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(x.pnl_hkd)+'</span></td><td><button class="btn btn-go" '+(una?'style="opacity:.4;pointer-events:none" title="單倉超 70% 資本限制"':'')+' onclick="execV4WinRank('+i+')">'+(una?'超資本':'執行')+'</button> '+
+      '<button class="btn btn-ghost" onclick="showDetail(\''+x.ticker+'\')">詳情</button></td></tr>';
+    });
+    h+='</tbody></table>';
+  }else{h+='<div class="muted">暫無候選選擇 — 去概覽睇持倉狀況。</div>';}
+  $('v4WinRank').innerHTML=h;
+}
+
 setInterval(loadRec,60000);
 loadRec();
 </script>
