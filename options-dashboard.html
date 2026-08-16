@@ -90,6 +90,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 /* ── 期權鏈 frozen header ── */
 .chain-scroll{max-height:420px;overflow:auto;position:relative}
 .chain-scroll thead th{position:sticky;top:0;z-index:3;background:#f8fafc;box-shadow:0 1px 0 var(--line)}
+.rec-flash{outline:2px solid #d97706;outline-offset:-2px}
 /* ── payoff diagram ── */
 .payoff-wrap{position:relative;width:100%;margin-bottom:6px}
 .payoff-wrap svg{width:100%;height:280px;display:block;background:#fff;border:1px solid var(--line);border-radius:8px}
@@ -134,8 +135,8 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   </div>
 </div></div>
 <div class="tabs">
-  <button data-pane="overview" class="active">📊 總覽</button>
-  <button data-pane="best">🎯 今日最佳</button>
+  <button data-pane="overview">📊 總覽</button>
+  <button data-pane="best" class="active">🎯 今日最佳</button>
   <button data-pane="detail">📈 個股詳情</button>
   <button data-pane="positions">📋 持倉管理</button>
   <button data-pane="method">❓ v4_balanced 方法論</button>
@@ -146,7 +147,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 <div class="container">
 
   <!-- ═══════════ 總覽 ═══════════ -->
-  <div class="pane active" id="pane-overview">
+  <div class="pane" id="pane-overview">
     <div class="kpi">
       <div class="k"><div class="lbl">組合權益（HKD）</div><div class="val" id="ovEquity">—</div><div class="small muted" id="ovReturn"></div></div>
       <div class="k"><div class="lbl">已實現 P&amp;L</div><div class="val up" id="ovRealized">—</div></div>
@@ -162,30 +163,10 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
       <div class="card-b" id="ovPosBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">近期平倉紀錄（已實現）</span><span class="meta">紙上賬</span></div>
       <div class="card-b" id="ovLedgerBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">📊 v4_balanced 回測績效</span><span class="meta">2025 全年 + 2026-01-01→08-15 · HKD 200,000 起步 · 含手續費/滑價</span></div>
-      <div class="card-b">
-        <div class="table-scroll"><table class="utable">
-          <thead><tr><th>窗口</th><th class="r">回報</th><th class="r">月均 P&amp;L</th><th class="r">最大回撤</th><th class="r">強制平倉</th><th class="r">交易數</th><th class="r">勝率</th></tr></thead>
-          <tbody>
-            <tr><td><b>2025</b>（牛年＋四月股災）</td><td class="r up">+24.3%</td><td class="r up">+HKD 7.0k</td><td class="r dn">−39.5%</td><td class="r dn">2</td><td class="r">—</td><td class="r">—</td></tr>
-            <tr><td><b>2026</b>（1/1→8/15）</td><td class="r up">+151.7%</td><td class="r up">+HKD 43.3k</td><td class="r dn">−19.3%</td><td class="r">0</td><td class="r">93</td><td class="r">90.3%</td></tr>
-            <tr><td><b>16 個月平均</b></td><td class="r">—</td><td class="r up"><b>+HKD 25.1k</b></td><td class="r">—</td><td class="r">2</td><td class="r">—</td><td class="r">—</td></tr>
-          </tbody>
-        </table></div>
-        <div style="margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center">
-          <div><div class="small muted">2026 Sharpe</div><div style="font-weight:800">3.12</div></div>
-          <div><div class="small muted">2026 獲利因子</div><div style="font-weight:800">3.76</div></div>
-          <div><div class="small muted">最差單筆（2026）</div><div style="font-weight:800;color:#dc2626">−HKD 20.2k</div></div>
-          <div><div class="small muted">最高名義槓桿</div><div style="font-weight:800">0.85×</div></div>
-        </div>
-        <div class="small muted" style="margin-top:8px">⚠️ 2026 是強牛市（SOX +75% YTD）；計劃應以 2025 情境（月均 +7k、回撤 −39.5%）做保守底。回測含 $1.10/腿手續費＋滑價＋7%/年按金利息；歷史表現不等於未來。</div>
-        <div class="small" style="margin-top:6px">2026 月度（HKD）：1月 +24.3k · 2月 −1.6k · 3月 −2.8k · 4月 +67.0k · 5月 +100.0k · 6月 +112.3k · 7月 +4.1k · 8月（寬度閘門暫停：7 月股災後市寬 <50%，引擎依規則不開新倉）</div>
-      </div>
-    </div>
   </div>
 
   <!-- ═══════════ 今日最佳 ═══════════ -->
-  <div class="pane" id="pane-best">
+  <div class="pane active" id="pane-best">
     <div class="card"><div class="card-h"><span class="t">🎯 今日最佳交易</span><span class="meta">點「執行」下單（紙上）· 點行開個股詳情</span></div>
       <div class="card-b" id="bestCard"></div></div>
     <div class="card"><div class="card-h"><span class="t">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
@@ -241,6 +222,26 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
     <div class="card"><div class="card-h"><span class="t">入場：如何選「最佳」</span></div><div class="card-b" id="methodBest"></div></div>
     <div class="card"><div class="card-h"><span class="t">IV 如何得出</span></div><div class="card-b" id="methodIV"></div></div>
     <div class="card"><div class="card-h"><span class="t">配倉（按金制）＋ 出場規則</span></div><div class="card-b" id="methodSize"></div></div>
+    <div class="card"><div class="card-h"><span class="t">📊 v4_balanced 回測績效</span><span class="meta">2025 全年 + 2026-01-01→08-15 · HKD 200,000 起步 · 含手續費/滑價</span></div>
+      <div class="card-b">
+        <div class="table-scroll"><table class="utable">
+          <thead><tr><th>窗口</th><th class="r">回報</th><th class="r">月均 P&amp;L</th><th class="r">最大回撤</th><th class="r">強制平倉</th><th class="r">交易數</th><th class="r">勝率</th></tr></thead>
+          <tbody>
+            <tr><td><b>2025</b>（牛年＋四月股災）</td><td class="r up">+24.3%</td><td class="r up">+HKD 7.0k</td><td class="r dn">−39.5%</td><td class="r dn">2</td><td class="r">—</td><td class="r">—</td></tr>
+            <tr><td><b>2026</b>（1/1→8/15）</td><td class="r up">+151.7%</td><td class="r up">+HKD 43.3k</td><td class="r dn">−19.3%</td><td class="r">0</td><td class="r">93</td><td class="r">90.3%</td></tr>
+            <tr><td><b>16 個月平均</b></td><td class="r">—</td><td class="r up"><b>+HKD 25.1k</b></td><td class="r">—</td><td class="r">2</td><td class="r">—</td><td class="r">—</td></tr>
+          </tbody>
+        </table></div>
+        <div style="margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center">
+          <div><div class="small muted">2026 Sharpe</div><div style="font-weight:800">3.12</div></div>
+          <div><div class="small muted">2026 獲利因子</div><div style="font-weight:800">3.76</div></div>
+          <div><div class="small muted">最差單筆（2026）</div><div style="font-weight:800;color:#dc2626">−HKD 20.2k</div></div>
+          <div><div class="small muted">最高名義槓桿</div><div style="font-weight:800">0.85×</div></div>
+        </div>
+        <div class="small muted" style="margin-top:8px">⚠️ 2026 是強牛市（SOX +75% YTD）；計劃應以 2025 情境（月均 +7k、回撤 −39.5%）做保守底。回測含 $1.10/腿手續費＋滑價＋7%/年按金利息；歷史表現不等於未來。</div>
+        <div class="small" style="margin-top:6px">2026 月度（HKD）：1月 +24.3k · 2月 −1.6k · 3月 −2.8k · 4月 +67.0k · 5月 +100.0k · 6月 +112.3k · 7月 +4.1k · 8月（寬度閘門暫停：7 月股災後市寬 <50%，引擎依規則不開新倉）</div>
+      </div>
+    </div>
     <div class="card"><div class="card-h"><span class="t">📊 回測統計：被指派機會率與勝率</span><span class="meta">2026-01-01 → 08-15 · 93 筆平倉 · options_v4_trades_balanced.csv</span></div><div class="card-b" id="methodStats"></div></div>
     <div class="card"><div class="card-h"><span class="t">🔔 警報系統（Telegram ＋ 儀表板雙通道）</span><span class="meta">引擎每 120 秒檢查持倉 · 儀表板每 60 秒刷新</span></div><div class="card-b" id="methodAlert"></div></div>
     <div class="card"><div class="card-h"><span class="t">風險誠實話</span></div><div class="card-b" id="methodRisk"></div></div>
@@ -522,6 +523,9 @@ function renderBest(){
   h+='<div style="font-size:20px;font-weight:800">HKD '+CAPITAL_HKD.toLocaleString()+'</div>';
   h+='<div class="bar" style="margin-top:8px"><div style="width:'+Math.min(100,(rec.margin_budget?Math.round((rec.used_margin_open||0)/rec.margin_budget*100):0))+'%;background:#3b82f6"></div></div>';
   h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">按金 $'+fmt(rec.used_margin_open||0)+'/'+fmt(rec.margin_budget||0)+tip('margin')+'（70% 預算 · 6 put 上限 · 每日 ≤2 新倉）</div>';
+  const _lk=lockedHKD(), _av=availHKD();
+  h+='<div class="bar" style="margin-top:8px"><div style="width:'+Math.min(100,Math.round(_lk/CAPITAL_HKD*100))+'%;background:#0d9488"></div></div>';
+  h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">還可接貨現金 <b style="color:#5eead4">HKD '+fmt(_av)+'</b>'+tip('collateral')+' —— 已鎖 HKD '+fmt(_lk)+' / '+fmt(CAPITAL_HKD)+'（再開短 put 的剩餘抵押額度，含排隊中訂單）</div>';
   if(sc.expectation!=null){h+='<div style="font-size:13px;color:#4ade80;margin-top:8px">概率加權期望值 <b>'+money(sc.expectation)+' USD</b>（≈HKD '+fmt(sc.expectation_hkd)+'）'+tip('expectation')+'</div>';}
   h+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">'+rec.target_monthly_hkd_note+'</div>';
   h+='</div></div>';
@@ -822,6 +826,25 @@ async function loadChain(tk){
   }catch(e){cEl.innerHTML='<div class="muted">Futu 期權鏈載入失敗（bridge 是否連線 / 帳戶有無期權權限）。</div>';}
 }
 function setChainExp(tk,i){chainExpIdx[tk]=i;chainScrollPending[tk]=false;renderChain(chainCache[tk],tk);}   // ⭐ 手動切 expiry 不再 re-scroll
+
+function flashRecRow(r){   // 跳至建議後短暫加強外框（用 class，唔掂 inline style —— 一掂 Chrome 會 re-serialize 成個 style attribute）
+  try{r.classList.add('rec-flash');setTimeout(function(){r.classList.remove('rec-flash');},1500);}catch(e){}
+}
+function jumpToRec(tk){    // ⭐ 一撳即跳去建議 strike 嗰行（自動切埋建議 expiry）＋ highlight
+  var cand=findCandidate(tk), chain=chainCache[tk];
+  if(!chain||!cand){toast('此股票無建議 strike');return;}
+  var want=-1;
+  chain.expiries.forEach(function(e,ix){if(e.expiry===cand.expiry)want=ix;});
+  var go=function(){var r=document.getElementById('crow-'+cand.strike);
+    if(r){var sc=document.querySelector('#chainCard .chain-scroll');
+      r.scrollIntoView({block:'center'});
+      if(sc)chainScrollPos[tk]=sc.scrollTop;
+      flashRecRow(r);
+    }else{toast('此到期日無建議 strike');}};
+  if(want>=0&&want!==(chainExpIdx[tk]||0)){setChainExp(tk,want);setTimeout(go,80);}
+  else go();
+}
+
 function renderChain(chain,tk){
   const cEl=$('chainCard');if(!cEl)return;
   const idx=chainExpIdx[tk]||0;
@@ -833,6 +856,7 @@ function renderChain(chain,tk){
   let h='<div style="margin-bottom:8px;font-size:12px">到期：';
   chain.expiries.forEach((e,i)=>{const isCand=cand&&e.expiry===cand.expiry;
     h+='<button class="btn '+(i===idx?'btn-go':'btn-ghost')+'" style="margin-right:4px" onclick="setChainExp(\''+tk+'\','+i+')">'+e.expiry+'（'+e.days+'D）'+(isCand?' ⭐':'')+'</button> ';});
+  h+='<button class="btn btn-ghost" style="margin-left:6px;font-weight:700" onclick="jumpToRec(\''+tk+'\')">🎯 跳至建議行</button> ';
   h+='<span class="muted small">· 正股 $'+px2(spot)+' · 來源：'+(chain.source==='yfinance'?'<b style="color:#d97706">Yahoo 兜底</b>（Futu 尚無這隻）':'<b style="color:#0d9488">Futu 實時</b>')+'</span>';
   h+='<div class="muted small" style="margin-top:3px">到期日按 <b>10–14 DTE（v4_balanced 範圍）優先排列</b>；短於 10 日的（例如 5D）用於監察現有倉位 —— 未持有的話不要用它開新倉。</div>';
   h+='<div id="selReadout"></div>';   // ⭐ 選定 strike 後的即時 readout
