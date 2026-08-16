@@ -241,6 +241,8 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
     <div class="card"><div class="card-h"><span class="t">入場：如何選「最佳」</span></div><div class="card-b" id="methodBest"></div></div>
     <div class="card"><div class="card-h"><span class="t">IV 如何得出</span></div><div class="card-b" id="methodIV"></div></div>
     <div class="card"><div class="card-h"><span class="t">配倉（按金制）＋ 出場規則</span></div><div class="card-b" id="methodSize"></div></div>
+    <div class="card"><div class="card-h"><span class="t">📊 回測統計：被指派機會率與勝率</span><span class="meta">2026-01-01 → 08-15 · 93 筆平倉 · options_v4_trades_balanced.csv</span></div><div class="card-b" id="methodStats"></div></div>
+    <div class="card"><div class="card-h"><span class="t">🔔 警報系統（Telegram ＋ 儀表板雙通道）</span><span class="meta">引擎每 120 秒檢查持倉 · 儀表板每 60 秒刷新</span></div><div class="card-b" id="methodAlert"></div></div>
     <div class="card"><div class="card-h"><span class="t">風險誠實話</span></div><div class="card-b" id="methodRisk"></div></div>
   </div>
 </div>
@@ -1301,7 +1303,47 @@ function renderMethod(){
     '· 2026 +151.7% 是強牛市（SOX +75%）＋70% 按金槓桿的產物；同一參數在 2025 年只有 +24.3%。計劃應以 2025 情境為底。<br>'+
     '· 賣 put 最大虧損 =（行使價−權利金）×100×張數'+tip('maxloss')+'；接貨後股票下行風險仲計入組合（按金利息 7%/年已計入回測）。<br>'+
     '· 槓桿放大兩邊：max_price ≤$200＋單名按金 ≤30% 就是防「一隻股清空賬戶」的硬欄杆。<br>'+
-    '· 現在全部是<b>紙上模式</b>，嚴格按照規則驗證 2–4 星期才可以考慮真錢（--live）。</div>';
+    '· 現在全部是<b>紙上模式</b>，嚴格按照規則驗證 2–4 星期才可以考慮真錢（--live）。</div>';  $('methodStats').innerHTML=
+    '<p><b>賣出 put 之後的四種結局（85 筆 SELL_PUT）——被指派（接貨）機會率只有 2/85 ＝ 2.4%：</b></p>'+
+    '<div class="table-scroll"><table class="utable">'+
+    '<thead><tr><th>結局</th><th>筆數</th><th>佔比</th><th>平均盈虧</th><th>說明</th></tr></thead><tbody>'+
+    '<tr><td>權利金收 50% 提前平倉'+tip('close50')+'</td><td><b>73</b></td><td>85.9%</td><td><span style="color:var(--good);font-weight:700">+$340</span></td><td class="muted">絕大多數倉位的正常出場</td></tr>'+
+    '<tr><td>Cut-before-assignment 止損'+tip('cut')+'</td><td><b>8</b></td><td>9.4%</td><td><span style="color:var(--bad);font-weight:700">−$1,657</span></td><td class="muted">全部虧損的來源，單筆可控</td></tr>'+
+    '<tr><td>到期價外（OTM）過期</td><td><b>2</b></td><td>2.4%</td><td><span style="color:var(--good);font-weight:700">+$140</span></td><td class="muted">全收權利金</td></tr>'+
+    '<tr><td>到期價內 → 被指派接貨</td><td><b>2</b></td><td><b>2.4%</b></td><td><span style="color:var(--good);font-weight:700">+$335（權利金）</span></td><td class="muted">轉入 Covered Call 第二腿'+tip('cc')+'</td></tr>'+
+    '</tbody></table></div>'+
+    '<p style="margin-top:10px"><b>勝率（WR）的計法：90.3% ＝ 84 勝 / 93 筆。</b></p>'+
+    '<div class="table-scroll"><table class="utable">'+
+    '<thead><tr><th>交易類型</th><th>筆數</th><th>勝</th><th>負</th><th>備註</th></tr></thead><tbody>'+
+    '<tr><td>SELL_PUT</td><td>85</td><td>77</td><td>8</td><td class="muted">8 筆負全部來自 cut-before-assignment 止損</td></tr>'+
+    '<tr><td>COVERED_CALL</td><td>8</td><td>7</td><td>1</td><td class="muted">「股票被以行使價買走」（called away）的盈虧連股票差價一併計算</td></tr>'+
+    '<tr><td>WHEEL_STOCK（純股票腿）</td><td>0</td><td>—</td><td>—</td><td class="muted">回測期只出現 2 次完整輪迴（1 勝 1 負），未計入 WR</td></tr>'+
+    '</tbody></table></div>'+
+    '<ul style="margin:8px 0 0 18px;line-height:1.9">'+
+    '<li>分母 93 ＝ 85（put）＋ 8（call）；<b>WHEEL_BUY（接貨買入，盈虧恆為 0）與熔斷事件不計入勝率</b>。</li>'+
+    '<li>盈虧 ≤ $0 一律計負，不設損益兩平類別。</li>'+
+    '<li>Covered call 的「勝」包含到期價外全收權利金與 50% 提前平倉；唯一一筆負來自股票買入價高於行使價的差價。</li>'+
+    '<li>樣本只有 16 個月、完整輪迴僅 2 次，第二腿的統計參考價值有限。</li></ul>';
+  $('methodAlert').innerHTML=
+    '<p><b>八種事件同時走雙通道（Telegram 推送 ＋ 儀表板紅色警報條），其餘單通道。</b>引擎每 120 秒檢查一次持倉；儀表板每 60 秒自動刷新。</p>'+
+    '<div class="table-scroll"><table class="utable">'+
+    '<thead><tr><th>雙通道警報</th><th>觸發條件</th></tr></thead><tbody>'+
+    '<tr><td>止損警示（cut）'+tip('cut')+'</td><td class="muted">行使價失守 ＋ 股價 &lt; 0.95×MA50 ＋ DTE≥5 → 立即止損離場</td></tr>'+
+    '<tr><td>Delta 侵蝕（roll 警示）</td><td class="muted">put delta 到 −0.50 → roll down+out 或預留接貨資金</td></tr>'+
+    '<tr><td>到期被指派</td><td class="muted">到期價內 → 以行使價接 100 股，同場附 covered call 建議</td></tr>'+
+    '<tr><td>短 call 價內</td><td class="muted">covered call 到期價內 → 股票被買走（called away），輪迴完結</td></tr>'+
+    '<tr><td>50% 利潤平倉'+tip('close50')+'</td><td class="muted">權利金已收一半 → 建議 buy-to-close 鎖定利潤</td></tr>'+
+    '<tr><td>業績平倉'+tip('earnings')+'</td><td class="muted">業績日落入持有期 → 必須平倉（避開 IV crush / 跳空）</td></tr>'+
+    '<tr><td>手動平倉成交</td><td class="muted">經儀表板執行的平倉回報（成交確認）</td></tr>'+
+    '<tr><td>熔斷'+tip('breaker')+'</td><td class="muted">帳戶回撤 −15% → 停開新倉 10 交易日；回修至 −8% 之上才重啟</td></tr>'+
+    '</tbody></table></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:10px">'+
+    '<div><div class="small" style="font-weight:700;margin-bottom:4px">📱 只推 Telegram</div>'+
+    '<ul class="small" style="margin:0 0 0 18px;line-height:1.9"><li>開倉成交回報（股票、strike、DTE、按金、權利金）</li><li>訂單被拒 / 收市後仍有未成交訂單提醒</li><li>接貨後的 covered call 具體建議</li></ul></div>'+
+    '<div><div class="small" style="font-weight:700;margin-bottom:4px">🖥 只在儀表板顯示</div>'+
+    '<ul class="small" style="margin:0 0 0 18px;line-height:1.9"><li>寬度閘門關閉提示（無最佳建議 ＋ 紅色狀態欄）'+tip('breadth')+'</li><li>每日建議卡（strike / DTE / 按金 / 建議張數）</li><li>按金使用率、組合回撤、持倉明細</li></ul></div></div>'+
+    '<p class="small muted" style="margin-top:8px">去重規則：Telegram 以「日期：股票：類型」為鍵，同一事件只推送一次；儀表板警報以紅色橫幅＋瀏覽器標題閃爍＋提示音顯示，警報內容有變化才會再響。</p>';
+
 }
 
 /* ════════════ boot ════════════ */
