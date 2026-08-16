@@ -1715,8 +1715,8 @@ const SECTOR_MAP = {
   'DELL':'AI server','DLLL':'AI server','HPE':'AI server','0992.HK':'AI server',
   'VRT':'AI基建/電力','GEV':'AI基建/電力','BE':'AI基建/電力','PWR':'AI基建/電力',
   'NBIS':'AI雲端',
-  'WDAY':'軟件','ADBE':'軟件','NOW':'軟件','SNOW':'軟件','NET':'軟件',
-  'PANW':'網絡安全','DDOG':'網絡安全',
+  'WDAY':'軟件','ADBE':'軟件','NOW':'軟件','SNOW':'軟件','NET':'軟件','CRM':'軟件','PLTR':'軟件','IBM':'軟件','IGV':'軟件ETF',
+  'PANW':'網絡安全','DDOG':'網絡安全','CRWD':'網絡安全',
   'RKLB':'太空','LUNR':'太空','RDW':'太空','SPCX':'太空',
   'HPQ':'硬件/PC','CAT':'工業/機械','LYTE':'新能源',
   '0700.HK':'互聯網','9988.HK':'互聯網','3690.HK':'互聯網',
@@ -2786,6 +2786,7 @@ function getEarningsInfoJS(ticker, price) {
     RDW:{date:'2026-11-04'},SNOW:{date:'2026-09-02'},STM:{date:'2026-10-29'},STX:{date:'2026-10-27'},
     TSEM:{date:'2026-11-09'},TSM:{date:'2026-10-15'},TXN:{date:'2026-10-27'},VRT:{date:'2026-10-21'},
     WDC:{date:'2026-11-05'},WOLF:{date:'2026-08-19'},
+    CRM:{date:'2026-08-26',timing:'AMC'},CRWD:{date:'2026-08-26',timing:'AMC'},PLTR:{date:'2026-11-02',timing:'AMC'},IBM:{date:'2026-10-21',timing:'AMC'},
   };
   const cal=EARNINGS_JS[ticker]; if(!cal) return null;
   const now=new Date();
