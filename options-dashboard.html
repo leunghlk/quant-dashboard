@@ -137,10 +137,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   <button data-pane="best">🎯 今日最佳機會</button>
   <button data-pane="detail">📈 個股詳情分析</button>
   <button data-pane="positions">📋 持倉監控</button>
-  <button data-pane="v4-best">🏆 v4_balanced 今日最佳</button>
-<button data-pane="v4-candidates">🎯 v4_balanced 候選名單</button>
-<button data-pane="v4-winrank">🎖️ v4_balanced 勝率排行</button>
-<button data-pane="method">❓ v4_balanced 方法論</button>
+  <button data-pane="method">❓ v4_balanced 方法論</button>
 </div>
 <div class="container">
 
@@ -201,12 +198,12 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 
   <!-- ═══════════ 今日最佳 ═══════════ -->
   <div class="pane" id="pane-best">
-    <div class="card"><div class="card-h"><span class="t">🎯 今日最佳交易</span><span class="meta">點「執行」落單（紙上）· 點行開個股詳情</span></div>
-      <div class="card-b" id="bestCard"></div></div>
-    <div class="card"><div class="card-h"><span class="t">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
-      <div class="card-b" id="candBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">⚡ 賣 Call / 賣 Put 勝率排名</span><span class="meta">勝率 P(OTM) 由高至低 · 7D/14D · delta≈0.25 · 連動量減速</span></div>
-      <div class="card-b" id="winrankBody"></div></div>
+    <div class="card"><div class="card-h"><span class="t">🏆 v4_balanced 今日最佳交易</span><span class="meta">經過過濾+排序+配倉後嘅最高分候選</span></div>
+      <div class="card-b" id="v4Best"></div></div>
+    <div class="card"><div class="card-h"><span class="t">🎯 v4_balanced 候選名單</span><span class="meta">所有符合條件嘅期權機會，按分數排序</span></div>
+      <div class="card-b" id="v4Candidates"></div></div>
+    <div class="card"><div class="card-h"><span class="t">🎖️ v4_balanced 勝率排行</span><span class="meta">已結倉交易表現展示 · 赢多輸少係目標</span></div>
+      <div class="card-b" id="v4WinRank"></div></div>
     <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">你揀咗乜、排緊隊、同埋「今日唔做」</span></div>
       <div class="card-b" id="decBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">已排除</span><span class="meta">業績窗口 / model veto / 槓桿 ETF</span></div>
@@ -283,23 +280,6 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   </div>
 </div>
 
-  <!-- ═══════════ v4_balanced 今日最佳 ═══════════ -->
-  <div class="pane" id="pane-v4-best">
-    <div class="card"><div class="card-h"><span class="t">🏆 v4_balanced 今日最佳交易</span><span class="meta">經過過濾+排序+配倉後嘅最高分候選</span></div>
-      <div class="card-b" id="v4Best"></div></div>
-  </div>
-
-  <!-- ═══════════ v4_balanced 候選名單 ═══════════ -->
-  <div class="pane" id="pane-v4-candidates">
-    <div class="card"><div class="card-h"><span class="t">🎯 v4_balanced 候選名單</span><span class="meta">所有符合條件嘅期權機會，按分數排序</span></div>
-      <div class="card-b" id="v4Candidates"></div></div>
-  </div>
-
-  <!-- ═══════════ v4_balanced 勝率排行 ═══════════ -->
-  <div class="pane" id="pane-v4-winrank">
-    <div class="card"><div class="card-h"><span class="t">🎖️ v4_balanced 勝率排行</span><span class="meta">已結倉交易表現展示 · 赢多輸少係目標</span></div>
-      <div class="card-b" id="v4WinRank"></div></div>
-  </div>
 
 <div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · All-in-One Financial Dashboard Suite — v4_balanced 期權交易（Sell Put → Covered Call）· 目標月入 HKD 15k-20k · 紙上模式 · 數據：Futu 實時（bid/ask · IV/Delta 由真實報價 BS 反推）＋ Yahoo 兜底 · 期權賣方有 tail risk · 非投資建議</div>
 
@@ -1101,6 +1081,9 @@ async function loadV4Balanced() {
 
     const data = await response.json();
     renderV4BalancedDetail(data);
+    renderV4Best();
+    renderV4Candidates();
+    renderV4WinRank();
 
   } catch (error) {
     console.error('V4 balanced error:', error);
