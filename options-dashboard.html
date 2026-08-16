@@ -194,7 +194,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
       <div class="card-b" id="winrankBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">你的選擇、排隊中訂單、以及「今日不做」</span></div>
       <div class="card-b" id="decBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">已排除</span><span class="meta">業績窗口 / model veto（槓桿 ETF 已按你要求列入勝率排名掃描）</span></div>
+    <div class="card"><div class="card-h"><span class="t">已排除</span><span class="meta">業績窗口 / signal veto（momentum-only，同回測公式；槓桿 ETF 已按你要求列入勝率排名掃描）</span></div>
       <div class="card-b small muted" id="notesBody"></div></div>
   </div>
 
@@ -300,7 +300,7 @@ const GLOSS={
   'scenario':'<b>情境分析</b>：模擬到期日不同股價下你的盈虧（權利金 − max(0, K−S_T)）×100×張數。綠色=賺、紅色=虧損。',
   'score':'<b>分數（選最佳準則）</b>：annualized_yield ×(0.5+IV_rank/100) ÷ (1+risk)。<br>risk 懲罰：闊 spread、IV&gt;90%、細價股、舊報價。分高 = 回報高而風險可控。',
   'contracts':'<b>張數 Contracts</b>：1 張 = 100 股掛鈎。建議張數由按金預算計：min(（70%預算−已用）÷每張按金, 30% equity ÷每張按金, 板塊 40% 預算上限, 10)。',
-  'veto':'<b>Model Veto</b>：你個 All-in-One 量化模型（四因子 + 動量減速）判斷不宜買入的股票 → 不會建議你賣 put。自家系統擔任守門員。',
+  'veto':'<b>Signal Veto</b>：動量評分（12/6/3 個月動能 + MA50 斜率 + 動量減速，與 v4_balanced 回測同一條公式、同一 yfinance 日線）非 BUY / ACCUMULATE 的股票 → 不會建議你賣 put。',
   'expectation':'<b>概率加權期望值</b>：OTM%×最大利潤 + ITM%×平均虧損（粗略）。正數代表長遠「期望」有得賺。',
   'premiumsrc':'<b>權利金來源</b>：live = 真實買賣價 mid；live-stale = 報價過期改用模型兜底；model = 無報價時用 BS 模型計算。',
 };
@@ -1205,7 +1205,7 @@ function renderMethod(){
     '<ol style="margin:8px 0 0 18px;line-height:2">'+
     '<li><b>趨勢/質量硬過濾</b>（不通過則直接排除）：收市價 &gt; MA50 而且 ≤1.15×MA50（不追高）、3 個月動量 ≤+60%、RSI 14 在 40–70、近 5 日無單日 ±8%、IV 30–150%、股價 $10–$200。</li>'+
     '<li><b>大盤寬度閘門</b>：宇宙 ≥50% 股價站穩 MA50 才開新倉'+tip('breadth')+'（2026-08 上半月寬度 28–37% → 引擎自動休息）。</li>'+
-    '<li>硬性排除：業績窗口（持有期＋2 日緩衝）'+tip('earnings')+'、模型 REDUCE/SELL/decel≤−3'+tip('veto')+'、槓桿 ETF（DLLL）、太疏/太舊報價。</li>'+
+    '<li>硬性排除：業績窗口（持有期＋2 日緩衝）'+tip('earnings')+'、動量信號非 BUY/ACCUMULATE（momentum-only，同回測公式）'+tip('veto')+'、槓桿 ETF（DLLL）、太疏/太舊報價。</li>'+
     '<li><b>分數排序</b>：annualized_yield ×（0.5 + IV_rank/100）÷（1 + risk）'+tip('score')+' —— 選 strike 選 Δ0.25–0.30 那檔，DTE 10–14。</li></ol>';
   $('methodIV').innerHTML=
     '<p><b>IV 三層來源（由靚到醜）＋ v4_balanced IV 帶 30–150%：</b></p>'+
