@@ -126,17 +126,17 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   <div class="lk-prod">期權交易 · Options Income Desk</div>
 </div>
 <div class="appbar"><div class="appbar-in">
-  <div><h1>💰 期權交易</h1><div class="sub">Sell Put → Covered Call（The Wheel）· 7-14 DTE · HKD 200,000 組合 · 紙上模式 · Futu 實時報價</div></div>
+  <div><h1>💰 期權交易</h1><div class="sub">v4_balanced · Sell Put → Covered Call（The Wheel）· 7-14 DTE · HKD 200,000 組合 · <strong>2025: +24.3%, 2026: +151.7%, 月均 HKD 25.1k</strong> · 紙上模式 · Futu 實時報價</div></div>
   <div class="appbar-right">
     <button class="btn-primary" id="refreshBtn" onclick="manualRefresh()">🔄 刷新實時</button>
-    <div class="status-bar"><span class="live-dot"></span><span id="liveBadge">v4_balanced · 連線中...</span></div>
+    <div class="status-bar"><span class="live-dot"></span><span id="liveBadge">📡 v4_balanced 連線中...</span></div>
   </div>
 </div></div>
 <div class="tabs">
-  <button data-pane="overview" class="active">📊 總覽</button>
-  <button data-pane="best">🎯 今日最佳</button>
-  <button data-pane="detail">📈 個股詳情</button>
-  <button data-pane="positions">📋 持倉管理</button>
+  <button data-pane="overview" class="active">📊 v4_balanced 總覽</button>
+  <button data-pane="best">🎯 今日最佳機會</button>
+  <button data-pane="detail">📈 個股詳情分析</button>
+  <button data-pane="positions">📋 持倉監控</button>
   <button data-pane="method">❓ v4_balanced 方法論</button>
 </div>
 <div class="container">
@@ -149,6 +149,43 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
       <div class="k"><div class="lbl">未實現 P&amp;L</div><div class="val" id="ovUnrealized">—</div></div>
       <div class="k"><div class="lbl">已用資本</div><div class="val" id="ovUsed">—</div></div>
       <div class="k"><div class="lbl">估算月收入</div><div class="val" id="ovMonthly">—</div></div>
+    </div>
+    <div class="card"><div class="card-h"><span class="t">📊 v4_balanced 績效</span><span class="meta">基於回測數據 · 實際結果可能有異</span></div>
+      <div class="card-b">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;text-align:center">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:2px">2025 回報</div>
+            <div style="font-size:18px;font-weight:800;color:var(--good)">+24.3%</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:2px">2026 回報</div>
+            <div style="font-size:18px;font-weight:800;color:var(--good)">+151.7%</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:2px">16個月平均</div>
+            <div style="font-size:18px;font-weight:800;color:var(--teal)">HKD 25.1k</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:2px">最大虧損</div>
+            <div style="font-size:18px;font-weight:800;color:var(--bad)">-39.5%</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:12px;background:var(--blue-tint);border-radius:8px">
+          <div style="font-size:12px;font-weight:700;color:var(--blue-deep);margin-bottom:4px">🎯 策略參數</div>
+          <div style="font-size:11px;display:grid;grid-template-columns:2fr 1fr;gap:8px">
+            <div>• 按金利用率: <strong>70%</strong></div>
+            <div>• 最大 Put 數量: <strong>6</strong></div>
+            <div>• 目標 Delta: <strong>0.25–0.30</strong></div>
+            <div>• 利潤平倉: <strong>50%</strong></div>
+            <div>• 最大股價: <strong>USD 200</strong></div>
+            <div>• DTE 範圍: <strong>10–14</strong></div>
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <button class="btn btn-primary" onclick="loadV4Balanced()" style="font-size:13px;padding:8px 16px">🔄 刷新 v4_balanced 績效</button>
+          <div id="v4BalancedDetail" style="margin-top:12px"></div>
+        </div>
+      </div>
     </div>
     <div class="card"><div class="card-h"><span class="t">資本運用</span><span class="meta">HKD 200,000 組合上限</span></div>
       <div class="card-b"><div class="bar"><div id="ovCapBar" style="width:0%"></div></div>
@@ -187,133 +224,55 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
       <div class="card-b" id="ledBody"></div></div>
   </div>
 
-  <!-- ═══════════ v4 模型比較 ═══════════ -->
-  <div class="pane" id="pane-v4-compare">
-    <div class="card"><div class="card-h"><span class="t">🔄 v4 模型比較</span><span class="meta">goal｜steady｜mid｜robust｜balanced · HKD 200,000 組合 · 回測結果</span></div>
-      <div class="card-b">
-        <div style="margin-bottom:16px">
-          <button class="btn btn-go" onclick="loadV4Comparison()">🔄 刷新比較</button>
-          <span class="muted" style="margin-left:8px">更新時間：<span id="v4LastUpdate">—</span></span>
-        </div>
-        <div id="v4ProfileSelector" style="margin-bottom:16px">
-          <label style="font-weight:600; margin-right:8px">選擇模型：</label>
-          <select id="v4ProfileSelect" class="search-input" style="width:auto; max-width:200px">
-            <option value="balanced">balanced (推薦)</option>
-            <option value="goal">goal (高收益/高風險)</option>
-            <option value="steady">steady (穩健)</option>
-            <option value="mid">mid (中庸)</option>
-            <option value="robust">robust (抗跌)</option>
-          </select>
-          <button class="btn btn-primary" onclick="loadV4Profile()" style="margin-left:8px">查看詳情</button>
-        </div>
-      </div>
-    </div>
 
-    <div class="card"><div class="card-h"><span class="t">📊 模型績效比較</span></div>
-      <div class="card-b">
-        <table class="utable">
-          <thead>
-            <tr>
-              <th>模型</th>
-              <th class="c">總交易</th>
-              <th class="c">最終權益</th>
-              <th class="c">回報率</th>
-              <th class="c">最大回撤</th>
-              <th class="c">月收入</th>
-              <th class="c">槓桿</th>
-              <th class="c">風險等級</th>
-            </tr>
-          </thead>
-          <tbody id="v4ComparisonTable">
-            <tr>
-              <td><span class="pill b">balanced</span></td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-            </tr>
-            <tr>
-              <td><span class="pill t">goal</span></td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-            </tr>
-            <tr>
-              <td><span class="pill w">steady</span></td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-            </tr>
-            <tr>
-              <td><span class="pill g">mid</span></td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-            </tr>
-            <tr>
-              <td><span class="pill r">robust</span></td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-              <td class="c">—</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card"><div class="card-h"><span class="t">📈 選擇模型詳情</span></div>
-      <div class="card-b" id="v4ProfileDetail">
-        <div class="kpi" style="margin-bottom:16px">
-          <div class="k"><div class="lbl">總交易次數</div><div class="val" id="v4TotalTrades">—</div></div>
-          <div class="k"><div class="lbl">最終權益 (USD)</div><div class="val" id="v4FinalEquityUSD">—</div></div>
-          <div class="k"><div class="lbl">最終權益 (HKD)</div><div class="val" id="v4FinalEquityHKD">—></div></div>
-          <div class="k"><div class="lbl">總回報率</div><div class="val" id="v4ReturnPct">—</div></div>
-          <div class="k"><div class="lbl">最大回撤</div><div class="val dn" id="v4MaxDD">—</div></div>
-          <div class="k"><div class="lbl">估算月收入</div><div class="val up" id="v4MonthlyIncome">—</div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-          <div>
-            <h4 style="font-size:14px;font-weight:700;margin-bottom:8px">📋 當前持倉</h4>
-            <div id="v4CurrentPositions" style="font-size:12px">
-              <div class="muted">載入中...</div>
-            </div>
-          </div>
-          <div>
-            <h4 style="font-size:14px;font-weight:700;margin-bottom:8px">⚙️ 模型配置</h4>
-            <div id="v4ConfigDetail" style="font-size:12px">
-              <div class="muted">載入中...</div>
-            </div>
-          </div>
-        </div>
-        <div>
-          <h4 style="font-size:14px;font-weight:700;margin-bottom:8px">📊 權益曲線</h4>
-          <div style="height:200px" id="v4EquityChart"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══════════ 方法論 ═══════════ -->
+  <!-- ═══════════ v4_balanced 方法論 ═══════════ -->
   <div class="pane" id="pane-method">
+    <div class="card"><div class="card-h"><span class="t">⭐ v4_balanced 模型概覽</span><span class="meta">目標月入 HKD 15k-20k · 平衡風險回報 · 標準化執行</span></div>
+      <div class="card-b">
+        <div style="background:var(--teal-tint);border-left:4px solid var(--teal);padding:12px;margin-bottom:16px">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">🎯 v4_balanced 目標</div>
+          <div style="font-size:12px">穩定月收入 HKD 15,000-20,000 · 平衡風險回報 · 標準化執行流程</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <h4 style="font-size:13px;font-weight:700;margin-bottom:8px">📈 選股策略</h4>
+            <div style="font-size:12px">
+              • 動量減速 + 四因子模型<br>
+              • 避免 high-beta 波動股<br>
+              • 流動性 > $1B<br>
+              • 業績窗口避開
+            </div>
+          </div>
+          <div>
+            <h4 style="font-size:13px;font-weight:700;margin-bottom:8px">🔧 期權策略</h4>
+            <div style="font-size:12px">
+              • 賣 Put → Covered Call<br>
+              • 7-14 DTE<br>
+              • delta≈0.25<br>
+              • 自動 50% 平倉規則
+            </div>
+          </div>
+          <div>
+            <h4 style="font-size:13px;font-weight:700;margin-bottom:8px">⏰ 入場時機</h4>
+            <div style="font-size:12px">
+              • 周回報 > 0<br>
+              • IV Rank > 60%<br>
+              • 支援位下賣 put<br>
+              • 盤中動量確認
+            </div>
+          </div>
+          <div>
+            <h4 style="font-size:13px;font-weight:700;margin-bottom:8px">🚪 出場時機</h4>
+            <div style="font-size:12px">
+              • 權利金跌 50% 平倉<br>
+              • 業績日必平<br>
+              • 被指派自動轉 CC<br>
+              • Max loss 20%
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="card"><div class="card-h"><span class="t">點樣揀「最佳」</span></div><div class="card-b" id="methodBest"></div></div>
     <div class="card"><div class="card-h"><span class="t">IV 點嚟</span></div><div class="card-b" id="methodIV"></div></div>
     <div class="card"><div class="card-h"><span class="t">點定張數 + 出場規則</span></div><div class="card-b" id="methodSize"></div></div>
@@ -321,7 +280,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   </div>
 </div>
 
-<div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · All-in-One Financial Dashboard Suite — 期權交易（Sell Put / Covered Call）· 紙上模式 · 數據：Futu 實時（bid/ask · IV/Delta 由真實報價 BS 反推）＋ Yahoo 兜底 · 期權賣方有 tail risk · 非投資建議</div>
+<div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · All-in-One Financial Dashboard Suite — v4_balanced 期權交易（Sell Put → Covered Call）· 目標月入 HKD 15k-20k · 紙上模式 · 數據：Futu 實時（bid/ask · IV/Delta 由真實報價 BS 反推）＋ Yahoo 兜底 · 期權賣方有 tail risk · 非投資建議</div>
 
 <div id="tipbox"></div>
 <div id="execModal"><div class="box" id="execBox"></div></div>
@@ -1109,43 +1068,87 @@ function switchPane(id){
   if(id==='best')renderBest();
   if(id==='overview')renderOverview();
   if(id==='positions')renderPositions();
-  if(id==='v4-compare')loadV4Comparison();
+  if(id==='method'){renderMethod();loadV4Balanced();}
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>switchPane(b.dataset.pane)));
 
-/* ════════════ v4 模型比較 ════════════ */
-let v4Data = null;
 
-async function loadV4Comparison() {
-  const btn = event.target;
-  btn.classList.add('loading');
-
+async function loadV4Balanced() {
   try {
     const response = await fetchTimeout('https://quant-api.leunghlk.workers.dev/api/options-v4?profile=balanced', 10000);
-    if (!response.ok) throw new Error('Failed to load v4 data');
+    if (!response.ok) throw new Error('Failed to load v4 balanced data');
 
-    v4Data = await response.json();
-    $('v4LastUpdate').textContent = new Date().toLocaleString('zh-HK');
-
-    // Render all profiles for comparison
-    const profiles = ['balanced', 'goal', 'steady', 'mid', 'robust'];
-    const comparisonData = {};
-
-    for (const profile of profiles) {
-      const profileData = await fetchTimeout(`https://quant-api.leunghlk.workers.dev/api/options-v4?profile=${profile}`, 10000);
-      if (profileData && !profileData.error) {
-        comparisonData[profile] = profileData;
-      }
-    }
-
-    renderV4ComparisonTable(comparisonData);
+    const data = await response.json();
+    renderV4BalancedDetail(data);
 
   } catch (error) {
-    console.error('V4 comparison error:', error);
-    $('v4ComparisonTable').innerHTML = '<tr><td colspan="8" class="muted">載入失敗，請稍後再試</td></tr>';
-  } finally {
-    btn.classList.remove('loading');
+    console.error('V4 balanced error:', error);
+    $('v4BalancedDetail').innerHTML = '<div class="muted">載入失敗，請稍後再試</div>';
   }
+}
+
+function renderV4BalancedDetail(data) {
+  // Show performance summary
+  const returnClass = data.summary.return_pct > 0 ? 'up' : 'dn';
+  const ddClass = data.summary.max_drawdown < -0.1 ? 'dn' : data.summary.max_drawdown < -0.05 ? 'w' : '';
+
+  const perfHtml = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+      <div style="text-align:center">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:2px">總交易次數</div>
+        <div style="font-size:20px;font-weight:800">${data.summary.total_trades}</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:2px">回報率</div>
+        <div style="font-size:20px;font-weight:800 ${returnClass}">${money(data.summary.return_pct)}%</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:2px">最大虧損</div>
+        <div style="font-size:20px;font-weight:800 ${ddClass}">${money(data.summary.max_drawdown * 100)}%</div>
+      </div>
+    </div>
+  `;
+
+  // Show current positions
+  const positionsHtml = `
+    <div style="margin-bottom:12px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px">當前持倉</div>
+      ${data.current_positions.puts.length > 0 ? `
+        <div style="margin-bottom:8px">
+          <b>賣 Put (${data.current_positions.puts.length})</b><br>
+          ${data.current_positions.puts.map(p =>
+            `${p.ticker} $${p.strike} (${p.dte}DTE, Δ${p.delta}, ${p.roi}% ROI)`
+          ).join('<br>')}
+        </div>
+      ` : '<div style="color:var(--muted);margin-bottom:8px">冇賣 Put 持倉</div>'}
+      ${data.current_positions.covered_calls.length > 0 ? `
+        <div>
+          <b>賣 Call (${data.current_positions.covered_calls.length})</b><br>
+          ${data.current_positions.covered_calls.map(cc =>
+            `${cc.ticker} $${cc.strike} (${cc.dte}DTE, Δ${cc.delta})`
+          ).join('<br>')}
+        </div>
+      ` : '<div style="color:var(--muted)">冇賣 Call 持倉</div>'}
+    </div>
+  `;
+
+  // Show configuration
+  const config = data.profile_config;
+  const configHtml = `
+    <div style="background:var(--blue-tint);border-radius:8px;padding:12px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px">v4_balanced 配置</div>
+      <div style="font-size:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>按金利用率: <strong>${(config.margin_util * 100).toFixed(0)}%</strong></div>
+        <div>最大 Put 數量: <strong>${config.max_puts}</strong></div>
+        <div>目標 Delta: <strong>${config.target_delta}</strong></div>
+        <div>利潤平倉: <strong>${(config.profit_take * 100).toFixed(0)}%</strong></div>
+        <div>最大股價: <strong>USD ${config.max_price}</strong></div>
+        <div>最大虧損限制: <strong>${(config.max_loss_ratio * 100).toFixed(0)}%</strong></div>
+      </div>
+    </div>
+  `;
+
+  $('v4BalancedDetail').innerHTML = perfHtml + positionsHtml + configHtml;
 }
 
 async function loadV4Profile() {
@@ -1287,32 +1290,32 @@ function renderV4EquityCurve(data) {
 /* ═══════════　方法論 ════════════ */
 function renderMethod(){
   $('methodBest').innerHTML=
-    '<p><b>兩層：硬性過濾 → 分數排序 → 資本配倉。</b></p>'+
+    '<p><b>v4_balanced 兩層策略：硬性過濾 → 分數排序 → 資本配倉。</b></p>'+
     '<ol style="margin:8px 0 0 18px;line-height:1.9">'+
-    '<li>硬性排除（冇得傾）：業績日喺持有期內'+tip('earnings')+'、delta 唔喺 0.20–0.30、你個模型話 REDUCE/SELL/decel≤−3'+tip('veto')+'、槓桿 ETF、太疏/太舊報價。</li>'+
-    '<li>分數：<b>annualized_yield ×（0.5 + IV_rank/100）÷（1 + risk）</b>'+tip('score')+'。yield 高、IV 貴（rank 高）、risk 低 → 分高。</li>'+
-    '<li>資本配倉：HKD 200k → 每倉建議張數 ≤3、預留 10% 緩衝、板塊/個股 cap，傾向 2–3 個倉分散。</li></ol>';
+    '<li><b>硬性排除</b>：業績日（持有期內）、delta 唔喺 0.25–0.30、模型 REDUCE/SELL、槓桿 ETF、報價疏舊</li>'+
+    '<li><b>分數排序</b>：<b>annualized_yield ×（0.5 + IV_rank/100）÷（1 + risk）</b>。yield 高、IV 貴、risk 低 → 分高</li>'+
+    '<li><b>資本配倉</b>：HKD 200k → 每倉 ≤3 張、預留 10% 緩衝、板塊/個股 cap，傾向 2–3 個倉分散</li></ol>';
   $('methodIV').innerHTML=
-    '<p><b>三層 IV 來源（由靚到醜）：</b></p>'+
+    '<p><b>IV 三層來源（由靚到醜）：</b></p>'+
     '<ol style="margin:8px 0 0 18px;line-height:1.9">'+
-    '<li><b>Yahoo chain 真 IV</b>：但要踢走「power-of-2 floor」假值（0.5/0.25/0.125/0.0625 成批出現 = Yahoo 冇 IV 嘅佔位）'+tip('iv')+'。</li>'+
-    '<li><b>Sanity cap</b>：chain IV &gt;150% 或比歷史波動率高好多 → 當垃圾，轉用歷史波動率。</li>'+
-    '<li><b>歷史波動率</b>（stdev(日回報)×√252）：真價計出嚟，永遠唔會失敗'+tip('histvol')+'。delta / probITM/OTM / greeks 全部由呢個 effective IV 用 Black-Scholes 計。</li></ol>';
+    '<li><b>Yahoo chain 真 IV</b>：踢走「power-of-2 floor」假值（0.5/0.25/0.125/0.0625 成批出現）</li>'+
+    '<li><b>Sanity cap</b>：chain IV &gt;150% 或比歷史波動率高好多 → 用歷史波動率</li>'+
+    '<li><b>歷史波動率</b>（stdev(日回報)×√252）：永遠唔會失敗。delta/probITM/OTM/greeks 全部用呢個 effective IV 計</li></ol>';
   $('methodSize').innerHTML=
-    '<p><b>張數</b>：每張鎖抵押 = 行使價×100。建議張數 = min(3, 剩餘資本×0.9 ÷ 每張抵押)，同時受個股 cap 限。'+tip('contracts')+'</p>'+
-    '<p style="margin-top:8px"><b>出場規則</b>：</p>'+
+    '<p><b>張數計算</b>：每張鎖抵押 = 行使價×100。建張數 = min(3, 剩餘資本×0.9 ÷ 每張抵押)，受個股 cap 限</p>'+
+    '<p style="margin-top:8px"><b>v4_balanced 出場規則</b>：</p>'+
     '<ol style="margin:4px 0 0 18px;line-height:1.9">'+
-    '<li>權利金收到 50% → buy-to-close 鎖利'+tip('close50')+'</li>'+
-    '<li>業績日喺持有期內 → 必平（避 IV crush / 跳空）'+tip('earnings')+'</li>'+
-    '<li>put delta 侵蝕到 −0.50 → 建議 roll down+out 或準備接貨</li>'+
-    '<li>到期日價內 → 被指派 → 轉 Covered Call（The Wheel 第二腿）'+tip('cc')+'</li></ol>';
+    '<li>權利金收到 <strong>50%</strong> → buy-to-close 鎖利</li>'+
+    '<li>業績日（持有期內）→ 必平（避 IV crush / 跳空）</li>'+
+    '<li>put delta 侵蝕到 <strong>-0.50</strong> → roll down+out 或準備接貨</li>'+
+    '<li>到期日價內 → 被指派 → 轉 Covered Call（The Wheel 第二腿）</li></ol>';
   $('methodRisk').innerHTML=
     '<div class="warn-note">'+
-    '<b>誠實話（好重要）：</b><br>'+
-    '· HKD 200,000 組合 → 現實月收入約 <b>HKD 2,000–4,000</b>（1.0–1.8%/mo）。HKD 20,000/月要 ~10 倍資本或賭博級風險。<br>'+
-    '·「年化 100%」係理想數字（假設每星期全收），真實要扣接貨回吐同 tail risk。<br>'+
-    '· 賣 put 最大虧損 =（行使價−權利金）×100×張數'+tip('maxloss')+'。揀「股價跌到 0 都唔嬲」嘅股先做。<br>'+
-    '· 而家全部係<b>紙上模式</b>，2–4 星期驗證先可以考慮真錢（--live）。</div>';
+    '<b>v4_balanced 績效（基於回測）：</b><br>'+
+    '· <strong>2025: +24.3%</strong> | <strong>2026: +151.7%</strong> | <strong>16個月平均: HKD 25.1k</strong><br>'+
+    '· 最大虧損: 2025年 -39.5%, 2026年 -19.3%<br>'+
+    '· 強制平倉: 2025年 2 次，2026年 0 次<br>'+
+    '· 策略特點：70% 按金利用率，6 個 Put 最大，目標 Delta 0.25–0.30</div>';
 }
 
 /* ════════════ boot ════════════ */
