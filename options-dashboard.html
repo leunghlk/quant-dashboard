@@ -448,22 +448,23 @@ function findCandidate(tk){
 
 function renderRails(){
   const el=$('ovRailsBody'); if(!el)return;
-  const mu=Number(rec.used_margin_open||0), mb=Number(rec.margin_budget||0), eq=Number(rec.equity_usd||CAPITAL_HKD/HKD_USD);
+  const mu=modeMarginUSD(), mb=Number(rec.margin_budget||0), eq=Number(rec.equity_usd||CAPITAL_HKD/HKD_USD);
   const br=Number(rec.breadth), bk=rec.breaker||{};
   const ms=rec.margin_status||null;
+  const mtag=modeTag();
   const msLine=ms
     ?('剩餘按金 <b style="color:'+(ms.remaining_usd>0?'#16a34a':'#dc2626')+'">$'+fmt(ms.remaining_usd)+' ≈ HKD '+fmt(ms.remaining_hkd)+'</b> · 大約仲夠開 <b>'+Math.max(0,ms.more_contracts_est||0)+' 張</b>'+tip('capacity')
       +(ms.real_power_hkd!=null?'<br><span class="muted">（僅參考）真實 Futu 戶購買力 HKD '+fmt(ms.real_power_hkd)+'</span>':''))
     :'按金容量讀取中…';
-  const pos=(rec.positions||[]).filter(x=>x.status==='open');
+  const pos=modePos();
   const nputs=pos.filter(x=>x.side!=='CALL').length, ncc=pos.filter(x=>x.side==='CALL').length;
   const utilPct=mb?Math.round(mu/mb*100):0, utilEq=Math.round(mu/eq*100);
   const brOk=br>=0.50;
   let h='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">';
-  h+='<div><div class="small muted">按金預算運用（70% 上限）'+tip('margin')+tip('util')+'</div>'
+  h+='<div><div class="small muted">按金預算運用（70% 上限）'+(mtag?'<b style="color:#475569">'+mtag+'</b>':'')+tip('margin')+tip('util')+'</div>'
     +'<div class="bar" id="railMarginBar" style="margin-top:4px;cursor:help"><div style="width:'+Math.min(100,utilPct)+'%;background:'+(utilPct>90?'#dc2626':utilPct>70?'#d97706':'#1a73e8')+'"></div></div>'
     +'<div class="small" style="margin-top:3px">$'+fmt(mu)+' / $'+fmt(mb)+' · <b>'+utilPct+'%</b> 預算 · 剩 <b style="color:'+(mb-mu>0?'#16a34a':'#dc2626')+'">$'+fmt(mb-mu)+' ≈ HKD '+fmt((mb-mu)*HKD_USD)+'</b></div></div>';
-  h+='<div><div class="small muted">倉位 / 閘門</div><div class="small" style="margin-top:4px;line-height:1.9">'
+  h+='<div><div class="small muted">倉位 / 閘門'+(mtag?'<b style="color:#475569">'+mtag+'</b>':'')+'</div><div class="small" style="margin-top:4px;line-height:1.9">'
     +'Put 倉 <b>'+nputs+'/6</b>'+(ncc?' · CC 倉 <b>'+ncc+'</b>':'')+' · 每日新倉 ≤2'+tip('contracts')+'<br>'
     +'大盤寬度 <b style="color:'+(brOk?'#16a34a':'#dc2626')+'">'+(br==null||isNaN(br)?'—':Math.round(br*100)+'%')+'</b>（閘門 '+(rec.gate_closed?('✗ 不開新倉：'+esc(gateReason())):'✓ 開放新倉')+'）'+tip('breadth')+'<br>'
     +'熔斷 '+(bk.tripped?'<b style="color:#dc2626">🔴 已觸發（'+(bk.trip_dd!=null?bk.trip_dd+'%）':'）')+(bk.paused_until?' · 停至 '+bk.paused_until:'')+'</b>':'<b style="color:#16a34a">🟢 未觸發</b>（−15% 停 10 日）')+tip('breaker')
@@ -474,7 +475,7 @@ function renderRails(){
   const rm=$('railsMeta'); if(rm){const acts=alarmActs();rm.textContent=acts.length?('⚠️ '+acts.length+' 個出場建議 → 去「持倉管理」'):'按照下表規則 = 貼近回測結果';}
   el.innerHTML=h;
   const rmb=$('railMarginBar');   // ⭐ innerHTML 之後先 set（hover bar 看實數）
-  if(rmb)rmb.dataset.tip='<b>按金預算運用（paper 倉 equity $'+fmt(eq)+'）</b><br>已用按金 $'+fmt(mu)+' ／ 預算 $'+fmt(mb)+'（equity×70%）<br>= <b>'+utilPct+'%</b>（equity 的 '+utilEq+'%）<br>90% 以上紅 · 70% 以上琥珀<br>剩餘 $'+fmt(mb-mu)+' ≈ HKD '+fmt((mb-mu)*HKD_USD)+(ms&&ms.more_contracts_est!=null?'（大約仲夠 '+ms.more_contracts_est+' 張）':'')+(ms&&ms.real_power_hkd!=null?'<br>——<br><span class="muted">（僅參考）真實 Futu 戶購買力 HKD '+fmt(ms.real_power_hkd)+'：紙上交易唔受佢限制</span>':'');
+  if(rmb)rmb.dataset.tip='<b>按金預算運用'+(mtag?mtag+'（paper 倉 equity $'+fmt(eq)+'）':'（paper 倉 equity $'+fmt(eq)+'）')+'</b><br>已用按金 $'+fmt(mu)+' ／ 預算 $'+fmt(mb)+'（equity×70%）<br>= <b>'+utilPct+'%</b>（equity 的 '+utilEq+'%）<br>90% 以上紅 · 70% 以上琥珀<br>剩餘 $'+fmt(mb-mu)+' ≈ HKD '+fmt((mb-mu)*HKD_USD)+(ms&&ms.more_contracts_est!=null?'（大約仲夠 '+ms.more_contracts_est+' 張）':'')+(ms&&ms.real_power_hkd!=null?'<br>——<br><span class="muted">（僅參考）真實 Futu 戶購買力 HKD '+fmt(ms.real_power_hkd)+'：紙上交易唔受佢限制</span>':'');
 }
 let pnlMode=(function(){try{return localStorage.getItem('optdash_pnl_mode')||'both';}catch(e){return 'both';}})();
 function setPnlMode(m){pnlMode=m;try{localStorage.setItem('optdash_pnl_mode',m);}catch(e){}renderOverview();}
@@ -517,19 +518,20 @@ function renderOverview(){
   const p=rec.portfolio||{};
   renderPnlKpi(p);
   renderRails();
-  const locked=lockedHKD(), avail=availHKD();     // 接貨現金（開倉+排隊）／剩餘
-  const mu=Number(rec.used_margin_open||0), mb=Number(rec.margin_budget||0);
+  const locked=modeLockedHKD(), avail=CAPITAL_HKD-locked;     // 接貨現金（開倉+排隊）／剩餘 —— 跟 P&L 模式
+  const mu=modeMarginUSD(), mb=Number(rec.margin_budget||0);
+  const mtag=modeTag();
   $('ovUsed').textContent='$'+fmt(mu)+' ≈ '+hkd(mu*HKD_USD);
   const pct=Math.min(100,Math.round(locked/CAPITAL_HKD*100));
   const muPct=mb?Math.round(mu/mb*100):0;
   const cb=$('ovCapBody');
   if(cb){
     cb.innerHTML=
-      '<div class="small muted">① 按金 —— 券商為短倉鎖住的錢'+tip('margin')+tip('util')+'（上限 = equity×70% = $'+fmt(mb)+'）</div>'
+      '<div class="small muted">① 按金 —— 券商為短倉鎖住的錢'+(mtag?'<b style="color:#475569">'+mtag+'</b>':'')+tip('margin')+tip('util')+'（上限 = equity×70% = $'+fmt(mb)+'）</div>'
       +'<div class="bar" style="margin:4px 0 10px"><div style="width:'+Math.min(100,muPct)+'%;background:'+(muPct>90?'#dc2626':muPct>70?'#d97706':'#1a73e8')+'"></div></div>'
-      +'<div class="small muted">② 接貨現金 —— 些 Put 全部被指派時要拿出來接貨的總數'+tip('collateral')+'（上限 HKD '+fmt(CAPITAL_HKD)+'）</div>'
-      +'<div class="bar" style="margin:4px 0 6px"><div style="width:'+pct+'%;background:'+(pct>85?'#dc2626':'#0d9488')+'"></div></div>'
-      +'<div class="small muted">① $'+fmt(mu)+' / $'+fmt(mb)+'（'+muPct+'%）· ② HKD '+fmt(locked)+' / '+fmt(CAPITAL_HKD)+'（'+pct+'%，剩可用 HKD '+fmt(avail)+'）· 開倉 '+p.open_count+'/6 · 排隊 '+decLoad('optdash_queued').length+'</div>';
+      +'<div class="small muted">② 接貨現金 —— 些 Put 全部被指派時要拿出來接貨的總數'+(mtag?'<b style="color:#475569">'+mtag+'</b>':'')+tip('collateral')+(pnlMode==='real'?'（真實戶口按金制，唔受紙上 HKD 200k 上限約束）':'（上限 HKD '+fmt(CAPITAL_HKD)+'）')+'</div>'
+      +(pnlMode==='real'?'':'<div class="bar" style="margin:4px 0 6px"><div style="width:'+pct+'%;background:'+(pct>85?'#dc2626':'#0d9488')+'"></div></div>')
+      +'<div class="small muted">① $'+fmt(mu)+' / $'+fmt(mb)+'（'+muPct+'%）· '+(pnlMode==='real'?'② 接貨 HKD '+fmt(locked):'② HKD '+fmt(locked)+' / '+fmt(CAPITAL_HKD)+'（'+pct+'%，剩可用 HKD '+fmt(avail)+'）')+' · 開倉 '+modePos().length+'/6'+(pnlMode==='real'?'':' · 排隊 '+decLoad('optdash_queued').length)+'</div>';
     const bars=cb.querySelectorAll('.bar');
     if(bars[0]){bars[0].style.cursor='help';bars[0].dataset.tip='<b>① 按金（券商鎖住）</b><br>$'+fmt(mu)+' ／ $'+fmt(mb)+'（= equity×70% 預算）<br>運用 <b>'+muPct+'%</b> —— 超過 70% 琥珀、90% 紅（engine 會 reject 新倉）';}
     if(bars[1]){bars[1].style.cursor='help';bars[1].dataset.tip='<b>② 接貨現金（最壞情況）</b><br>HKD '+fmt(locked)+' ／ '+fmt(CAPITAL_HKD)+'<br>= <b>'+pct+'%</b> —— 些 Put 全部被指派時要拿出來接貨的總數；剩可用 HKD '+fmt(avail);}
@@ -1304,6 +1306,15 @@ function lockedHKD(){
   return Math.round(sum);
 }
 function availHKD(){return CAPITAL_HKD-lockedHKD();}
+function modePos(){const pos=(rec&&rec.positions||[]).filter(x=>x.status==='open');if(pnlMode==='real')return pos.filter(x=>x.real);if(pnlMode==='paper')return pos.filter(x=>!x.real);return pos;}
+function modeTag(){return pnlMode==='real'?'（真倉）':pnlMode==='paper'?'（紙上）':'';}
+function posMarginUSD(p){return (p.margin1!=null?Number(p.margin1):(p.collateral||0)*0.22)*(p.contracts||1);}   // 同 engine fallback：collateral×0.22
+function modeMarginUSD(){return Math.round(modePos().reduce((a,p)=>a+posMarginUSD(p),0));}
+function modeLockedHKD(){   // 排隊訂單屬紙上 → 真倉 mode 唔計
+  let sum=modePos().reduce((a,p)=>a+(p.collateral||0)*HKD_USD,0);
+  if(pnlMode!=='real')decLoad('optdash_queued').forEach(q=>{sum+=(Number(q.strike)*100*(Number(q.contracts)||1))*HKD_USD;});
+  return Math.round(sum);
+}
 function recordDecision(kind,tk,exp,K,extra){
   const list=decLoad('optdash_'+kind);
   const key=decKey(tk,exp,K);
