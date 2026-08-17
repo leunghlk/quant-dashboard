@@ -276,7 +276,8 @@ const GLOSS={
   'premium':'<b>權利金 Premium</b>：買家支付給你的款項（你賣出期權立即收到）。公式：mid×100×張數。<br>你的最大利潤就是這筆錢。',
   'collateral':'<b>抵押 Collateral（接貨現金）</b>：如被指派需拿出來的款項 = 行使價×100×張數。v4_balanced 用按金戶口（不用全額鎖定現金），但應知道接貨成本此數。',
   'margin':'<b>按金 Margin（Reg-T）</b>：券商真正鎖住的款項 = max(20%×現價＋權利金−OTM，10%×行使價＋權利金)×100×張數。<br>v4_balanced 的倉位預算採用此口徑：總按金 ≤ equity×70%。',
-  'realmargin':'<b>真實戶口按金（Futu margin 戶）</b>：engine 每 10 分鐘直讀 Futu 真實購買力，對比持倉總按金需求（USD×7.8）。<br>需求 > 購買力 = 🔴 按金不足：Telegram 警報 + engine 拒絕新開倉（加錢入戶口或平倉減按金後回復）。',
+  'realmargin':'<b>按金容量（paper 倉 HKD 200,000）</b>：總按金預算 = equity×70% ≈ HKD 140,000；已用 = Σ 每張按金×張數。<br>剩餘按金 = 仲可以開幾多新倉嘅額度；超額 → engine 拒單＋Telegram 警報。<br>（另有「僅參考」嘅真實 Futu 戶購買力，紙上交易唔受佢限制。）',
+  'capacity':'<b>剩餘按金 ≈ 仲夠開幾多張</b>：剩餘按金 ÷ 每張按金（~$3.4k 粗估，實際每名唔同）。「仲夠 N 張」只計按金預算，未計單名 30% cap、板塊 cap、6 倉上限、每日 ≤2 新倉——engine 開倉時會逐關檢查。',
   'util':'<b>按金利用率</b>：已用按金 ÷（equity×70%）。<br>70% 上限是回測凍結參數 —— 超出上限 = 不跟規則 = 結果無從比較。',
   'breadth':'<b>大盤寬度 Breadth</b>：宇宙中股價位於自己 MA50 之上的比例。<br>&lt;50% = 大盤弱 → 引擎不開新倉（2026 年 8 月上半月就是這樣停止）。這個閘門避免了很多次跌市接貨。',
   'breaker':'<b>熔斷 Circuit Breaker</b>：帳戶回撤到 −15% → 停止開新倉 10 個交易日，回修到 −8% 之上才 re-arm。<br>one-shot 設計：觸發一次即停，不會每日重複觸發無限循環。',
@@ -404,10 +405,10 @@ function renderAlarm(){
   const cuts=acts.filter(a=>a.indexOf('cut')>=0).length,rolls=acts.filter(a=>a.indexOf('roll')>=0).length;
   const asn=acts.filter(a=>a.indexOf('指派')>=0).length,clos=acts.filter(a=>a.indexOf('平倉')>=0&&a.indexOf('cut')<0&&a.indexOf('roll')<0&&a.indexOf('指派')<0).length;
   const ms=(rec&&rec.margin_status)||null;
-  const marginBad=!!(ms&&ms.insufficient&&ms.funds);
+  const marginBad=!!(ms&&ms.insufficient);
   const msgs=[];
   if(bk.tripped)msgs.push('熔斷已觸發：停止開新倉'+(bk.paused_until?'（至 '+bk.paused_until+'）':''));
-  if(marginBad)msgs.push('真實戶口按金不足：持倉按金需求 HKD '+fmt(ms.need_hkd)+' > Futu 購買力 HKD '+fmt(Math.round(ms.funds.power_hkd))+'（差 HKD '+fmt(ms.shortfall_hkd)+'）—— 新開倉已被 engine 拒絕'+tip('realmargin'));
+  if(marginBad)msgs.push('按金預算不足：持倉總按金 HKD '+fmt(ms.need_hkd)+' > 預算 HKD '+fmt(ms.budget_hkd)+'（差 HKD '+fmt(ms.shortfall_hkd||0)+'）—— 新開倉會被 engine 拒絕'+tip('realmargin'));
   if(acts.length)msgs.push(acts.length+' 個持倉警報'+(cuts?'（🔴 cut 止損 '+cuts+'）':'')+(rolls?'（roll 建議 '+rolls+'）':'')+(asn?'（📦 指派 '+asn+'）':'')+(clos?'（平倉訊號 '+clos+'）':''));
   const sig=bk.tripped+'|'+acts.length+'|'+cuts+'|'+rolls+'|'+asn+'|'+clos+'|'+(marginBad?ms.shortfall_hkd:0);
   if(!msgs.length){bar.style.display='none';flashStop();lastAlarmSig=sig;return;}
@@ -427,9 +428,10 @@ function renderRails(){
   const mu=Number(rec.used_margin_open||0), mb=Number(rec.margin_budget||0), eq=Number(rec.equity_usd||CAPITAL_HKD/HKD_USD);
   const br=Number(rec.breadth), bk=rec.breaker||{};
   const ms=rec.margin_status||null;
-  const msLine=!ms?'—':(ms.funds
-    ?('購買力 <b style="color:'+(ms.insufficient?'#dc2626':'#16a34a')+'">HKD '+fmt(Math.round(ms.funds.power_hkd))+'</b> · 持倉按金需求 HKD '+fmt(ms.need_hkd)+'（'+(ms.util_pct==null?'—':Math.round(ms.util_pct))+'%'+(ms.insufficient?' 🔴 不足，新開倉被拒':' ✓')+'）')
-    :'Futu 讀取失敗（OpenD 離線？）');
+  const msLine=ms
+    ?('剩餘按金 <b style="color:'+(ms.remaining_usd>0?'#16a34a':'#dc2626')+'">$'+fmt(ms.remaining_usd)+' ≈ HKD '+fmt(ms.remaining_hkd)+'</b> · 大約仲夠開 <b>'+Math.max(0,ms.more_contracts_est||0)+' 張</b>'+tip('capacity')
+      +(ms.real_power_hkd!=null?'<br><span class="muted">（僅參考）真實 Futu 戶購買力 HKD '+fmt(ms.real_power_hkd)+'</span>':''))
+    :'按金容量讀取中…';
   const pos=(rec.positions||[]).filter(x=>x.status==='open');
   const nputs=pos.filter(x=>x.side!=='CALL').length, ncc=pos.filter(x=>x.side==='CALL').length;
   const utilPct=mb?Math.round(mu/mb*100):0, utilEq=Math.round(mu/eq*100);
@@ -437,19 +439,19 @@ function renderRails(){
   let h='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">';
   h+='<div><div class="small muted">按金預算運用（70% 上限）'+tip('margin')+tip('util')+'</div>'
     +'<div class="bar" id="railMarginBar" style="margin-top:4px;cursor:help"><div style="width:'+Math.min(100,utilPct)+'%;background:'+(utilPct>90?'#dc2626':utilPct>70?'#d97706':'#1a73e8')+'"></div></div>'
-    +'<div class="small" style="margin-top:3px">$'+fmt(mu)+' / $'+fmt(mb)+' · <b>'+utilPct+'%</b> 預算（equity 的 '+utilEq+'%）</div></div>';
+    +'<div class="small" style="margin-top:3px">$'+fmt(mu)+' / $'+fmt(mb)+' · <b>'+utilPct+'%</b> 預算 · 剩 <b style="color:'+(mb-mu>0?'#16a34a':'#dc2626')+'">$'+fmt(mb-mu)+' ≈ HKD '+fmt((mb-mu)*HKD_USD)+'</b></div></div>';
   h+='<div><div class="small muted">倉位 / 閘門</div><div class="small" style="margin-top:4px;line-height:1.9">'
     +'Put 倉 <b>'+nputs+'/6</b>'+(ncc?' · CC 倉 <b>'+ncc+'</b>':'')+' · 每日新倉 ≤2'+tip('contracts')+'<br>'
     +'大盤寬度 <b style="color:'+(brOk?'#16a34a':'#dc2626')+'">'+(br==null||isNaN(br)?'—':Math.round(br*100)+'%')+'</b>（閘門 ≥50% '+(brOk?'✓ 開放新倉':'✗ 新倉暫停')+'）'+tip('breadth')+'<br>'
     +'熔斷 '+(bk.tripped?'<b style="color:#dc2626">🔴 已觸發（'+(bk.trip_dd!=null?bk.trip_dd+'%）':'）')+(bk.paused_until?' · 停至 '+bk.paused_until:'')+'</b>':'<b style="color:#16a34a">🟢 未觸發</b>（−15% 停 10 日）')+tip('breaker')
-    +'<br>真實戶口 '+msLine+tip('realmargin')
+    +'<br>按金容量 '+msLine
     +'</div></div>';
   h+='</div>';
   h+='<div class="small muted" style="margin-top:8px">模型：<b>'+esc(rec.model_profile||'v4_balanced')+'</b> · 按照「今日最佳 → 執行（紙上）」＋上表出場規則 = 貼近回測路徑。'+(bk.paused_until?'<br>⚠️ 熔斷期間請勿手動開新倉。':'')+'</div>';
   const rm=$('railsMeta'); if(rm){const acts=(rec.actions||[]);rm.textContent=acts.length?('⚠️ '+acts.length+' 個出場建議 → 去「持倉管理」'):'按照下表規則 = 貼近回測結果';}
   el.innerHTML=h;
   const rmb=$('railMarginBar');   // ⭐ innerHTML 之後先 set（hover bar 看實數）
-  if(rmb)rmb.dataset.tip='<b>按金預算運用（紙上 equity $'+fmt(eq)+'）</b><br>已用按金 $'+fmt(mu)+' ／ 預算 $'+fmt(mb)+'（equity×70%）<br>= <b>'+utilPct+'%</b>（equity 的 '+utilEq+'%）<br>90% 以上紅 · 70% 以上琥珀<br>——<br>真實 Futu margin 戶：'+(ms&&ms.funds?('購買力 HKD '+fmt(Math.round(ms.funds.power_hkd))+' · 持倉按金需求 HKD '+fmt(ms.need_hkd)+(ms.insufficient?' 🔴 不足（新開倉被拒）':' ✓')):'讀取失敗');
+  if(rmb)rmb.dataset.tip='<b>按金預算運用（paper 倉 equity $'+fmt(eq)+'）</b><br>已用按金 $'+fmt(mu)+' ／ 預算 $'+fmt(mb)+'（equity×70%）<br>= <b>'+utilPct+'%</b>（equity 的 '+utilEq+'%）<br>90% 以上紅 · 70% 以上琥珀<br>剩餘 $'+fmt(mb-mu)+' ≈ HKD '+fmt((mb-mu)*HKD_USD)+(ms&&ms.more_contracts_est!=null?'（大約仲夠 '+ms.more_contracts_est+' 張）':'')+(ms&&ms.real_power_hkd!=null?'<br>——<br><span class="muted">（僅參考）真實 Futu 戶購買力 HKD '+fmt(ms.real_power_hkd)+'：紙上交易唔受佢限制</span>':'');
 }
 function renderOverview(){
   const p=rec.portfolio||{};
@@ -1111,10 +1113,13 @@ function drawChart(c){
 /* v4_balanced 按金口徑（同 engine apply_decisions 一致） */
 function marginPerPut(K,prem1,S){return Math.round(Math.max(0.20*S+prem1-Math.max(0,S-K), 0.10*K+prem1)*100,0);}
 function eqUSD(){return (rec&&rec.equity_usd)||CAPITAL_HKD/HKD_USD;}
-function usedMarginUSD(){   // 已開倉 + 排隊中（排隊用 0.22×K×100 近似，同 engine fallback 一致）
-  let m=Number(rec&&rec.used_margin_open||0);
+function usedMarginUSD(){   // ⭐ 2026-08-17 v2：由 positions 即時計（morning scan 嘅 used_margin_open 係舊數）+ 排隊中（0.22×K×100 近似）
+  let m=(rec&&rec.positions||[]).filter(p=>p.status==='open').reduce((s,p)=>{
+    const n=Number(p.contracts)||1;
+    const m1=Number(p.margin1)||Math.round(0.22*Number(p.collateral||0)/n);   // collateral 係總數 → 每張
+    return s+m1*n;},0);
   decLoad('optdash_queued').forEach(q=>{m+=Math.round(0.22*Number(q.strike)*100*(Number(q.contracts)||1),0);});
-  return m;
+  return Math.round(m);
 }
 function putCount(){   // 已開 put + 排隊 put（不計 CC）
   let n=(rec&&rec.positions||[]).filter(p=>p.status==='open'&&p.side!=='CALL').length;
@@ -1154,13 +1159,14 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
     const mPer=(c&&c.margin1)?c.margin1:marginPerPut(K,sellPx,S);
     const mTot=mPer*n, eq=eqUSD(), budget=(rec&&rec.margin_budget)||0.70*eq;
     const usedM=usedMarginUSD(), openAfter=putCount()+((side!=='CALL')?1:0);
+    const remAfter=Math.max(0,budget-usedM-mTot), moreAfter=mPer>0?Math.floor(remAfter/mPer):0;
     const overBudget=(usedM+mTot>budget+1), overName=(mTot>eq*0.30+1), fullPuts=((side!=='CALL')&&putCount()>=6);
     const insufficient=overBudget||overName||fullPuts;   // 同 engine 硬檢查同款 → 紅警示 + 鎖確認掣
     const locked=lockedHKD(), avail=availHKD(), need=coll*HKD_USD;
     box.innerHTML=
       '<h3>✅ 執行：'+sideTxt+' '+tk+' ×'+n+'</h3>'+
       '<div class="row"><span class="k">行使價</span><span>$'+K+'（現價 $'+liveSpot(tk,c?c.spot:K)+'）</span></div>'+
-      '<div class="row"><span class="k">按金 Reg-T（70% 預算）'+tip('margin')+tip('util')+'</span><span>已用 <b>$'+fmt(usedM)+'</b> / $'+fmt(budget)+' · 這一單需 <b>$'+fmt(mTot)+'</b>（$'+fmt(mPer)+'/張）</span></div>'+
+      '<div class="row"><span class="k">按金 Reg-T（70% 預算）'+tip('margin')+tip('util')+'</span><span>已用 <b>$'+fmt(usedM)+'</b> / $'+fmt(budget)+' · 這一單需 <b>$'+fmt(mTot)+'</b>（$'+fmt(mPer)+'/張）'+(overBudget?'':' · 開倉後剩 <b style="color:#16a34a">$'+fmt(remAfter)+' ≈ HKD '+fmt(remAfter*HKD_USD)+'（仲夠 '+moreAfter+' 張）</b>')+tip('capacity')+'</span></div>'+
       '<div class="row"><span class="k">接貨現金（供你參考）</span><span>'+hkd(need)+' · 已鎖 '+hkd(locked)+' · 剩餘現金 '+hkd(avail)+tip('collateral')+'</span></div>'+
       (insufficient?('<div class="warn-note" style="border-color:#fca5a5;background:#fef2f2;color:#b91c1c">🚫 <b>超過 v4_balanced 欄杆：</b>'+
         (fullPuts?'put 倉已滿 6/6；':'')+
