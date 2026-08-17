@@ -162,7 +162,8 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 .sr-x:hover{color:#dc2626}
 .sr-cat{font-size:12px;font-weight:800;color:#0d9488;margin:14px 0 6px;display:flex;align-items:center;gap:6px}
 .sr-cat:first-child{margin-top:4px}
-.sr-card{background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid #0d9488;border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.sr-card{background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid #0d9488;border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s}
+.sr-card:hover{background:#f0fdfa;border-color:#99f6e4;box-shadow:0 2px 10px rgba(13,148,136,.18)}
 .sr-row{font-size:12.5px;color:#334155;line-height:1.75}
 .sr-row b{color:#0f172a;font-size:13.5px}
 .sr-dim{color:#64748b;font-weight:400;font-size:11.5px;margin-left:5px}
@@ -173,10 +174,10 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 .sr-go:hover{background:#0d9488;color:#fff}
 .sr-tag{display:inline-block;background:#fff;color:#0f766e;border:1px solid #99f6e4;padding:0 7px;border-radius:5px;font-size:10px;font-weight:700;margin-left:6px;vertical-align:middle}
 /* 搜尋「前往」後捲到指定列/卡並閃一下（2026-08-11）*/
-.sr-flash{animation:srFlash 1.6s ease-out 1;z-index:2;position:relative}
+.sr-flash{animation:srFlash 2.4s ease-out 1;z-index:2;position:relative}
 @keyframes srFlash{0%,25%{box-shadow:0 0 0 3px #0d9488,0 0 22px 5px rgba(13,148,136,.75)}100%{box-shadow:0 0 0 2px rgba(13,148,136,.35),0 0 0 0 rgba(13,148,136,0)}}
 tr.sr-flash{box-shadow:none}
-tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.5);animation:srFlashTd 1.6s ease-out 1}
+tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.5);animation:srFlashTd 2.4s ease-out 1}
 @keyframes srFlashTd{0%,25%{box-shadow:inset 0 0 0 3px #0d9488,0 0 22px 5px rgba(13,148,136,.75)}100%{box-shadow:inset 0 0 0 0 rgba(13,148,136,0)}}
 .sr-empty{padding:34px 10px;text-align:center;color:#94a3b8;font-size:13px;line-height:1.8}
 @media(max-width:768px){.search-input{width:130px;font-size:11.5px}.search-btn{padding:7px 9px}.appbar-right{flex-wrap:wrap}}
@@ -1076,7 +1077,7 @@ function searchScrollTo(leaf){
     try{el.scrollIntoView({behavior:'smooth',block:'center'});}
     catch(e){try{el.scrollIntoView();}catch(_){}}
     el.classList.add('sr-flash');
-    setTimeout(function(){el.classList.remove('sr-flash');},1700);
+    setTimeout(function(){el.classList.remove('sr-flash');},2500);
   });
 }
 function doSearch(q){
@@ -1099,7 +1100,7 @@ function doSearch(q){
     groups.forEach(function(g){
       h+='<div class="sr-cat">'+g.cat+' <span style="color:#94a3b8;font-weight:400;font-size:11px">('+g.items.length+')</span></div>';
       g.items.forEach(function(it){
-        h+='<div class="sr-card">'+it.html+'<div><span class="sr-go" onclick="searchGo(&#39;'+it.go+'&#39;)">→ 前往 '+_srGoLabel(it.go)+'</span></div></div>';
+        h+='<div class="sr-card" onclick="searchGo(&#39;'+it.go+'&#39;)">'+it.html+'<div><span class="sr-go" onclick="event.stopPropagation();searchGo(&#39;'+it.go+'&#39;)">→ 前往 '+_srGoLabel(it.go)+'</span></div></div>';
       });
     });
   }
