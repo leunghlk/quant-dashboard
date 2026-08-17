@@ -278,6 +278,7 @@ const GLOSS={
   'margin':'<b>按金 Margin（Reg-T）</b>：券商真正鎖住的款項 = max(20%×現價＋權利金−OTM，10%×行使價＋權利金)×100×張數。<br>v4_balanced 的倉位預算採用此口徑：總按金 ≤ equity×70%。',
   'realmargin':'<b>按金容量（paper 倉 HKD 200,000）</b>：總按金預算 = equity×70% ≈ HKD 140,000；已用 = Σ 每張按金×張數。<br>剩餘按金 = 仲可以開幾多新倉嘅額度；超額 → engine 拒單＋Telegram 警報。<br>（另有「僅參考」嘅真實 Futu 戶購買力，紙上交易唔受佢限制。）',
   'capacity':'<b>剩餘按金 ≈ 仲夠開幾多張</b>：剩餘按金 ÷ 每張按金（~$3.4k 粗估，實際每名唔同）。「仲夠 N 張」只計按金預算，未計單名 30% cap、板塊 cap、6 倉上限、每日 ≤2 新倉——engine 開倉時會逐關檢查。',
+  'dte':'<b>Tenor / DTE（到期日數）</b>：距離到期嘅日曆日數。v4_balanced 目標區間 7–14 日：太短時間值 decay 快但無時間修復；太長資金鎖得耐、年化回報跌。',
   'util':'<b>按金利用率</b>：已用按金 ÷（equity×70%）。<br>70% 上限是回測凍結參數 —— 超出上限 = 不跟規則 = 結果無從比較。',
   'breadth':'<b>大盤寬度 Breadth</b>：宇宙中股價位於自己 MA50 之上的比例。<br>&lt;50% = 大盤弱 → 引擎不開新倉（2026 年 8 月上半月就是這樣停止）。這個閘門避免了很多次跌市接貨。',
   'breaker':'<b>熔斷 Circuit Breaker</b>：帳戶回撤到 −15% → 停止開新倉 10 個交易日，回修到 −8% 之上才 re-arm。<br>one-shot 設計：觸發一次即停，不會每日重複觸發無限循環。',
@@ -401,7 +402,7 @@ function flashStart(){if(titleFlash)return;const t=BASE_TITLE;titleFlash=setInte
 function flashStop(){if(titleFlash){clearInterval(titleFlash);titleFlash=null;document.title=BASE_TITLE;}}
 function renderAlarm(){
   const bar=$('optAlert');if(!bar)return;
-  const acts=(rec&&rec.actions)||[],bk=(rec&&rec.breaker)||{};
+  const acts=((rec&&rec.actions)||[]).filter(a=>String(a).indexOf('手動平倉')<0),bk=(rec&&rec.breaker)||{};   // ⭐ 手動平倉係 user 自己嘅動作（Telegram 已確認）→ 唔觸發警報 bar
   const cuts=acts.filter(a=>a.indexOf('cut')>=0).length,rolls=acts.filter(a=>a.indexOf('roll')>=0).length;
   const asn=acts.filter(a=>a.indexOf('指派')>=0).length,clos=acts.filter(a=>a.indexOf('平倉')>=0&&a.indexOf('cut')<0&&a.indexOf('roll')<0&&a.indexOf('指派')<0).length;
   const ms=(rec&&rec.margin_status)||null;
@@ -448,7 +449,7 @@ function renderRails(){
     +'</div></div>';
   h+='</div>';
   h+='<div class="small muted" style="margin-top:8px">模型：<b>'+esc(rec.model_profile||'v4_balanced')+'</b> · 按照「今日最佳 → 執行（紙上）」＋上表出場規則 = 貼近回測路徑。'+(bk.paused_until?'<br>⚠️ 熔斷期間請勿手動開新倉。':'')+'</div>';
-  const rm=$('railsMeta'); if(rm){const acts=(rec.actions||[]);rm.textContent=acts.length?('⚠️ '+acts.length+' 個出場建議 → 去「持倉管理」'):'按照下表規則 = 貼近回測結果';}
+  const rm=$('railsMeta'); if(rm){const acts=(rec.actions||[]).filter(a=>String(a).indexOf('手動平倉')<0);rm.textContent=acts.length?('⚠️ '+acts.length+' 個出場建議 → 去「持倉管理」'):'按照下表規則 = 貼近回測結果';}
   el.innerHTML=h;
   const rmb=$('railMarginBar');   // ⭐ innerHTML 之後先 set（hover bar 看實數）
   if(rmb)rmb.dataset.tip='<b>按金預算運用（paper 倉 equity $'+fmt(eq)+'）</b><br>已用按金 $'+fmt(mu)+' ／ 預算 $'+fmt(mb)+'（equity×70%）<br>= <b>'+utilPct+'%</b>（equity 的 '+utilEq+'%）<br>90% 以上紅 · 70% 以上琥珀<br>剩餘 $'+fmt(mb-mu)+' ≈ HKD '+fmt((mb-mu)*HKD_USD)+(ms&&ms.more_contracts_est!=null?'（大約仲夠 '+ms.more_contracts_est+' 張）':'')+(ms&&ms.real_power_hkd!=null?'<br>——<br><span class="muted">（僅參考）真實 Futu 戶購買力 HKD '+fmt(ms.real_power_hkd)+'：紙上交易唔受佢限制</span>':'');
@@ -1151,6 +1152,7 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
   const midQ=(bid!=null&&ask!=null&&ask>bid)?(bid+(ask-bid)/2):(mid||sellPx);   // 真實盤口中間價（caller 的 mid 常係 bid）
   const isCall=(side==='CALL');
   const sideTxt=isCall?'SELL CALL':'SELL PUT';
+  const dte=(c&&c.dte!=null)?c.dte:Math.ceil((new Date(exp+'T23:59:59')-Date.now())/864e5);   // ⭐ 2026-08-17：tenor 顯示（candidate 有 dte 用佢，否則即場計）
   window._lastExecCtx=c; window._lastExecSide=side;   // ⭐ confirmExec 要知 side + ctx（winrank 合成 candidate）
   const renderBox=()=>{
     const coll=K*100*n, prem=sellPx*100*n;
@@ -1165,6 +1167,7 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
     const locked=lockedHKD(), avail=availHKD(), need=coll*HKD_USD;
     box.innerHTML=
       '<h3>✅ 執行：'+sideTxt+' '+tk+' ×'+n+'</h3>'+
+      '<div class="row"><span class="k">到期 / Tenor'+tip('dte')+'</span><span>'+exp+'（<b>'+(dte!=null?dte+' 日':'—')+'</b> 到期）</span></div>'+
       '<div class="row"><span class="k">行使價</span><span>$'+K+'（現價 $'+liveSpot(tk,c?c.spot:K)+'）</span></div>'+
       '<div class="row"><span class="k">按金 Reg-T（70% 預算）'+tip('margin')+tip('util')+'</span><span>已用 <b>$'+fmt(usedM)+'</b> / $'+fmt(budget)+' · 這一單需 <b>$'+fmt(mTot)+'</b>（$'+fmt(mPer)+'/張）'+(overBudget?'':' · 開倉後剩 <b style="color:#16a34a">$'+fmt(remAfter)+' ≈ HKD '+fmt(remAfter*HKD_USD)+'（仲夠 '+moreAfter+' 張）</b>')+tip('capacity')+'</span></div>'+
       '<div class="row"><span class="k">接貨現金（供你參考）</span><span>'+hkd(need)+' · 已鎖 '+hkd(locked)+' · 剩餘現金 '+hkd(avail)+tip('collateral')+'</span></div>'+
