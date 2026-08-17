@@ -98,14 +98,17 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 .scen-stepper{display:inline-flex;align-items:center;gap:6px;margin-left:8px}
 .scen-stepper button{width:24px;height:24px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;font-size:13px;font-weight:700;cursor:pointer;line-height:1}
 /* ── modal ── */
-#execModal{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;display:none;align-items:flex-start;justify-content:center;padding-top:8vh}
-#execModal .box{background:#fff;border-radius:14px;max-width:520px;width:92%;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+#execModal{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;display:none;align-items:flex-start;justify-content:center;padding-top:4vh}
+#execModal .box{background:#fff;border-radius:14px;max-width:560px;width:94%;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:90vh;overflow-y:auto;position:relative}
+#execModal .exec-x{position:absolute;top:10px;right:12px;width:28px;height:28px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-size:13px;color:#64748b}
 #execModal h3{font-size:15px;margin-bottom:10px}
 #execModal .row{display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px;border-bottom:1px solid #f1f5f9}
 #execModal .row .k{color:var(--muted)}
 #execModal .stepper{display:flex;align-items:center;gap:10px}
 #execModal .stepper button{width:30px;height:30px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;font-size:16px;font-weight:700;cursor:pointer}
 #execModal .modal-actions{display:flex;gap:10px;margin-top:14px;justify-content:flex-end}
+#execModal .modal-actions.sticky{position:sticky;bottom:0;background:#fff;padding:10px 0 2px;margin-top:10px;border-top:1px solid #f1f5f9;box-shadow:0 -4px 10px rgba(255,255,255,.9)}
+#execModal h3{padding-right:34px}
 .scen-row .pos{color:var(--good);font-weight:700}.scen-row .neg{color:var(--bad);font-weight:700}
 .warn-note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:11.5px;border-radius:8px;padding:8px 10px;margin-top:8px}
 .muted{color:var(--muted)} .small{font-size:11px}
@@ -251,7 +254,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 <div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · All-in-One Financial Dashboard Suite — 期權交易 v4_balanced（Sell Put → Covered Call · 70% 按金 · 6 puts · Δ0.25–0.30 · PT50%）· 紙上模式 · 數據：Futu 實時（bid/ask · IV/Delta 由真實報價 BS 反推）＋ Yahoo 兜底 · 期權賣方有 tail risk · 非投資建議</div>
 
 <div id="tipbox"></div>
-<div id="execModal"><div class="box" id="execBox"></div></div>
+<div id="execModal" onclick="if(event.target===this)closeExec()"><div class="box" id="execBox"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 "use strict";
@@ -1169,7 +1172,7 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
     const insufficient=overBudget||overName||fullPuts;   // 同 engine 硬檢查同款 → 紅警示 + 鎖確認掣
     const locked=lockedHKD(), avail=availHKD(), need=coll*HKD_USD;
     box.innerHTML=
-      '<h3>✅ 執行：'+sideTxt+' '+tk+' ×'+n+'</h3>'+
+      '<h3>✅ 執行：'+sideTxt+' '+tk+' ×'+n+'<button class="exec-x" onclick="closeExec()" title="關閉">✕ 關閉</button></h3>'+
       '<div class="row"><span class="k">到期 / Tenor'+tip('dte')+'</span><span>'+exp+'（<b>'+(dte!=null?dte+' 日':'—')+'</b> 到期）</span></div>'+
       '<div class="row"><span class="k">行使價</span><span>$'+K+'（現價 $'+liveSpot(tk,c?c.spot:K)+'）</span></div>'+
       '<div class="row"><span class="k">按金 Reg-T（70% 預算）'+tip('margin')+tip('util')+'</span><span>已用 <b>$'+fmt(usedM)+'</b> / $'+fmt(budget)+' · 這一單需 <b>$'+fmt(mTot)+'</b>（$'+fmt(mPer)+'/張）'+(overBudget?'':' · 開倉後剩 <b style="color:#16a34a">$'+fmt(remAfter)+' ≈ HKD '+fmt(remAfter*HKD_USD)+'（仲夠 '+moreAfter+' 張）</b>')+tip('capacity')+'</span></div>'+
@@ -1189,16 +1192,17 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
       '<div class="row"><span class="k">每股權利金</span><span class="mono" style="font-size:15px;font-weight:700">$'+px2(sellPx)+'/股</span></div>'+
       '<div class="row"><span class="k">權利金（全收）</span><span>'+money(prem)+' USD ≈ '+hkd(prem*HKD_USD)+'</span></div>'+
       '<div class="row"><span class="k">按金（鎖住）</span><span>'+money(mTot)+' USD ≈ '+hkd(mTot*HKD_USD)+tip('margin')+'</span></div>'+
-      '<div class="row"><span class="k">最大利潤</span><span class="pos">+'+money(prem)+'</span></div>'+
-      '<div class="row"><span class="k">最大虧損</span><span class="neg">'+(isCall?'<span style="color:#dc2626">無上限（裸賣 call，股價飛升虧損無限）</span>':('-'+money(maxLoss)+' ≈ '+hkd(maxLoss*HKD_USD)+tip('maxloss')))+'</span></div>'+
+      '<div class="row"><span class="k">最大利潤</span><span class="pos">'+money(prem)+'</span></div>'+
+      '<div class="row"><span class="k">最大虧損</span><span class="neg">'+(isCall?'<span style="color:#dc2626">無上限（裸賣 call，股價飛升虧損無限）</span>':('−'+fmt(maxLoss)+' ≈ '+hkd(maxLoss*HKD_USD)+tip('maxloss')))+'</span></div>'+
       '<div class="row"><span class="k">盈虧平衡</span><span>$'+be.toFixed(2)+(isCall?'<span class="muted small">（升穿才虧損）</span>':'')+tip('breakeven')+'</span></div>'+
       '<div class="row"><span class="k">OTM 機率</span><span style="color:#16a34a;font-weight:700">'+(c&&c.prob_otm!=null?c.prob_otm+'%':'—')+'</span></div>'+
       '<div class="warn-note">⚠️ 紙上交易（未實際下單）。確認後會排隊交給 engine 開倉；engine 用你選的賣出價（bid）記賬。'+(isCall?'<b style="color:#dc2626">裸賣 call 風險無上限</b>，執行前請想清楚。':'')+'</div>'+
-      '<div class="modal-actions"><button class="btn btn-ghost" onclick="closeExec()">取消</button> <button class="btn btn-go" '+(insufficient?'style="opacity:.4;pointer-events:none"':'')+' onclick="confirmExec(\''+tk+'\',\''+exp+'\','+K+',\''+n+'\','+sellPx+')">✅ 確認執行</button></div>';
+      '<div class="modal-actions sticky"><button class="btn btn-ghost" onclick="closeExec()">✕ 取消</button> <button class="btn btn-go" '+(insufficient?'style="opacity:.4;pointer-events:none"':'')+' onclick="confirmExec(\''+tk+'\',\''+exp+'\','+K+',\''+n+'\','+sellPx+')">✅ 確認執行</button></div>';
   };
   window.execStepper=function(d){n=Math.max(1,Math.min(10,n+d));renderBox();};   // engine 上限 10（按金/單名 cap 會再夾）
   window.priceStepper=function(d){sellPx=Math.max(0.05,Math.round((sellPx+d)*20)/20);renderBox();};   // 限價 ±$0.05
   window.priceStepperTo=function(v){if(v&&v>0){sellPx=Number(Number(v).toFixed(2));renderBox();}};   // 快選 bid/mid/ask
+  if(!window._execEsc){window._execEsc=1;document.addEventListener('keydown',function(e){if(e.key==='Escape')closeExec();});}   // ⭐ ESC 關閉
 
   window.renderBox=renderBox;
   renderBox();
