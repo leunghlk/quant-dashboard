@@ -442,11 +442,11 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
 </div>
 <script>
 // ===== Nested mega-menu navigation (replaces flat switchTab + initSubnav) =====
-const FUND_TARGETS={ADBE:287.54,LITE:1055.94}; // consolidated; checkPriceAlerts/dismissAlerts locals removed in cleanup
+const FUND_TARGETS={LITE:1055.94}; // consolidated; checkPriceAlerts/dismissAlerts locals removed in cleanup
+// ⭐ 2026-08-18: 部署警報 — ADBE 已沽清 @$252 移除
 // ⭐ 2026-08-13: 部署警報 — MSFT 已沽清移除；LITE 已持 1股@$950（limit pending）
-// ⭐ 2026-08-12: 部署警報 — 已持倉用正式技術位（ADBE T1 $287.54）；DDOG 已沽清移除
+// ⭐ 2026-08-12: 部署警報 — 已持倉用正式技術位；DDOG 已沽清移除
 const DEPLOY_ALERTS={
-  ADBE:{ stop:252.06, t1:287.54, note:'已持5股（R:R 1.9）' },
   DLLL:{ stop:22.5, t1:28.39, note:'2x ETF 止蝕線' },
   LITE:{ stop:838.79, t1:1055.94, note:'已持1股@$950（pending fill）' },
 };
@@ -551,6 +551,7 @@ async function fetchApiFallback(timeoutMs){
 }
 let optItems=[]; // 部署總覽 items（期權 expander 用）
 let TXDATA=[
+  {date:'2026-08-18',action:'SELL',ticker:'ADBE',shares:5,price:252.00,note:'沽清 @$252（+9.29/股，+$46.45，未到T1 $287.54 食糊）'},
   {date:'2026-07-30',action:'SELL',ticker:'SOXS',shares:10,price:54.517,note:'止蝕 半導體反彈'},
   {date:'2026-07-30',action:'SELL',ticker:'SKDD',shares:20,price:15.4801,note:'止血 -28.4%'},
   {date:'2026-07-30',action:'SELL',ticker:'SQQQ',shares:10,price:45.301,note:'止蝕 納指反彈'},
@@ -2627,6 +2628,7 @@ function renderHK(data){
 function renderTx(){
   let html='';
   const txs=TXDATA.length?TXDATA:[
+    {date:'2026-08-18',action:'SELL',ticker:'ADBE',shares:5,price:252.00,note:'沽清 @$252（+9.29/股，+$46.45，未到T1 $287.54 食糊）'},
     {date:'2026-07-30',action:'SELL',ticker:'SOXS',shares:10,price:54.517,note:'止蝕 半導體反彈'},
     {date:'2026-07-30',action:'SELL',ticker:'SKDD',shares:20,price:15.4801,note:'止血 -28.4%'},
     {date:'2026-07-30',action:'SELL',ticker:'SQQQ',shares:10,price:45.301,note:'止蝕 納指反彈'},
