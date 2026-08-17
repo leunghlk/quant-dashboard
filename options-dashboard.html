@@ -1120,12 +1120,21 @@ function gateBlocked(){
   }
   return false;
 }
+function priceHint(px,bid,mid,ask){   // 限價 vs 盤口：成交概率提示（書面語）
+  if(bid==null)return '';
+  if(px<=bid+0.001)return '<span style="color:#16a34a">等於買價：大概率即刻成交</span>';
+  if(px<mid-0.001)return '介於買價與中間價：通常很快成交，收得比買價多';
+  if(px<=mid+0.001)return '等於中間價：一般數分鐘內有機會成交';
+  if(px<ask-0.001)return '<span style="color:#d97706">高於中間價：可能需要等待，未必成交</span>';
+  return '<span style="color:#d97706">等於賣盤價：需要買家主動買入才成交，大概率排隊等待</span>';
+}
 function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
   if(gateBlocked())return;
   const c=ctx||findCandidate(tk);
   const box=$('execBox');
   let n=contracts||1;
-  const sellPx=(bid!=null&&bid>0)?bid:mid;   // 賣出價 = bid（真實成交）；無 bid 時用 mid
+  let sellPx=(bid!=null&&bid>0)?bid:mid;   // 預設 = bid（即刻成交價）；⭐ 限價步進器可改（bid/mid/ask 快選）
+  const midQ=(bid!=null&&ask!=null&&ask>bid)?(bid+(ask-bid)/2):(mid||sellPx);   // 真實盤口中間價（caller 的 mid 常係 bid）
   const isCall=(side==='CALL');
   const sideTxt=isCall?'SELL CALL':'SELL PUT';
   window._lastExecCtx=c; window._lastExecSide=side;   // ⭐ confirmExec 要知 side + ctx（winrank 合成 candidate）
@@ -1152,6 +1161,10 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
       (bid!=null?('<div class="row"><span class="k">實時報價（Futu）</span><span class="mono">買(bid) $'+px2(bid)+' · 賣(ask) $'+px2(ask)+'</span></div>'):'')+
       (bid!=null&&c&&c.mid&&!c.fromChain&&Math.abs(bid-c.mid)>0.01?('<div class="row"><span class="k">系統建議 vs 實時</span><span>建議 $'+px2(c.mid)+' → 實時 bid $'+px2(bid)+'：'+(bid<c.mid?'<span style="color:#d97706">賣出價偏低（少收 $'+px2(c.mid-bid)+'/股）</span>':'<span style="color:#16a34a">更划算（多收 $'+px2(bid-c.mid)+'/股）</span>')+'</span></div>'):'')+
       '<div class="row"><span class="k">張數</span><span class="stepper"><button onclick="execStepper(-1)">−</button><b>'+n+'</b><button onclick="execStepper(1)">+</button> '+tip('contracts')+'</span></div>'+
+      '<div class="row"><span class="k">限價（賣出價）</span><span class="stepper"><button onclick="priceStepper(-0.05)">−</button><b>$'+sellPx.toFixed(2)+'</b><button onclick="priceStepper(0.05)">+</button>'+
+      (bid!=null?('<button class="btn btn-ghost" style="padding:1px 8px;margin-left:4px" onclick="priceStepperTo('+bid+')">bid</button><button class="btn btn-ghost" style="padding:1px 8px" onclick="priceStepperTo('+midQ+')">mid</button><button class="btn btn-ghost" style="padding:1px 8px" onclick="priceStepperTo('+ask+')">ask</button>'):'')+
+      '</span></div>'+
+      (bid!=null?('<div class="row"><span class="k">成交提示</span><span class="small">'+priceHint(sellPx,bid,midQ,ask)+'</span></div>'):'')+
       '<div class="row"><span class="k">每股權利金</span><span class="mono" style="font-size:15px;font-weight:700">$'+px2(sellPx)+'/股</span></div>'+
       '<div class="row"><span class="k">權利金（全收）</span><span>'+money(prem)+' USD ≈ '+hkd(prem*HKD_USD)+'</span></div>'+
       '<div class="row"><span class="k">按金（鎖住）</span><span>'+money(mTot)+' USD ≈ '+hkd(mTot*HKD_USD)+tip('margin')+'</span></div>'+
@@ -1163,6 +1176,9 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
       '<div class="modal-actions"><button class="btn btn-ghost" onclick="closeExec()">取消</button> <button class="btn btn-go" '+(insufficient?'style="opacity:.4;pointer-events:none"':'')+' onclick="confirmExec(\''+tk+'\',\''+exp+'\','+K+',\''+n+'\','+sellPx+')">✅ 確認執行</button></div>';
   };
   window.execStepper=function(d){n=Math.max(1,Math.min(10,n+d));renderBox();};   // engine 上限 10（按金/單名 cap 會再夾）
+  window.priceStepper=function(d){sellPx=Math.max(0.05,Math.round((sellPx+d)*20)/20);renderBox();};   // 限價 ±$0.05
+  window.priceStepperTo=function(v){if(v&&v>0){sellPx=Number(Number(v).toFixed(2));renderBox();}};   // 快選 bid/mid/ask
+
   window.renderBox=renderBox;
   renderBox();
   $('execModal').style.display='flex';
