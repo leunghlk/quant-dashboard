@@ -1152,7 +1152,7 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
   const midQ=(bid!=null&&ask!=null&&ask>bid)?(bid+(ask-bid)/2):(mid||sellPx);   // 真實盤口中間價（caller 的 mid 常係 bid）
   const isCall=(side==='CALL');
   const sideTxt=isCall?'SELL CALL':'SELL PUT';
-  const dte=(c&&c.dte!=null)?c.dte:Math.ceil((new Date(exp+'T23:59:59')-Date.now())/864e5);   // ⭐ 2026-08-17：tenor 顯示（candidate 有 dte 用佢，否則即場計）
+  const dte=(c&&c.dte!=null)?c.dte:Math.floor((new Date(exp+'T23:59:59')-Date.now())/864e5);   // ⭐ 2026-08-17：tenor 顯示（candidate 有 dte 用佢，否則即場計）
   window._lastExecCtx=c; window._lastExecSide=side;   // ⭐ confirmExec 要知 side + ctx（winrank 合成 candidate）
   const renderBox=()=>{
     const coll=K*100*n, prem=sellPx*100*n;
@@ -1245,7 +1245,7 @@ function renderDecisions(){
   // ⭐ 2026-08-17：狀態用 OPEN 倉對照（closed 唔算——平咗再重排同款會誤標「已記賬」）；
   //    張數/權利金優先顯示 live 倉位（engine 改張數後表跟住變，唔會卡舊 snapshot）
   const openByKey={}; pos.filter(p=>p.status==='open').forEach(p=>{openByKey[decKey(p.ticker,p.expiry,p.strike)]=p;});
-  const dteOf=function(exp){var d=Math.ceil((new Date(exp+'T23:59:59')-Date.now())/864e5);return isNaN(d)?null:d;};
+  const dteOf=function(exp){var d=Math.floor((new Date(exp+'T23:59:59')-Date.now())/864e5);return isNaN(d)?null:d;};
   let h='';
   if(queued.length){
     h+='<div style="font-weight:700;margin-bottom:6px">🚀 已執行 / 排隊中（'+(queued.length)+'）</div><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">Tenor</th><th class="r">張數</th><th class="r">每股權利金</th><th>狀態</th><th></th></tr></thead><tbody>';
