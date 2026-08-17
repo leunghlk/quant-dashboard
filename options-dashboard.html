@@ -311,7 +311,7 @@ const GLOSS={
   'score':'<b>分數（選最佳準則）</b>：annualized_yield ×(0.5+IV_rank/100) ÷ (1+risk)。<br>risk 懲罰：闊 spread、IV&gt;90%、細價股、舊報價。分高 = 回報高而風險可控。',
   'contracts':'<b>張數 Contracts</b>：1 張 = 100 股掛鈎。建議張數由按金預算計：min(（70%預算−已用）÷每張按金, 30% equity ÷每張按金, 板塊 40% 預算上限, 10)。',
   'veto':'<b>Signal Veto</b>：動量評分（12/6/3 個月動能 + MA50 斜率 + 動量減速，與 v4_balanced 回測同一條公式、同一 yfinance 日線）非 BUY / ACCUMULATE 的股票 → 不會建議你賣 put。',
-  'expectation':'<b>概率加權期望值</b>：OTM%×最大利潤 + ITM%×平均虧損（粗略）。正數代表長遠「期望」有得賺。',
+  'expectation':'<b>模型期望值</b>：收取權利金 − BS 模型預期賠償（假設實現波動＝85% IV，反映約 15% 波動風險溢價）。正數＝賣價相對模型有優勢；負數＝權利金偏薄，長遠期望輸面較大。',
   'premiumsrc':'<b>權利金來源</b>：live = 真實買賣價 mid；live-stale = 報價過期改用模型兜底；model = 無報價時用 BS 模型計算。',
 };
 function tip(k){const t=GLOSS[k];return t?('<span class="tip" data-tip="'+t.replace(/'/g,'&#39;')+'">ⓘ</span>'):'';}
@@ -564,7 +564,7 @@ function renderBest(){
   const _lk=lockedHKD(), _av=availHKD();
   h+='<div class="bar" style="margin-top:8px"><div style="width:'+Math.min(100,Math.round(_lk/CAPITAL_HKD*100))+'%;background:#0d9488"></div></div>';
   h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">還可接貨現金 <b style="color:#5eead4">HKD '+fmt(_av)+'</b>'+tip('collateral')+' —— 已鎖 HKD '+fmt(_lk)+' / '+fmt(CAPITAL_HKD)+'（再開短 put 的剩餘抵押額度，含排隊中訂單）</div>';
-  if(sc.expectation!=null){h+='<div style="font-size:13px;color:#4ade80;margin-top:8px">概率加權期望值 <b>'+money(sc.expectation)+' USD</b>（≈HKD '+fmt(sc.expectation_hkd)+'）'+tip('expectation')+'</div>';}
+  if(sc.expectation!=null){const ev=evOf(b)||{usd:sc.expectation,hkd:sc.expectation_hkd};const up=ev.usd>=0;h+='<div style="font-size:13px;color:'+(up?'#4ade80':'#f87171')+';margin-top:8px">模型期望值 <b>'+(up?'+':'')+money(ev.usd)+' USD</b>（≈HKD '+(up?'+':'')+fmt(ev.hkd)+'）'+tip('expectation')+'</div>';}
   h+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">'+rec.target_monthly_hkd_note+'</div>';
   h+='</div></div>';
   el.innerHTML=h;
@@ -1040,6 +1040,16 @@ function bsGreeksJS(S,K,T,vol,isCall){   // 同 engine bs_greeks（theta=日曆�
   else{delta=nd1-1;theta=(-S*pdf1*vol/(2*sqrtT)+RF*K*Math.exp(-RF*T)*_ncdf(-d2))/365;}
   return {delta:Math.round(delta*1000)/1000,gamma:Math.round(gamma*100000)/100000,
           theta:Math.round(theta*10000)/10000,vega:Math.round(vega*1000)/1000};
+}
+function evOf(b){   // 期望值：權利金 − BS 模型賠償（實現波動=85% IV）；同 engine compute_scenarios 新公式
+  if(!b)return null;
+  const S=b.spot,K=b.strike,T=(b.dte||10)/365,mid=b.mid,iv=b.iv,n=Math.max(1,b.contracts||1);
+  if(!(S>0&&K>0&&T>0&&iv>0&&mid>0))return (b.scenarios&&b.scenarios.expectation!=null)?{usd:b.scenarios.expectation,hkd:b.scenarios.expectation_hkd}:null;
+  const v=iv*0.85,sq=v*Math.sqrt(T);
+  const d1=(Math.log(S/K)+(0.04+v*v/2)*T)/sq,d2=d1-sq;
+  const model=K*Math.exp(-0.04*T)*_ncdf(-d2)-S*_ncdf(-d1);
+  const ev=(mid-model)*100*n;
+  return {usd:Math.round(ev),hkd:Math.round(ev*7.8)};
 }
 function levelsFromBars(bars,iv){   // 同 engine compute_stock_levels：20日 H/L/C 經典 pivot；ATR 用 IV（engine 傳 c.iv）→ 冇就日線歷史波動
   if(!bars||bars.length<2)return null;
