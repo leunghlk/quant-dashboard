@@ -1230,7 +1230,10 @@ function availHKD(){return CAPITAL_HKD-lockedHKD();}
 function recordDecision(kind,tk,exp,K,extra){
   const list=decLoad('optdash_'+kind);
   const key=decKey(tk,exp,K);
-  if(!list.some(x=>decKey(x.ticker,x.expiry,x.strike)===key))list.push(Object.assign({ticker:tk,expiry:exp,strike:Number(K),ts:new Date().toISOString()},extra||{}));
+  const i=list.findIndex(x=>decKey(x.ticker,x.expiry,x.strike)===key);
+  const rec=Object.assign({ticker:tk,expiry:exp,strike:Number(K),ts:new Date().toISOString()},extra||{});
+  if(i>=0)list[i]=rec;   // ⭐ 2026-08-17：同 key 再執行（改張數/重開）→ 覆蓋舊 snapshot，唔係跌咗
+  else list.push(rec);
   decSave('optdash_'+kind,list);
   renderDecisions();
   renderOverview();   // ⭐ 決定後立即調整已鎖定資本／剩餘現金
@@ -1239,15 +1242,24 @@ function renderDecisions(){
   const el=$('decBody');if(!el)return;
   const queued=decLoad('optdash_queued'), skips=decLoad('optdash_skips');
   const pos=rec?rec.positions||[]:[];
-  const posKeys=new Set(pos.filter(p=>p.status==='open'||p.status==='closed'||p.status==='expired'||p.status==='assigned')
-    .map(p=>decKey(p.ticker,p.expiry,p.strike)));
+  // ⭐ 2026-08-17：狀態用 OPEN 倉對照（closed 唔算——平咗再重排同款會誤標「已記賬」）；
+  //    張數/權利金優先顯示 live 倉位（engine 改張數後表跟住變，唔會卡舊 snapshot）
+  const openByKey={}; pos.filter(p=>p.status==='open').forEach(p=>{openByKey[decKey(p.ticker,p.expiry,p.strike)]=p;});
+  const dteOf=function(exp){var d=Math.ceil((new Date(exp+'T23:59:59')-Date.now())/864e5);return isNaN(d)?null:d;};
   let h='';
   if(queued.length){
-    h+='<div style="font-weight:700;margin-bottom:6px">🚀 已執行 / 排隊中（'+(queued.length)+'）</div><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">每股權利金</th><th>狀態</th><th></th></tr></thead><tbody>';
+    h+='<div style="font-weight:700;margin-bottom:6px">🚀 已執行 / 排隊中（'+(queued.length)+'）</div><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">Tenor</th><th class="r">張數</th><th class="r">每股權利金</th><th>狀態</th><th></th></tr></thead><tbody>';
     queued.slice().reverse().forEach(q=>{
-      const done=posKeys.has(decKey(q.ticker,q.expiry,q.strike));
-      h+='<tr><td><b>'+esc(q.ticker)+'</b>'+(q.side==='CALL'?' <span style="color:#92400e;font-size:10px;font-weight:700">賣Call</span>':' <span style="color:#1d4ed8;font-size:10px;font-weight:700">賣Put</span>')+'</td><td class="r">$'+px2(q.strike)+'</td><td>'+q.expiry+'</td><td class="r">'+(q.contracts||1)+'</td><td class="r">$'+px2(q.premium)+'</td><td>'+(done?'<span style="color:#16a34a;font-weight:700">✅ 已記賬</span>':'<span style="color:#d97706;font-weight:700">⏳ 排隊執行中</span>')+'</td>'+
-        '<td>'+(done?'':('<button class="btn btn-ghost" onclick="editQueued(\''+q.ticker+'\',\''+q.expiry+'\','+q.strike+',\''+(q.contracts||1)+'\',\''+(q.premium||0)+'\')">改張數</button> <button class="btn btn-close" onclick="cancelQueued(\''+q.ticker+'\',\''+q.expiry+'\','+q.strike+')">取消</button>'))+'</td></tr>';
+      const key=decKey(q.ticker,q.expiry,q.strike);
+      const live=openByKey[key]||null;
+      const n=live?(live.contracts||1):(q.contracts||1);
+      const prem=live&&live.entry_prem!=null?live.entry_prem:null;   // dashboard post 嘅 premium 本身就係每股價；live 有就顯示 live
+      const dte=dteOf(q.expiry);
+      const st=live
+        ?'<span style="color:#16a34a;font-weight:700">✅ 已記賬 · 持倉中</span>'
+        :'<span style="color:#d97706;font-weight:700">⏳ 排隊執行中</span>';
+      h+='<tr><td><b>'+esc(q.ticker)+'</b>'+(q.side==='CALL'||(live&&live.side==='CALL')?' <span style="color:#92400e;font-size:10px;font-weight:700">賣Call</span>':' <span style="color:#1d4ed8;font-size:10px;font-weight:700">賣Put</span>')+'</td><td class="r">$'+px2(q.strike)+'</td><td>'+q.expiry+'</td><td class="r">'+(dte!=null?dte+'日':'—')+'</td><td class="r"><b>'+n+'</b>'+(live&&n!==(q.contracts||1)?' <span class="muted small">(原'+(q.contracts||1)+')</span>':'')+'</td><td class="r">$'+px2(live&&prem!=null?prem:q.premium)+'</td><td>'+st+'</td>'+
+        '<td>'+(live?'':('<button class="btn btn-ghost" onclick="editQueued(\''+q.ticker+'\',\''+q.expiry+'\','+q.strike+',\''+(q.contracts||1)+'\',\''+(q.premium||0)+'\')">改張數</button> <button class="btn btn-close" onclick="cancelQueued(\''+q.ticker+'\',\''+q.expiry+'\','+q.strike+')">取消</button>'))+'</td></tr>';
     });
     h+='</tbody></table>';
   }
