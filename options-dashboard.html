@@ -458,7 +458,7 @@ function renderRails(){
     +'<div class="small" style="margin-top:3px">$'+fmt(mu)+' / $'+fmt(mb)+' · <b>'+utilPct+'%</b> 預算 · 剩 <b style="color:'+(mb-mu>0?'#16a34a':'#dc2626')+'">$'+fmt(mb-mu)+' ≈ HKD '+fmt((mb-mu)*HKD_USD)+'</b></div></div>';
   h+='<div><div class="small muted">倉位 / 閘門</div><div class="small" style="margin-top:4px;line-height:1.9">'
     +'Put 倉 <b>'+nputs+'/6</b>'+(ncc?' · CC 倉 <b>'+ncc+'</b>':'')+' · 每日新倉 ≤2'+tip('contracts')+'<br>'
-    +'大盤寬度 <b style="color:'+(brOk?'#16a34a':'#dc2626')+'">'+(br==null||isNaN(br)?'—':Math.round(br*100)+'%')+'</b>（閘門 ≥50% '+(brOk?'✓ 開放新倉':'✗ 新倉暫停')+'）'+tip('breadth')+'<br>'
+    +'大盤寬度 <b style="color:'+(brOk?'#16a34a':'#dc2626')+'">'+(br==null||isNaN(br)?'—':Math.round(br*100)+'%')+'</b>（閘門 '+(rec.gate_closed?('✗ 不開新倉：'+esc(gateReason())):'✓ 開放新倉')+'）'+tip('breadth')+'<br>'
     +'熔斷 '+(bk.tripped?'<b style="color:#dc2626">🔴 已觸發（'+(bk.trip_dd!=null?bk.trip_dd+'%）':'）')+(bk.paused_until?' · 停至 '+bk.paused_until:'')+'</b>':'<b style="color:#16a34a">🟢 未觸發</b>（−15% 停 10 日）')+tip('breaker')
     +'<br>按金容量 '+msLine
     +'</div></div>';
@@ -523,14 +523,23 @@ function ledTable(led){
   return h+'</tbody></table>';
 }
 
+function gateReason(){   // ⭐ 2026-08-17 v3：閘門關閉嘅「真實原因」—— 以前寫死「市寬 X%＜50%」，但 gate_closed 仲有每日 2 倉上限／熔斷兩個來源 → 出過「市寬 59% ＜ 50%」自相矛盾訊息
+  if(!(rec&&rec.gate_closed))return '';
+  if(rec.gate_reason)return rec.gate_reason;   // engine 新版直接提供（單一真相）
+  const bk=rec.breaker||{},br=rec.breadth;     // 舊 rec fallback：照 engine 三個 gate 條件順序推導
+  const openedToday=((rec.positions||[]).filter(p=>p.status==='open'&&String(p.opened||'').slice(0,10)===rec.date)).length;
+  if(br!=null&&br<0.50)return '市寬 '+Math.round(br*100)+'% ＜ 50%（大盤轉弱）';
+  if(bk.paused_until&&rec.date<=bk.paused_until)return '熔斷暫停中（至 '+bk.paused_until+'）';
+  if(openedToday>=2)return '今日已開 '+openedToday+' 倉（上限 2/日，每日新倉上限已到）';
+  return 'v4_balanced 規則今日不開新倉';
+}
 function gateWarnHTML(){
-  const br=(rec&&rec.breadth!=null)?Math.round(rec.breadth*100)+'%':'—';
-  return '<div class="warn-note" style="margin:0 0 10px">🚧 <b>寬度閘門關閉（市寬 '+br+' ＜ 50%）</b>：v4_balanced 規則今日不開新倉。以下排名/候選僅供觀察 —— 執行會被 engine 拒絕（Telegram 會收到拒單原因）。</div>';
+  return '<div class="warn-note" style="margin:0 0 10px">🚧 <b>開倉閘門關閉：'+esc(gateReason())+'</b>。以下排名/候選僅供觀察 —— 執行會被 engine 拒絕（Telegram 會收到拒單原因）。</div>';
 }
 function renderBest(){
   const b=rec.best;
   const el=$('bestCard');
-  if(rec&&rec.gate_closed){el.innerHTML=gateWarnHTML()+'<div class="muted">今日最佳：寬度閘門關閉，今日不開新倉（規則保命掣）。</div>';return;}
+  if(rec&&rec.gate_closed){el.innerHTML=gateWarnHTML()+'<div class="muted">今日最佳：開倉閘門關閉（'+esc(gateReason())+'）—— 規則保命掣。</div>';return;}
   if(!b){el.innerHTML='<div class="muted">今日無符合條件的候選。</div>';return;}
   const sc=b.scenarios||{};
   let h='';
@@ -1146,8 +1155,7 @@ function putCount(){   // 已開 put + 排隊 put（不計 CC）
 }
 function gateBlocked(){
   if(rec&&rec.gate_closed){
-    const br=(rec.breadth!=null)?Math.round(rec.breadth*100)+'%':'—';
-    toast('🚧 寬度閘門關閉（市寬 '+br+' ＜ 50%）：v4_balanced 規則今日不開新倉');
+    toast('🚧 開倉閘門關閉：'+gateReason()+' —— engine 會拒絕新開倉');
     return true;
   }
   return false;
