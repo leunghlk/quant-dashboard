@@ -194,7 +194,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
       <div class="card-b" id="actBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">📋 開倉位</span><span class="meta">PT 50% 平倉 · cut 止損 · 業績日必平 · 可手動平倉</span></div>
       <div class="card-b" id="posBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">📒 交易紀錄（紙上）</span><span class="meta" id="ledMeta"></span></div>
+    <div class="card"><div class="card-h"><span class="t">📒 交易紀錄</span><span class="meta" id="ledMeta"></span></div>
       <div class="card-b" id="ledBody"></div></div>
   </div>
 
@@ -500,13 +500,15 @@ function renderOverview(){
   if(_ml&&_ml.dataset.mt!=='1'){_ml.dataset.mt='1';_ml.innerHTML='估算月收入'+tip('monthly');}
   // 開倉位
   const pos=(rec.positions||[]).filter(x=>x.status==='open');
-  $('ovPosMeta').textContent=pos.length+' 開倉';
+  const rUn=pos.filter(p=>p.real),pUn=pos.filter(p=>!p.real);
+  const rs=rUn.reduce((a,p)=>a+(p.pnl_hkd||0),0),ps=pUn.reduce((a,p)=>a+(p.pnl_hkd||0),0);
+  $('ovPosMeta').innerHTML=pos.length+' 開倉 · <b style="color:#dc2626">真倉 '+rUn.length+'：'+(rs>=0?'+':'')+Math.round(rs).toLocaleString()+'</b> · 紙上 '+pUn.length+'：'+(ps>=0?'+':'')+Math.round(ps).toLocaleString()+' HKD';
   let h='';
   if(pos.length){
-    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場/現權利金</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th>訊號</th></tr></thead><tbody>';
+    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th>類型</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場/現權利金</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th>訊號</th></tr></thead><tbody>';
     pos.forEach(p=>{
       const a=p.pct_max>=50?'<span style="color:#16a34a;font-weight:700">✅ 平倉（≥50%）</span>':(p.close_requested?'<span style="color:#d97706">待平倉</span>':'<span class="muted">持有</span>');
-      h+='<tr><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+p.entry_prem+' / '+p.cur_prem+'</td><td class="r">'+p.pct_max+'%</td><td class="r">'+(p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span></td><td>'+a+'</td></tr>';
+      h+='<tr><td><b>'+p.ticker+'</b></td><td>'+realBadge(p)+'</td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+p.entry_prem+' / '+p.cur_prem+'</td><td class="r">'+p.pct_max+'%</td><td class="r">'+(p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span></td><td>'+a+'</td></tr>';
     });
     h+='</tbody></table></div>';
   }else{h+='<div class="muted">暫無開倉位 — 請到「今日最佳」選一單執行。</div>';}
@@ -680,7 +682,7 @@ function renderPositions(){
     h+='<div class="table-scroll"><table class="utable"><thead><tr><th>類型</th><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場權利金</th><th class="r">現權利金</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th>訊號 / 動作</th></tr></thead><tbody>';
     pos.forEach(p=>{
       const a=p.pct_max>=50?'<span style="color:#16a34a;font-weight:700">✅ 建議平倉（≥50%）'+tip('close50')+'</span>':(p.close_requested?'<span style="color:#d97706">⏳ 待 engine 確認</span>':'<span class="muted">持有</span>');
-      h+='<tr><td>'+(p.side==='CSP'?'沽 Put':'沽 Call')+'</td><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">$'+p.entry_prem+'</td><td class="r">$'+p.cur_prem+'</td><td class="r">'+p.pct_max+'%</td><td class="r">'+(p.pnl_hkd>=0?'<span style="color:#16a34a;font-weight:700">':'<span style="color:#dc2626;font-weight:700">')+money(p.pnl_hkd)+'</span></td><td>'+a+'<br><button class="btn btn-close" style="margin-top:4px" onclick="closePos(\''+p.id+'\')">平倉</button></td></tr>';
+      h+='<tr><td>'+(p.side==='CSP'?'沽 Put':'沽 Call')+'<br>'+realBadge(p)+'</td><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">$'+p.entry_prem+'</td><td class="r">$'+p.cur_prem+'</td><td class="r">'+p.pct_max+'%</td><td class="r">'+(p.pnl_hkd>=0?'<span style="color:#16a34a;font-weight:700">':'<span style="color:#dc2626;font-weight:700">')+money(p.pnl_hkd)+'</span></td><td>'+a+'<br><button class="btn btn-close" style="margin-top:4px" onclick="closePos(\''+p.id+'\')">平倉</button> <button class="btn btn-ghost" style="margin-top:4px" onclick="toggleReal(\''+p.id+'\','+(!p.real)+')">'+(p.real?'轉紙上':'標真倉')+'</button></td></tr>';
     });
     h+='</tbody></table></div>';
   }else{h+='<div class="muted">暫無開倉位。</div>';}
@@ -1342,6 +1344,12 @@ async function closePos(pid){
   if(!confirm('確定平倉這個紙上倉位？'))return;
   const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'close',position_id:pid});
   if(r&&r.ok)toast('已排隊平倉（engine 下個週期確認）'); else toast('❌ 失敗');
+  setTimeout(loadRec,4000);
+}
+function realBadge(p){return p.real?'<span style="color:#dc2626;font-weight:700">● 真倉</span>':'<span style="color:#64748b">○ 紙上</span>';}
+async function toggleReal(pid,val){   // 真倉=Futu 實單；紙上=engine 模擬
+  const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'real',position_id:pid,value:val});
+  if(r&&r.ok)toast(val?'已標記為真倉':'已轉回紙上倉'); else toast('❌ 失敗');
   setTimeout(loadRec,4000);
 }
 function toast(msg){
