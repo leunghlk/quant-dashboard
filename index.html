@@ -1711,7 +1711,7 @@ const SECTOR_MAP = {
   'AMKR':'先進封裝','ASX':'先進封裝',
   'MU':'存儲','SNDK':'存儲','WDC':'存儲','STX':'存儲','SKHY':'存儲','DRAM':'存儲','3986.HK':'存儲',
   'ON':'功率半導體','GFS':'功率半導體','WOLF':'功率半導體','TSEM':'功率半導體','STM':'功率半導體','TXN':'功率半導體','NVTS':'功率半導體',
-  'LITE':'光通訊','COHR':'光通訊','GLW':'光通訊','AAOI':'光通訊','ALAB':'光通訊','CRDO':'光通訊','MRVL':'光通訊','AVGO':'光通訊',
+  'LITE':'光通訊','COHR':'光通訊','GLW':'光通訊','AAOI':'光通訊','ALAB':'光通訊','CRDO':'光通訊','MRVL':'光通訊','AVGO':'光通訊','AXTI':'光通訊',
   'ANET':'數據中心網絡','CIEN':'數據中心網絡',
   'DELL':'AI server','DLLL':'AI server','HPE':'AI server','0992.HK':'AI server',
   'VRT':'AI基建/電力','GEV':'AI基建/電力','BE':'AI基建/電力','PWR':'AI基建/電力',
@@ -2788,6 +2788,7 @@ function getEarningsInfoJS(ticker, price) {
     TSEM:{date:'2026-11-09'},TSM:{date:'2026-10-15'},TXN:{date:'2026-10-27'},VRT:{date:'2026-10-21'},
     WDC:{date:'2026-11-05'},WOLF:{date:'2026-08-19'},
     CRM:{date:'2026-08-26',timing:'AMC'},CRWD:{date:'2026-08-26',timing:'AMC'},PLTR:{date:'2026-11-02',timing:'AMC'},IBM:{date:'2026-10-21',timing:'AMC'},
+    AXTI:{date:'2026-10-30',timing:'AMC'},
   };
   const cal=EARNINGS_JS[ticker]; if(!cal) return null;
   const now=new Date();
