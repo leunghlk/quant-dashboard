@@ -145,7 +145,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   <button data-pane="method">❓ v4_balanced 方法論</button>
 </div>
 <div id="optAlert" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:#dc2626;color:#fff;padding:11px 22px;font-weight:700;font-size:14.5px;cursor:pointer;box-shadow:0 -3px 12px rgba(0,0,0,.3)" onclick="switchPane('positions')">
-  <span id="optAlertTxt"></span><span style="float:right;font-weight:500;opacity:.9">點擊查看持倉 →</span>
+  <span id="optAlertTxt"></span><button onclick="event.stopPropagation();ackAlarm()" title="不再顯示這一組警報（之後有新警報仍會出現）" style="float:right;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.65);color:#fff;border-radius:6px;padding:1px 10px;font-weight:600;font-size:13px;cursor:pointer">✕ 知道了</button><span style="float:right;font-weight:500;opacity:.9;margin-right:14px">點擊查看持倉 →</span>
 </div>
 <div class="container">
 
@@ -404,9 +404,17 @@ let titleFlash=null,lastAlarmSig='';
 function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();const o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=880;g.gain.value=.07;o.start();setTimeout(()=>{try{o.stop();a.close();}catch(e){}},180);}catch(e){}}
 function flashStart(){if(titleFlash)return;const t=BASE_TITLE;titleFlash=setInterval(()=>{document.title=(document.title===t?'🚨 期權警報！':t);},900);}
 function flashStop(){if(titleFlash){clearInterval(titleFlash);titleFlash=null;document.title=BASE_TITLE;}}
+function alarmActs(){   // ⭐ 2026-08-17 v2：未處理警報 = cut/roll/指派/熔斷/按金。已完成事件（手動平倉／🟢 PT50 紙上平倉／到期 OTM 全收）engine 已自動處理＋Telegram 已推 → 唔觸發紅 bar
+  return ((rec&&rec.actions)||[]).map(String).filter(a=>a.indexOf('手動平倉')<0&&a.indexOf('紙上平倉')<0&&a.indexOf('到期 OTM')<0);
+}
+function ackAlarm(){   // ⭐ 手動撳「✕ 知道了」：記住呢組 sig，同一組合唔再顯示；之後有新警報（sig 唔同）會再出
+  try{localStorage.setItem('optdash_alarm_ack',lastAlarmSig||'');}catch(e){}
+  const bar=$('optAlert');if(bar)bar.style.display='none';
+  flashStop();
+}
 function renderAlarm(){
   const bar=$('optAlert');if(!bar)return;
-  const acts=((rec&&rec.actions)||[]).filter(a=>String(a).indexOf('手動平倉')<0),bk=(rec&&rec.breaker)||{};   // ⭐ 手動平倉係 user 自己嘅動作（Telegram 已確認）→ 唔觸發警報 bar
+  const acts=alarmActs(),bk=(rec&&rec.breaker)||{};
   const cuts=acts.filter(a=>a.indexOf('cut')>=0).length,rolls=acts.filter(a=>a.indexOf('roll')>=0).length;
   const asn=acts.filter(a=>a.indexOf('指派')>=0).length,clos=acts.filter(a=>a.indexOf('平倉')>=0&&a.indexOf('cut')<0&&a.indexOf('roll')<0&&a.indexOf('指派')<0).length;
   const ms=(rec&&rec.margin_status)||null;
@@ -416,10 +424,13 @@ function renderAlarm(){
   if(marginBad)msgs.push('按金預算不足：持倉總按金 HKD '+fmt(ms.need_hkd)+' > 預算 HKD '+fmt(ms.budget_hkd)+'（差 HKD '+fmt(ms.shortfall_hkd||0)+'）—— 新開倉會被 engine 拒絕'+tip('realmargin'));
   if(acts.length)msgs.push(acts.length+' 個持倉警報'+(cuts?'（🔴 cut 止損 '+cuts+'）':'')+(rolls?'（roll 建議 '+rolls+'）':'')+(asn?'（📦 指派 '+asn+'）':'')+(clos?'（平倉訊號 '+clos+'）':''));
   const sig=bk.tripped+'|'+acts.length+'|'+cuts+'|'+rolls+'|'+asn+'|'+clos+'|'+(marginBad?ms.shortfall_hkd:0);
-  if(!msgs.length){bar.style.display='none';flashStop();lastAlarmSig=sig;return;}
+  lastAlarmSig=sig;
+  let acked=null;try{acked=localStorage.getItem('optdash_alarm_ack');}catch(e){}
+  if(acked===sig){bar.style.display='none';flashStop();return;}   // ⭐ 已撳「知道了」嘅嗰組 → 唔再彈（新警報 sig 唔同會再出）
+  if(!msgs.length){bar.style.display='none';flashStop();return;}
   bar.style.display='block';
   $('optAlertTxt').innerHTML='🚨 '+msgs.join(' · ')+' —— engine 已同步推送 Telegram';
-  if(sig!==lastAlarmSig){beep();lastAlarmSig=sig;}
+  if(!window._alarmBeeped||window._alarmBeeped!==sig){beep();window._alarmBeeped=sig;}
   flashStart();
 }
 
@@ -453,7 +464,7 @@ function renderRails(){
     +'</div></div>';
   h+='</div>';
   h+='<div class="small muted" style="margin-top:8px">模型：<b>'+esc(rec.model_profile||'v4_balanced')+'</b> · 按照「今日最佳 → 執行（紙上）」＋上表出場規則 = 貼近回測路徑。'+(bk.paused_until?'<br>⚠️ 熔斷期間請勿手動開新倉。':'')+'</div>';
-  const rm=$('railsMeta'); if(rm){const acts=(rec.actions||[]).filter(a=>String(a).indexOf('手動平倉')<0);rm.textContent=acts.length?('⚠️ '+acts.length+' 個出場建議 → 去「持倉管理」'):'按照下表規則 = 貼近回測結果';}
+  const rm=$('railsMeta'); if(rm){const acts=alarmActs();rm.textContent=acts.length?('⚠️ '+acts.length+' 個出場建議 → 去「持倉管理」'):'按照下表規則 = 貼近回測結果';}
   el.innerHTML=h;
   const rmb=$('railMarginBar');   // ⭐ innerHTML 之後先 set（hover bar 看實數）
   if(rmb)rmb.dataset.tip='<b>按金預算運用（paper 倉 equity $'+fmt(eq)+'）</b><br>已用按金 $'+fmt(mu)+' ／ 預算 $'+fmt(mb)+'（equity×70%）<br>= <b>'+utilPct+'%</b>（equity 的 '+utilEq+'%）<br>90% 以上紅 · 70% 以上琥珀<br>剩餘 $'+fmt(mb-mu)+' ≈ HKD '+fmt((mb-mu)*HKD_USD)+(ms&&ms.more_contracts_est!=null?'（大約仲夠 '+ms.more_contracts_est+' 張）':'')+(ms&&ms.real_power_hkd!=null?'<br>——<br><span class="muted">（僅參考）真實 Futu 戶購買力 HKD '+fmt(ms.real_power_hkd)+'：紙上交易唔受佢限制</span>':'');
