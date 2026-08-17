@@ -151,6 +151,13 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 
   <!-- ═══════════ 總覽 ═══════════ -->
   <div class="pane" id="pane-overview">
+    <div style="display:flex;gap:8px;align-items:center;margin:2px 0 8px;flex-wrap:wrap">
+      <span style="font-size:12px;color:#64748b;font-weight:700">Portfolio P&amp;L：</span>
+      <button id="pnlBtn-real" onclick="setPnlMode('real')" style="font-size:12px;font-weight:700;border-radius:8px;padding:3px 12px;border:1.5px solid #cbd5e1;background:#f1f5f9;color:#475569;cursor:pointer">🔴 真倉</button>
+      <button id="pnlBtn-paper" onclick="setPnlMode('paper')" style="font-size:12px;font-weight:700;border-radius:8px;padding:3px 12px;border:1.5px solid #cbd5e1;background:#f1f5f9;color:#475569;cursor:pointer">📝 紙上</button>
+      <button id="pnlBtn-both" onclick="setPnlMode('both')" style="font-size:12px;font-weight:700;border-radius:8px;padding:3px 12px;border:1.5px solid #cbd5e1;background:#f1f5f9;color:#475569;cursor:pointer">兩者</button>
+      <span id="pnlModeNote" style="font-size:11px;color:#94a3b8"></span>
+    </div>
     <div class="kpi">
       <div class="k"><div class="lbl">組合權益（HKD）</div><div class="val" id="ovEquity">—</div><div class="small muted" id="ovReturn"></div></div>
       <div class="k"><div class="lbl">已實現 P&amp;L</div><div class="val up" id="ovRealized">—</div></div>
@@ -469,14 +476,46 @@ function renderRails(){
   const rmb=$('railMarginBar');   // ⭐ innerHTML 之後先 set（hover bar 看實數）
   if(rmb)rmb.dataset.tip='<b>按金預算運用（paper 倉 equity $'+fmt(eq)+'）</b><br>已用按金 $'+fmt(mu)+' ／ 預算 $'+fmt(mb)+'（equity×70%）<br>= <b>'+utilPct+'%</b>（equity 的 '+utilEq+'%）<br>90% 以上紅 · 70% 以上琥珀<br>剩餘 $'+fmt(mb-mu)+' ≈ HKD '+fmt((mb-mu)*HKD_USD)+(ms&&ms.more_contracts_est!=null?'（大約仲夠 '+ms.more_contracts_est+' 張）':'')+(ms&&ms.real_power_hkd!=null?'<br>——<br><span class="muted">（僅參考）真實 Futu 戶購買力 HKD '+fmt(ms.real_power_hkd)+'：紙上交易唔受佢限制</span>':'');
 }
+let pnlMode=(function(){try{return localStorage.getItem('optdash_pnl_mode')||'both';}catch(e){return 'both';}})();
+function setPnlMode(m){pnlMode=m;try{localStorage.setItem('optdash_pnl_mode',m);}catch(e){}renderOverview();}
+function pnlBtnState(){
+  const colors={real:['#fee2e2','#dc2626'],paper:['#e0e7ff','#4f46e5'],both:['#d1fae5','#059669']};
+  Object.keys(colors).forEach(x=>{
+    const b=$('pnlBtn-'+x);if(!b)return;
+    const on=pnlMode===x,c=colors[x];
+    b.style.background=on?c[0]:'#f1f5f9';b.style.borderColor=on?c[1]:'#cbd5e1';b.style.color=on?'#0f172a':'#475569';
+  });
+}
+function renderPnlKpi(p){   // ⭐ 真倉/紙上/兩者 三段式 P&L（真倉=Futu 實單標記倉）
+  const posAll=(rec.positions||[]).filter(x=>x.status==='open');
+  const rUn=posAll.filter(x=>x.real),pUn=posAll.filter(x=>!x.real);
+  const rU=rUn.reduce((a,x)=>a+(x.pnl_hkd||0),0),pU=pUn.reduce((a,x)=>a+(x.pnl_hkd||0),0);
+  let eqV=null,rlV=null,unV=0,note='';
+  if(pnlMode==='real'){
+    unV=rU;note='真倉 '+rUn.length+' 倉（Futu 實單）—— 已實現／權益屬紙上賬，不適用';
+  }else if(pnlMode==='paper'){
+    rlV=(p.realized_hkd!=null)?p.realized_hkd:0;
+    unV=(p.paper_unrealized_hkd!=null)?p.paper_unrealized_hkd:pU;
+    eqV=(p.base_hkd||CAPITAL_HKD)+rlV+unV;
+    note='紙上 '+pUn.length+' 倉 —— 累計回報 '+money(eqV/CAPITAL_HKD*100-100)+'%';
+  }else{
+    rlV=(p.realized_hkd!=null)?p.realized_hkd:0;
+    unV=(p.unrealized_hkd!=null)?p.unrealized_hkd:(rU+pU);
+    eqV=p.equity_hkd;note='累計回報 '+money(p.return_pct)+'%（真倉 '+rUn.length+' · 紙上 '+pUn.length+'）';
+  }
+  $('ovEquity').textContent=(eqV==null)?'—':hkd(eqV);
+  $('ovReturn').textContent=(pnlMode==='real')?'真倉模式':note;
+  $('ovReturn').style.fontSize='11px';
+  $('ovRealized').textContent=(rlV==null)?'—':hkd(rlV);
+  $('ovRealized').className='val '+((rlV==null||rlV>=0)?'up':'dn');
+  $('ovUnrealized').textContent=hkd(unV);
+  $('ovUnrealized').className='val '+(unV>=0?'up':'dn');
+  const nm=$('pnlModeNote');if(nm)nm.textContent=note;
+  pnlBtnState();
+}
 function renderOverview(){
   const p=rec.portfolio||{};
-  $('ovEquity').textContent=hkd(p.equity_hkd);
-  $('ovReturn').textContent='累計回報 '+money(p.return_pct)+'%';
-  $('ovRealized').textContent=hkd(p.realized_hkd);
-  $('ovRealized').className='val '+(p.realized_hkd>=0?'up':'dn');
-  $('ovUnrealized').textContent=hkd(p.unrealized_hkd);
-  $('ovUnrealized').className='val '+(p.unrealized_hkd>=0?'up':'dn');
+  renderPnlKpi(p);
   renderRails();
   const locked=lockedHKD(), avail=availHKD();     // 接貨現金（開倉+排隊）／剩餘
   const mu=Number(rec.used_margin_open||0), mb=Number(rec.margin_budget||0);
