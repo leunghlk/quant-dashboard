@@ -279,6 +279,7 @@ const GLOSS={
   'realmargin':'<b>按金容量（paper 倉 HKD 200,000）</b>：總按金預算 = equity×70% ≈ HKD 140,000；已用 = Σ 每張按金×張數。<br>剩餘按金 = 仲可以開幾多新倉嘅額度；超額 → engine 拒單＋Telegram 警報。<br>（另有「僅參考」嘅真實 Futu 戶購買力，紙上交易唔受佢限制。）',
   'capacity':'<b>剩餘按金 ≈ 仲夠開幾多張</b>：剩餘按金 ÷ 每張按金（~$3.4k 粗估，實際每名唔同）。「仲夠 N 張」只計按金預算，未計單名 30% cap、板塊 cap、6 倉上限、每日 ≤2 新倉——engine 開倉時會逐關檢查。',
   'dte':'<b>Tenor / DTE（到期日數）</b>：距離到期嘅日曆日數。v4_balanced 目標區間 7–14 日：太短時間值 decay 快但無時間修復；太長資金鎖得耐、年化回報跌。',
+  'monthly':'<b>估算月收入</b>：（活倉權利金 ＋ 未執行建議權利金）× 2.5 週期/月。活倉照計——唔會因為「今日無新建議」（已持倉／訊號 veto）而變 0。屬 run-rate 粗估，未扣接貨回吐、止損、費用。',
   'util':'<b>按金利用率</b>：已用按金 ÷（equity×70%）。<br>70% 上限是回測凍結參數 —— 超出上限 = 不跟規則 = 結果無從比較。',
   'breadth':'<b>大盤寬度 Breadth</b>：宇宙中股價位於自己 MA50 之上的比例。<br>&lt;50% = 大盤弱 → 引擎不開新倉（2026 年 8 月上半月就是這樣停止）。這個閘門避免了很多次跌市接貨。',
   'breaker':'<b>熔斷 Circuit Breaker</b>：帳戶回撤到 −15% → 停止開新倉 10 個交易日，回修到 −8% 之上才 re-arm。<br>one-shot 設計：觸發一次即停，不會每日重複觸發無限循環。',
@@ -481,6 +482,8 @@ function renderOverview(){
     if(bars[1]){bars[1].style.cursor='help';bars[1].dataset.tip='<b>② 接貨現金（最壞情況）</b><br>HKD '+fmt(locked)+' ／ '+fmt(CAPITAL_HKD)+'<br>= <b>'+pct+'%</b> —— 些 Put 全部被指派時要拿出來接貨的總數；剩可用 HKD '+fmt(avail);}
   }
   $('ovMonthly').textContent=hkd(rec.projected_monthly_hkd&&rec.projected_monthly_hkd.hkd);
+  var _ml=document.querySelector('#ovMonthly')&&document.querySelector('#ovMonthly').parentNode.querySelector('.lbl');
+  if(_ml&&_ml.dataset.mt!=='1'){_ml.dataset.mt='1';_ml.innerHTML='估算月收入'+tip('monthly');}
   // 開倉位
   const pos=(rec.positions||[]).filter(x=>x.status==='open');
   $('ovPosMeta').textContent=pos.length+' 開倉';
