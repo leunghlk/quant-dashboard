@@ -1426,7 +1426,19 @@ async function skipTrade(tk,exp,K){
   setTimeout(function(){loadRec();},2000);
 }
 async function closePos(pid){
-  if(!confirm('確定平倉這個紙上倉位？'))return;
+  // ⭐ 2026-08-19 沽底/買頂防護：大額虧損 + 盤中（非收市確認窗）即平 → 彈強警告
+  // （ADBE 教訓：17% 盤中穿位收市返上、翌日 +0.39%；engine v4 語義=收市價評估。
+  //   收市後 marks 凍結 → 記賬場景唔會誤彈；只警告唔 block，Futu 已平要記賬撳多次確定即過。）
+  const p=(rec.positions||[]).find(x=>x.id===pid)||{};
+  const hm=new Date().getHours()*100+new Date().getMinutes();
+  const inCloseWin=(hm>=330&&hm<=359);   // 收市確認窗=ET 15:30-16:00（夏令 HKT 03:30-04:00；冬令 +1h）
+  const mktOpen=(hm>=2130||hm<=359);     // 美股夏令時段 HKT 21:30-04:00
+  const deepLoss=Number(p.pct_max||0)<=-30;
+  let msg='確定平倉 '+(p.real?'【真倉】':'【紙上】')+' '+p.ticker+' $'+p.strike+'？';
+  if(mktOpen&&!inCloseWin&&deepLoss){
+    msg='⚠️ 沽底／買頂防護\n\n'+p.ticker+' 虧損 '+p.pct_max+'%，而家唔係收市確認窗（HKT 03:30–04:00）。\n大額虧損＋盤中即平＝好可能用日內極端價平倉（ADBE 教訓：17% 盤中穿位收市返上、翌日 +0.39%）。\n\n• 想止蝕 → 等 03:30 收市確認窗先平（v4 語義＝收市價評估）\n• 已喺 Futu 平咗、純粹記賬 → 撥「確定」記入\n\n確定即刻平？';
+  }
+  if(!confirm(msg))return;
   const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'close',position_id:pid});
   if(r&&r.ok)toast('已排隊平倉（engine 下個週期確認）'); else toast('❌ 失敗');
   setTimeout(loadRec,4000);
