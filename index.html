@@ -3067,11 +3067,11 @@ function checkPriceAlerts(data){
   var pos=data.portfolio.positions;
   for(var t in pos){
     var p=pos[t];
-    var da=DEPLOY_ALERTS[t];
+    var da=(data.deployAlerts&&data.deployAlerts[t])||DEPLOY_ALERTS[t];
     var stopLoss=da&&da.stop!=null?da.stop:p.cost*0.92;
     var target=da&&da.t1!=null?da.t1:(FUND_TARGETS[t]||p.cost*1.15);
     if(p.price<=stopLoss){
-      alerts.push({key:t+'_stop',type:'stop',ticker:t,price:p.price,stopLoss:stopLoss.toFixed(2),msg:'🔴 止蝕警報：'+t+' 現價 $'+p.price.toFixed(2)+' 已跌穿止蝕位 $'+stopLoss.toFixed(2)+'！立即評估是否止蝕。'+(da&&da.note?'（'+da.note+'）':'')});
+      alerts.push({key:t+'_stop',type:'stop',ticker:t,price:p.price,stopLoss:stopLoss.toFixed(2),msg:'⚠️ 止蝕位盤中觸及：'+t+' 現價 $'+p.price.toFixed(2)+' 觸及止蝕位 $'+stopLoss.toFixed(2)+'（2.5×ATR chandelier）→ 待收市確認，唔好即時沽；收市確認跌穿先至下個交易日開市離場。'+(da&&da.note?'（'+da.note+'）':'')});
     }
     if(p.price>=target){
       alerts.push({key:t+'_target',type:'target',ticker:t,price:p.price,target:target,msg:'🟢 到價警報：'+t+' 現價 $'+p.price.toFixed(2)+' 已到達目標價 $'+target+'！考慮減磅鎖利。'});
