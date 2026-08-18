@@ -678,10 +678,7 @@ function renderOptionsIncome(d){
   var picks=[d.best,d.best2].filter(Boolean);
   if(picks.length){
     if(picks.some(function(p){return p.reference_only||d.gate_closed;})){
-      var rs0=[];
-      if(d.gate_closed)rs0.push('開倉閘門關閉：'+(d.gate_reason||''));
-      picks.forEach(function(p){if(p.veto_reason)rs0.push('訊號 veto：'+p.veto_reason);});
-      h+='<div style="font-size:11px;color:#d97706;margin:2px 0 6px">⚠️ <b>僅參考</b> —— '+rs0.join('；')+'（執行會被 engine 拒單）</div>';
+      h+='<div style="font-size:11px;color:#d97706;margin:2px 0 6px">⚠️ <b>僅參考</b> —— 開倉閘門關閉：'+(d.gate_reason||'')+'（執行會被 engine 拒單）</div>';
     }
     picks.forEach(function(best,pi){
     var ref=!!(best.reference_only||d.gate_closed);
@@ -716,7 +713,7 @@ function renderOptionsIncome(d){
     h+='</div>';
     });
   }else{
-    h+='<div style="color:#64748b">今日無符合條件嘅候選（全部被業績窗口 / model veto / 資本限制排除）。</div>';
+    h+='<div style="color:#64748b">今日無符合條件嘅候選'+(d.veto_count?('（'+d.veto_count+' 隻全部被 model veto／業績窗口排除；veto 咗（如上市未夠 60 日冇 momentum signal）唔上 best 卡）'):'（全部被業績窗口 / model veto / 資本限制排除）')+'。</div>';
   }
   if(b)b.innerHTML=h;
   let hb='';
@@ -1727,7 +1724,7 @@ const SECTOR_MAP = {
   'AMKR':'先進封裝','ASX':'先進封裝',
   'MU':'存儲','SNDK':'存儲','WDC':'存儲','STX':'存儲','SKHY':'存儲','DRAM':'存儲','3986.HK':'存儲',
   'ON':'功率半導體','GFS':'功率半導體','WOLF':'功率半導體','TSEM':'功率半導體','STM':'功率半導體','TXN':'功率半導體','NVTS':'功率半導體',
-  'LITE':'光通訊','COHR':'光通訊','GLW':'光通訊','AAOI':'光通訊','ALAB':'光通訊','CRDO':'光通訊','MRVL':'光通訊','AVGO':'光通訊','AXTI':'光通訊',
+  'LITE':'光通訊','COHR':'光通訊','GLW':'光通訊','AAOI':'光通訊','ALAB':'光通訊','CRDO':'光通訊','MRVL':'光通訊','AVGO':'光通訊','AXTI':'光通訊','3308.HK':'光通訊','6869.HK':'光通訊',
   'ANET':'數據中心網絡','CIEN':'數據中心網絡',
   'DELL':'AI server','DLLL':'AI server','HPE':'AI server','0992.HK':'AI server',
   'VRT':'AI基建/電力','GEV':'AI基建/電力','BE':'AI基建/電力','PWR':'AI基建/電力',
