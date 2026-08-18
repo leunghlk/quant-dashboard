@@ -675,6 +675,14 @@ function renderOptionsIncome(d){
   h+='<div style="font-size:11px;color:#64748b;margin-bottom:6px">'+(d.paper?'📝 紙上模式（未實際落盤）':'🔴 LIVE 模式')+' · '+d.date+'</div>';
   const best=d.best;
   if(best){
+    // ⭐ 2026-08-18：閘門關閉/veto 照出最佳卡，但標「僅參考」+ 原因（engine 會拒執行）
+    const ref=!!(best.reference_only||d.gate_closed);
+    if(ref){
+      const rs=[];
+      if(d.gate_closed)rs.push('開倉閘門關閉：'+(d.gate_reason||''));
+      if(best.veto_reason)rs.push('訊號 veto：'+best.veto_reason);
+      h+='<div style="font-size:11px;color:#d97706;margin:2px 0 6px">⚠️ <b>僅參考</b> —— '+rs.join('；')+'（執行會被 engine 拒單）</div>';
+    }
     const earnIn=best.earnings&&best.expiry&&String(best.earnings)<=String(best.expiry);
     const earnFlag=best.earnings
       ?(earnIn
@@ -683,7 +691,7 @@ function renderOptionsIncome(d){
       :'';
     h+='<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:stretch">';
     h+='<div style="flex:1.2;min-width:280px;background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:10px;padding:12px;color:#fff">';
-    h+='<div style="font-size:12px;color:#4ade80">🟢 最佳交易 · SELL PUT <b>'+best.ticker+'</b></div>';
+    h+='<div style="font-size:12px;color:'+(ref?'#fbbf24':'#4ade80')+'">'+(ref?'🟡 最佳交易（僅參考）':'🟢 最佳交易')+' · SELL PUT <b>'+best.ticker+'</b></div>';
     h+='<div style="font-size:22px;font-weight:800;margin:6px 0">行使價 $'+best.strike+'<span style="font-size:12px;color:#94a3b8;font-weight:400">（現價 $'+best.spot+'）</span></div>';
     h+='<div style="font-size:13px;color:#cbd5e1">權利金 $'+best.mid+'/股 = <b>$'+best.premium+'/張 ≈ HKD '+best.premium_hkd+'</b></div>';
     h+=probGauge(best.prob_itm,best.prob_otm);
