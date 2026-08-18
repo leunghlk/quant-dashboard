@@ -367,7 +367,7 @@ let lastUpdated=null;
 async function loadRec(force){
   const btn=$('refreshBtn');
   if(btn)btn.classList.add('loading');
-  if(!activeBridge){if(!(await detectBridge())){setLive('bridge 未連接');if(btn)btn.classList.remove('loading');return;}}
+  if(!activeBridge){if(!(await detectBridge())){setLive('bridge 未連接，60 秒後自動重試…');clearTimeout(window.__recRR);window.__recRR=setTimeout(()=>loadRec(true),60000);if(btn)btn.classList.remove('loading');return;}}
   try{
     const r=await fetchTimeout(activeBridge+'/options_income?secret='+encodeURIComponent(BRIDGE_SECRET),20000);
     const j=await r.json().catch(()=>null);
@@ -375,10 +375,20 @@ async function loadRec(force){
     rec=j;
     lastUpdated=new Date();
     setLive((rec.paper?'📝 紙上':'🔴 LIVE')+' · '+rec.date+(activeBridge&&activeBridge.indexOf('workers')>=0?' · ⚙ proxy':'')+' · 更新 '+lastUpdated.toLocaleTimeString('zh-HK'));
-    renderAll();
-    loadLive();
-    if(activeTk)loadChain(activeTk);   // ⭐ 刷新實時：期權鏈一起 refresh
-  }catch(e){setLive('載入失敗，重試中…');}
+  }catch(e){
+    // ⭐ 08-18：fetch/JSON 失敗 → 60 秒自動重試（以前淨係顯示「重試中」但永遠唔會自己重試）
+    setLive('載入失敗，60 秒後自動重試…');
+    clearTimeout(window.__recRR);window.__recRR=setTimeout(()=>loadRec(true),60000);
+    if(btn)btn.classList.remove('loading');return;
+  }
+  try{renderAll();}
+  catch(e){
+    // ⭐ 08-18：render 出錯唔再扮「載入失敗」—— 數據其實到咗，分開顯示＋console 留 stack 俾 debug
+    console.error('renderAll error',e);
+    setLive('數據已載入 · 顯示出錯：'+String(e&&e.message||e).slice(0,60));
+  }
+  loadLive();
+  if(activeTk)loadChain(activeTk);   // ⭐ 刷新實時：期權鏈一起 refresh
   if(btn)btn.classList.remove('loading');
 }
 function manualRefresh(){
