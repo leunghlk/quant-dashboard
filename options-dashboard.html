@@ -605,14 +605,15 @@ function renderBest(){
   // ⭐ 2026-08-18 v2：每日上限 2 倉 → 出兩張最佳卡（#1/#2，唔同 ticker）；
   //    閘門關閉／veto 候選照出但標「僅參考」（黃卡+原因），執行掣收起（engine 會拒單）
   const picks=[rec?rec.best:null,rec?rec.best2:null].filter(Boolean);
-  if(!picks.length){el.innerHTML=(rec&&rec.gate_closed?gateWarnHTML():'')+'<div class="muted">今日無符合條件的候選。</div>';return;}
+  // ⚠️ v4 fix：vetoed 候選（signal=none/HOLD/REDUCE）一律唔上 best 卡（同回測入場規則）；
+  //    全部被 veto → 明確講原因，唔好靜靜哋空白
+  if(!picks.length){
+    const vc=(rec&&rec.veto_count)||0;
+    el.innerHTML=(rec&&rec.gate_closed?gateWarnHTML():'')+'<div class="muted">今日無符合條件的候選'+(vc?('（'+vc+' 隻全部被 model veto／業績窗口排除；veto 咗嘅票（如上市未夠 60 日冇 momentum signal）唔會上 best 卡）'):'')+'。</div>';
+    return;}
   let banner='';
   if(picks.some(b=>!!(b.reference_only||(rec&&rec.gate_closed)))){
-    const rs=[];
-    if(rec&&rec.gate_closed)rs.push('開倉閘門關閉：'+gateReason());
-    const vrs=picks.filter(b=>b.veto_reason).map(b=>esc(b.veto_reason));
-    if(vrs.length)rs.push('訊號 veto：'+vrs.join('／'));
-    banner='<div class="warn-note" style="margin:0 0 10px">⚠️ <b>僅參考</b> —— '+rs.join('；')+'。想跟：等閘門重開（通常明日）再執行。</div>';
+    banner='<div class="warn-note" style="margin:0 0 10px">⚠️ <b>僅參考</b> —— 開倉閘門關閉：'+gateReason()+'。想跟：等閘門重開（通常明日）再執行。</div>';
   }
   const b0=picks[0], sc=b0.scenarios||{};
   let h=banner;
