@@ -673,25 +673,28 @@ function renderOptionsIncome(d){
   if(!d){const m='<div style="color:#64748b;padding:8px">期權收入：等待 bridge 連線（建議每日盤前更新）</div>';if(b)b.innerHTML=m;if(bk)bk.innerHTML=m;if(ps)ps.innerHTML=m;return;}
   let h='';
   h+='<div style="font-size:11px;color:#64748b;margin-bottom:6px">'+(d.paper?'📝 紙上模式（未實際落盤）':'🔴 LIVE 模式')+' · '+d.date+'</div>';
-  const best=d.best;
-  if(best){
-    // ⭐ 2026-08-18：閘門關閉/veto 照出最佳卡，但標「僅參考」+ 原因（engine 會拒執行）
-    const ref=!!(best.reference_only||d.gate_closed);
-    if(ref){
-      const rs=[];
-      if(d.gate_closed)rs.push('開倉閘門關閉：'+(d.gate_reason||''));
-      if(best.veto_reason)rs.push('訊號 veto：'+best.veto_reason);
-      h+='<div style="font-size:11px;color:#d97706;margin:2px 0 6px">⚠️ <b>僅參考</b> —— '+rs.join('；')+'（執行會被 engine 拒單）</div>';
+  // ⭐ 2026-08-18 v2：每日上限 2 倉 → 出兩張最佳卡（best/best2）；
+  //    閘門關閉/veto 照出但標「僅參考」+ 原因（engine 會拒執行）
+  var picks=[d.best,d.best2].filter(Boolean);
+  if(picks.length){
+    if(picks.some(function(p){return p.reference_only||d.gate_closed;})){
+      var rs0=[];
+      if(d.gate_closed)rs0.push('開倉閘門關閉：'+(d.gate_reason||''));
+      picks.forEach(function(p){if(p.veto_reason)rs0.push('訊號 veto：'+p.veto_reason);});
+      h+='<div style="font-size:11px;color:#d97706;margin:2px 0 6px">⚠️ <b>僅參考</b> —— '+rs0.join('；')+'（執行會被 engine 拒單）</div>';
     }
-    const earnIn=best.earnings&&best.expiry&&String(best.earnings)<=String(best.expiry);
-    const earnFlag=best.earnings
+    picks.forEach(function(best,pi){
+    var ref=!!(best.reference_only||d.gate_closed);
+    var tag=picks.length>1?(' #'+(pi+1)):'';
+    var earnIn=best.earnings&&best.expiry&&String(best.earnings)<=String(best.expiry);
+    var earnFlag=best.earnings
       ?(earnIn
         ?'<div style="font-size:11px;color:#ef4444;margin-top:4px">🚫 業績日 '+best.earnings+' 在到期日前 → 必須平倉</div>'
         :'<div style="font-size:11px;color:#64748b;margin-top:4px">📅 下一業績日 '+best.earnings+'（到期日後，安全）</div>')
       :'';
-    h+='<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:stretch">';
-    h+='<div style="flex:1.2;min-width:280px;background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:10px;padding:12px;color:#fff">';
-    h+='<div style="font-size:12px;color:'+(ref?'#fbbf24':'#4ade80')+'">'+(ref?'🟡 最佳交易（僅參考）':'🟢 最佳交易')+' · SELL PUT <b>'+best.ticker+'</b></div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:stretch'+(pi>0?';margin-top:12px':'')+'">';
+    h+='<div style="flex:1.2;min-width:280px;background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:10px;padding:12px;color:#fff'+(ref?';outline:1px solid #b45309':'')+'">';
+    h+='<div style="font-size:12px;color:'+(ref?'#fbbf24':'#4ade80')+'">'+(ref?'🟡 最佳交易（僅參考）':'🟢 最佳交易')+tag+' · SELL PUT <b>'+best.ticker+'</b></div>';
     h+='<div style="font-size:22px;font-weight:800;margin:6px 0">行使價 $'+best.strike+'<span style="font-size:12px;color:#94a3b8;font-weight:400">（現價 $'+best.spot+'）</span></div>';
     h+='<div style="font-size:13px;color:#cbd5e1">權利金 $'+best.mid+'/股 = <b>$'+best.premium+'/張 ≈ HKD '+best.premium_hkd+'</b></div>';
     h+=probGauge(best.prob_itm,best.prob_otm);
@@ -700,6 +703,7 @@ function renderOptionsIncome(d){
     h+='<div style="font-size:13px;font-weight:700;color:#fbbf24;margin-top:6px">回報 '+best.yield_pct+'%/週 ≈ '+best.yield_ann+'%/年</div>';
     h+=earnFlag;
     h+='</div>';
+    if(pi===0){
     h+='<div style="flex:1;min-width:230px;background:#1e293b;border-radius:10px;padding:12px;color:#fff">';
     h+='<div style="font-size:12px;color:#94a3b8">資本狀況（HKD 200k 上限）</div>';
     h+='<div style="font-size:20px;font-weight:800">HKD '+d.capital_hkd.toLocaleString()+'</div>';
@@ -707,7 +711,10 @@ function renderOptionsIncome(d){
     h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">已用 '+d.used_pct+'% · 抵押 $'+d.used_usd.toLocaleString()+'</div>';
     h+='<div style="font-size:13px;color:#4ade80;margin-top:8px">估算月收入 <b>~HKD '+d.projected_monthly_hkd.hkd.toLocaleString()+'</b></div>';
     h+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">'+d.target_monthly_hkd_note+'</div>';
-    h+='</div></div>';
+    h+='</div>';
+    }
+    h+='</div>';
+    });
   }else{
     h+='<div style="color:#64748b">今日無符合條件嘅候選（全部被業績窗口 / model veto / 資本限制排除）。</div>';
   }
