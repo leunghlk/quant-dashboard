@@ -2380,6 +2380,16 @@ function renderStrategyDesk(data){
       for(const s of d.sells){sh+='<tr><td style="font-weight:700">'+s.tk+nm(s.name)+'</td><td class="r">'+s.shares+'</td><td class="r">'+s.ref_px_hkd+'</td><td style="color:#dc2626">'+s.reason+'</td><td>'+s.timing+'</td></tr>';}
       sh+='</tbody></table>';
     }
+    let rh='';
+    if(d.reentry&&d.reentry.length>0){
+      rh='<div class="sec-title" style="margin-top:10px">🔁 Re-entry 候選（止蝕離場後翻倉評估 · 觀察窗 10 個交易日）</div>'+
+         '<table class="utable"><thead><tr><th>Ticker</th><th class="r">離場日</th><th class="r">離場價</th><th class="r">現價</th><th class="r">收復</th><th class="r">日數</th><th>訊號</th><th class="r">Decel</th><th>狀態／原因</th></tr></thead><tbody>';
+      for(const r of d.reentry){
+        const okCls=r.eligible?'#16a34a':'#64748b';
+        rh+='<tr><td style="font-weight:700">'+r.tk+nm(r.name)+'</td><td class="r">'+r.exit_date+'</td><td class="r">$'+r.exit_px+'</td><td class="r">$'+r.now_px+'</td><td class="r" style="color:'+(r.reclaim_pct>=0?'#16a34a':'#dc2626')+'">'+(r.reclaim_pct>=0?'+':'')+r.reclaim_pct+'%</td><td class="r">'+r.days_since+'</td><td><span class="'+sigClass(r.signal)+'">'+r.signal+'</span></td><td class="r">'+(r.decel==null?'—':r.decel)+'</td><td style="color:'+okCls+';font-weight:700">'+(r.eligible?'✅ 可考慮翻倉（下個交易日開市）':'⏸ ')+r.reason+'</td></tr>';
+      }
+      rh+='</tbody></table>';
+    }
     let lh='';
     if(!d.log||d.log.length===0){lh='<div style="color:#94a3b8;padding:8px 0">暫無成交記錄</div>';}
     else{
@@ -2393,7 +2403,7 @@ function renderStrategyDesk(data){
     body.innerHTML=modeNote+
       '<div class="sec-title">📦 現持倉（實際組合 · top-5 框架最多 '+d.params.maxPos+' 格 · 建議倉 HKD '+d.params.notional.toLocaleString()+'）</div>'+ph+
       '<div class="sec-title" style="margin-top:10px">🟢 買入候選（score 排序 · 剩 '+d.openSlots+' 格）</div>'+bh+
-      '<div class="sec-title" style="margin-top:10px">🔴 沽出提示（long-only 平倉轉現金）</div>'+sh+
+      '<div class="sec-title" style="margin-top:10px">🔴 沽出提示（long-only 平倉轉現金）</div>'+sh+rh+
       '<div class="sec-title" style="margin-top:10px">🧾 今日策略決策（模型建議，非已執行）</div>'+lh;
   }catch(e){console.error('[render:strategyDesk]',e);body.innerHTML='<div style="color:#dc2626;padding:8px">策略渲染錯誤：'+e.message+'</div>';}
 }
