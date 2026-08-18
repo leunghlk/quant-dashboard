@@ -582,13 +582,22 @@ function gateWarnHTML(){
 function renderBest(){
   const b=rec.best;
   const el=$('bestCard');
-  if(rec&&rec.gate_closed){el.innerHTML=gateWarnHTML()+'<div class="muted">今日最佳：開倉閘門關閉（'+esc(gateReason())+'）—— 規則保命掣。</div>';return;}
-  if(!b){el.innerHTML='<div class="muted">今日無符合條件的候選。</div>';return;}
+  // ⭐ 2026-08-18：閘門關閉／veto 候選照出最佳卡（user 要 reference）—— 黃卡+原因，
+  //    執行掣收起（engine apply_decisions 有閘門硬檢查，撳咗都會被拒單）
+  if(!b){el.innerHTML=(rec&&rec.gate_closed?gateWarnHTML():'')+'<div class="muted">今日無符合條件的候選。</div>';return;}
+  const ref=!!(b.reference_only||(rec&&rec.gate_closed));
+  let banner='';
+  if(ref){
+    const rs=[];
+    if(rec&&rec.gate_closed)rs.push('開倉閘門關閉：'+gateReason());
+    if(b.veto_reason)rs.push('訊號 veto：'+esc(b.veto_reason));
+    banner='<div class="warn-note" style="margin:0 0 10px">⚠️ <b>僅參考</b> —— '+rs.join('；')+'。想跟：等閘門重開（通常明日）再執行。</div>';
+  }
   const sc=b.scenarios||{};
-  let h='';
+  let h=banner;
   h+='<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:stretch">';
-  h+='<div style="flex:1.3;min-width:300px;background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:10px;padding:14px;color:#fff">';
-  h+='<div style="font-size:12px;color:#4ade80">🟢 最佳交易 · SELL PUT <b>'+b.ticker+'</b> ×'+b.contracts+tip('csp')+'</div>';
+  h+='<div style="flex:1.3;min-width:300px;background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:10px;padding:14px;color:#fff'+(ref?';outline:1px solid #b45309':'')+'">';
+  h+='<div style="font-size:12px;color:'+(ref?'#fbbf24':'#4ade80')+'">'+(ref?'🟡 最佳交易（僅參考）':'🟢 最佳交易')+' · SELL PUT <b>'+b.ticker+'</b> ×'+(b.contracts||1)+tip('csp')+'</div>';
   h+='<div style="font-size:24px;font-weight:800;margin:6px 0">行使價 $'+b.strike+'<span style="font-size:12px;color:#94a3b8;font-weight:400">（現價 $'+liveSpot(b.ticker,b.spot)+'）</span>'+tip('strike')+'</div>';
   h+='<div style="font-size:13px;color:#cbd5e1">權利金 $'+b.mid+'/股 = <b>$'+b.premium_total+'</b> ≈ HKD '+b.premium_total_hkd+tip('premium')+'</div>';
   h+=gauge(b.prob_itm,b.prob_otm);
@@ -597,7 +606,9 @@ function renderBest(){
   h+='<div style="font-size:13px;font-weight:700;color:#fbbf24;margin-top:6px">回報 '+(b.yield_pct!=null?Number(b.yield_pct).toFixed(2):'—')+'%/週 ≈ '+b.yield_ann+'%/年'+tip('ann')+'</div>';
   if(sc.breakeven){h+='<div style="font-size:11px;color:#94a3b8;margin-top:2px">盈虧平衡 $'+sc.breakeven+tip('breakeven')+' · 最大虧損（股價→0）$'+sc.max_loss+' ≈ HKD '+sc.max_loss_hkd+tip('maxloss')+'</div>';}
   if(b.earnings){h+='<div style="font-size:11px;color:#f59e0b;margin-top:4px">📅 下一業績日 '+b.earnings+tip('earnings')+'</div>';}
-  h+='<div style="margin-top:10px"><button class="btn btn-go" onclick="execCandidate(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+','+(b.contracts||1)+')">✅ 執行（紙上下單）</button> <button class="btn btn-no" onclick="skipTrade(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+')">不做</button> <button class="btn btn-ghost" onclick="showDetail(\''+b.ticker+'\')">詳情 →</button></div>';
+  h+='<div style="margin-top:10px">'+(ref
+    ?'<span style="font-size:11px;color:#94a3b8">🚧 執行掣暫停（閘門關閉中，engine 會拒單）</span> <button class="btn btn-ghost" onclick="showDetail(\''+b.ticker+'\')">詳情 →</button>'
+    :'<button class="btn btn-go" onclick="execCandidate(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+','+(b.contracts||1)+')">✅ 執行（紙上下單）</button> <button class="btn btn-no" onclick="skipTrade(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+')">不做</button> <button class="btn btn-ghost" onclick="showDetail(\''+b.ticker+'\')">詳情 →</button>')+'</div>';
   h+='</div>';
   h+='<div style="flex:1;min-width:240px;background:#1e293b;border-radius:10px;padding:14px;color:#fff">';
   h+='<div style="font-size:12px;color:#94a3b8">資本 + 期望</div>';
