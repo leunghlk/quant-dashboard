@@ -181,7 +181,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
       <div class="card-b" id="bestCard"></div></div>
     <div class="card"><div class="card-h"><span class="t">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
       <div class="card-b" id="candBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">⚡ 賣 Put 勝率排名（入場掃描）</span><span class="meta">按總評分排（最值得做排第一）· 10–14 DTE · Δ≈0.25 · v4_balanced 正式建議以「今日最佳＋候選名單」為準</span></div>
+    <div class="card"><div class="card-h"><span class="t">⚡ 賣 Put 勝率排名（入場掃描）</span><span class="meta">按總評分排（最值得做排第一）· 7–21 DTE · Δ0.20–0.35 闊窗（純參考）· 正式建議（10–14 DTE · Δ0.25–0.30）以「今日最佳＋候選名單」為準</span></div>
       <div class="card-b" id="winrankBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">你的選擇、排隊中訂單、以及「今日不做」</span></div>
       <div class="card-b" id="decBody"></div></div>
@@ -693,7 +693,7 @@ function renderWinRank(){
   window._wrDetail=window._wrDetail||{};
   let h=gw+'<div class="table-scroll"><table class="utable"><thead><tr>'+
     '<th class="c">#</th><th>標的</th><th class="r">現價</th><th class="r">行使價</th><th class="r">到期</th><th class="r">權利金/張</th><th class="r">按金/張</th><th class="r">接貨現金/張</th>'+
-    '<th class="r">總評分</th><th class="r">動量減速</th><th class="c">ITM / OTM</th><th class="r">周回報</th><th></th></tr></thead><tbody>';
+    '<th class="r">總評分</th><th class="r">動量減速</th><th class="c" title="P(到期 > 盈虧平衡 K−保費)">贏錢</th><th class="c">ITM / OTM</th><th class="r">周回報</th><th></th></tr></thead><tbody>';
   w.forEach((x,i)=>{
     const otm=Math.round(x.prob_otm||0), itm=Math.round(x.prob_itm||0);
     const dec=x.decel!=null?x.decel:'—';
@@ -703,7 +703,7 @@ function renderWinRank(){
     const m1=x.margin1||Math.round(0.22*(x.collateral||1));
     // 合成 candidate ctx → 「詳情」/執行視窗齊全 spot/mid/OTM（無隨行日線 → 圖表自動補拉）
     window._wrDetail[x.ticker]={ticker:x.ticker,expiry:x.expiry,dte:x.dte||0,strike:x.strike,spot:x.spot,mid:x.mid,
-      delta:x.delta,iv:x.iv,iv_rank:x.iv_rank,prob_otm:x.prob_otm,prob_itm:x.prob_itm,
+      delta:x.delta,iv:x.iv,iv_rank:x.iv_rank,prob_otm:x.prob_otm,prob_itm:x.prob_itm,pop:x.pop,
       gamma:null,theta:null,vega:null,levels:{},contracts:n,
       premium:x.premium,premium_total:Math.round(x.premium*n),premium_total_hkd:Math.round(x.premium*n*HKD_USD),
       collateral:x.collateral,margin1:x.margin1,premium_source:x.premium_source,fromWinRank:true};
@@ -713,13 +713,14 @@ function renderWinRank(){
       '<td class="r">$'+x.premium+'</td><td class="r">$'+Number(m1).toLocaleString()+'</td><td class="r">$'+Number(x.collateral||0).toLocaleString()+'</td>'+
       '<td class="r"><b>'+(x.total!=null?Number(x.total).toFixed(2):'—')+'</b></td>'+
       '<td class="r" style="color:'+dcol+';font-weight:700">'+dec+'</td>'+
+      '<td class="c">'+(x.pop!=null?'<span style="color:#16a34a;font-weight:800" title="贏錢機率 = P(到期 > 盈虧平衡 K−保費)，含保費墊保護，恒 ≥ 賺足保費">'+Math.round(x.pop)+'%</span>':'<span style="color:#94a3b8">—</span>')+'</td>'+
       '<td class="c"><span style="color:#16a34a;font-weight:700">'+otm+'%</span> / <span style="color:#dc2626">'+itm+'%</span></td>'+
       '<td class="r">'+(x.yield_pct!=null?Number(x.yield_pct).toFixed(2):'—')+'%</td>'+
       '<td><button class="btn btn-go" '+(x.unaffordable?'style="opacity:.4;pointer-events:none" title="單名按金超 30% equity 上限"':'')+' onclick="event.stopPropagation();execWinRank('+i+')">'+(x.unaffordable?'超上限':'執行')+'</button></td>'+
       '</tr>';
   });
   h+='</tbody></table></div>';
-  h+='<div class="muted" style="font-size:11px;margin-top:4px">⭐ 排序 = <b>總評分</b>由高到低（最值得做排第一，不是只看勝率）：總評分 = 年化回報×IV Rank÷(1+風險) × 股票質素 × 動量健康 —— 也就是揉合了周回報、decel、IV、流動性。勝率只是顯示參考。動量減速 ≤-2 琥珀、≤-3 紅。⚠ = 單名按金超 30% equity 上限（engine 會 reject）。點擊資料列 → 個股詳情（實時期權鏈＋情境分析；掃描行無日線 → K 線自動經 /kline 補拉）。</div>'
+  h+='<div class="muted" style="font-size:11px;margin-top:4px">⭐ 排序 = <b>總評分</b>由高到低（最值得做排第一，不是只看勝率）：總評分 = 年化回報×IV Rank÷(1+風險) × 股票質素 × 動量健康 —— 也就是揉合了周回報、decel、IV、流動性。勝率只是顯示參考。<b>贏錢</b> = P(到期 > 盈虧平衡 K−保費)（含保費墊保護，恒 ≥ 賺足保費）；賺足保費 = P(OTM) = 股價到期守住行使價；ITM% = 被指派風險（三者同由 Black-Scholes N(d2) 計，行使價換 K−保費 就係贏錢）。動量減速 ≤-2 琥珀、≤-3 紅。⚠ = 單名按金超 30% equity 上限（engine 會 reject）。點擊資料列 → 個股詳情（實時期權鏈＋情境分析；掃描行無日線 → K 線自動經 /kline 補拉）。</div>'
     +'<div class="muted" style="font-size:11px;margin-top:2px">沽 Call 不會出現在這裡 —— v4_balanced 不裸賣 Call；接貨之後才會在「持倉管理」以 Covered Call 沽 Call。</div>';
   el.innerHTML=h;
 }
