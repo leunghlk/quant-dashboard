@@ -692,7 +692,7 @@ function renderWinRank(){
   if(!w.length){el.innerHTML='<div class="muted">勝率排名：等待盤前全宇宙掃描（每日更新）。</div>';return;}
   window._wrDetail=window._wrDetail||{};
   let h=gw+'<div class="table-scroll"><table class="utable"><thead><tr>'+
-    '<th class="c">#</th><th>標的</th><th class="r">現價</th><th class="r">行使價</th><th class="r">到期</th><th class="r">權利金/張</th><th class="r">按金/張</th><th class="r">接貨現金/張</th>'+
+    '<th class="c">#</th><th>標的</th><th class="r">現價</th><th class="r">行使價</th><th class="r">到期</th><th class="r">權利金/張</th><th class="r">按金/張</th><th class="r">接貨現金/張</th><th class="c" title="建議張數 = min(單名 30% equity 上限, 剩餘按金預算) ÷ 每張按金，上限 10 張；0 = 剩餘按金唔夠開一張（engine 會拒單）">張數</th>'+
     '<th class="r">總評分</th><th class="r">動量減速</th><th class="c" title="P(到期 > 盈虧平衡 K−保費)">贏錢</th><th class="c">ITM / OTM</th><th class="r">周回報</th><th></th></tr></thead><tbody>';
   w.forEach((x,i)=>{
     const otm=Math.round(x.prob_otm||0), itm=Math.round(x.prob_itm||0);
@@ -700,27 +700,31 @@ function renderWinRank(){
     const dcol=(dec!=='—')?(dec<=-3?'#dc2626':dec<=-2?'#d97706':'#16a34a'):'#94a3b8';
     const una=x.unaffordable?' <span style="color:#dc2626;font-weight:700" title="單名按金超 30% equity 上限，無法執行">⚠</span>':'';
     const n=winRankContracts(x);
+    const nCell=x.unaffordable?'<span style="color:#94a3b8">—</span>':(n>0?'<b>'+n+'</b>':'<span style="color:#dc2626;font-weight:700" title="剩餘按金預算唔夠開一張（engine 會拒單）">0</span>');
     const m1=x.margin1||Math.round(0.22*(x.collateral||1));
+    // 詳情/情境分析起碼按 1 張計（張數欄 0 = 預算唔夠，唔等於情境分析冇意義）
+    const nc=Math.max(1,n);
     // 合成 candidate ctx → 「詳情」/執行視窗齊全 spot/mid/OTM（無隨行日線 → 圖表自動補拉）
     window._wrDetail[x.ticker]={ticker:x.ticker,expiry:x.expiry,dte:x.dte||0,strike:x.strike,spot:x.spot,mid:x.mid,
       delta:x.delta,iv:x.iv,iv_rank:x.iv_rank,prob_otm:x.prob_otm,prob_itm:x.prob_itm,pop:x.pop,
-      gamma:null,theta:null,vega:null,levels:{},contracts:n,
-      premium:x.premium,premium_total:Math.round(x.premium*n),premium_total_hkd:Math.round(x.premium*n*HKD_USD),
+      gamma:null,theta:null,vega:null,levels:{},contracts:nc,
+      premium:x.premium,premium_total:Math.round(x.premium*nc),premium_total_hkd:Math.round(x.premium*nc*HKD_USD),
       collateral:x.collateral,margin1:x.margin1,premium_source:x.premium_source,fromWinRank:true};
     h+='<tr class="rowlink" onclick="showDetail(\''+x.ticker+'\')">'+
       '<td class="c" style="color:#94a3b8">'+(i+1)+'</td><td><b>'+esc(x.ticker)+'</b>'+una+'</td>'+
       '<td class="r">$'+px2(x.spot)+'</td><td class="r">$'+px2(x.strike)+'</td><td class="r">'+(x.dte||'—')+'日 '+x.expiry.slice(5)+'</td>'+
       '<td class="r">$'+x.premium+'</td><td class="r">$'+Number(m1).toLocaleString()+'</td><td class="r">$'+Number(x.collateral||0).toLocaleString()+'</td>'+
+      '<td class="c">'+nCell+'</td>'+
       '<td class="r"><b>'+(x.total!=null?Number(x.total).toFixed(2):'—')+'</b></td>'+
       '<td class="r" style="color:'+dcol+';font-weight:700">'+dec+'</td>'+
       '<td class="c">'+(x.pop!=null?'<span style="color:#16a34a;font-weight:800" title="贏錢機率 = P(到期 > 盈虧平衡 K−保費)，含保費墊保護，恒 ≥ 賺足保費">'+Math.round(x.pop)+'%</span>':'<span style="color:#94a3b8">—</span>')+'</td>'+
       '<td class="c"><span style="color:#16a34a;font-weight:700">'+otm+'%</span> / <span style="color:#dc2626">'+itm+'%</span></td>'+
       '<td class="r">'+(x.yield_pct!=null?Number(x.yield_pct).toFixed(2):'—')+'%</td>'+
-      '<td><button class="btn btn-go" '+(x.unaffordable?'style="opacity:.4;pointer-events:none" title="單名按金超 30% equity 上限"':'')+' onclick="event.stopPropagation();execWinRank('+i+')">'+(x.unaffordable?'超上限':'執行')+'</button></td>'+
+      '<td><button class="btn btn-go" '+((x.unaffordable||n===0)?'style="opacity:.4;pointer-events:none" title="'+(x.unaffordable?'單名按金超 30% equity 上限':'剩餘按金預算唔夠開一張')+'"':'')+' onclick="event.stopPropagation();execWinRank('+i+')">'+(x.unaffordable?'超上限':(n===0?'預算不足':'執行'))+'</button></td>'+
       '</tr>';
   });
   h+='</tbody></table></div>';
-  h+='<div class="muted" style="font-size:11px;margin-top:4px">⭐ 排序 = <b>總評分</b>由高到低（最值得做排第一，不是只看勝率）：總評分 = 年化回報×IV Rank÷(1+風險) × 股票質素 × 動量健康 —— 也就是揉合了周回報、decel、IV、流動性。勝率只是顯示參考。<b>贏錢</b> = P(到期 > 盈虧平衡 K−保費)（含保費墊保護，恒 ≥ 賺足保費）；賺足保費 = P(OTM) = 股價到期守住行使價；ITM% = 被指派風險（三者同由 Black-Scholes N(d2) 計，行使價換 K−保費 就係贏錢）。動量減速 ≤-2 琥珀、≤-3 紅。⚠ = 單名按金超 30% equity 上限（engine 會 reject）。點擊資料列 → 個股詳情（實時期權鏈＋情境分析；掃描行無日線 → K 線自動經 /kline 補拉）。</div>'
+  h+='<div class="muted" style="font-size:11px;margin-top:4px">⭐ 排序 = <b>總評分</b>由高到低（最值得做排第一，不是只看勝率）：總評分 = 年化回報×IV Rank÷(1+風險) × 股票質素 × 動量健康 —— 也就是揉合了周回報、decel、IV、流動性。勝率只是顯示參考。<b>贏錢</b> = P(到期 > 盈虧平衡 K−保費)（含保費墊保護，恒 ≥ 賺足保費）；賺足保費 = P(OTM) = 股價到期守住行使價；ITM% = 被指派風險（三者同由 Black-Scholes N(d2) 計，行使價換 K−保費 就係贏錢）。動量減速 ≤-2 琥珀、≤-3 紅。⚠ = 單名按金超 30% equity 上限（engine 會 reject）。<b>張數</b> = min(單名 30% equity 上限, 剩餘按金預算) ÷ 每張按金，上限 10 張——剩餘按金以引擎最新掃描計（同「按金容量」卡口徑）；0 = 預算唔夠開一張（engine 拒單，執行掣鎖上）。點擊資料列 → 個股詳情（實時期權鏈＋情境分析；掃描行無日線 → K 線自動經 /kline 補拉）。</div>'
     +'<div class="muted" style="font-size:11px;margin-top:2px">沽 Call 不會出現在這裡 —— v4_balanced 不裸賣 Call；接貨之後才會在「持倉管理」以 Covered Call 沽 Call。</div>';
   el.innerHTML=h;
 }
@@ -728,16 +732,20 @@ function renderWinRank(){
 /* ⭐ 2026-08-14: winrank 執行 —— side-aware（賣 Put→CSP / 賣 Call→短 call）＋ 取得實時 Futu bid */
 function winRankContracts(x){
   const eq=eqUSD();   // v4_balanced：單名按金 ≤30% equity（同 engine 口徑）
-  const m1=x.margin1||Math.round(0.22*(x.collateral||1));   // winrank 無 margin1 → 0.22×K×100 近似
-  return Math.max(1,Math.min(10,Math.floor(eq*0.30/m1)));
+  const ms=(rec&&rec.margin_status)||null;
+  const m1=x.margin1||Math.round(0.22*(x.collateral||1));   // engine 隨行 Reg-T 按金（fallback 0.22×K×100 近似）
+  // ⭐ 08-19：兩個 cap 邊個細用邊個 —— 單名 30% equity vs 剩餘按金預算（70% equity−已用，同容量卡口徑）
+  const cap=Math.min(eq*0.30,Math.max(0,(ms&&ms.remaining_usd!=null)?ms.remaining_usd:eq*0.30));
+  return Math.max(0,Math.min(10,Math.floor(cap/m1)));   // 唔夠一張 → 0（誠實顯示；詳情/執行側自行 max(1,·)）
 }
 function execWinRank(i){
   const x=(rec&&rec.winrank||[])[i];if(!x)return;
   const side=(x.signal==='SELL CALL')?'CALL':'PUT';
+  const nExec=Math.max(1,winRankContracts(x));   // ⭐ winRankContracts 而家可以係 0（預算唔夠）→ 執行側夾返 ≥1 由 engine 關卡把關
   // winrank 行不在 book/best/candidates → 合成 candidate context，modal 才齊全 spot/mid/OTM 顯示
   const ctx={ticker:x.ticker,name:x.ticker,expiry:x.expiry,dte:x.dte||0,strike:x.strike,spot:x.spot,mid:x.mid,
     delta:x.delta,iv:x.iv,prob_otm:x.prob_otm,prob_itm:x.prob_itm,
-    contracts:winRankContracts(x),premium:x.premium,premium_total:x.premium,
+    contracts:nExec,premium:x.premium,premium_total:x.premium,
     premium_total_hkd:Math.round(x.premium*HKD_USD),collateral:x.collateral,fromChain:true,signal:x.signal};
   execCandidate(x.ticker,x.expiry,x.strike,ctx.contracts,side,x.mid,ctx);
 }
