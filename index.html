@@ -3081,7 +3081,7 @@ function checkPriceAlerts(data){
     var stopLoss=da&&da.stop!=null?da.stop:p.cost*0.92;
     var target=da&&da.t1!=null?da.t1:(FUND_TARGETS[t]||p.cost*1.15);
     if(p.price<=stopLoss){
-      alerts.push({key:t+'_stop',type:'stop',ticker:t,price:p.price,stopLoss:stopLoss.toFixed(2),msg:'⚠️ 止蝕位盤中觸及：'+t+' 現價 $'+p.price.toFixed(2)+' 觸及止蝕位 $'+stopLoss.toFixed(2)+'（2.5×ATR chandelier）→ 待收市確認，唔好即時沽；收市確認跌穿先至下個交易日開市離場。'+(da&&da.note?'（'+da.note+'）':'')});
+      alerts.push({key:t+'_stop',type:'stop',ticker:t,price:p.price,stopLoss:stopLoss.toFixed(2),msg:'⚠️ 止蝕 watch：'+t+' 現價 $'+p.price.toFixed(2)+' 觸及 2.5×ATR 參考位 $'+stopLoss.toFixed(2)+'（只提示·唔係離場指令）。離場決定以策略台訊號為準；即市唯一行動級係災難軌'+(da&&da.disaster?(' $'+da.disaster+'（≈4×ATR）'):'')+'。'});
     }
     if(p.price>=target){
       alerts.push({key:t+'_target',type:'target',ticker:t,price:p.price,target:target,msg:'🟢 到價警報：'+t+' 現價 $'+p.price.toFixed(2)+' 已到達目標價 $'+target+'！考慮減磅鎖利。'});
