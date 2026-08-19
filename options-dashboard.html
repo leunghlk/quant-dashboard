@@ -402,12 +402,14 @@ async function loadLive(){
   const set=new Set();
   const c=rec?[].concat(rec.best||[],rec.candidates||[],rec.book||[]):[];
   c.forEach(x=>{if(x&&x.ticker)set.add(x.ticker);});
+  (rec&&rec.winrank||[]).forEach(x=>{if(x&&x.ticker)set.add(x.ticker);});   // ⭐ 08-19：winrank 現價都要 live（user 報 winrank 價凍結喺掃描時）
   (rec&&rec.positions||[]).forEach(p=>{if(p.ticker)set.add(p.ticker);});
   if(!set.size)return;
   try{
     const r=await fetchTimeout(activeBridge+'/snapshot?codes='+encodeURIComponent([...set].join(','))+'&secret='+encodeURIComponent(BRIDGE_SECRET),20000);
     const j=await r.json().catch(()=>null);
     if(j&&j.data){j.data.forEach(x=>{if(x&&!x.error)live[(x.orig||'').toUpperCase()]=x;});}
+    try{renderAll();}catch(e){}   // ⭐ 08-19：live 到手即刻重繪全表（以前淨係 detail，現價欄要等下一個 60s 週期先更新）
   }catch(e){}
   if(activeTk)renderDetail(); else if(document.getElementById('pane-detail').classList.contains('active'))renderDetail();
 }
@@ -712,7 +714,7 @@ function renderWinRank(){
       collateral:x.collateral,margin1:x.margin1,premium_source:x.premium_source,fromWinRank:true};
     h+='<tr class="rowlink" onclick="showDetail(\''+x.ticker+'\')">'+
       '<td class="c" style="color:#94a3b8">'+(i+1)+'</td><td><b>'+esc(x.ticker)+'</b>'+una+'</td>'+
-      '<td class="r">$'+px2(x.spot)+'</td><td class="r">$'+px2(x.strike)+'</td><td class="r">'+(x.dte||'—')+'日 '+x.expiry.slice(5)+'</td>'+
+      '<td class="r">$'+liveSpot(x.ticker,x.spot)+'</td><td class="r">$'+px2(x.strike)+'</td><td class="r">'+(x.dte||'—')+'日 '+x.expiry.slice(5)+'</td>'+
       '<td class="r">$'+x.premium+'</td><td class="r">$'+Number(m1).toLocaleString()+'</td><td class="r">$'+Number(x.collateral||0).toLocaleString()+'</td>'+
       '<td class="c">'+nCell+'</td>'+
       '<td class="r"><b>'+(x.total!=null?Number(x.total).toFixed(2):'—')+'</b></td>'+
