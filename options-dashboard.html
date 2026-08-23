@@ -482,7 +482,9 @@ function uniCCY(){return uniCcyHKD()?'HKD':'USD';}
 // HKD-native 金額 → 按當前貨幣顯示（USD = HKD ÷ 户口隱含匯率 realFx）
 function uMoney(vHKD){return uniCcyHKD()? hkd(vHKD) : 'USD '+fmt((vHKD||0)/realFx);}
 function uPnl(vHKD){return uniHideOn()? UNI_MASK : (((vHKD||0)>=0?'+':'−')+uMoney(Math.abs(vHKD||0)));}
-const UNI_MASK='🙈 已隱藏';
+const UNI_MASK='•••••';
+const EYE_ON='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
 function uMask(html){return uniHideOn()? UNI_MASK : html;}
 
 /* ⭐ 08-23：正股 quant model（主 dashboard 策略交易台）數據層 —— worker /api 一次過拎 strategy＋watchlist(業績) */
@@ -576,11 +578,11 @@ function renderUnified(){
     '可動用現金寶': '<b>可動用現金寶</b><br>'+uMask(uMoney(avail))+'（bar 佔 '+pctOf(avail).toFixed(1)+'% · '+availPct.toFixed(0)+'% 資產）<br>＝ Futu withdraw_hkd（最大可提，已扣抵押）。放現金寶 0 佣金收息。'
   };
   const bar = parts.map(p=>'<div style="height:14px;background:'+p.c+';width:'+Math.max(0,Math.min(100,pctOf(p.v)))+'%;cursor:help" data-tip="'+tipDef[p.k].replace(/"/g,'&quot;')+'"></div>').join('');
-  const legend = parts.map(p=>'<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;margin-right:14px"><span style="width:10px;height:10px;border-radius:2px;background:'+p.c+';display:inline-block"></span>'+p.k+' <b>'+(uniHideOn()? '🙈' : (p.v>=0?'':'−')+uMoney(Math.abs(p.v)).replace('HKD ','').replace('USD ',''))+'</b></span>').join('');
+  const legend = parts.map(p=>'<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;margin-right:14px"><span style="width:10px;height:10px;border-radius:2px;background:'+p.c+';display:inline-block"></span>'+p.k+' <b>'+(uniHideOn()? '•••' : (p.v>=0?'':'−')+uMoney(Math.abs(p.v)).replace('HKD ','').replace('USD ',''))+'</b></span>').join('');
   const uniBtn='font-size:11px;font-weight:700;border-radius:8px;padding:2px 10px;border:1.5px solid #cbd5e1;background:#f1f5f9;color:#475569;cursor:pointer';
   let h = '';
   h += '<div style="display:flex;gap:8px;align-items:center;margin:0 0 8px;flex-wrap:wrap">'
-    + '<button onclick="toggleUniHide()" style="'+uniBtn+'">'+(uniHideOn()?'👁 顯示金額':'🙈 隱藏金額')+'</button>'
+    + '<button onclick="toggleUniHide()" style="'+uniBtn+'" title="顯示／隱藏金額">'+(uniHideOn()?EYE_OFF:EYE_ON)+'</button>'
     + '<button onclick="toggleUniCcy()" style="'+uniBtn+'">💱 '+(uniCcyHKD()?'轉 USD':'轉 HKD')+'</button>'
     + '<span class="small muted">當前顯示：<b>'+uniCCY()+'</b>（USD 按 Futu 戶口隱含匯率 '+realFx.toFixed(4)+'）</span></div>';
   h += '<div class="kpi" style="margin-top:0">';
@@ -593,7 +595,7 @@ function renderUnified(){
   h += '<div style="margin:10px 0 6px;font-weight:700;font-size:13px">資產分佈（總資產 '+uMask(uMoney(total))+'）<span class="muted" style="font-weight:400;font-size:11px"> · mouseover 每段睇明細</span></div>';
   h += '<div style="display:flex;border-radius:6px;overflow:hidden;background:#e2e8f0">'+bar+'</div>';
   h += '<div style="margin-top:8px">'+legend+'</div>';
-  h += '<div class="small muted" style="margin-top:6px">'+(uniHideOn()?'🙈 金額已隱藏（撳「👁 顯示金額」恢復）':'現金總值 '+uMoney(cashAll)+' ＝ 抵押鎖定 '+uMoney(locked)+' ＋ 可動用 '+uMoney(avail)+' · 證券市值 '+uMoney(secVal)+' ＝ 正股 +'+uMoney(stockVal)+' ＋ 期權 −'+uMoney(Math.abs(optNet))+'（沽空負債）')+'</div>';
+  h += '<div class="small muted" style="margin-top:6px">'+(uniHideOn()?'':'現金總值 '+uMoney(cashAll)+' ＝ 抵押鎖定 '+uMoney(locked)+' ＋ 可動用 '+uMoney(avail)+' · 證券市值 '+uMoney(secVal)+' ＝ 正股 +'+uMoney(stockVal)+' ＋ 期權 −'+uMoney(Math.abs(optNet))+'（沽空負債）')+'</div>';
   // 持倉細項（正股＋期權）
   const all = (realPos||[]).slice().sort((a,b)=> (b.mkt_val_hkd||0)-(a.mkt_val_hkd||0));
   if(all.length){
@@ -760,11 +762,11 @@ function pnlBtnState(){
 /* ⭐ 2026-08-23：KPI hide/unhide（組合權益／已實現／未實現）—— 所有模式通用 */
 const HIDABLE=['ovEquity','ovRealized','ovUnrealized'];
 function kpiHidden(id){try{return localStorage.getItem('optdash_hide_'+id)==='1';}catch(e){return false;}}
-function applyKpiHide(){HIDABLE.forEach(id=>{const v=$(id);if(v&&kpiHidden(id)){v.textContent='🙈 已隱藏';v.className='val';v.style.color='#94a3b8';v.style.fontSize='15px';}});}
+function applyKpiHide(){HIDABLE.forEach(id=>{const v=$(id);if(v&&kpiHidden(id)){v.textContent='•••••';v.className='val';v.style.color='#94a3b8';v.style.fontSize='15px';}});}
 function toggleKpi(id){
   try{localStorage.setItem('optdash_hide_'+id,kpiHidden(id)?'0':'1');}catch(e){}
   const btn=document.querySelector('[data-kpitoggle="'+id+'"]');
-  if(btn)btn.textContent=kpiHidden(id)?'🙈':'👁';
+  if(btn)btn.innerHTML=kpiHidden(id)?EYE_OFF:EYE_ON;
   if(METHOD==='h6040')renderH6040Overview();else renderOverview();
 }
 function renderPnlKpi(p){   // ⭐ 真倉/紙上/兩者 三段式 P&L（真倉=Futu 實單標記倉）
@@ -2492,7 +2494,7 @@ function h6040SaveLedger(l){try{localStorage.setItem('h6040_ledger',JSON.stringi
   const v=$(id);if(!v)return;const k=v.closest('.k');const lbl=k&&k.querySelector('.lbl');if(!lbl)return;
   const btn=document.createElement('span');
   btn.setAttribute('data-kpitoggle',id);
-  btn.textContent=kpiHidden(id)?'🙈':'👁';
+  btn.innerHTML=kpiHidden(id)?EYE_OFF:EYE_ON;
   btn.style.cssText='cursor:pointer;margin-left:6px;opacity:.6;font-size:12px';
   btn.title='隱藏／顯示此欄';
   btn.onclick=function(){toggleKpi(id);};
