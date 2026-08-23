@@ -448,8 +448,12 @@ function ackAlarm(){   // ⭐ 手動撳「✕ 知道了」：記住呢組 sig，
 }
 function renderAlarm(){
   const bar=$('optAlert');if(!bar)return;
-  if(METHOD==='h6040'){bar.style.display='none';flashStop();return;}   // h6040 未接引擎，無警報
-  const acts=alarmActs(),bk=(rec&&rec.breaker)||{};   // ⭐ 手動平倉係 user 自己嘅動作（Telegram 已確認）→ 唔觸發警報 bar
+  // ⭐ 2026-08-23：h6040 用同一套 engine 警報（rec.actions / 熔斷 / 按金），
+  //   真倉（Futu 實單）開/平/改張/轉真倉已經由 v4 engine 即時推 Telegram → 唔使分開。
+  //   h6040 視圖只追蹤 real 倉，所以過濾到真倉層（紙上倉出場唔喺 h6040 彈）。
+  const acts=alarmActs();
+  const bk=(rec&&rec.breaker)||{};   // ⭐ 手動平倉係 user 自己嘅動作（Telegram 已確認）→ 唔觸發警報 bar
+
   const cuts=acts.filter(a=>a.indexOf('cut')>=0).length,rolls=acts.filter(a=>a.indexOf('roll')>=0).length;
   const asn=acts.filter(a=>a.indexOf('指派')>=0).length,clos=acts.filter(a=>a.indexOf('平倉')>=0&&a.indexOf('cut')<0&&a.indexOf('roll')<0&&a.indexOf('指派')<0).length;
   const ms=(rec&&rec.margin_status)||null;
@@ -1884,8 +1888,8 @@ function h6040LedgerTable(led){
   return h+'</tbody></table>';
 }
 function renderH6040Positions(){
-  const ac=$('actCard');
-  if(ac)ac.style.display='none';   // h6040 視圖唔顯示 v4 engine 出場訊號
+  // ⭐ 2026-08-23：h6040 視圖顯示真倉出場信號（cut/roll/指派 等由 v4 engine 即時推 Telegram）。
+  //   actCard 保留顯示，過濾到 real 倉（紙上倉出場唔喺 h6040 彈）。
   const posAll=((rec&&rec.positions)||[]).filter(x=>x.status==='open');
   const realPos=posAll.filter(x=>x.real);
   const body=$('posBody');
@@ -1939,7 +1943,7 @@ function renderH6040Best(){
   }else{
     h+='<div class="warn-note" style="margin-top:6px">🚧 單股腿關閉：VIX '+(g.vix!=null?g.vix.toFixed(1):'—')+' < 20。回測規則今日不開單股 Put（等波動回升）。</div>';
   }
-  h+='<div class="small muted" style="margin-top:8px">⚠️ 此模式執行只記錄於瀏覽器本地紙上賬（與 v4 engine / Telegram 分開）。要真正落盤請等 60/40 實時引擎接好。</div>';
+  h+='<div class="small muted" style="margin-top:8px">⚠️ 此模式執行只記錄於瀏覽器本地紙上賬（回測參考用）。<b>真倉落盤經 v4 engine 即時推 Telegram</b>（開/平/改張/轉真倉＋盤中 cut/roll/指派警報），與 v4_balanced 同一套通知。</div>';
   b.innerHTML=h;
   // candidates table (reuse slot)
   const cd=$('candBody'); if(cd)cd.innerHTML='<div class="muted">Hybrid 60/40：候選已併入上方「今日最佳」卡片。</div>';
