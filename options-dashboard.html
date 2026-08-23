@@ -209,9 +209,9 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
   <div class="pane active" id="pane-best">
     <div class="card"><div class="card-h"><span class="t">🎯 今日最佳交易</span><span class="meta">點「執行」下單（紙上）· 點行開個股詳情</span></div>
       <div class="card-b" id="bestCard"></div></div>
-    <div class="card"><div class="card-h"><span class="t">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
+    <div class="card"><div class="card-h"><span class="t" id="candTitle">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
       <div class="card-b" id="candBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">⚡ 賣 Put 勝率排名（入場掃描）</span><span class="meta">按總評分排（最值得做排第一）· 7–21 DTE · Δ0.20–0.35 闊窗（純參考）· 正式建議（10–14 DTE · Δ0.25–0.30）以「今日最佳＋候選名單」為準</span></div>
+    <div class="card" id="winrankCard"><div class="card-h"><span class="t">⚡ 賣 Put 勝率排名（入場掃描）</span><span class="meta">按總評分排（最值得做排第一）· 7–21 DTE · Δ0.20–0.35 闊窗（純參考）· 正式建議（10–14 DTE · Δ0.25–0.30）以「今日最佳＋候選名單」為準</span></div>
       <div class="card-b" id="winrankBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">你的選擇、排隊中訂單、以及「今日不做」</span></div>
       <div class="card-b" id="decBody"></div></div>
@@ -2371,42 +2371,49 @@ function renderH6040Best(){
   }else{
     h+='<div class="warn-note" style="border-color:#fecaca;background:#fef2f2;color:#b91c1c">🚧 SPY 腿關閉：SPY '+(g.spy!=null&&g.spyMa200!=null?('跌穿 200DMA（$'+g.spy.toFixed(1)+' < $'+g.spyMa200.toFixed(1)+'）'):'—')+'。回測規則今日不開 SPY Put。</div>';
   }
-  // single-name leg（⭐ 08-24：v5 回測池 h6040Rec —— 同回測同宇宙同過濾，唔用 v4 宇宙；
-  // ⭐ 08-24 v2 user 要求：閘門關閉都照列池表「僅參考」—— 同 v4_balanced reference-only 慣例）
+  // single-name leg（⭐ 08-24：v5 回測池 h6040Rec —— 同回測同宇宙同過濾，唔用 v4 宇宙）。
+  // ⭐ 08-24 v4 user 指正：呢卡只出狀態＋top pick 一行；**全池表出喺「候選名單」section**
+  // （h6040 模式 title＝按 mom score · 回測優先次序），「勝率排名」card h6040 模式收起（v4 概念）。
   const pool=(h6040Rec&&h6040Rec.candidates)||[];
   const scan=(h6040Rec&&h6040Rec.scan)||{};
-  let rows='';
-  pool.slice(0,8).forEach(c=>{
-    rows+='<tr style="cursor:pointer" onclick="showDetail(\''+c.ticker+'\')"><td><b>'+c.ticker+'</b></td><td class="r">$'+px2(c.price)+'</td><td class="r">'+(c.score!=null?c.score.toFixed(2):'—')+'</td><td>'+_sigPill(c.signal)+'</td><td class="r">'+(c.iv!=null?(c.iv*100).toFixed(0)+'%':'—')+'</td><td class="r">'+(c.rsi!=null?c.rsi.toFixed(0):'—')+'</td><td class="r">'+(c.sug_strike!=null?'$'+px2(c.sug_strike):'—')+'</td><td class="r">'+(c.sug_dte||'—')+'</td><td class="r">'+(c.sug_delta!=null?'−'+Math.abs(c.sug_delta).toFixed(2):'—')+'</td><td class="r">'+(c.sug_yield_ann!=null?c.sug_yield_ann+'%':'—')+'</td></tr>';
-  });
-  const poolTbl=(tblColor)=>'<div class="table-scroll" style="margin-top:8px"><table class="utable"'+(tblColor?' style="color:'+tblColor+'"':'')+'><thead><tr><th>股票</th><th class="r">現價</th><th class="r">mom</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th class="r">建議K</th><th class="r">DTE</th><th class="r">Δ</th><th class="r">年化</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  const top=pool[0];
+  const topLine=top
+    ?('<b>'+top.ticker+'</b> $'+px2(top.price)+' · mom '+(top.score!=null?top.score.toFixed(2):'—')+' · '+_sigPill(top.signal)+' · IV '+(top.iv!=null?(top.iv*100).toFixed(0)+'%':'—')+' · RSI '+(top.rsi!=null?top.rsi.toFixed(0):'—')+' → 沽 '+(top.sug_strike!=null?'$'+px2(top.sug_strike):'—')+' put · '+(top.sug_dte||'—')+'DTE · Δ'+(top.sug_delta!=null?'−'+Math.abs(top.sug_delta).toFixed(2):'—')+' · 年化 '+(top.sug_yield_ann!=null?top.sug_yield_ann+'%':'—')+'（全名單見下方候選名單）')
+    :'';
   if(!h6040Rec||!h6040Rec.scan_fresh){
     h+='<div class="warn-note" style="margin-top:6px">⚠️ v5 回測池掃描過期（'+(scan.scan_date||'—')+'）— com.kathy.h6040-scan 未有新 output，暫不顯示單股候選。</div>';
   }else if(g.vixOk&&scan.breadth!=null&&scan.breadth<0.5){
     h+='<div class="warn-note" style="margin-top:6px">🚧 單股腿 breadth '+(scan.breadth*100).toFixed(0)+'%＜50%（回測閘門）— VIX 開但市場廣度不足，今日不開單股 Put。</div>';
-    if(pool.length){
-      h+='<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:14px;margin-top:6px"><div class="small" style="color:#92400e">📊 單股腿候選（僅參考 — breadth 閘門關閉，回測規則今日不落盤）· v5 回測池 '+pool.length+' 隻（scan '+scan.scan_date+' · 建議K/Δ/年化＝BS 模型價）</div>'+poolTbl('')+'</div>';
-    }
+    if(topLine)h+='<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px 14px;margin-top:6px" class="small">📊 今日池 top（僅參考 — breadth 閘門關閉）：'+topLine+'</div>';
   }else if(g.vixOk){
-    if(pool.length){
-      h+='<div style="background:#0f172a;border-radius:10px;padding:14px;color:#fff;margin-top:6px">'+
-        '<div style="font-size:12px;color:#4ade80">🟢 單股腿（60% 資本）· VIX 20–32 開放 · v5 回測池 '+pool.length+' 個候選（scan '+(scan.scan_date||'—')+' · 建議K/Δ/年化＝BS 模型價，落盤前睇實時鏈）</div>'+poolTbl('#e2e8f0')+'</div>';
+    if(topLine){
+      h+='<div style="background:#0f172a;border-radius:10px;padding:12px 14px;color:#fff;margin-top:6px"><div class="small" style="color:#4ade80">🟢 單股腿（60% 資本）· VIX 20–32 開放 · v5 回測池 '+pool.length+' 隻 · 今日 top：<span style="color:#e2e8f0">'+topLine+'</span></div></div>';
     }else{
       h+='<div class="muted" style="margin-top:6px">單股腿閘門開放，但今日無符合條件候選。</div>';
     }
   }else{
     h+='<div class="warn-note" style="margin-top:6px">🚧 單股腿關閉：VIX '+(g.vix!=null?g.vix.toFixed(1):'—')+' 唔喺 20–32 區。回測規則今日不開單股 Put（等波動回升）。</div>';
-    if(pool.length){
-      h+='<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:14px;margin-top:6px"><div class="small" style="color:#92400e">📊 單股腿候選（僅參考 — 閘門關閉，回測規則今日不落盤）· v5 回測池 '+pool.length+' 隻（scan '+scan.scan_date+' · 建議K/Δ/年化＝BS 模型價）</div>'+poolTbl('')+'</div>';
-    }else{
-      h+='<div class="muted" style="margin-top:6px">今日 v5 池無符合 CFG_SINGLE 過濾嘅候選。</div>';
-    }
+    if(topLine)h+='<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px 14px;margin-top:6px" class="small">📊 今日池 top（僅參考 — 閘門關閉）：'+topLine+'</div>';
+    else h+='<div class="muted" style="margin-top:6px">今日 v5 池無符合 CFG_SINGLE 過濾嘅候選。</div>';
   }
   h+='<div class="small muted" style="margin-top:8px">⚠️ 此模式執行只記錄於瀏覽器本地紙上賬（回測參考用）。<b>真倉落盤經 v4 engine 即時推 Telegram</b>（開/平/改張/轉真倉＋盤中 cut/roll/指派警報），與 v4_balanced 同一套通知。</div>';
   b.innerHTML=h;
-  // candidates table (reuse slot)
-  const cd=$('candBody'); if(cd)cd.innerHTML='<div class="muted">Hybrid 60/40：v5 池候選已併入上方「今日最佳」卡片（閘門關閉時同樣列出，標明僅參考）。</div>';
-  const wr=$('winrankBody'); if(wr)wr.innerHTML='<div class="muted">Hybrid 60/40：勝率排名以回測為準 —— 單股腿 91.4%（174 筆）· SPY 腿 93.7%（190 筆）。實時掃描沿用上方閘門。</div>';
+  // ⭐ 08-24 v4：「候選名單」section（h6040 模式）＝ v5 全池表（mom score 次序＝回測優先次序）
+  const cd=$('candBody');
+  if(cd){
+    if(!h6040Rec||!h6040Rec.scan_fresh){
+      cd.innerHTML='<div class="muted">v5 回測池掃描過期（'+(scan.scan_date||'—')+'）— com.kathy.h6040-scan 未有新 output。</div>';
+    }else{
+      const gateOpen=g.vixOk&&!(scan.breadth!=null&&scan.breadth<0.5);
+      const banner=gateOpen?'':'<div class="warn-note" style="margin-bottom:6px">📊 僅參考 — 單股腿閘門關閉'+(!g.vixOk?'（VIX '+(g.vix!=null?g.vix.toFixed(1):'—')+' 唔喺 20–32 區）':'（breadth '+(scan.breadth*100).toFixed(0)+'%＜50%）')+'，回測規則今日不落盤。</div>';
+      let rows='';
+      pool.forEach(c=>{
+        rows+='<tr style="cursor:pointer" onclick="showDetail(\''+c.ticker+'\')"><td><b>'+c.ticker+'</b></td><td class="r">$'+px2(c.price)+'</td><td class="r">'+(c.score!=null?c.score.toFixed(2):'—')+'</td><td>'+_sigPill(c.signal)+'</td><td class="r">'+(c.iv!=null?(c.iv*100).toFixed(0)+'%':'—')+'</td><td class="r">'+(c.rsi!=null?c.rsi.toFixed(0):'—')+'</td><td class="r">'+(c.sug_strike!=null?'$'+px2(c.sug_strike):'—')+'</td><td class="r">'+(c.sug_dte||'—')+'</td><td class="r">'+(c.sug_delta!=null?'−'+Math.abs(c.sug_delta).toFixed(2):'—')+'</td><td class="r">'+(c.sug_yield_ann!=null?c.sug_yield_ann+'%':'—')+'</td></tr>';
+      });
+      cd.innerHTML=(rows?banner+'<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">現價</th><th class="r">mom</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th class="r">建議K</th><th class="r">DTE</th><th class="r">Δ</th><th class="r">年化</th></tr></thead><tbody>'+rows+'</tbody></table></div>':banner+'<div class="muted">今日 v5 池無符合 CFG_SINGLE 過濾嘅候選。</div>');
+    }
+  }
+  const cm=$('candMeta'); if(cm)cm.textContent='v5 回測池 '+pool.length+' 隻 · scan '+(scan.scan_date||'—')+' · VIX '+(scan.vix!=null?scan.vix.toFixed(1):'—')+' · breadth '+(scan.breadth!=null?(scan.breadth*100).toFixed(0)+'%':'—')+' · 建議K/Δ/年化＝BS 模型價';
   const nt=$('notesBody'); if(nt)nt.innerHTML='<span class="muted">Hybrid 60/40 排除：單股腿要 VIX 20–32＋breadth≥50% 才開（v5 回測池）；SPY 腿要 SPY>200DMA 才開。兩腿皆關 = 今日全場休息（同回測）。</span>';
 }
 function h6040OpenSpyChain(){
@@ -2522,6 +2529,9 @@ function setMethod(m){
       ?'Hybrid 60/40 · 60% 單股 + 40% SPY Put · <strong>回測 +33.5%/年 · 回撤 −9.7%</strong>'
       :'v4_balanced · 沽 Put 輪動 · <strong>2026 回測 +151.7%</strong> · 紙上 · Futu 實時';
   }
+  // ⭐ 08-24 v4：h6040 模式 — 候選名單 title 換 mom score 口徑；「勝率排名」card 收起（v4 winrank 概念）
+  const ct=$('candTitle'); if(ct)ct.textContent=m==='h6040'?'候選名單（按 mom score · 回測優先次序）':'候選名單（按分數排序）';
+  const wc=$('winrankCard'); if(wc)wc.style.display=m==='h6040'?'none':'';
   if(m==='h6040')loadH6040Gates().then(()=>renderAll());
   else renderAll();
 }
