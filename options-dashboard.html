@@ -2475,8 +2475,8 @@ function setMethod(m){
   const sub=$('appbarSub');
   if(sub){
     sub.innerHTML=m==='h6040'
-      ?'Hybrid 60/40 · 60% 單股（VIX≥20）+ 40% SPY 指數 Put · <strong>回測 4.6 年 +33.5%/年 · 回撤 −9.7%</strong> · HKD 320,000 · 2022 起驗證'
-      :'v4_balanced · 沽 Put → 接貨 → Covered Call · 10–14 DTE · <strong>回測 16 個月平均 +HKD 25.1k/月</strong>（2025 +24.3% · 2026 +151.7%）· 紙上 · Futu 實時';
+      ?'Hybrid 60/40 · 60% 單股 + 40% SPY Put · <strong>回測 +33.5%/年 · 回撤 −9.7%</strong>'
+      :'v4_balanced · 沽 Put 輪動 · <strong>2026 回測 +151.7%</strong> · 紙上 · Futu 實時';
   }
   if(m==='h6040')loadH6040Gates().then(()=>renderAll());
   else renderAll();
