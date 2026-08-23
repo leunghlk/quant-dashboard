@@ -2474,16 +2474,31 @@ async function loadH6040Gates(){
     h6040Gates.loaded=true;
   }catch(e){h6040Gates.loaded=false;}
 }
-/* ⭐ 08-24：v5 回測池（h6040_scan.py 每日 06:10 掃 h6040_rec.json → monitor :8799 /monitor.json）*/
+/* ⭐ 08-24：v5 回測池（h6040_scan.py 每日 06:10 掃 h6040_rec.json）。
+   ⭐ 08-24 v2：live https 頁 fetch 唔到 http://127.0.0.1:8799（mixed content/PNA 封鎖）→
+   主路徑改 bridge /h6040（同 rec/snapshot 行同一條 tunnel＋worker /live proxy 鏈），
+   loopback monitor 只做本地 fallback。⚠️ render 要 call renderH6040Best（renderBest 係 v4
+   renderer，METHOD=h6040 時 call 佢會用 v4 卡覆蓋 bestCard）。*/
 let h6040Rec=null;
 async function loadH6040Rec(){
   try{
-    const r=await fetchTimeout('http://127.0.0.1:8799/monitor.json',8000);
+    const r=await fetchTimeout(activeBridge+'/h6040?secret='+encodeURIComponent(BRIDGE_SECRET),12000);
     if(r&&r.ok){
       const j=await r.json();
-      if(j&&j.h6040){h6040Rec=j.h6040;if(METHOD==='h6040')renderBest();}
+      if(j&&j.scan_date&&Array.isArray(j.candidates)){
+        let fresh=false;
+        try{fresh=(Date.now()-new Date(j.generated).getTime())<4*86400000;}catch(e){}
+        h6040Rec={scan:{scan_date:j.scan_date,vix:j.vix,breadth:j.breadth,gate_open:j.gate_open,universe_n:j.universe_n,n_passed:j.n_passed},scan_fresh:fresh,candidates:j.candidates};
+      }
     }
   }catch(e){console.error('loadH6040Rec',e);}
+  if(!h6040Rec){
+    try{
+      const r2=await fetchTimeout('http://127.0.0.1:8799/monitor.json',6000);
+      if(r2&&r2.ok){const j2=await r2.json();if(j2&&j2.h6040)h6040Rec=j2.h6040;}
+    }catch(e){}
+  }
+  if(h6040Rec&&METHOD==='h6040')renderH6040Best();
   return h6040Rec;
 }
 function setMethod(m){
