@@ -136,10 +136,10 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
     <div class="lk-name">leungkathy</div>
     <div class="lk-sub">All-in-One Financial Dashboard Suite</div>
   </div>
-  <div class="lk-prod">期權交易 · Options Income Desk</div>
+  <div class="lk-prod">證券交易總覽 · My Securities Desk</div>
 </div>
 <div class="appbar"><div class="appbar-in">
-  <div><h1>💰 期權交易</h1><div class="sub" id="appbarSub">v4_balanced · 沽 Put → 接貨 → Covered Call · 10–14 DTE · <strong>回測 16 個月平均 +HKD 25.1k/月</strong>（2025 +24.3% · 2026 +151.7%）· 紙上 · Futu 實時</div></div>
+  <div><h1>💼 證券交易總覽</h1><div class="sub" id="appbarSub">正股 ＋ 期權 ＋ 現金寶 · 統一持倉（HKD 320,000 基準）· Futu 實時 · <strong>回本目標 HKD 50,000 @ 2026-12-31</strong></div></div>
   <div class="appbar-right">
     <div class="method-sel" id="methodSel">
       <button data-method="v4_balanced" class="on" onclick="setMethod('v4_balanced')">v4_balanced</button>
@@ -170,6 +170,8 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
       <button id="pnlBtn-both" onclick="setPnlMode('both')" style="font-size:12px;font-weight:700;border-radius:8px;padding:3px 12px;border:1.5px solid #cbd5e1;background:#f1f5f9;color:#475569;cursor:pointer">兩者</button>
       <span id="pnlModeNote" style="font-size:11px;color:#94a3b8"></span>
     </div>
+    <div class="card" style="border:1.5px solid #1a73e8"><div class="card-h"><span class="t">💼 我的證券組合（統一總覽）</span><span class="meta">正股 ＋ 期權 ＋ 現金寶 · 基準 HKD 320,000</span></div>
+      <div class="card-b" id="unifiedBody"><div class="muted">載入中（Futu 真戶口＋期權 engine）…</div></div></div>
     <div class="kpi">
       <div class="k"><div class="lbl">組合權益（HKD）</div><div class="val" id="ovEquity">—</div><div class="small muted" id="ovReturn"></div></div>
       <div class="k"><div class="lbl">已實現 P&amp;L</div><div class="val up" id="ovRealized">—</div></div>
@@ -401,6 +403,7 @@ async function loadRec(force){
   }
   loadLive();
   if(activeTk)loadChain(activeTk);   // ⭐ 刷新實時：期權鏈一起 refresh
+  loadReal();   // ⭐ 2026-08-23：統一證券組合（正股＋現金寶）由 Futu 真戶口拉
   if(btn)btn.classList.remove('loading');
 }
 function manualRefresh(){
@@ -425,12 +428,101 @@ async function loadLive(){
   }catch(e){}
   if(activeTk)renderDetail(); else if(document.getElementById('pane-detail').classList.contains('active'))renderDetail();
 }
+// ════════════ 統一證券組合（正股 + 期權 + 現金寶，HKD 320,000 基準）═════════════
+// ⭐ 2026-08-23：user 要將 LITE/DLLL 正股 + 期權真倉 + 閒置現金寶 併入同一 dashboard。
+//   正股由 bridge /real_positions（Futu 真戶口，avg cost + 市值）；現金由 /real_funds；期權由 rec。
+const BASE_HKD = 320000;            // ⭐ user 指定真倉總資本基準（回本進度分母）
+let realPos = [];                   // [{ticker,shares,avg_cost,price,mkt_val_hkd,cost_hkd,pnl_hkd,pnl_pct}]
+let realFunds = null;               // {power_hkd,total_hkd,cash_hkd,us_cash,ts}
+const EQUITY_TICKERS = ['LITE','DLLL'];
+
+async function loadReal(){
+  if(!activeBridge)return;
+  try{
+    const [pr,pf] = await Promise.all([
+      fetchTimeout(activeBridge+'/real_positions?secret='+encodeURIComponent(BRIDGE_SECRET),15000).then(r=>r.json().catch(()=>null)),
+      fetchTimeout(activeBridge+'/real_funds?secret='+encodeURIComponent(BRIDGE_SECRET),15000).then(r=>r.json().catch(()=>null))
+    ]);
+    if(pr && pr.positions) realPos = pr.positions;
+    if(pf && pf.ok) realFunds = pf;
+    // ⭐ 用 live 價更新正股市值（/real_positions 嘅 price 有時係 cost fallback）
+    realPos.forEach(p=>{
+      const lv = live[p.ticker];
+      if(lv && (lv.live_price!=null)){ p.price = lv.live_price; const m = lv.live_price*p.shares; p.mkt_val_hkd = Math.round(m); p.pnl_hkd = Math.round(m - p.cost_hkd); p.pnl_pct = (p.cost_hkd>0? p.pnl_hkd/p.cost_hkd*100:0); }
+    });
+    renderUnified();
+  }catch(e){ console.error('loadReal',e); }
+}
+
+// ⭐ 2026-08-23：統一證券組合 — Futu 真戶口做 single source of truth（避免同 engine paper book 重複計）
+//   realFunds = 總資產/現金（權威）；realPos = 所有真倉（正股+期權，kind 分類）；P&L 由 Futu 每倉 unrealized/realized 加總。
+function stocksList(){ return (realPos||[]).filter(p=>p.kind!=='option'); }
+function optsList(){ return (realPos||[]).filter(p=>p.kind==='option'); }
+function sumF(arr,f){ return (arr||[]).reduce((s,p)=>s+(p[f]||0),0); }
+
+function renderUnified(){
+  const el = $('unifiedBody'); if(!el)return;
+  const stocks = stocksList(), opts = optsList();
+  const stockVal = sumF(stocks,'mkt_val_hkd');
+  const optVal   = sumF(opts,'mkt_val_hkd');           // 短 put 淨值（負=暫時蝕）
+  const cash = (realFunds && realFunds.cash_hkd!=null) ? realFunds.cash_hkd : 0;
+  const total = (realFunds && realFunds.total_hkd!=null) ? realFunds.total_hkd : (stockVal + optVal + cash);
+  const realized = sumF(realPos,'realized_pl');
+  const unreal   = sumF(realPos,'unrealized_pl');
+  const pnlTotal = realized + unreal;
+  const retPct = (total - BASE_HKD)/BASE_HKD*100;
+  const cashPct = total>0 ? cash/total*100 : 0;
+  // 資產分佈：現金寶 / 正股 / 期權（期權用 |淨值| 入 bar，負數另註）
+  const parts = [
+    {k:'現金寶', v:cash,                 c:'#16a34a'},
+    {k:'正股',   v:Math.max(0,stockVal),  c:'#1a73e8'},
+    {k:'期權',   v:Math.max(0,optVal),    c:'#7c3aed'}
+  ];
+  const sum = parts.reduce((s,p)=>s+p.v,0)||1;
+  const bar = parts.map(p=>'<div style="height:10px;background:'+p.c+';width:'+Math.max(0,Math.min(100,p.v/sum*100))+'%" title="'+p.k+' '+(p.v/1000).toFixed(0)+'k"></div>').join('');
+  const legend = parts.map(p=>'<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;margin-right:14px"><span style="width:10px;height:10px;border-radius:2px;background:'+p.c+';display:inline-block"></span>'+p.k+' <b>'+(p.v/1000).toFixed(0)+'k</b> ('+(p.v/sum*100).toFixed(0)+'%)</span>').join('');
+  const up = pnlTotal>=0;
+  let h = '';
+  h += '<div class="kpi" style="margin-top:0">';
+  h += '<div class="k"><div class="lbl">總資產（HKD）</div><div class="val" id="uTotal">'+hkd(total)+'</div><div class="small muted">基準 HKD '+(BASE_HKD/1000).toFixed(0)+'k · 回報 '+(retPct>=0?'+':'')+retPct.toFixed(1)+'%</div></div>';
+  h += '<div class="k"><div class="lbl">已實現 P&L</div><div class="val '+(realized>=0?'up':'dn')+'">'+money(realized)+'</div></div>';
+  h += '<div class="k"><div class="lbl">未實現 P&L</div><div class="val '+(unreal>=0?'up':'dn')+'">'+money(unreal)+'</div></div>';
+  h += '<div class="k"><div class="lbl">閒置現金寶</div><div class="val">'+hkd(cash)+'</div><div class="small muted">'+cashPct.toFixed(0)+'% 資產 · 隨時調配 · 0佣金收息</div></div>';
+  h += '</div>';
+  h += '<div style="margin:10px 0 6px;font-weight:700;font-size:13px">資產分佈</div>';
+  h += '<div style="display:flex;border-radius:6px;overflow:hidden;background:#e2e8f0">'+bar+'</div>';
+  h += '<div style="margin-top:8px">'+legend+'</div>';
+  // 持倉細項（正股＋期權）
+  const all = (realPos||[]).slice().sort((a,b)=> (b.mkt_val_hkd||0)-(a.mkt_val_hkd||0));
+  if(all.length){
+    h += '<div style="font-weight:700;margin:14px 0 6px;font-size:13px">持倉明細（Futu 實單）</div>';
+    h += '<div class="table-scroll"><table class="utable"><thead><tr><th>代號</th><th class="r">股數/張</th><th class="r">入場價</th><th class="r">現價</th><th class="r">市值(HKD)</th><th class="r">未實現</th><th class="r">已實現</th></tr></thead><tbody>';
+    all.forEach(p=>{
+      const tag = p.kind==='option' ? ' 📃' : '';
+      h += '<tr><td><b>'+p.ticker+'</b>'+tag+(p.name?' <span class="muted" style="font-size:10px">'+esc(p.name)+'</span>':'')+'</td>'
+        + '<td class="r">'+p.shares+'</td>'
+        + '<td class="r">$'+px2(p.avg_cost)+'</td>'
+        + '<td class="r">$'+px2(p.price)+'</td>'
+        + '<td class="r">'+hkd(p.mkt_val_hkd)+'</td>'
+        + '<td class="r '+(p.unrealized_pl>=0?'pos':'neg')+'">'+money(p.unrealized_pl)+'</td>'
+        + '<td class="r '+(p.realized_pl>=0?'pos':'neg')+'">'+money(p.realized_pl)+'</td></tr>';
+    });
+    h += '</tbody></table></div>';
+  } else {
+    h += '<div class="muted" style="margin-top:12px">持倉讀取中／暫無（Futu 真戶口）</div>';
+  }
+  h += '<div class="small muted" style="margin-top:8px">數據來源：Futu 真戶口（總資產/現金/持倉權威值）· 回本目標 HKD 50,000 @ 2026-12-31</div>';
+  el.innerHTML = h;
+}
+
+
 function setLive(t){const el=$('liveBadge');if(el)el.textContent=t;}
 
 /* ════════════ render ════════════ */
 function renderAll(){
   if(METHOD==='h6040'){renderH6040Overview();renderH6040Best();renderPositions();renderDecisions();renderMethod();renderAlarm();if(activeTk)renderDetail();return;}
   if(!rec)return;   // ⭐ 2026-08-23：boot 時 rec 未到，唔好炸
+  renderUnified();   // ⭐ 2026-08-23：統一證券組合卡（正股＋期權＋現金寶）
   renderOverview();renderBest();renderCandidates();renderWinRank();renderPositions();renderNotes();renderDecisions();renderMethod();renderAlarm();if(activeTk)renderDetail();}
 /* ⭐ 出場警報：engine actions／熔斷 → 頁面頂部紅 bar + 標題閃 + 提示音（Telegram 已由 engine 即時推送） */
 const BASE_TITLE=document.title;
