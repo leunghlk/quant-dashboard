@@ -2481,7 +2481,8 @@ async function loadH6040Gates(){
    renderer，METHOD=h6040 時 call 佢會用 v4 卡覆蓋 bestCard）。*/
 let h6040Rec=null;
 async function loadH6040Rec(){
-  try{
+  if(!activeBridge){await detectBridge();}   // boot 時同 loadRec 一齊探 bridge，咪 fetch 去 null/
+  if(activeBridge){try{
     const r=await fetchTimeout(activeBridge+'/h6040?secret='+encodeURIComponent(BRIDGE_SECRET),12000);
     if(r&&r.ok){
       const j=await r.json();
@@ -2491,7 +2492,7 @@ async function loadH6040Rec(){
         h6040Rec={scan:{scan_date:j.scan_date,vix:j.vix,breadth:j.breadth,gate_open:j.gate_open,universe_n:j.universe_n,n_passed:j.n_passed},scan_fresh:fresh,candidates:j.candidates};
       }
     }
-  }catch(e){console.error('loadH6040Rec',e);}
+  }catch(e){console.error('loadH6040Rec',e);}}
   if(!h6040Rec){
     try{
       const r2=await fetchTimeout('http://127.0.0.1:8799/monitor.json',6000);
