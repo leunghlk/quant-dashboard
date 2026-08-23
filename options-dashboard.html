@@ -163,7 +163,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 
   <!-- ═══════════ 總覽 ═══════════ -->
   <div class="pane" id="pane-overview">
-    <div style="display:flex;gap:8px;align-items:center;margin:2px 0 8px;flex-wrap:wrap">
+    <div id="pnlModeRow" style="display:flex;gap:8px;align-items:center;margin:2px 0 8px;flex-wrap:wrap">
       <span style="font-size:12px;color:#64748b;font-weight:700">Portfolio P&amp;L：</span>
       <button id="pnlBtn-real" onclick="setPnlMode('real')" style="font-size:12px;font-weight:700;border-radius:8px;padding:3px 12px;border:1.5px solid #cbd5e1;background:#f1f5f9;color:#475569;cursor:pointer">🔴 真倉</button>
       <button id="pnlBtn-paper" onclick="setPnlMode('paper')" style="font-size:12px;font-weight:700;border-radius:8px;padding:3px 12px;border:1.5px solid #cbd5e1;background:#f1f5f9;color:#475569;cursor:pointer">📝 紙上</button>
@@ -177,13 +177,13 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
       <div class="k"><div class="lbl">已用按金（Reg-T）</div><div class="val" id="ovUsed">—</div></div>
       <div class="k"><div class="lbl">估算月收入</div><div class="val" id="ovMonthly">—</div></div>
     </div>
-    <div class="card"><div class="card-h"><span class="t">🛤️ v4_balanced 執行欄位（即時）</span><span class="meta" id="railsMeta">按照下表規則 = 貼近回測結果</span></div>
+    <div class="card"><div class="card-h"><span class="t" id="railsTitle">🛤️ v4_balanced 執行欄位（即時）</span><span class="meta" id="railsMeta">按照下表規則 = 貼近回測結果</span></div>
       <div class="card-b" id="ovRailsBody"><div class="muted">載入中…</div></div></div>
-    <div class="card"><div class="card-h"><span class="t">資本運用</span><span class="meta">HKD 200,000 組合上限</span></div>
+    <div class="card"><div class="card-h"><span class="t">資本運用</span><span class="meta" id="ovCapMeta">HKD 200,000 組合上限</span></div>
       <div class="card-b" id="ovCapBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">開倉位（未實現 mark-to-market）</span><span class="meta" id="ovPosMeta"></span></div>
       <div class="card-b" id="ovPosBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">近期平倉紀錄（已實現）</span><span class="meta">紙上賬</span></div>
+    <div class="card"><div class="card-h"><span class="t">近期平倉紀錄（已實現）</span><span class="meta" id="ovLedgerMeta">紙上賬</span></div>
       <div class="card-b" id="ovLedgerBody"></div></div>
   </div>
 
@@ -2023,6 +2023,11 @@ function setMethod(m){
   // update tab label
   const mt=document.querySelector('[data-pane="method"]');
   if(mt)mt.textContent=m==='h6040'?'❓ Hybrid 60/40 方法論':'❓ v4_balanced 方法論';
+  // ⭐ 總覽共用卡片標題跟方法論切換
+  const rt=$('railsTitle'); if(rt)rt.textContent=m==='h6040'?'🛤️ Hybrid 60/40 執行閘門（即時）':'🛤️ v4_balanced 執行欄位（即時）';
+  const cm=$('ovCapMeta'); if(cm)cm.textContent=m==='h6040'?'總資本 HKD 320,000 · 兩腿分配':'HKD 200,000 組合上限';
+  const lm=$('ovLedgerMeta'); if(lm)lm.textContent=m==='h6040'?'真倉（Futu 實單）':'紙上賬';
+  const pr=$('pnlModeRow'); if(pr)pr.style.display=m==='h6040'?'none':'';   // h6040 永遠顯示真倉，P&L 掣唔適用
   // update appbar subtitle
   const sub=$('appbarSub');
   if(sub){
