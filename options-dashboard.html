@@ -177,14 +177,17 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
       <span id="pnlModeNote" style="font-size:11px;color:#94a3b8"></span>
     </div>
     <div class="card" style="border:1.5px solid #1a73e8"><div class="card-h"><span class="t">💼 我的證券組合（統一總覽）</span><span class="meta">正股 ＋ 期權 ＋ 現金寶 · 基準 HKD 320,000</span></div>
-      <div class="card-b" id="unifiedBody"><div class="muted">載入中（Futu 真戶口＋期權 engine）…</div></div></div>
-    <div class="kpi">
-      <div class="k"><div class="lbl">組合權益（HKD）</div><div class="val" id="ovEquity">—</div><div class="small muted" id="ovReturn"></div></div>
-      <div class="k"><div class="lbl">已實現 P&amp;L</div><div class="val up" id="ovRealized">—</div></div>
-      <div class="k"><div class="lbl">未實現 P&amp;L</div><div class="val" id="ovUnrealized">—</div></div>
-      <div class="k"><div class="lbl">已用按金（Reg-T）</div><div class="val" id="ovUsed">—</div></div>
-      <div class="k"><div class="lbl">估算月收入</div><div class="val" id="ovMonthly">—</div></div>
-    </div>
+      <div class="card-b" id="unifiedBody"><div class="muted">載入中（Futu 真戶口＋期權 engine）…</div></div>
+      <div class="card-b" style="border-top:1px dashed #cbd5e1;padding-top:10px">
+        <div class="small muted" style="margin-bottom:6px">期權 engine 口徑（📝紙上／🟢真倉 切換 · 用上方按鈕）</div>
+        <div class="kpi" style="margin-top:0">
+          <div class="k"><div class="lbl">組合權益（HKD）</div><div class="val" id="ovEquity">—</div><div class="small muted" id="ovReturn"></div></div>
+          <div class="k"><div class="lbl">已實現 P&amp;L</div><div class="val up" id="ovRealized">—</div></div>
+          <div class="k"><div class="lbl">未實現 P&amp;L</div><div class="val" id="ovUnrealized">—</div></div>
+          <div class="k"><div class="lbl">已用按金（Reg-T）</div><div class="val" id="ovUsed">—</div></div>
+          <div class="k"><div class="lbl">估算月收入</div><div class="val" id="ovMonthly">—</div></div>
+        </div>
+      </div></div>
     <div class="card"><div class="card-h"><span class="t" id="railsTitle">🛤️ v4_balanced 執行欄位（即時）</span><span class="meta" id="railsMeta">按照下表規則 = 貼近回測結果</span></div>
       <div class="card-b" id="ovRailsBody"><div class="muted">載入中…</div></div></div>
     <div class="card"><div class="card-h"><span class="t">資本運用</span><span class="meta" id="ovCapMeta">HKD 200,000 組合上限</span></div>
@@ -457,8 +460,9 @@ async function loadLive(){
 // ⭐ 2026-08-23：user 要將 LITE/DLLL 正股 + 期權真倉 + 閒置現金寶 併入同一 dashboard。
 //   正股由 bridge /real_positions（Futu 真戶口，avg cost + 市值）；現金由 /real_funds；期權由 rec。
 const BASE_HKD = 320000;            // ⭐ user 指定真倉總資本基準（回本進度分母）
-let realPos = [];                   // [{ticker,shares,avg_cost,price,mkt_val_hkd,cost_hkd,pnl_hkd,pnl_pct}]
-let realFunds = null;               // {power_hkd,total_hkd,cash_hkd,us_cash,ts}
+let realPos = [];                   // [{ticker,shares,avg_cost,price,mkt_val_hkd,cost_hkd,pnl_hkd,pnl_pct,kind,unrealized_pl,realized_pl}]
+let realFunds = null;               // {power_hkd,total_hkd,cash_hkd,us_cash,withdraw_hkd,init_margin_hkd,maint_margin_hkd,market_val_hkd,ts}
+let realFx = 7.8536;                // ⭐ 08-23：bridge 反推嘅 USD→HKD 匯率（live 價 override 用）
 const EQUITY_TICKERS = ['LITE','DLLL'];
 
 async function loadReal(){
@@ -468,12 +472,15 @@ async function loadReal(){
       fetchTimeout(activeBridge+'/real_positions?secret='+encodeURIComponent(BRIDGE_SECRET),15000).then(r=>r.json().catch(()=>null)),
       fetchTimeout(activeBridge+'/real_funds?secret='+encodeURIComponent(BRIDGE_SECRET),15000).then(r=>r.json().catch(()=>null))
     ]);
-    if(pr && pr.positions) realPos = pr.positions;
+    if(pr && pr.positions){ realPos = pr.positions; if(pr.fx) realFx = pr.fx; }
     if(pf && pf.ok) realFunds = pf;
     // ⭐ 用 live 價更新正股市值（/real_positions 嘅 price 有時係 cost fallback）
+    // ⭐ 08-23 兩個 fix：(a) 只限正股——期權市值（每張 USD）唔可以被正股 live 價 clobber；
+    //   (b) live 價係 USD，要 ×realFx 先係 HKD（舊 code 直接當 HKD 用，LITE 市值細咗 7.85 倍）。
     realPos.forEach(p=>{
+      if(p.kind==='option')return;
       const lv = live[p.ticker];
-      if(lv && (lv.live_price!=null)){ p.price = lv.live_price; const m = lv.live_price*p.shares; p.mkt_val_hkd = Math.round(m); p.pnl_hkd = Math.round(m - p.cost_hkd); p.pnl_pct = (p.cost_hkd>0? p.pnl_hkd/p.cost_hkd*100:0); }
+      if(lv && (lv.live_price!=null)){ p.price = lv.live_price; const m = lv.live_price*p.shares*realFx; p.mkt_val_hkd = Math.round(m); p.pnl_hkd = Math.round(m - p.cost_hkd); p.pnl_pct = (p.cost_hkd>0? p.pnl_hkd/p.cost_hkd*100:0); }
     });
     renderUnified();
   }catch(e){ console.error('loadReal',e); }
@@ -488,38 +495,45 @@ function sumF(arr,f){ return (arr||[]).reduce((s,p)=>s+(p[f]||0),0); }
 function renderUnified(){
   const el = $('unifiedBody'); if(!el)return;
   const stocks = stocksList(), opts = optsList();
-  const stockVal = sumF(stocks,'mkt_val_hkd');
-  const optVal   = sumF(opts,'mkt_val_hkd');           // 短 put 淨值（負=暫時蝕）
-  // ⭐ 2026-08-23（user 糾正）：資產分佈 = 證券(正股+期權) 加埋，餘下先係 cash。
-  //   total 用 Futu 權威值 total_hkd（= 證券市值 + 現金，對返富途結單）；cash = total − 證券。
-  const total = (realFunds && realFunds.total_hkd!=null) ? realFunds.total_hkd : (stockVal + optVal);
-  const secVal = stockVal + optVal;                 // 證券市值（正股+期權，可負）
-  const cash = total - secVal;                       // 閒置現金寶 = 總資產 − 已部署證券
+  const stockVal = sumF(stocks,'mkt_val_hkd');          // 正股市值（HKD，bridge 已 ×fx）
+  const optVal   = sumF(opts,'mkt_val_hkd');            // 短 put 負債（負值）
+  // ⭐⭐ 08-23 v2（user 糾正：要扣抵押）：全部用 Futu accinfo 權威值做錨——
+  //   證券市值 = market_val_hkd；現金總值 = cash_hkd；可動用現金寶 = withdraw_hkd（最大可提，已扣抵押）；
+  //   抵押鎖定 = 現金 − 可提。四部分加埋 = total_hkd（對富途截圖分毫不差：−5,050＋248,497＋36,943＝280,390）。
+  const total   = (realFunds && realFunds.total_hkd!=null)? realFunds.total_hkd : (stockVal+optVal);
+  const secVal  = (realFunds && realFunds.market_val_hkd!=null)? realFunds.market_val_hkd : (stockVal+optVal);
+  const optNet  = secVal - stockVal;                    // 期權淨值 = 證券市值 − 正股（沽空負債，可負）
+  const cashAll = (realFunds && realFunds.cash_hkd!=null)? realFunds.cash_hkd : (total-secVal);
+  const hasW    = !!(realFunds && realFunds.withdraw_hkd>0);
+  const avail   = hasW? realFunds.withdraw_hkd : cashAll;      // 可動用放在現金寶嘅 amount
+  const locked  = hasW? Math.max(0, cashAll-avail) : 0;        // 抵押鎖定（短 put 按金佔用）
   const realized = sumF(realPos,'realized_pl');
   const unreal   = sumF(realPos,'unrealized_pl');
   const pnlTotal = realized + unreal;
   const retPct = (total - BASE_HKD)/BASE_HKD*100;
-  const cashPct = total>0 ? cash/total*100 : 0;
-  // 資產分佈：正股 / 期權 / 現金寶（現金 = 餘額，唔會爆 100%）
+  const availPct = total>0 ? avail/total*100 : 0;
+  // 資產分佈：正股 / 期權（沽空負債，負值用 |值| 攤 bar）/ 抵押鎖定 / 可動用現金寶
   const parts = [
-    {k:'正股',   v:Math.max(0,stockVal),  c:'#1a73e8'},
-    {k:'期權',   v:Math.max(0,optVal),    c:'#7c3aed'},
-    {k:'現金寶', v:Math.max(0,cash),      c:'#16a34a'}
+    {k:'正股',          v:stockVal, c:'#1a73e8'},
+    {k:'期權（沽空負債）', v:optNet,  c:'#dc2626'},
+    {k:'抵押鎖定',      v:locked,   c:'#f59e0b'},
+    {k:'可動用現金寶',  v:avail,    c:'#16a34a'}
   ];
-  const sum = parts.reduce((s,p)=>s+p.v,0)||1;
-  const bar = parts.map(p=>'<div style="height:10px;background:'+p.c+';width:'+Math.max(0,Math.min(100,p.v/sum*100))+'%" title="'+p.k+' '+(p.v/1000).toFixed(0)+'k"></div>').join('');
-  const legend = parts.map(p=>'<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;margin-right:14px"><span style="width:10px;height:10px;border-radius:2px;background:'+p.c+';display:inline-block"></span>'+p.k+' <b>'+(p.v/1000).toFixed(0)+'k</b> ('+(p.v/sum*100).toFixed(0)+'%)</span>').join('');
-  const up = pnlTotal>=0;
+  const sumAbs = parts.reduce((s,p)=>s+Math.abs(p.v),0)||1;
+  const bar = parts.map(p=>'<div style="height:10px;background:'+p.c+';width:'+Math.max(0,Math.min(100,Math.abs(p.v)/sumAbs*100))+'%" title="'+p.k+' '+(p.v>=0?'+':'−')+Math.abs(p.v/1000).toFixed(1)+'k"></div>').join('');
+  const legend = parts.map(p=>'<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;margin-right:14px"><span style="width:10px;height:10px;border-radius:2px;background:'+p.c+';display:inline-block"></span>'+p.k+' <b>'+(p.v>=0?'':'−')+Math.abs(p.v/1000).toFixed(1)+'k</b></span>').join('');
   let h = '';
   h += '<div class="kpi" style="margin-top:0">';
   h += '<div class="k"><div class="lbl">總資產（HKD）</div><div class="val" id="uTotal">'+hkd(total)+'</div><div class="small muted">基準 HKD '+(BASE_HKD/1000).toFixed(0)+'k · 回報 '+(retPct>=0?'+':'')+retPct.toFixed(1)+'%</div></div>';
-  h += '<div class="k"><div class="lbl">已實現 P&L</div><div class="val '+(realized>=0?'up':'dn')+'">'+money(realized)+'</div></div>';
-  h += '<div class="k"><div class="lbl">未實現 P&L</div><div class="val '+(unreal>=0?'up':'dn')+'">'+money(unreal)+'</div></div>';
-  h += '<div class="k"><div class="lbl">閒置現金寶</div><div class="val">'+hkd(cash)+'</div><div class="small muted">'+cashPct.toFixed(0)+'% 資產 · 隨時調配 · 0佣金收息</div></div>';
+  h += '<div class="k"><div class="lbl">已實現 P&L</div><div class="val '+(realized>=0?'up':'dn')+'">'+money(realized)+'</div><div class="small muted">Futu 持倉口徑（已平倉唔留倉位）</div></div>';
+  h += '<div class="k"><div class="lbl">未實現 P&L</div><div class="val '+(unreal>=0?'up':'dn')+'">'+money(unreal)+'</div><div class="small muted">Futu 持倉口徑 ＝ 權利金 − 市值</div></div>';
+  h += '<div class="k"><div class="lbl">可動用現金寶</div><div class="val" style="color:#16a34a">'+hkd(avail)+'</div><div class="small muted">'+availPct.toFixed(0)+'% 資產 · 現金−抵押 · 0佣金收息</div></div>';
+  h += '<div class="k"><div class="lbl">抵押鎖定</div><div class="val" style="color:#b45309">'+hkd(locked)+'</div><div class="small muted">短 put 按金佔用 · 不可動用</div></div>';
   h += '</div>';
-  h += '<div style="margin:10px 0 6px;font-weight:700;font-size:13px">資產分佈</div>';
+  h += '<div style="margin:10px 0 6px;font-weight:700;font-size:13px">資產分佈（總資產 '+hkd(total)+'）</div>';
   h += '<div style="display:flex;border-radius:6px;overflow:hidden;background:#e2e8f0">'+bar+'</div>';
   h += '<div style="margin-top:8px">'+legend+'</div>';
+  h += '<div class="small muted" style="margin-top:6px">現金總值 '+hkd(cashAll)+' ＝ 抵押鎖定 '+hkd(locked)+' ＋ 可動用 '+hkd(avail)+' · 證券市值 '+hkd(secVal)+' ＝ 正股 +'+hkd(stockVal)+' ＋ 期權 −'+hkd(Math.abs(optNet))+'（沽空負債）</div>';
   // 持倉細項（正股＋期權）
   const all = (realPos||[]).slice().sort((a,b)=> (b.mkt_val_hkd||0)-(a.mkt_val_hkd||0));
   if(all.length){
@@ -539,7 +553,7 @@ function renderUnified(){
   } else {
     h += '<div class="muted" style="margin-top:12px">持倉讀取中／暫無（Futu 真戶口）</div>';
   }
-  h += '<div class="small muted" style="margin-top:8px">數據來源：Futu 真戶口（總資產/現金/持倉權威值）· 回本目標 HKD 50,000 @ 2026-12-31</div>';
+  h += '<div class="small muted" style="margin-top:8px">數據來源：Futu 真戶口 accinfo＋持倉（權威值；US 倉按户口隱含匯率 ×'+realFx.toFixed(2)+' 轉 HKD）· 回本目標 HKD 50,000 @ 2026-12-31</div>';
   el.innerHTML = h;
 }
 
@@ -1726,20 +1740,34 @@ function renderAdvice(){
   let h='';
   const rows=pos.map(p=>{
     const t=p.ticker, decel=_decelOf(t), sig=_sigOf(t);
-    const target=FUND_TARGETS[t]||(p.avg_cost?p.avg_cost*1.15:p.price*1.15);
-    const stop=p.avg_cost?p.avg_cost*0.92:p.price*0.92;
     let action,cls;
-    if(decel<=-3){action='強制沽出：動量減速崩損 Decel='+decel+'（不論盈虧）';cls='sell';}
-    else if(sig==='SELL'||sig==='REDUCE'){action='減持：信號轉弱 '+sig;cls='reduce';}
-    else if(p.price>=target){action='到價減磅鎖利：現價 $'+px2(p.price)+' 已達目標 $'+px2(target)+'（可減 40-60%，非轉弱）';cls='reduce';}
-    else if(p.price<=stop){action='止蝕警戒：現價 $'+px2(p.price)+' 跌破 -8% 止蝕 $'+px2(stop);cls='sell';}
-    else if(sig==='BUY'&&decel>=-1){action='可加倉：信號 BUY · Decel '+decel+' 正常';cls='buy';}
-    else{action='續持：信號 '+sig+' · Decel '+decel;cls='hold';}
+    // 期權現權利金（per-share）＝市值反推（Futu 週末 price 回 0 會 fallback 做入場價）
+    const optMark=(p.kind==='option')? Math.abs(p.mkt_val_hkd||0)/realFx/100/Math.max(1,Math.abs(p.shares)) : 0;
+    const curPx=(p.kind==='option' && optMark>0)? optMark : p.price;
+    if(p.kind==='option'){
+      // ⭐ 08-23：短 put 專用（正股 target/stop 公式對短倉方向倒轉）
+      //   avg_cost＝per-share 權利金：跌=賺（負債縮），升=蝕
+      const ac=p.avg_cost||p.price;
+      const cur=curPx;
+      if(cur<=ac*0.5){action='獲利平倉：權利金已跌 ≥50%（$'+px2(ac)+'→$'+px2(cur)+'，PT 規則收利離場）';cls='buy';}
+      else if(cur>=ac*1.9){action='止損警戒：權利金近翻倍（$'+px2(ac)+'→$'+px2(cur)+'）——標的插水，考慮平倉/roll';cls='sell';}
+      else if(decel<=-3||sig==='SELL'||sig==='REDUCE'){action='標的轉弱（'+sig+' · Decel '+decel+'）：現 $'+px2(cur)+'，留意 PT 50% 提早收利';cls='reduce';}
+      else{action='續持收 theta：權利金 $'+px2(ac)+'→$'+px2(cur)+'（'+((ac-cur)/ac*100).toFixed(0)+'%）· '+sig;cls='hold';}
+    }else{
+      const target=FUND_TARGETS[t]||(p.avg_cost?p.avg_cost*1.15:p.price*1.15);
+      const stop=p.avg_cost?p.avg_cost*0.92:p.price*0.92;
+      if(decel<=-3){action='強制沽出：動量減速崩損 Decel='+decel+'（不論盈虧）';cls='sell';}
+      else if(sig==='SELL'||sig==='REDUCE'){action='減持：信號轉弱 '+sig;cls='reduce';}
+      else if(p.price>=target){action='到價減磅鎖利：現價 $'+px2(p.price)+' 已達目標 $'+px2(target)+'（可減 40-60%，非轉弱）';cls='reduce';}
+      else if(p.price<=stop){action='止蝕警戒：現價 $'+px2(p.price)+' 跌破 -8% 止蝕 $'+px2(stop);cls='sell';}
+      else if(sig==='BUY'&&decel>=-1){action='可加倉：信號 BUY · Decel '+decel+' 正常';cls='buy';}
+      else{action='續持：信號 '+sig+' · Decel '+decel;cls='hold';}
+    }
     const aCol=cls==='sell'||cls==='reduce'?'#dc2626':cls==='buy'?'#16a34a':'#475569';
     const pnlCls=p.pnl_hkd>=0?'pos':'neg';
     return '<tr><td style="font-weight:700">'+(t)+'</td>'
       +'<td class="r">'+(p.kind==='option'?'📃':'')+p.shares+'</td>'
-      +'<td class="r lp">$'+px2(p.price)+'</td>'
+      +'<td class="r lp">$'+px2(curPx)+'</td>'
       +'<td class="r '+pnlCls+'">'+(p.pnl_hkd>=0?'+':'')+hkd(p.pnl_hkd)+'</td>'
       +'<td class="c">'+decel+'</td>'
       +'<td>'+sig+'</td>'
