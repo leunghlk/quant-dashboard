@@ -128,6 +128,14 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 .method-badge.live{background:#dcfce7;color:#166534}
 .eqline{margin-top:6px}
 .foot{text-align:center;color:#94a3b8;font-size:11px;padding:14px 0 0}
+/* ── 業績日曆（quant dashboard 同款） ── */
+.sector-chip{display:inline-block;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;white-space:nowrap}
+.sector-chip.other{background:#f1f5f9;color:#475569;border-color:#e2e8f0}
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:7px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;font-size:11px}
+.filter-bar select{padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;background:#fff;cursor:pointer;max-width:220px}
+th.sort-sec{cursor:pointer;user-select:none}
+th.sort-sec.asc::after{content:' ▲';font-size:9px;color:#0d9488}
+th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 </style>
 </head>
 <body>
@@ -290,7 +298,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 
   <!-- ═══════════ 業績日曆（quant watchlist） ═══════════ -->
   <div class="pane" id="pane-earnings">
-    <div class="card"><div class="card-h"><span class="t">📅 業績日曆（quant watchlist）</span><span class="meta">持倉＋engine 股票池 · 績前風險評估</span></div>
+    <div class="card"><div class="card-h"><span class="t">📅 業績日曆（quant watchlist）</span><span class="meta">每隻 watchlist 股票 · 績前風險評估 · 同 quant dashboard 同一款</span></div>
       <div class="card-b" id="earningsBody"><div class="muted">載入中…</div></div></div>
   </div>
 
@@ -1915,7 +1923,7 @@ const SECTOR_MAP = {
   '2513.HK':'AI大模型','0100.HK':'AI大模型'
 };
 function sectorOf(t){ return t ? (SECTOR_MAP[t]||'其他') : '其他'; }
-let earnSecSel='';   // 板塊 filter 選中值（render 重建後保持）
+let earnSecSel='', earnSortDir='';   // 板塊 filter 選中值＋排序方向（render 重建後保持）
 function applyEarnFilter(){
   const sel=$('earnSecFilt'); if(!sel)return;
   document.querySelectorAll('#earningsBody tr[data-sector]').forEach(tr=>{
@@ -1923,6 +1931,19 @@ function applyEarnFilter(){
   });
 }
 function setEarnSec(v){ earnSecSel=v; applyEarnFilter(); }
+function earnSecChip(s){ return '<span class="sector-chip'+(s==='其他'?' other':'')+'">'+esc(s)+'</span>'; }
+function earnSortToggle(){
+  const th=document.getElementById('earnSortHead'); if(!th)return;
+  earnSortDir = earnSortDir==='asc' ? 'desc' : 'asc';
+  th.classList.toggle('asc', earnSortDir==='asc');
+  th.classList.toggle('desc', earnSortDir==='desc');
+  const tb=document.querySelector('#earningsBody tbody'); if(!tb)return;
+  [...tb.querySelectorAll('tr[data-sector]')]
+    .sort((a,b)=>{ const c=(a.getAttribute('data-sector')||'').localeCompare(b.getAttribute('data-sector')||'','zh-Hant'); return earnSortDir==='asc'?c:-c; })
+    .forEach(r=>tb.appendChild(r));
+}
+/* ⭐ 08-23 v2：表格 markup/CSS 100% 跟 quant dashboard 📅業績日曆（worker.js 同款）—
+   dateLabel 精簡 M/D（omit 年份）、sector-chip、risk 行底色、板塊表頭點擊排序 */
 function renderEarnings(){
   const el=document.getElementById('earningsBody'); if(!el)return;
   const wl=(quant&&quant.watchlist)||null;
@@ -1934,32 +1955,41 @@ function renderEarnings(){
   if(!earnList.length){ el.innerHTML='<div class="muted" style="padding:16px;text-align:center">📭 watchlist 無業績日資料</div>'; return; }
   // 板塊 select（依實際出現嘅板塊重建；保持之前選中）
   const sectors=[...new Set(earnList.map(e=>sectorOf(e.ticker)))].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
-  let h='<div style="display:flex;gap:8px;align-items:center;margin:0 0 8px;flex-wrap:wrap">'
-    +'<span style="font-weight:700;color:#0f172a;font-size:12px">板塊</span>'
-    +'<select id="earnSecFilt" onchange="setEarnSec(this.value)" style="font-size:12px;border-radius:6px;border:1px solid #cbd5e1;padding:2px 6px;background:#fff">'
+  let h='<div style="font-size:11px;line-height:1.6">';
+  h+='<div class="filter-bar"><span style="font-weight:700;color:#0f172a">板塊</span>'
+    +'<select id="earnSecFilt" onchange="setEarnSec(this.value)">'
     +'<option value="">全部板塊</option>'
     +sectors.map(s=>'<option value="'+s+'"'+(s===earnSecSel?' selected':'')+'>'+s+'</option>').join('')
     +'</select>'
-    +'<span class="small muted">'+earnList.length+' 隻（quant watchlist）· 按距今日數排序</span></div>';
-  h+='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th>板塊</th><th class="r">業績日期</th><th class="c">時間</th><th class="r">日數</th><th class="c">風險</th><th>建議</th></tr></thead><tbody>';
+    +'<span style="color:#94a3b8">'+earnList.length+' 隻（quant watchlist）· 按距今日數排序 · 點擊「板塊」表頭可排序</span></div>';
+  h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">'
+    +'<thead><tr style="border-bottom:2px solid #e2e8f0">'
+    +'<th style="text-align:left;padding:4px 6px">股票</th>'
+    +'<th id="earnSortHead" class="sort-sec'+(earnSortDir?' '+earnSortDir:'')+'" onclick="earnSortToggle()" style="text-align:left;padding:4px 6px;cursor:pointer">板塊</th>'
+    +'<th style="text-align:center;padding:4px">業績日期</th>'
+    +'<th style="text-align:center;padding:4px">時間</th>'
+    +'<th style="text-align:center;padding:4px">日數</th>'
+    +'<th style="text-align:center;padding:4px">風險</th>'
+    +'<th style="text-align:left;padding:4px 6px">建議</th>'
+    +'</tr></thead><tbody>';
   earnList.forEach(e=>{
     const riskCol = e.risk==='極高'?'#dc2626':e.risk==='高'?'#f97316':e.risk==='中'?'#d97706':e.risk==='低'?'#16a34a':'#94a3b8';
-    const riskBg  = e.risk==='極高'?'#fef2f2':e.risk==='高'?'#fffbeb':e.risk==='中'?'#fffbeb':'#f0fdf4';
+    const riskBg  = e.risk==='極高'?'#fef2f2':e.risk==='高'?'#fffbeb':e.risk==='中'?'#fffbeb':e.risk==='低'?'#f0fdf4':'#f8fafc';
     const advise = e.risk==='極高'?'⛔ 不宜新建倉位':e.risk==='高'?'⚠️ 控制倉位，嚴守止蝕':e.risk==='中'?'🟡 留意績前波動':'✅ 業績仍遠，正常操作';
-    const du=e.daysUntil;
-    h+='<tr data-sector="'+sectorOf(e.ticker)+'" style="background:'+riskBg+'">'
-      +'<td style="font-weight:700">'+esc(e.ticker)+(held[e.ticker]?' <span style="color:#dc2626;font-weight:800">●真倉</span>':'')+'</td>'
-      +'<td><span style="display:inline-block;padding:1px 8px;border-radius:4px;background:'+(sectorOf(e.ticker)==='其他'?'#f1f5f9;color:#64748b':'#eef2ff;color:#4338ca')+';font-size:10px;font-weight:600">'+esc(sectorOf(e.ticker))+'</span></td>'
-      +'<td class="r">'+esc(e.date)+(e.status==='confirmed'?'':' <span style="color:#94a3b8;font-size:10px">(估)</span>')+'</td>'
-      +'<td class="c" style="color:#64748b">'+esc(e.timingLabel||'—')+'</td>'
-      +'<td class="r" style="font-weight:600;color:'+riskCol+'">'+(du>0?du+'日':du===0?'今日':'已過')+'</td>'
-      +'<td class="c"><span style="display:inline-block;padding:1px 8px;border-radius:4px;color:'+riskCol+';font-weight:700;font-size:10px">'+esc(e.risk||'—')+'</span></td>'
-      +'<td style="color:#475569">'+advise+(e.warning?'<div style="font-size:10px;color:#dc2626">'+esc(e.warning)+'</div>':'')+'</td></tr>';
+    const du=e.daysUntil, sec=sectorOf(e.ticker);
+    h+='<tr data-sector="'+sec+'" style="border-bottom:1px solid #f1f5f9;background:'+riskBg+'">'
+      +'<td style="font-weight:700;padding:4px 6px">'+esc(e.ticker)+(held[e.ticker]?' <span style="color:#dc2626;font-weight:800">●真倉</span>':'')+'</td>'
+      +'<td style="padding:4px 6px">'+earnSecChip(sec)+'</td>'
+      +'<td style="text-align:center;padding:4px">'+esc(e.dateLabel||e.date)+'</td>'
+      +'<td style="text-align:center;padding:4px;color:#64748b">'+esc(e.timingLabel||'—')+'</td>'
+      +'<td style="text-align:center;padding:4px;font-weight:600;color:'+riskCol+'">'+(du>0?du+'日':du===0?'今日':'已過')+'</td>'
+      +'<td style="text-align:center;padding:4px"><span style="display:inline-block;padding:1px 8px;border-radius:4px;color:'+riskCol+';font-weight:700;font-size:10px">'+esc(e.risk||'—')+'</span></td>'
+      +'<td style="padding:4px 6px;color:#475569">'+advise+'</td></tr>';
   });
   h+='</tbody></table></div>';
   const imminent=earnList.filter(e=>e.daysUntil>0&&e.daysUntil<=7);
-  if(imminent.length) h+='<div style="margin-top:8px;padding:8px 10px;background:#fef2f2;border-radius:6px;font-size:11px;color:#dc2626;font-weight:600">⚠️ 未來 7 日有 '+imminent.length+' 隻出業績：'+imminent.map(e=>e.ticker+'('+e.daysUntil+'日)').join('、')+' — 績前波動大，不宜重倉；賣 put 應跳過（避 IV crush＋跳空）。</div>';
-  h+='<div style="font-size:11px;color:#64748b;margin-top:8px">📌 同 quant dashboard 📅業績日曆同一數據（watchlist 65 隻 · 風險分級照抄）· 業績日前 21 日內 engine 唔會建議賣 put；已持倉到期日若早過業績日，必須平倉。</div>';
+  if(imminent.length) h+='<div style="margin-top:8px;padding:8px 10px;background:#fef2f2;border-radius:6px;font-size:11px;color:#dc2626;font-weight:600">⚠️ 未來 7 日有 '+imminent.length+' 隻出業績：'+imminent.map(e=>e.ticker+'('+e.daysUntil+'日)').join('、')+' — 績前波動大，不宜重倉</div>';
+  h+='</div>';
   el.innerHTML=h;
   applyEarnFilter();
 }
