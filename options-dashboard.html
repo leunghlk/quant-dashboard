@@ -154,7 +154,10 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
   <button data-pane="best" class="active">🎯 今日最佳</button>
   <button data-pane="detail">📈 個股詳情</button>
   <button data-pane="positions">📋 持倉管理</button>
-  <button data-pane="method">❓ v4_balanced 方法論</button>
+  <button data-pane="advice">🎯 執倉建議</button>
+  <button data-pane="toppick">⭐ 最優先部署</button>
+  <button data-pane="earnings">📅 業績日曆</button>
+  <button data-pane="method">❓ 方法論</button>
 </div>
 <div id="optAlert" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:#dc2626;color:#fff;padding:11px 22px;font-weight:700;font-size:14.5px;cursor:pointer;box-shadow:0 -3px 12px rgba(0,0,0,.3)" onclick="switchPane('positions')">
   <span id="optAlertTxt"></span><button onclick="event.stopPropagation();ackAlarm()" title="不再顯示這一組警報（之後有新警報仍會出現）" style="float:right;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.65);color:#fff;border-radius:6px;padding:1px 10px;font-weight:600;font-size:13px;cursor:pointer">✕ 知道了</button><span style="float:right;font-weight:500;opacity:.9;margin-right:14px">點擊查看持倉 →</span>
@@ -270,9 +273,28 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
     <div class="card"><div class="card-h"><span class="t">🔔 警報系統（Telegram ＋ 儀表板雙通道）</span><span class="meta">引擎每 120 秒檢查持倉 · 儀表板每 60 秒刷新</span></div><div class="card-b" id="methodAlert"></div></div>
     <div class="card"><div class="card-h"><span class="t">風險誠實話</span></div><div class="card-b" id="methodRisk"></div></div>
   </div>
+
+  <!-- ═══════════ 執倉建議 ═══════════ -->
+  <div class="pane" id="pane-advice">
+    <div class="card" style="border:1.5px solid #b45309"><div class="card-h"><span class="t">🎯 執倉建議 — 現有持倉變更</span><span class="meta">到價鎖利 ／ 止蝕 ／ 動量減速</span></div>
+      <div class="card-b" id="adviceBody"><div class="muted">載入中（Futu 真倉＋engine 動量）…</div></div></div>
+  </div>
+
+  <!-- ═══════════ 最優先部署 ═══════════ -->
+  <div class="pane" id="pane-toppick">
+    <div class="card" style="border:1.5px solid #7c3aed"><div class="card-h"><span class="t">⭐ 最優先部署</span><span class="meta">今日最佳交易點 ＋ 正股部署（LITE/DLLL）</span></div>
+      <div class="card-b" id="toppickBody"><div class="muted">載入中…</div></div></div>
+  </div>
+
+  <!-- ═══════════ 業績日曆 ═══════════ -->
+  <div class="pane" id="pane-earnings">
+    <div class="card"><div class="card-h"><span class="t">📅 業績日曆</span><span class="meta">每隻持倉／watchlist · 績前風險評估</span></div>
+      <div class="card-b" id="earningsBody"><div class="muted">載入中…</div></div></div>
+  </div>
+
 </div>
 
-<div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · All-in-One Financial Dashboard Suite — 期權交易 v4_balanced（Sell Put → Covered Call · 70% 按金 · 6 puts · Δ0.25–0.30 · PT50%）· 紙上模式 · 數據：Futu 實時（bid/ask · IV/Delta 由真實報價 BS 反推）＋ Yahoo 兜底 · 期權賣方有 tail risk · 非投資建議</div>
+<div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · 證券交易總覽 My Securities Desk — 正股 ＋ 期權 ＋ 現金寶（Futu 真戶口實時）· 期權策略 v4_balanced / Hybrid 60/40 · 數據：Futu 實時＋ Yahoo 兜底 · 期權賣方有 tail risk · 非投資建議</div>
 
 <div id="tipbox"></div>
 <div id="execModal" onclick="if(event.target===this)closeExec()"><div class="box" id="execBox"></div></div>
@@ -523,7 +545,7 @@ function renderAll(){
   if(METHOD==='h6040'){renderH6040Overview();renderH6040Best();renderPositions();renderDecisions();renderMethod();renderAlarm();if(activeTk)renderDetail();return;}
   if(!rec)return;   // ⭐ 2026-08-23：boot 時 rec 未到，唔好炸
   renderUnified();   // ⭐ 2026-08-23：統一證券組合卡（正股＋期權＋現金寶）
-  renderOverview();renderBest();renderCandidates();renderWinRank();renderPositions();renderNotes();renderDecisions();renderMethod();renderAlarm();if(activeTk)renderDetail();}
+  renderOverview();renderBest();renderCandidates();renderWinRank();renderPositions();renderNotes();renderDecisions();renderMethod();renderAlarm();renderAdvice();renderTopPick();renderEarnings();if(activeTk)renderDetail();}
 /* ⭐ 出場警報：engine actions／熔斷 → 頁面頂部紅 bar + 標題閃 + 提示音（Telegram 已由 engine 即時推送） */
 const BASE_TITLE=document.title;
 let titleFlash=null,lastAlarmSig='';
@@ -1684,6 +1706,87 @@ document.addEventListener('mouseover',function(e){
 });
 document.addEventListener('mouseout',function(e){if(e.target.closest('[data-tip]'))tipbox.style.display='none';});
 
+/* ════════════ 執倉建議 / 最優先部署 / 業績日曆（由 realPos + rec 推導，唔靠 worker /api）═════════════ */
+// ⭐ 2026-08-23：worker /api 時唔時 down，呢三個 tab 改由 Futu 真倉(realPos) + engine rec 推，獨立運作。
+const FUND_TARGETS={LITE:1055.94};  // 你定嘅 LITE 目標價；其餘用 cost×1.15
+function _decelOf(tk){ const w=(rec&&(rec.winrank||[]))||[]; const m=(rec&&(rec.book||[]))||[]; const all=w.concat(m); const x=all.find(s=>s&&s.ticker===tk); return x? (x.decel!=null?x.decel:0):0; }
+function _sigOf(tk){ const w=(rec&&(rec.winrank||[]))||[]; const m=(rec&&(rec.book||[]))||[]; const all=w.concat(m); const x=all.find(s=>s&&s.ticker===tk); return x? (x.signal||'—'):'—'; }
+function _earnOf(tk){ const w=(rec&&(rec.winrank||[]))||[]; const m=(rec&&(rec.book||[]))||[]; const all=w.concat(m); const x=all.find(s=>s&&s.ticker===tk); return x? (x.earnings||''):''; }
+
+function renderAdvice(){
+  const el=document.getElementById('adviceBody'); if(!el)return;
+  const pos=(realPos||[]).filter(p=>p.shares&&p.shares!==0);
+  if(!pos.length){ el.innerHTML='<div class="muted" style="padding:16px;text-align:center">📭 暫無持倉（Futu 真戶口）</div>'; return; }
+  let h='';
+  const rows=pos.map(p=>{
+    const t=p.ticker, decel=_decelOf(t), sig=_sigOf(t);
+    const target=FUND_TARGETS[t]||(p.avg_cost?p.avg_cost*1.15:p.price*1.15);
+    const stop=p.avg_cost?p.avg_cost*0.92:p.price*0.92;
+    let action,cls;
+    if(decel<=-3){action='強制沽出：動量減速崩損 Decel='+decel+'（不論盈虧）';cls='sell';}
+    else if(sig==='SELL'||sig==='REDUCE'){action='減持：信號轉弱 '+sig;cls='reduce';}
+    else if(p.price>=target){action='到價減磅鎖利：現價 $'+px2(p.price)+' 已達目標 $'+px2(target)+'（可減 40-60%，非轉弱）';cls='reduce';}
+    else if(p.price<=stop){action='止蝕警戒：現價 $'+px2(p.price)+' 跌破 -8% 止蝕 $'+px2(stop);cls='sell';}
+    else if(sig==='BUY'&&decel>=-1){action='可加倉：信號 BUY · Decel '+decel+' 正常';cls='buy';}
+    else{action='續持：信號 '+sig+' · Decel '+decel;cls='hold';}
+    const aCol=cls==='sell'||cls==='reduce'?'#dc2626':cls==='buy'?'#16a34a':'#475569';
+    const pnlCls=p.pnl_hkd>=0?'pos':'neg';
+    return '<tr><td style="font-weight:700">'+(t)+'</td>'
+      +'<td class="r">'+(p.kind==='option'?'📃':'')+p.shares+'</td>'
+      +'<td class="r lp">$'+px2(p.price)+'</td>'
+      +'<td class="r '+pnlCls+'">'+(p.pnl_hkd>=0?'+':'')+hkd(p.pnl_hkd)+'</td>'
+      +'<td class="c">'+decel+'</td>'
+      +'<td>'+sig+'</td>'
+      +'<td style="font-size:11px;font-weight:600;color:'+aCol+'">'+action+'</td></tr>';
+  }).join('');
+  h+='<table class="utable"><thead><tr><th>股票</th><th class="r">股數/張</th><th class="r">現價</th><th class="r">盈虧(HKD)</th><th class="c">動量減速</th><th>信號</th><th>操作建議</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">📭 無持倉</td></tr>')+'</tbody></table>';
+  h+='<div style="font-size:11px;color:#64748b;margin-top:10px;padding:8px 10px;background:#f8fafc;border-radius:6px">📌 到價＝考慮減磅鎖利（非轉弱）；止蝕＝-8% 跌破成本；Decel≤-3＝動量崩潮強制離場。動量/信號由 engine 每周期更新。</div>';
+  el.innerHTML=h;
+}
+
+function renderTopPick(){
+  const el=document.getElementById('toppickBody'); if(!el)return;
+  const best=(rec&&rec.best)||null;
+  const cands=(rec&&rec.candidates)||[];
+  let h='<div style="font-weight:700;margin:2px 0 8px;font-size:13px">⭐ 期權今日最佳（v4_balanced 執行點）</div>';
+  if(best&&best.ticker){
+    const b=best;
+    h+='<div class="card" style="margin-bottom:12px"><div class="card-b"><b>'+(b.ticker)+'</b> '+(b.expiry||'')+' $'+(px2(b.strike))+' · Δ'+(b.delta!=null?b.delta.toFixed(2):'—')+' · 分'+(b.score!=null?b.score.toFixed(0):'—')+(b.earnings?' <span style="color:#dc2626">🚫 業績 '+b.earnings+'</span>':'')+'</div></div>';
+  }
+  if(cands.length){
+    h+='<div style="font-size:12px;color:#64748b;margin:6px 0 4px">候選名單（按分數）：</div>';
+    h+='<table class="utable"><thead><tr><th>股票</th><th class="r">到期</th><th class="r">行使價</th><th class="r">Δ</th><th class="r">分</th><th class="r">業績</th></tr></thead><tbody>';
+    cands.slice(0,12).forEach(s=>{ h+='<tr'+(s.ticker===activeTk?' style="background:#eff6ff"':'')+' onclick="switchTicker(\''+s.ticker+'\')" style="cursor:pointer"><td><b>'+s.ticker+'</b></td><td class="r">'+s.expiry+'</td><td class="r">$'+px2(s.strike)+'</td><td class="r">'+fmt(s.delta)+'</td><td class="r">'+fmt(s.score)+'</td><td class="r'+(s.earnings?' neg':'')+'">'+(s.earnings||'—')+'</td></tr>'; });
+    h+='</tbody></table>';
+  } else h+='<div class="muted">暫無候選（寬度閘門可能暫停開新倉）</div>';
+  // 正股部署備註
+  h+='<div style="font-weight:700;margin:16px 0 6px;font-size:13px">📌 正股部署（LITE / DLLL）</div>';
+  h+='<div class="small muted">LITE：目標價 $1,055.94（FUND_TARGETS），止蝕 cost×0.92；DLLL 為 2× DELL 槓桿 ETF，跟 DELL 走勢，唔宜長揸（每日 decay）。兩隻正股嘅到價/止蝕建議見「執倉建議」tab。</div>';
+  el.innerHTML=h;
+}
+function switchTicker(tk){ activeTk=tk; switchPane('detail'); }
+
+function renderEarnings(){
+  const el=document.getElementById('earningsBody'); if(!el)return;
+  const list=[];
+  (realPos||[]).forEach(p=>{ const e=_earnOf(p.ticker); if(e) list.push({tk:p.ticker,date:e,kind:p.kind}); });
+  (rec&&(rec.candidates||[])).forEach(s=>{ if(s&&s.ticker&&s.earnings) list.push({tk:s.ticker,date:s.earnings,kind:'option'}); });
+  // dedupe by ticker keep earliest date
+  const m=new Map(); list.forEach(x=>{ if(!m.has(x.tk)||String(x.date)<String(m.get(x.tk).date)) m.set(x.tk,x); });
+  const arr=[...m.values()].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if(!arr.length){ el.innerHTML='<div class="muted" style="padding:16px;text-align:center">📭 無業績日資料（engine 未掃到）</div>'; return; }
+  const today=new Date('2026-08-23');
+  let h='<table class="utable"><thead><tr><th>股票</th><th class="r">業績日</th><th class="r">距今</th><th>績前風險</th></tr></thead><tbody>';
+  arr.forEach(x=>{
+    let d; try{ d=new Date(x.date); }catch(e){ d=null; }
+    const days=d? Math.round((d-today)/86400000):'—';
+    const risk = (typeof days==='number'&&days<=21)?'<span style="color:#dc2626;font-weight:700">🚫 21日內（績前勿開新倉/接貨）</span>':'<span style="color:#16a34a">安全</span>';
+    h+='<tr><td><b>'+x.tk+'</b>'+(x.kind==='option'?' 📃':'')+'</td><td class="r">'+x.date+'</td><td class="r">'+(days==='—'?'—':days+'日')+'</td><td>'+risk+'</td></tr>';
+  });
+  h+='</tbody></table><div style="font-size:11px;color:#64748b;margin-top:10px">📌 業績日前 21 日內：賣 put 應跳過（避 IV crush + 跳空）；已持倉到期日若早過業績日，必須平倉。</div>';
+  el.innerHTML=h;
+}
+
 /* ════════════ tabs ════════════ */
 function switchPane(id){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.pane===id));
@@ -1692,6 +1795,9 @@ function switchPane(id){
   if(id==='best'){if(METHOD==='h6040')renderH6040Best();else renderBest();}
   if(id==='overview'){if(METHOD==='h6040')renderH6040Overview();else renderOverview();}
   if(id==='positions')renderPositions();
+  if(id==='advice')renderAdvice();
+  if(id==='toppick')renderTopPick();
+  if(id==='earnings')renderEarnings();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>switchPane(b.dataset.pane)));
 /* ⭐ 08-16 fix：tabs sticky top 實際 = appbar 高度（appbar .sub 換行會高於 53px →
