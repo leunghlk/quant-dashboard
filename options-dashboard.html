@@ -1429,28 +1429,20 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
 }
 function closeExec(){$('execModal').style.display='none';}
 async function confirmExec(tk,exp,K,n,premium){
-  // ⭐ Hybrid 60/40：本地紙上賬記錄，唔經 v4 engine
-  if(METHOD==='h6040'){
-    const isSpy=(tk==='SPY');
-    const book=h6040Book();
-    const id=tk+'|'+exp+'|'+K+'|'+Date.now();
-    book.push({id:id,leg:isSpy?'spy':'single',ticker:tk,expiry:exp,strike:Number(K),contracts:Number(n),prem:Number(premium),spot:(live[tk]&&live[tk].live_price)||null,status:'open',ts:new Date().toISOString()});
-    h6040SaveBook(book);
-    closeExec();
-    toast('✅ 已記錄本地紙上倉（Hybrid 60/40）：'+tk+' $'+K+' ×'+n);
-    renderAll();
-    return;
-  }
+  // ⭐ 2026-08-23：v4_balanced 同 Hybrid 60/40 同一條執行路徑 —— 經 v4 engine 記賬＋即時推 Telegram。
+  //   h6040 只追蹤真倉（你已在 Futu 落 / 想落嘅單）→ real:true，落盤後 engine 出「已成交（記賬）」TG。
+  //   任何操作（開/平/改張/轉真倉）都經 engine → send_fill_notification，唔會靜悄悄。
+  const isH6040=(METHOD==='h6040');
   const c=window._lastExecCtx||null;
   const side=(window._lastExecSide==='CALL')?'CALL':'CSP';   // ⭐ 2026-08-14: 帶 side 給 engine 開對方向（賣 Call=短 call）
-  recordDecision('queued',tk,exp,K,{contracts:Number(n),premium:Number(premium),side:side});
+  recordDecision('queued',tk,exp,K,{contracts:Number(n),premium:Number(premium),side:side,real:isH6040});
   const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{
     action:'open',ticker:tk,expiry:exp,strike:Number(K),contracts:Number(n),premium:Number(premium),
     delta:(c&&c.delta!=null)?c.delta:((findCandidate(tk)||{}).delta),iv:(c&&c.iv!=null)?c.iv:((findCandidate(tk)||{}).iv),
-    side:side
+    side:side, real:isH6040
   });
   closeExec();
-  if(r&&r.ok){toast('✅ 已排隊執行 '+tk+' ×'+n+'（engine 下個週期確認，price 到先記賬）');setTimeout(function(){loadRec();},4000);}
+  if(r&&r.ok){toast((isH6040?'✅ [Hybrid 60/40] 已排隊執行真倉 ':'✅ 已排隊執行 ')+tk+' ×'+n+'（engine 下個週期確認，price 到先記賬；Telegram 已通知）');setTimeout(function(){loadRec();},4000);}
   else toast('❌ 執行失敗：'+(r&&r.error||'bridge 未連接'));
 }
 /* ════════════ 決定記錄（localStorage：執行/排隊/今日不做） ════════════ */
@@ -1956,12 +1948,8 @@ function h6040OpenSpyChain(){
   renderDetail();
 }
 function h6040ExecCand(tk,exp,K,contracts,prem){
-  const id=tk+'|'+exp+'|'+K+'|'+Date.now();
-  const book=h6040Book();
-  book.push({id:id,leg:'single',ticker:tk,expiry:exp,strike:Number(K),contracts:Number(contracts),prem:Number(prem),spot:null,status:'open',ts:new Date().toISOString()});
-  h6040SaveBook(book);
-  toast('✅ 已記錄本地紙上倉：'+tk+' $'+K+' ×'+contracts+'（Hybrid 60/40）');
-  renderAll();
+  // ⭐ 2026-08-23：改經 confirmExec → v4 engine 記賬＋即時 Telegram（同 v4_balanced，唔再寫本地紙上賬）。
+  confirmExec(tk,exp,K,contracts,prem);
 }
 function h6040ClosePos(id){
   const book=h6040Book();
