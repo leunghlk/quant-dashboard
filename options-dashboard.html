@@ -136,6 +136,9 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 th.sort-sec{cursor:pointer;user-select:none}
 th.sort-sec.asc::after{content:' ▲';font-size:9px;color:#0d9488}
 th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
+/* ── 訊號 pill（quant dashboard 同款 .sig）── */
+.sig{padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
+.sig-SELL{background:#ef4444}.sig-REDUCE{background:#f97316}.sig-HOLD{background:#eab308}.sig-ACCUMULATE{background:#3b82f6}.sig-BUY{background:#22c55e}
 </style>
 </head>
 <body>
@@ -451,6 +454,7 @@ async function loadLive(){
   c.forEach(x=>{if(x&&x.ticker)set.add(x.ticker);});
   (rec&&rec.winrank||[]).forEach(x=>{if(x&&x.ticker)set.add(x.ticker);});   // ⭐ 08-19：winrank 現價都要 live（user 報 winrank 價凍結喺掃描時）
   (rec&&rec.positions||[]).forEach(p=>{if(p.ticker)set.add(p.ticker);});
+  (realPos||[]).forEach(p=>{if(p.ticker)set.add(p.ticker);});   // ⭐ 08-24：Futu 真倉（LITE/DLLL 正股＋期權標的）都要 live 現價
   if(!set.size)return;
   try{
     const r=await fetchTimeout(activeBridge+'/snapshot?codes='+encodeURIComponent([...set].join(','))+'&secret='+encodeURIComponent(BRIDGE_SECRET),20000);
@@ -523,6 +527,16 @@ async function loadReal(){
 function stocksList(){ return (realPos||[]).filter(p=>p.kind!=='option'); }
 function optsList(){ return (realPos||[]).filter(p=>p.kind==='option'); }
 function sumF(arr,f){ return (arr||[]).reduce((s,p)=>s+(p[f]||0),0); }
+// ⭐ 08-24：真倉現價（native ccy）—— bridge /real_positions 嘅 price 欄經常＝avg_cost fallback（顯示入場價當現價＝錯）。
+//   期權＝|mkt_val_hkd| 反推 per-share mark（mkt 已係每張總數）；正股＝live quote 優先，冇 live 就 Futu 市值反推。
+function realPxOf(p){
+  if(!p)return 0;
+  if(p.kind==='option'){ const c=Math.abs(p.shares||0)*100, m=Math.abs(p.mkt_val_hkd||0); return (c>0&&m>0)? m/realFx/c : (p.price||p.avg_cost||0); }
+  const lv=live[p.ticker]; if(lv&&lv.live_price!=null&&lv.live_price>0) return lv.live_price;
+  if(p.shares&&p.mkt_val_hkd>0) return p.mkt_val_hkd/realFx/p.shares;
+  return p.price||p.avg_cost||0;
+}
+function realCcyOf(p){ return (p&&/\.HK$/.test(p.ticker||''))?'HKD':'USD'; }   // 真倉價格 native 貨幣（US 證券回 USD）
 
 function renderUnified(){
   const el = $('unifiedBody'); if(!el)return;
@@ -539,7 +553,9 @@ function renderUnified(){
   const hasW    = !!(realFunds && realFunds.withdraw_hkd>0);
   const avail   = hasW? realFunds.withdraw_hkd : cashAll;      // 可動用放在現金寶嘅 amount
   const locked  = hasW? Math.max(0, cashAll-avail) : 0;        // 抵押鎖定（短 put 按金佔用）
-  const realized = sumF(realPos,'realized_pl');
+  // ⭐ 08-24（user 欽定口徑）：已實現 P&L ＝ 總資產（HKD 當刻）− 投入本金 HKD 320,000。
+  //   舊計法 sumF(realPos,'realized_pl') 漏已平倉不留倉位的實現盈虧。
+  const realized = total - BASE_HKD;
   const unreal   = sumF(realPos,'unrealized_pl');
   const pnlTotal = realized + unreal;
   const retPct = (total - BASE_HKD)/BASE_HKD*100;
@@ -569,7 +585,7 @@ function renderUnified(){
     + '<span class="small muted">當前顯示：<b>'+uniCCY()+'</b>（USD 按 Futu 戶口隱含匯率 '+realFx.toFixed(4)+'）</span></div>';
   h += '<div class="kpi" style="margin-top:0">';
   h += '<div class="k"><div class="lbl">總資產（'+uniCCY()+'）</div><div class="val" id="uTotal">'+uMask(uMoney(total))+'</div><div class="small muted">基準 HKD '+(BASE_HKD/1000).toFixed(0)+'k · 回報 '+(retPct>=0?'+':'')+retPct.toFixed(1)+'%</div></div>';
-  h += '<div class="k"><div class="lbl">已實現 P&L（'+uniCCY()+'）</div><div class="val '+(realized>=0?'up':'dn')+'">'+uPnl(realized)+'</div><div class="small muted">Futu 持倉口徑（已平倉唔留倉位）</div></div>';
+  h += '<div class="k"><div class="lbl">已實現 P&L（'+uniCCY()+'）</div><div class="val '+(realized>=0?'up':'dn')+'">'+uPnl(realized)+'</div><div class="small muted">＝ 總資產 − 本金 HKD 320,000（含浮動）</div></div>';
   h += '<div class="k"><div class="lbl">未實現 P&L（'+uniCCY()+'）</div><div class="val '+(unreal>=0?'up':'dn')+'">'+uPnl(unreal)+'</div><div class="small muted">Futu 持倉口徑 ＝ 權利金 − 市值</div></div>';
   h += '<div class="k"><div class="lbl">可動用現金寶（'+uniCCY()+'）</div><div class="val" style="color:#16a34a">'+uMask(uMoney(avail))+'</div><div class="small muted">'+availPct.toFixed(0)+'% 資產 · 現金−抵押 · 0佣金收息</div></div>';
   h += '<div class="k"><div class="lbl">抵押鎖定（'+uniCCY()+'）</div><div class="val" style="color:#b45309">'+uMask(uMoney(locked))+'</div><div class="small muted">短 put 按金佔用 · 不可動用</div></div>';
@@ -582,13 +598,15 @@ function renderUnified(){
   const all = (realPos||[]).slice().sort((a,b)=> (b.mkt_val_hkd||0)-(a.mkt_val_hkd||0));
   if(all.length){
     h += '<div style="font-weight:700;margin:14px 0 6px;font-size:13px">持倉明細（Futu 實單）</div>';
-    h += '<div class="table-scroll"><table class="utable"><thead><tr><th>代號</th><th class="r">股數/張</th><th class="r">入場價</th><th class="r">現價</th><th class="r">市值(HKD)</th><th class="r">未實現</th><th class="r">已實現</th></tr></thead><tbody>';
+    h += '<div class="table-scroll"><table class="utable"><thead><tr><th>代號</th><th class="c">幣別</th><th class="r">股數/張</th><th class="r">入場價(原幣)</th><th class="r">現價(原幣)</th><th class="r">市值(HKD)</th><th class="r">未實現</th><th class="r">已實現</th></tr></thead><tbody>';
     all.forEach(p=>{
       const tag = p.kind==='option' ? ' 📃' : '';
+      const ccy = realCcyOf(p), pxPre = ccy==='HKD'?'HK$':'US$';
       h += '<tr><td><b>'+p.ticker+'</b>'+tag+(p.name?' <span class="muted" style="font-size:10px">'+esc(p.name)+'</span>':'')+'</td>'
+        + '<td class="c"><span class="muted" style="font-size:10px;font-weight:700">'+ccy+'</span></td>'
         + '<td class="r">'+p.shares+'</td>'
-        + '<td class="r">$'+px2(p.avg_cost)+'</td>'
-        + '<td class="r">$'+px2(p.price)+'</td>'
+        + '<td class="r">'+pxPre+px2(p.avg_cost)+'</td>'
+        + '<td class="r">'+pxPre+px2(realPxOf(p))+'</td>'
         + '<td class="r">'+hkd(p.mkt_val_hkd)+'</td>'
         + '<td class="r '+(p.unrealized_pl>=0?'pos':'neg')+'">'+money(p.unrealized_pl)+'</td>'
         + '<td class="r '+(p.realized_pl>=0?'pos':'neg')+'">'+money(p.realized_pl)+'</td></tr>';
@@ -1789,9 +1807,10 @@ function renderAdvice(){
     const decel=isOpt? _decelOf(t) : ((qp&&qp.curr_decel!=null)? qp.curr_decel : (qw&&qw.decel!=null? qw.decel : _decelOf(t)));
     const sig=isOpt? _sigOf(t) : (qp? (qp.curr_signal||'—') : (qw? (qw.signal||'—') : _sigOf(t)));
     let action,cls;
-    // 期權現權利金（per-share）＝市值反推（Futu 週末 price 回 0 會 fallback 做入場價）
+    // 期權現權利金（per-share）＝市值反推（Futu 週末 price 回 0 會 fallback 做入場價）；
+    // ⭐ 08-24：正股統一行 realPxOf（live quote 優先，否則 Futu 市值反推——bridge price 欄係 avg_cost fallback 唔准）
     const optMark=(p.kind==='option')? Math.abs(p.mkt_val_hkd||0)/realFx/100/Math.max(1,Math.abs(p.shares)) : 0;
-    const curPx=(p.kind==='option' && optMark>0)? optMark : p.price;
+    const curPx=realPxOf(p);
     if(p.kind==='option'){
       // ⭐ 08-23：短 put 專用（正股 target/stop 公式對短倉方向倒轉）
       //   avg_cost＝per-share 權利金：跌=賺（負債縮），升=蝕
@@ -1819,7 +1838,7 @@ function renderAdvice(){
       +'<td class="r lp">$'+px2(curPx)+'</td>'
       +'<td class="r '+pnlCls+'">'+(p.pnl_hkd>=0?'+':'')+hkd(p.pnl_hkd)+'</td>'
       +'<td class="c">'+decel+'</td>'
-      +'<td>'+sig+'</td>'
+      +'<td>'+_sigPill(sig)+'</td>'
       +'<td style="font-size:11px;font-weight:600;color:'+aCol+'">'+action+'</td></tr>';
   }).join('');
   h+='<table class="utable"><thead><tr><th>股票</th><th class="r">股數/張</th><th class="r">現價</th><th class="r">盈虧(HKD)</th><th class="c">動量減速</th><th>信號</th><th>操作建議</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">📭 無持倉</td></tr>')+'</tbody></table>';
@@ -1828,7 +1847,10 @@ function renderAdvice(){
 }
 
 /* ⭐ 08-23：最優先部署 tab ＝ quant dashboard「📈 策略交易台 — 活體回測決策」同一個 table（worker /api data.strategy） */
-function _sigPill(s){ const k=(s==='BUY'||s==='ACCUMULATE')?'g':(s==='SELL')?'r':(s==='REDUCE')?'w':'b'; return pill(k,s||'—'); }
+// ⭐ 08-24：訊號 pill 100% 跟 quant dashboard（.sig 白字圓角框：BUY 綠/ACCUMULATE 藍/HOLD 黃/SELL 紅/REDUCE 橙）
+//   只對 quant 五種訊號落 pill；engine 動量字串（如 SELL PUT）／缺訊號（—）照 plain text，唔好生 sig-xxx class
+const _SIG_OK={BUY:1,ACCUMULATE:1,HOLD:1,SELL:1,REDUCE:1};
+function _sigPill(s){ return _SIG_OK[s]? '<span class="sig sig-'+s+'">'+s+'</span>' : (s? esc(s) : '<span class="muted">—</span>'); }
 function _pxAsof(x){
   if(!x||!x.asof)return '';
   let t='—'; try{t=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(x.asof*1000));}catch(e){}
@@ -1840,6 +1862,9 @@ function renderTopPick(){
   if(!d){el.innerHTML='<div class="muted" style="padding:16px;text-align:center">⏳ 正股 quant model（策略交易台）載入中…<br><span style="font-size:11px">worker /api 每日訊號 · 載入到即刻顯示（自動重試 15 分鐘一次）</span></div>';return;}
   const nameMap={};[].concat(d.positions||[],d.buys||[],d.sells||[]).forEach(x=>{if(x&&x.tk&&x.name)nameMap[x.tk]=x.name;});
   const nmTk=tk=>(nameMap[tk]&&nameMap[tk]!==tk)?'<span style="font-size:11px;color:#64748b;font-weight:400;margin-left:4px">'+esc(nameMap[tk])+'</span>':'';   // name＝ticker（DLLL）時唔重複
+  // ⭐ 08-24：加 native currency 欄（user 要求唔好淨係 HKD）。strategy desk 全部係 US 股票 → USD；
+  //   worker btPxHkd 用 USD_HKD=7.80 乘，所以反除返 7.80 先啱數（唔好用 Futu realFx 7.8536）。
+  const qUsd=v=>'$'+((v||0)/7.80).toFixed(2);
   const params=d.params||{}, maxPos=params.maxPos||5, notional=params.notional||10000;
   let h='<div style="font-size:11px;color:#64748b;margin:0 0 6px">📅 每日訊號(HKT) '+esc(d.date)+' · '+esc(params.mode||'long-only top-5')+' · 建議倉 HKD '+notional.toLocaleString()+'／格 · 剩 '+d.openSlots+' 格可入</div>';
   h+='<div style="font-size:11px;color:#64748b;margin:0 0 8px">long-only（唔可以 short）· 現持倉＝你實際組合 · 買入候選／離場＝模型建議（非已執行），執行＝下個交易日開市 —— 同 quant dashboard 策略交易台完全同一數據。</div>';
@@ -1847,10 +1872,10 @@ function renderTopPick(){
   if(!d.positions||!d.positions.length){h+='<div style="font-weight:700;margin:8px 0 4px;font-size:13px">📦 現持倉</div><div class="muted">暫無持倉（有 BUY / ACCUMULATE 訊號先入）</div>';}
   else{
     h+='<div style="font-weight:700;margin:8px 0 4px;font-size:13px">📦 現持倉（實際組合 · 最多 '+maxPos+' 格）</div>';
-    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>持倉</th><th class="r">買入日</th><th class="r">買入價(HKD)</th><th class="r">股數</th><th class="r">參考價(HKD)</th><th class="r">未實現</th><th>訊號</th><th class="r">Decel</th><th>狀態</th></tr></thead><tbody>';
+    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>持倉</th><th class="r">買入日</th><th class="r">買入價(HKD)</th><th class="r">買入價(USD)</th><th class="r">股數</th><th class="r">參考價(HKD)</th><th class="r">參考價(USD)</th><th class="r">未實現</th><th>訊號</th><th class="r">Decel</th><th>狀態</th></tr></thead><tbody>';
     d.positions.forEach(p=>{
       const st=p.exit_trigger?'<span style="color:#dc2626;font-weight:800">觸發退出</span>':'<span style="color:#475569">持有</span>';
-      h+='<tr><td style="font-weight:700">'+esc(p.tk)+nmTk(p.tk)+'</td><td class="r">'+esc(p.entry_date)+'</td><td class="r">'+fmt(p.entry_px_hkd)+'</td><td class="r">'+p.shares+'</td><td class="r">'+fmt(p.ref_px_hkd)+_pxAsof(p)+'</td><td class="r" style="font-weight:700;color:'+(p.unreal_pct>=0?'#16a34a':'#dc2626')+'">'+(p.unreal_pct>=0?'+':'')+p.unreal_pct+'%</td><td>'+_sigPill(p.curr_signal)+'</td><td class="r">'+(p.curr_decel==null?'—':p.curr_decel)+'</td><td>'+st+'</td></tr>';
+      h+='<tr><td style="font-weight:700">'+esc(p.tk)+nmTk(p.tk)+'</td><td class="r">'+esc(p.entry_date)+'</td><td class="r">'+fmt(p.entry_px_hkd)+'</td><td class="r">'+qUsd(p.entry_px_hkd)+'</td><td class="r">'+p.shares+'</td><td class="r">'+fmt(p.ref_px_hkd)+_pxAsof(p)+'</td><td class="r">'+qUsd(p.ref_px_hkd)+'</td><td class="r" style="font-weight:700;color:'+(p.unreal_pct>=0?'#16a34a':'#dc2626')+'">'+(p.unreal_pct>=0?'+':'')+p.unreal_pct+'%</td><td>'+_sigPill(p.curr_signal)+'</td><td class="r">'+(p.curr_decel==null?'—':p.curr_decel)+'</td><td>'+st+'</td></tr>';
     });
     h+='</tbody></table></div>';
   }
@@ -1858,9 +1883,9 @@ function renderTopPick(){
   if(!d.buys||!d.buys.length){h+='<div style="font-weight:700;margin:12px 0 4px;font-size:13px">🟢 買入候選（score 排序）</div><div class="muted">暫無買入候選（需要 BUY / ACCUMULATE ≥0.60，且 decel &gt; −3）</div>';}
   else{
     h+='<div style="font-weight:700;margin:12px 0 4px;font-size:13px">🟢 買入候選（score 排序 · 剩 '+d.openSlots+' 格）</div>';
-    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>#</th><th>Ticker</th><th class="r">Score</th><th>訊號</th><th class="r">Decel</th><th class="r">參考價(HKD)</th><th class="r">目標 HKD 10k</th><th class="r">約股數</th><th>狀態</th></tr></thead><tbody>';
+    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>#</th><th>Ticker</th><th class="r">Score</th><th>訊號</th><th class="r">Decel</th><th class="r">參考價(HKD)</th><th class="r">參考價(USD)</th><th class="r">目標 HKD 10k</th><th class="r">約股數</th><th>狀態</th></tr></thead><tbody>';
     d.buys.forEach(b=>{
-      h+='<tr><td>'+b.rank+'</td><td style="font-weight:700">'+esc(b.tk)+nmTk(b.tk)+'</td><td class="r">'+b.score+'</td><td>'+_sigPill(b.signal)+'</td><td class="r">'+b.decel+'</td><td class="r">'+fmt(b.ref_px_hkd)+_pxAsof(b)+'</td><td class="r">10,000</td><td class="r">'+b.shares+'</td><td style="color:'+(b.fillable?'#16a34a':'#64748b')+';font-weight:700">'+(b.fillable?'可買入':'候補')+'</td></tr>';
+      h+='<tr><td>'+b.rank+'</td><td style="font-weight:700">'+esc(b.tk)+nmTk(b.tk)+'</td><td class="r">'+b.score+'</td><td>'+_sigPill(b.signal)+'</td><td class="r">'+b.decel+'</td><td class="r">'+fmt(b.ref_px_hkd)+_pxAsof(b)+'</td><td class="r">'+qUsd(b.ref_px_hkd)+'</td><td class="r">10,000</td><td class="r">'+b.shares+'</td><td style="color:'+(b.fillable?'#16a34a':'#64748b')+';font-weight:700">'+(b.fillable?'可買入':'候補')+'</td></tr>';
     });
     h+='</tbody></table></div>';
   }
@@ -1868,8 +1893,8 @@ function renderTopPick(){
   h+='<div style="font-weight:700;margin:12px 0 4px;font-size:13px">🔴 沽出提示（long-only 平倉轉現金）</div>';
   if(!d.sells||!d.sells.length){h+='<div class="muted">無沽出訊號</div>';}
   else{
-    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>Ticker</th><th class="r">股數</th><th class="r">參考價(HKD)</th><th>原因</th><th>時機</th></tr></thead><tbody>';
-    d.sells.forEach(s=>{h+='<tr><td style="font-weight:700">'+esc(s.tk)+nmTk(s.tk)+'</td><td class="r">'+s.shares+'</td><td class="r">'+fmt(s.ref_px_hkd)+'</td><td style="color:#dc2626">'+esc(s.reason)+'</td><td>'+esc(s.timing)+'</td></tr>';});
+    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>Ticker</th><th class="r">股數</th><th class="r">參考價(HKD)</th><th class="r">參考價(USD)</th><th>原因</th><th>時機</th></tr></thead><tbody>';
+    d.sells.forEach(s=>{h+='<tr><td style="font-weight:700">'+esc(s.tk)+nmTk(s.tk)+'</td><td class="r">'+s.shares+'</td><td class="r">'+fmt(s.ref_px_hkd)+'</td><td class="r">'+qUsd(s.ref_px_hkd)+'</td><td style="color:#dc2626">'+esc(s.reason)+'</td><td>'+esc(s.timing)+'</td></tr>';});
     h+='</tbody></table></div>';
   }
   if(d.reentry&&d.reentry.length){
@@ -1884,10 +1909,10 @@ function renderTopPick(){
   h+='<div style="font-weight:700;margin:12px 0 4px;font-size:13px">🧾 今日策略決策（模型建議，非已執行）</div>';
   if(!d.log||!d.log.length){h+='<div class="muted">暫無成交記錄</div>';}
   else{
-    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>日期</th><th>Action</th><th>Ticker</th><th class="r">價(HKD)</th><th class="r">股數</th><th class="r">盈虧</th></tr></thead><tbody>';
+    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>日期</th><th>Action</th><th>Ticker</th><th class="r">價(HKD)</th><th class="r">價(USD)</th><th class="r">股數</th><th class="r">盈虧</th></tr></thead><tbody>';
     d.log.slice(-8).reverse().forEach(x=>{
       const pn=x.pnl!=null?'<span style="color:'+(x.pnl>=0?'#16a34a':'#dc2626')+'">'+(x.pnl>=0?'+':'')+x.pnl+'</span>':'—';
-      h+='<tr><td>'+esc(x.date)+'</td><td>'+_sigPill(x.action==='BUY'?'BUY':'SELL')+'</td><td style="font-weight:700">'+esc(x.tk)+nmTk(x.tk)+'</td><td class="r">'+fmt(x.px_hkd)+'</td><td class="r">'+x.shares+'</td><td class="r">'+pn+'</td></tr>';
+      h+='<tr><td>'+esc(x.date)+'</td><td>'+_sigPill(x.action==='BUY'?'BUY':'SELL')+'</td><td style="font-weight:700">'+esc(x.tk)+nmTk(x.tk)+'</td><td class="r">'+fmt(x.px_hkd)+'</td><td class="r">'+qUsd(x.px_hkd)+'</td><td class="r">'+x.shares+'</td><td class="r">'+pn+'</td></tr>';
     });
     h+='</tbody></table></div>';
   }
@@ -2008,11 +2033,17 @@ function switchPane(id){
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>switchPane(b.dataset.pane)));
 /* ⭐ 08-16 fix：tabs sticky top 實際 = appbar 高度（appbar .sub 換行會高於 53px →
-   tabs 被遮在 appbar 後面 = 「freeze 了」無法點擊）。load + resize 都重新對齊。 */
+   tabs 被遮在 appbar 後面 = 「freeze 了」無法點擊）。load + resize 都重新對齊。
+   ⭐ 08-24 v2：sync 量度太早（font swap 後 appbar 66→113px）→ tabs top 殘留舊值匿喺 appbar 後面＝「冇凍頂」。
+   改用 ResizeObserver（appbar 高度一變即刻對齊）＋ document.fonts.ready ＋ 多次 retry。 */
 (function(){const _ap=document.querySelector('.appbar'),_tb=document.querySelector('.tabs');
   if(!_ap||!_tb)return;
   const sync=function(){_tb.style.top=_ap.offsetHeight+'px';};
-  sync();window.addEventListener('resize',sync);window.addEventListener('load',sync);})();
+  sync();window.addEventListener('resize',sync);window.addEventListener('load',sync);
+  if(window.ResizeObserver){try{new ResizeObserver(sync).observe(_ap);}catch(e){}}
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(sync).catch(function(){});}
+  [300,800,1800,3500].forEach(function(ms){setTimeout(sync,ms);});
+})();
 
 /* ═══════════　方法論（v4_balanced / h6040） ════════════ */
 let _v4MethodHTML=null,_v4SpecHTML=null,_v4PerfHTML=null;
@@ -2258,10 +2289,25 @@ function renderH6040Overview(){
   const rm=$('railsMeta'); if(rm)rm.textContent='實時閘門：單股腿要 VIX≥20 · SPY 腿要 SPY>200DMA';
   const cb=$('ovCapBody');
   if(cb){
+    // ⭐ 08-24：資本運用加 hover bars（同統一總覽資產分佈 bar 同款 data-tip 機制）
+    const CAP=H6040_BT.capital||320000;
+    const legStk=192000, legSpy=128000;   // 60/40 目標配置
+    const usedPct=Math.min(100,Math.round(used/CAP*100));
+    const capTips={
+      stk:'<b>單股腿（60%）目標配置</b><br>HKD 192,000（320k × 60%）<br>util 70% · ≤8 倉 · 單名 ≤25%<br>閘門：VIX≥20 先開（'+(h6040Gates&&h6040Gates.vixOk?'🟢 而家開':'🔴 而家閂')+'）',
+      spy:'<b>SPY 腿（40%）目標配置</b><br>HKD 128,000（320k × 40%）<br>util 60% · ≤3 倉 · 單倉 ≤45%<br>閘門：SPY＞200DMA 先開（'+(h6040Gates&&h6040Gates.spyAbove?'🟢 而家開':'🔴 而家閂')+'）'
+    };
     cb.innerHTML=
-      '<div class="small muted">① 單股腿目標配置 HKD 192,000（util 70%，≤8 倉，單名 ≤25%）</div>'+
-      '<div class="small muted" style="margin-top:4px">② SPY 腿目標配置 HKD 128,000（util 60%，≤3 倉，單倉 ≤45%）</div>'+
-      '<div class="small muted" style="margin-top:4px">回測總資本 <b>HKD 320,000</b> · 你嘅真倉組合顯示於上方（實際資本以你戶口為準）</div>';
+      '<div class="small muted">① 60/40 目標配置（hover 每段睇規則）</div>'
+      +'<div style="display:flex;border-radius:6px;overflow:hidden;background:#e2e8f0;margin:4px 0 6px">'
+      +'<div style="height:14px;background:#1a73e8;width:60%;cursor:help" data-tip="'+capTips.stk.replace(/"/g,'&quot;')+'"></div>'
+      +'<div style="height:14px;background:#7c3aed;width:40%;cursor:help" data-tip="'+capTips.spy.replace(/"/g,'&quot;')+'"></div></div>'
+      +'<div style="margin-bottom:8px"><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;margin-right:14px"><span style="width:10px;height:10px;border-radius:2px;background:#1a73e8;display:inline-block"></span>單股腿 <b>HKD 192,000</b></span>'
+      +'<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px"><span style="width:10px;height:10px;border-radius:2px;background:#7c3aed;display:inline-block"></span>SPY 腿 <b>HKD 128,000</b></span></div>'
+      +'<div class="small muted">② 已用按金（Reg-T · 真倉）</div>'
+      +'<div style="display:flex;border-radius:6px;overflow:hidden;background:#e2e8f0;margin:4px 0 6px">'
+      +'<div style="height:14px;background:'+(usedPct>90?'#dc2626':usedPct>70?'#d97706':'#16a34a')+';width:'+usedPct+'%;cursor:help" data-tip="<b>已用按金 vs 回測總資本</b><br>HKD '+fmt(used)+' ／ '+fmt(CAP)+'（'+usedPct+'%）<br>短 put 按金佔用（Reg-T 口徑，開倉時鎖定）"></div></div>'
+      +'<div class="small muted">已用 HKD '+fmt(used)+' / '+fmt(CAP)+'（'+usedPct+'%）· 回測總資本 <b>HKD 320,000</b> · 實際資本以你 Futu 戶口為準</div>';
   }
   $('ovPosMeta').textContent=realPos.length+' 真倉（紙上倉已全部清除）';
   let ph='';
