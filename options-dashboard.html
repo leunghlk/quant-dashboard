@@ -37,6 +37,7 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 .tabs button{background:#fff;border:1px solid #cbd5e1;color:#475569;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
 .tabs button:hover{border-color:var(--teal);color:var(--teal-deep)}
 .tabs button.active{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:0 2px 6px rgba(13,148,136,.25)}
+.tabs .tab-group{display:inline-flex;align-items:center;font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:.04em;padding:0 6px 0 10px;margin-left:8px;border-left:2px solid #e2e8f0;text-transform:uppercase}
 /* ── container + cards ── */
 .container{max-width:1280px;margin:0 auto;padding:16px 22px 60px}
 .card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden;border:1px solid var(--line)}
@@ -151,13 +152,15 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 </div></div>
 <div class="tabs">
   <button data-pane="overview">📊 總覽</button>
-  <button data-pane="best" class="active">🎯 今日最佳</button>
+  <span class="tab-group">期權</span>
+  <button data-pane="best" class="active">🎯 今日最佳交易</button>
   <button data-pane="detail">📈 個股詳情</button>
   <button data-pane="positions">📋 持倉管理</button>
+  <button data-pane="method">❓ 方法論</button>
+  <span class="tab-group">正股</span>
   <button data-pane="advice">🎯 執倉建議</button>
   <button data-pane="toppick">⭐ 最優先部署</button>
   <button data-pane="earnings">📅 業績日曆</button>
-  <button data-pane="method">❓ 方法論</button>
 </div>
 <div id="optAlert" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:#dc2626;color:#fff;padding:11px 22px;font-weight:700;font-size:14.5px;cursor:pointer;box-shadow:0 -3px 12px rgba(0,0,0,.3)" onclick="switchPane('positions')">
   <span id="optAlertTxt"></span><button onclick="event.stopPropagation();ackAlarm()" title="不再顯示這一組警報（之後有新警報仍會出現）" style="float:right;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.65);color:#fff;border-radius:6px;padding:1px 10px;font-weight:600;font-size:13px;cursor:pointer">✕ 知道了</button><span style="float:right;font-weight:500;opacity:.9;margin-right:14px">點擊查看持倉 →</span>
@@ -274,21 +277,21 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
     <div class="card"><div class="card-h"><span class="t">風險誠實話</span></div><div class="card-b" id="methodRisk"></div></div>
   </div>
 
-  <!-- ═══════════ 執倉建議 ═══════════ -->
+  <!-- ═══════════ 執倉建議（正股） ═══════════ -->
   <div class="pane" id="pane-advice">
-    <div class="card" style="border:1.5px solid #b45309"><div class="card-h"><span class="t">🎯 執倉建議 — 現有持倉變更</span><span class="meta">到價鎖利 ／ 止蝕 ／ 動量減速</span></div>
+    <div class="card" style="border:1.5px solid #b45309"><div class="card-h"><span class="t">🎯 執倉建議（正股 + 期權真倉）</span><span class="meta">到價鎖利 ／ 止蝕 ／ 動量減速 · 含所有 Futu 真倉</span></div>
       <div class="card-b" id="adviceBody"><div class="muted">載入中（Futu 真倉＋engine 動量）…</div></div></div>
   </div>
 
-  <!-- ═══════════ 最優先部署 ═══════════ -->
+  <!-- ═══════════ 最優先部署（正股） ═══════════ -->
   <div class="pane" id="pane-toppick">
-    <div class="card" style="border:1.5px solid #7c3aed"><div class="card-h"><span class="t">⭐ 最優先部署</span><span class="meta">今日最佳交易點 ＋ 正股部署（LITE/DLLL）</span></div>
+    <div class="card" style="border:1.5px solid #7c3aed"><div class="card-h"><span class="t">⭐ 最優先部署（正股）</span><span class="meta">LITE / DLLL 正股部署 ＋ 到價/止蝕目標</span></div>
       <div class="card-b" id="toppickBody"><div class="muted">載入中…</div></div></div>
   </div>
 
-  <!-- ═══════════ 業績日曆 ═══════════ -->
+  <!-- ═══════════ 業績日曆（quant watchlist） ═══════════ -->
   <div class="pane" id="pane-earnings">
-    <div class="card"><div class="card-h"><span class="t">📅 業績日曆</span><span class="meta">每隻持倉／watchlist · 績前風險評估</span></div>
+    <div class="card"><div class="card-h"><span class="t">📅 業績日曆（quant watchlist）</span><span class="meta">持倉＋engine 股票池 · 績前風險評估</span></div>
       <div class="card-b" id="earningsBody"><div class="muted">載入中…</div></div></div>
   </div>
 
@@ -487,18 +490,21 @@ function renderUnified(){
   const stocks = stocksList(), opts = optsList();
   const stockVal = sumF(stocks,'mkt_val_hkd');
   const optVal   = sumF(opts,'mkt_val_hkd');           // 短 put 淨值（負=暫時蝕）
-  const cash = (realFunds && realFunds.cash_hkd!=null) ? realFunds.cash_hkd : 0;
-  const total = (realFunds && realFunds.total_hkd!=null) ? realFunds.total_hkd : (stockVal + optVal + cash);
+  // ⭐ 2026-08-23（user 糾正）：資產分佈 = 證券(正股+期權) 加埋，餘下先係 cash。
+  //   total 用 Futu 權威值 total_hkd（= 證券市值 + 現金，對返富途結單）；cash = total − 證券。
+  const total = (realFunds && realFunds.total_hkd!=null) ? realFunds.total_hkd : (stockVal + optVal);
+  const secVal = stockVal + optVal;                 // 證券市值（正股+期權，可負）
+  const cash = total - secVal;                       // 閒置現金寶 = 總資產 − 已部署證券
   const realized = sumF(realPos,'realized_pl');
   const unreal   = sumF(realPos,'unrealized_pl');
   const pnlTotal = realized + unreal;
   const retPct = (total - BASE_HKD)/BASE_HKD*100;
   const cashPct = total>0 ? cash/total*100 : 0;
-  // 資產分佈：現金寶 / 正股 / 期權（期權用 |淨值| 入 bar，負數另註）
+  // 資產分佈：正股 / 期權 / 現金寶（現金 = 餘額，唔會爆 100%）
   const parts = [
-    {k:'現金寶', v:cash,                 c:'#16a34a'},
     {k:'正股',   v:Math.max(0,stockVal),  c:'#1a73e8'},
-    {k:'期權',   v:Math.max(0,optVal),    c:'#7c3aed'}
+    {k:'期權',   v:Math.max(0,optVal),    c:'#7c3aed'},
+    {k:'現金寶', v:Math.max(0,cash),      c:'#16a34a'}
   ];
   const sum = parts.reduce((s,p)=>s+p.v,0)||1;
   const bar = parts.map(p=>'<div style="height:10px;background:'+p.c+';width:'+Math.max(0,Math.min(100,p.v/sum*100))+'%" title="'+p.k+' '+(p.v/1000).toFixed(0)+'k"></div>').join('');
@@ -1746,24 +1752,37 @@ function renderAdvice(){
 
 function renderTopPick(){
   const el=document.getElementById('toppickBody'); if(!el)return;
-  const best=(rec&&rec.best)||null;
-  const cands=(rec&&rec.candidates)||[];
-  let h='<div style="font-weight:700;margin:2px 0 8px;font-size:13px">⭐ 期權今日最佳（v4_balanced 執行點）</div>';
-  if(best&&best.ticker){
-    const b=best;
-    h+='<div class="card" style="margin-bottom:12px"><div class="card-b"><b>'+(b.ticker)+'</b> '+(b.expiry||'')+' $'+(px2(b.strike))+' · Δ'+(b.delta!=null?b.delta.toFixed(2):'—')+' · 分'+(b.score!=null?b.score.toFixed(0):'—')+(b.earnings?' <span style="color:#dc2626">🚫 業績 '+b.earnings+'</span>':'')+'</div></div>';
-  }
-  if(cands.length){
-    h+='<div style="font-size:12px;color:#64748b;margin:6px 0 4px">候選名單（按分數）：</div>';
-    h+='<table class="utable"><thead><tr><th>股票</th><th class="r">到期</th><th class="r">行使價</th><th class="r">Δ</th><th class="r">分</th><th class="r">業績</th></tr></thead><tbody>';
-    cands.slice(0,12).forEach(s=>{ h+='<tr'+(s.ticker===activeTk?' style="background:#eff6ff"':'')+' onclick="switchTicker(\''+s.ticker+'\')" style="cursor:pointer"><td><b>'+s.ticker+'</b></td><td class="r">'+s.expiry+'</td><td class="r">$'+px2(s.strike)+'</td><td class="r">'+fmt(s.delta)+'</td><td class="r">'+fmt(s.score)+'</td><td class="r'+(s.earnings?' neg':'')+'">'+(s.earnings||'—')+'</td></tr>'; });
+  const stocks=stocksList();   // 正股真倉（LITE/DLLL）
+  let h='<div style="font-weight:700;margin:2px 0 8px;font-size:13px">⭐ 正股最優先部署（LITE / DLLL）</div>';
+  if(stocks.length){
+    h+='<table class="utable"><thead><tr><th>股票</th><th class="r">股數</th><th class="r">入場價</th><th class="r">現價</th><th class="r">目標價</th><th class="r">止蝕價</th><th class="r">未實現(HKD)</th><th>部署建議</th></tr></thead><tbody>';
+    stocks.forEach(p=>{
+      const target=FUND_TARGETS[p.ticker]||(p.avg_cost?p.avg_cost*1.15:p.price*1.15);
+      const stop=p.avg_cost?p.avg_cost*0.92:p.price*0.92;
+      const decel=_decelOf(p.ticker), sig=_sigOf(p.ticker);
+      let act;
+      if(decel<=-3) act='🚫 動量崩潮（Decel='+decel+'），優先減持/離場';
+      else if(p.price>=target) act='✅ 已達目標 $'+px2(target)+'，可減磅鎖利';
+      else if(p.price<=stop) act='⚠️ 跌穿止蝕 $'+px2(stop)+'，考慮止蝕';
+      else act='⏸ 續持，等 $'+px2(target)+' 減磅 / $'+px2(stop)+' 止蝕';
+      const pc = act.indexOf('🚫')>=0?'#dc2626':act.indexOf('⚠️')>=0?'#d97706':act.indexOf('✅')>=0?'#16a34a':'#475569';
+      h+='<tr><td><b>'+p.ticker+'</b>'+(p.name?' <span class="muted" style="font-size:10px">'+esc(p.name)+'</span>':'')+'</td>'
+        +'<td class="r">'+p.shares+'</td>'
+        +'<td class="r">$'+px2(p.avg_cost)+'</td>'
+        +'<td class="r">$'+px2(p.price)+'</td>'
+        +'<td class="r">$'+px2(target)+'</td>'
+        +'<td class="r">$'+px2(stop)+'</td>'
+        +'<td class="r '+(p.pnl_hkd>=0?'pos':'neg')+'">'+(p.pnl_hkd>=0?'+':'')+hkd(p.pnl_hkd)+'</td>'
+        +'<td style="font-size:11px;font-weight:600;color:'+pc+'">'+act+'</td></tr>';
+    });
     h+='</tbody></table>';
-  } else h+='<div class="muted">暫無候選（寬度閘門可能暫停開新倉）</div>';
-  // 正股部署備註
-  h+='<div style="font-weight:700;margin:16px 0 6px;font-size:13px">📌 正股部署（LITE / DLLL）</div>';
-  h+='<div class="small muted">LITE：目標價 $1,055.94（FUND_TARGETS），止蝕 cost×0.92；DLLL 為 2× DELL 槓桿 ETF，跟 DELL 走勢，唔宜長揸（每日 decay）。兩隻正股嘅到價/止蝕建議見「執倉建議」tab。</div>';
+  } else h+='<div class="muted">暫無正股持倉（Futu 真戶口）</div>';
+  h+='<div style="font-size:11px;color:#64748b;margin-top:10px;padding:8px 10px;background:#f8fafc;border-radius:6px">'
+    +'📌 LITE 目標價 $1,055.94（FUND_TARGETS）；DLLL 為 2× DELL 槓桿 ETF，跟 DELL 走勢、每日 decay，唔宜長揸。'
+    +'目標＝cost×1.15（無指定目標價時）；止蝕＝cost×0.92。動量由 engine 每 2 分鐘更新（開市）。</div>';
   el.innerHTML=h;
 }
+
 function switchTicker(tk){ activeTk=tk; switchPane('detail'); }
 
 function renderEarnings(){
