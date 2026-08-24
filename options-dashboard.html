@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>期權交易 · Options Income Desk</title>
+<title>證券交易 · My Securities Desk</title>
 <style>
 :root{
   --bg:#eef2f6; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
@@ -154,11 +154,11 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
   <div><h1>💼 證券交易總覽</h1><div class="sub" id="appbarSub">正股 ＋ 期權 ＋ 現金寶 · 統一持倉（HKD 320,000 基準）· Futu 實時 · <strong>回本目標 HKD 50,000 @ 2026-12-31</strong></div></div>
   <div class="appbar-right">
     <div class="method-sel" id="methodSel">
-      <button data-method="v4_balanced" class="on" onclick="setMethod('v4_balanced')">v4_balanced</button>
-      <button data-method="h6040" onclick="setMethod('h6040')">Hybrid 60/40</button>
+      <button data-method="v4_balanced" onclick="setMethod('v4_balanced')">v4_balanced</button>
+      <button data-method="h6040" class="on" onclick="setMethod('h6040')">Hybrid 60/40</button>
     </div>
     <button class="btn-primary" id="refreshBtn" onclick="manualRefresh()">🔄 刷新實時</button>
-    <div class="status-bar"><span class="live-dot"></span><span id="liveBadge">v4_balanced · 連線中...</span></div>
+    <div class="status-bar"><span class="live-dot"></span><span id="liveBadge">Hybrid 60/40 · 連線中...</span></div>
   </div>
 </div></div>
 <div class="tabs">
@@ -195,7 +195,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
           <div class="k"><div class="lbl" id="ovMonthlyLbl">估算月收入</div><div class="val" id="ovMonthly">—</div></div>
         </div>
       </div></div>
-    <div class="card"><div class="card-h"><span class="t" id="railsTitle">🛤️ v4_balanced 執行欄位（即時）</span><span class="meta" id="railsMeta">按照下表規則 = 貼近回測結果</span></div>
+    <div class="card"><div class="card-h"><span class="t" id="railsTitle">🛤️ Hybrid 60/40 執行閘門（即時）</span><span class="meta" id="railsMeta">按照下表規則 = 貼近回測結果</span></div>
       <div class="card-b" id="ovRailsBody"><div class="muted">載入中…</div></div></div>
     <div class="card"><div class="card-h"><span class="t">資本運用</span><span class="meta" id="ovCapMeta">HKD 200,000 組合上限</span></div>
       <div class="card-b" id="ovCapBody"></div></div>
@@ -2502,8 +2502,7 @@ function h6040ClosePos(id){
 
 /* ════════════ boot ════════════ */
 /* ════════════ 方法論切換（v4_balanced / h6040）════════════ */
-let METHOD='v4_balanced';
-try{METHOD=localStorage.getItem('optdash_method')||'v4_balanced';}catch(e){}
+let METHOD='h6040';   // ⭐ 08-24 user 欽定：一開即 Hybrid 60/40（唔讀舊 stored 偏好；切換掣照常可轉 v4_balanced）
 /* ⭐ 2026-08-23：清除所有 paper trade 本地記錄（v4 排隊/跳过 + hybrid 本地賬）—— 只保留真倉 */
 try{localStorage.removeItem('h6040_book');localStorage.removeItem('h6040_ledger');localStorage.removeItem('optdash_queued');localStorage.removeItem('optdash_skips');}catch(e){}
 const H6040_BT = {
@@ -2569,7 +2568,7 @@ async function loadH6040Rec(){
 function setMethod(m){
   METHOD=m;
   try{localStorage.setItem('optdash_method',m);}catch(e){}
-  document.title=(m==='h6040'?'🧪 Hybrid 60/40':'📊 v4_balanced')+' · 期權交易';   // ⭐ 標題列即時反映方法論（診斷＋辨識用）
+  document.title=(m==='h6040'?'🧪 Hybrid 60/40':'📊 v4_balanced')+' · 證券交易';   // ⭐ 標題列即時反映方法論（診斷＋辨識用）
   document.querySelectorAll('#methodSel button').forEach(b=>b.classList.toggle('on',b.dataset.method===m));
   // update tab label
   const mt=document.querySelector('[data-pane="method"]');
