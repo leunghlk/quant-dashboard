@@ -673,6 +673,7 @@ function renderAlarm(){
 
 function findCandidate(tk){
   if(METHOD==='h6040'&&tk==='SPY'){return h6040SpyCandidate();}
+  if(METHOD==='h6040'){const pc=h6040PoolCand(tk);if(pc)return pc;}   // ⭐ 08-24：v5 池掃描行 → 詳情 candidate（修「跳去個股詳情但內容唔轉」——之前呢度只搵 rec/_wrDetail，掃描行永远搵唔到）
   const list=[].concat(rec.book||[],rec.best?[rec.best]:[],rec.candidates||[]);
   return list.find(x=>x&&x.ticker===tk)||((window._wrDetail||{})[tk]||null);
 }
@@ -713,6 +714,54 @@ function h6040SpyCandidate(){
       premium:null,premium_total:null,premium_total_hkd:null,collateral:null,fromChain:true,spyPlaceholder:true};
   }
   return null;
+}
+/* ⭐ 08-24：h6040 單股腿候選 —— v5 池掃描行 → 詳情 candidate（點候選名單行 → 同 v4_balanced 完全同一套個股詳情）：
+   日線 K 線 / S&R＋希臘字母經 /kline 非同步補（_klStore）、Futu 實時期權鏈、情境分析 payoff、出場規則、執行掣。
+   有實時鏈（chainCache）→ 直接用鏈價起 candidate（同 SPY 腿同一招揀行：最貼 sug_dte 嘅到期日＋最貼 sug_delta 嘅 PUT）；
+   冇 → 用掃描嘅 BS 模型價起 placeholder，實時鏈一到 loadChain 就一次性升級重繪（_h6040ScanStage 閘，唔會 loop）。 */
+function h6040ExpiryFromDte(dte){
+  const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(dte||12));
+  d.setDate(d.getDate()+(5-d.getDay()+7)%7);   // snap 至下一個星期五（美股週期權到期日）
+  const p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
+}
+function h6040PoolCand(tk){
+  if(!h6040Rec||tk==='SPY')return null;
+  const row=(h6040Rec.candidates||[]).find(x=>x&&x.ticker===tk);
+  if(!row)return null;
+  const wantDte=row.sug_dte||12, wantD=row.sug_delta!=null?Math.abs(row.sug_delta):0.275;
+  const chain=chainCache[tk];
+  if(chain&&chain.expiries&&chain.expiries.length){
+    let bestE=null;
+    chain.expiries.forEach(e=>{if(e.days<7)return;if(bestE==null||Math.abs(e.days-wantDte)<Math.abs(bestE.days-wantDte))bestE=e;});
+    if(!bestE)bestE=chain.expiries[0];
+    let bestR=null,bestS=null;
+    (bestE.rows||[]).forEach(r=>{
+      if(r.type!=='PUT'||r.bid==null||r.delta==null)return;
+      const s=Math.abs(Math.abs(r.delta)-wantD);
+      if(bestR==null||s<bestS){bestR=r;bestS=s;}
+    });
+    if(bestR){
+      const c=makeChainCandidate(tk,bestE.expiry,bestE.days,bestR.strike,chain.spot,bestR,null);
+      c.name=tk;c.iv_rank=null;
+      c.premium_total=Math.round(bestR.bid*100);c.premium_total_hkd=Math.round(bestR.bid*100*HKD_USD);
+      c.margin1=marginPerPut(bestR.strike,bestR.bid,chain.spot);
+      c.premium_source='live';c.h6040Pool=true;
+      return c;
+    }
+  }
+  const K=row.sug_strike,S=row.price,prem=row.sug_prem!=null?row.sug_prem:0,dte=wantDte,iv=row.iv||0.4;
+  const probs=(K&&S)?bsPutProbs(S,K,dte/365,iv):{otm:null,itm:null};
+  const yld=K>0?prem/K*100:0;
+  (window._h6040ScanStage=window._h6040ScanStage||{})[tk]=1;   // placeholder 標記：實時鏈到手 → loadChain 一次性升級重繪
+  return {ticker:tk,name:tk,expiry:h6040ExpiryFromDte(dte),dte:dte,strike:K,spot:S,mid:prem,
+    delta:row.sug_delta!=null?-Math.abs(row.sug_delta):null,iv:row.iv,iv_rank:null,
+    prob_otm:probs.otm,prob_itm:probs.itm,gamma:null,theta:null,vega:null,levels:{},
+    contracts:1,premium:Math.round(prem*100),premium_total:Math.round(prem*100),
+    premium_total_hkd:Math.round(prem*100*HKD_USD),collateral:Math.round((K||0)*100),
+    margin1:K?marginPerPut(K,prem,S):null,
+    yield_pct:Math.round(yld*100)/100,yield_ann:row.sug_yield_ann!=null?row.sug_yield_ann:null,
+    h6040Pool:true,premium_source:'model'};
 }
 function h6040UsedMargin(leg){
   return h6040Book().filter(p=>p.status==='open'&&p.leg===leg).reduce((s,p)=>s+marginPerPut(p.strike,p.prem,p.spot||p.strike)*p.contracts,0);
@@ -1231,6 +1280,14 @@ async function loadChain(tk){
     if(!j||!j.ok){cEl.innerHTML='<div class="muted">Futu 期權鏈不可用：'+(j&&j.error?esc(j.error):'')+'</div>';return;}
     chainCache[tk]=j;
     renderChain(j,tk);
+    // ⭐ 08-24 h6040：詳情仲係掃描 placeholder（BS 模型價）→ 實時鏈到手即升級重繪成鏈價。
+    //   ⚠️ stage 由 renderChain→findCandidate（live branch）之後仍會喺度（live branch 唔刪），
+    //   呢度刪＋確認真係升級到 live 先重繪 —— 鏈冇可用 PUT 行時唔會無限 re-render loop。
+    if(METHOD==='h6040'&&activeTk===tk&&window._h6040ScanStage&&window._h6040ScanStage[tk]){
+      delete window._h6040ScanStage[tk];
+      const up=h6040PoolCand(tk);
+      if(up&&up.premium_source==='live')renderDetail();
+    }
   }catch(e){cEl.innerHTML='<div class="muted">Futu 期權鏈載入失敗（bridge 是否連線 / 帳戶有無期權權限）。</div>';}
 }
 function setChainExp(tk,i){chainExpIdx[tk]=i;chainScrollPending[tk]=false;renderChain(chainCache[tk],tk);}   // ⭐ 手動切 expiry 不再 re-scroll
