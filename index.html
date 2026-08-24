@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-HK"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Quant Portfolio — Kathy Leung</title>
+<title>Quant Model — Kathy Leung</title>
 <style>
 :root{
   --bg:#eef2f6; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
@@ -213,16 +213,16 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
     <div class="lk-name">leungkathy</div>
     <div class="lk-sub">All-in-One Financial Dashboard Suite</div>
   </div>
-  <div class="lk-prod">量化投資儀表板 · Quant Dashboard</div>
+  <div class="lk-prod">Quant Model · 工作用</div>
 </div>
 <div class="appbar"><div class="appbar-in">
-  <div><h1>📈 Quant Portfolio</h1><div class="sub">四因子模型 · 動量減速覆蓋 · 每60秒自動更新</div></div>
+  <div><h1>📈 Quant Model</h1><div class="sub">四因子模型 · 動量減速覆蓋 · 每60秒自動更新</div></div>
   <div class="appbar-right">
     <div class="search-wrap">
       <input id="globalSearch" class="search-input" type="text" placeholder="🔍 搜尋股票／指數／ETF（NVDA、0700、騰訊、^SOX）" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();doSearch()}">
       <button class="search-btn" onclick="doSearch()">🔍</button>
     </div>
-    <button class="privacy-btn" id="privacyBtn" onclick="togglePrivacy()">👁️ 顯示持倉</button>
+    <button class="privacy-btn" id="privacyBtn" onclick="togglePrivacy()" style="display:none">👁️ 顯示持倉</button>
     <div class="status-bar"><span class="live-dot"></span><span id="lastUpdate">載入中...</span></div>
     <button class="btn btn-primary" id="refresh" onclick="loadData(true)">🔄 更新</button>
   </div>
@@ -231,20 +231,11 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
 
 <nav class="mega" role="navigation" aria-label="primary">
   <ul class="mega-l1">
+    <!-- ⭐ 08-24 重組（工作用 quant model）：大盤形勢升格第一個 tab（預設開）；總覽／執倉／期權收入／期權交易 link 移除 -->
     <li class="mega-item">
-      <button class="mega-tab" type="button" data-top="overview">📊 總覽</button>
+      <button class="mega-tab" type="button" data-top="regime">🌎 大盤形勢</button>
       <ul class="mega-l2">
-        <li><a class="mega-leaf" data-top="overview" data-sub="performance">組合表現</a></li>
-        <li><a class="mega-leaf" data-top="overview" data-sub="monthly">Monthly Rebalancing</a></li>
-      </ul>
-    </li>
-    <li class="mega-item">
-      <button class="mega-tab" type="button" data-top="deploy">🎯 部署</button>
-      <ul class="mega-l2">
-        <li><a class="mega-leaf" data-top="deploy" data-sub="regime">大盤形勢</a></li>
-        <li><a class="mega-leaf" data-top="deploy" data-sub="positions">執倉</a></li>
-        <li><a class="mega-leaf" data-top="deploy" data-sub="toppick">最優先部署</a></li>
-        <li><a class="mega-leaf" data-top="deploy" data-sub="earnings">業績日曆</a></li>
+        <li><a class="mega-leaf" data-top="regime" data-sub="regime">美股 · 港股</a></li>
       </ul>
     </li>
     <li class="mega-item">
@@ -287,46 +278,20 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
       </ul>
     </li>
     <li class="mega-item">
-      <button class="mega-tab" type="button" data-top="options">💰 期權收入</button>
+      <button class="mega-tab" type="button" data-top="earnings">📅 業績日曆</button>
       <ul class="mega-l2">
-        <li><a class="mega-leaf" data-top="options" data-sub="csp">🟢 今日最佳</a></li>
-        <li><a class="mega-leaf" data-top="options" data-sub="book">📊 建議組合</a></li>
-        <li><a class="mega-leaf" data-top="options" data-sub="positions">📋 持倉管理</a></li>
+        <li><a class="mega-leaf" data-top="earnings" data-sub="us">🇺🇸 美股</a></li>
+        <li><a class="mega-leaf" data-top="earnings" data-sub="hk">🇭🇰 港股</a></li>
       </ul>
     </li>
     <li class="mega-item">
       <a class="mega-tab ext-link" href="https://leunghlk.github.io/quant-dashboard/ai-industry-chain.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">🤖 AI 產業鏈</a>
     </li>
-    <li class="mega-item">
-      <a class="mega-tab ext-link" href="https://leunghlk.github.io/quant-dashboard/options-dashboard.html" target="_blank" rel="noopener" onclick="event.stopPropagation()">💰 期權交易</a>
-    </li>
-    <li class="mega-item" id="navJump" style="display:none">
-      <button class="mega-tab navjump" type="button" id="navBackOv" style="display:none" onclick="openView(&#39;overview&#39;,&#39;performance&#39;)">← 返回總覽</button>
-      <button class="mega-tab navjump" type="button" id="navFwdPos" style="display:none" onclick="openView(&#39;deploy&#39;,&#39;positions&#39;)">🎯 執倉 →</button>
-    </li>
   </ul>
 </nav>
 
-<!-- ════════════ ① 總覽 (OVERVIEW) — 一眼睇晒 PANE (DEFAULT) ════════════ -->
-<div class="top-pane active" data-top="overview">
-  <section class="subview active" data-sub="performance">
-    <div class="card privacy-zone" id="sec-ov-portfolio"><div class="grid" id="summaryGrid"></div></div>
-    <div class="card privacy-zone" id="sec-ov-recovery"><div class="card-h"><span class="t"><span class="sec-num">📈</span>回本進度</span><span class="meta">每日目標追蹤 · 領先／落後線性進度</span></div>
-    <div class="card-b" id="recoveryBody"></div></div>
-    <div class="card privacy-zone" id="sec-ov-positions"><div class="card-h"><span class="t"><span class="sec-num">💼</span>現有持倉</span><span class="meta" id="cashInfo"></span></div>
-    <table class="utable"><thead><tr><th>股票</th><th class="r">股數</th><th class="r">成本</th><th class="r">現價</th><th class="r">市值</th><th class="r">盈虧</th><th class="c">動量減速</th></tr></thead><tbody id="positionsBody"></tbody></table></div>
-    <div class="card privacy-zone" id="sec-ov-tx"><div class="card-h"><span class="t"><span class="sec-num">📝</span>交易紀錄</span><span class="meta">已實現：<b id="realizedPnL" style="color:#dc2626">-$264.47</b></span></div>
-    <table class="utable"><thead><tr><th>日期</th><th>動作</th><th>股票</th><th class="r">股數</th><th class="r">價格</th><th class="r">金額</th><th>備註</th></tr></thead><tbody id="txBody"></tbody></table></div>
-  </section>
-  <section class="subview" data-sub="monthly">
-    <div class="card" id="sec-monthly-main"><div class="card-h"><span class="t"><span class="sec-num">📅</span>月度再平衡</span><span class="meta">每月 1-3 號自動執行</span></div>
-    <div class="card-b" id="monthlyBody"></div></div>
-  </section>
-</div>
-
-<!-- ════════════ ② 部署 (DEPLOY / STRATEGY) ════════════ -->
-<div class="top-pane" data-top="deploy">
-  <!-- 大盤形勢 -->
+<!-- ════════════ ① 大盤形勢 (REGIME) — ⭐ 08-24 升格第一個 tab（網站首頁 · 預設開）；內容不變 ════════════ -->
+<div class="top-pane" data-top="regime">
   <section class="subview" data-sub="regime">
     <div class="card" id="sec-mk-usregime"><div class="card-h"><span class="t"><span class="sec-num">🌎</span>大盤形勢 — 美股環境與趨勢預期</span></div>
     <div class="card-b" id="regimeBody"></div></div>
@@ -347,28 +312,18 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
     </div>
     </div>
     </section>
-    <!-- 執倉 -->
-  <section class="subview" data-sub="positions">
-    <div class="card privacy-zone" id="sec-dp-positions"><div class="card-h"><span class="t"><span class="sec-num">🎯</span>執倉 — 現有持倉變更建議</span><span class="meta">到價鎖利 ／ 止蝕 ／ 動量減速</span></div>
-    <div class="card-b" id="positionsAdviceBody"></div></div>
-  </section>
-  <!-- 最優先部署 -->
-  <section class="subview" data-sub="toppick">
-    <div class="card" id="sec-dp-strategy"><div class="card-h"><span class="t"><span class="sec-num">📈</span>策略交易台 — 活體回測決策</span><span class="meta" id="strategyDeskMeta">long-only · top-5 · HKD 10,000/倉 · 每日訊號</span></div>
-    <div class="card-b" id="strategyDeskBody"></div></div>
-    <div class="card" id="topPickCard" style="display:none"><div class="card-h"><span class="t"><span class="sec-num">⭐</span>當前最值得部署</span><span class="meta">綜合造好 + 造淡 · 即時最優先</span></div>
-    <div class="card-b" id="topPickBody"></div></div>
-    <div class="card" id="sec-dp-summary"><div class="card-h"><span class="t"><span class="sec-num">①</span>部署總覽 — 結論</span><span class="meta" id="strategyTimestamp"></span></div>
-    <div class="card-b" id="summaryBody"></div></div>
-    <div class="card" id="sec-dp-winrank"><div class="card-h"><span class="t"><span class="sec-num">⚡</span>賣 Put 勝率排名（入場掃描）</span><span class="meta">按總評分排（最值得做排第一）· 10–14 DTE · delta≈0.25 · 總評分 = 年化回報×IV Rank÷(1+風險) × 股票質素 × 動量健康 · v4_balanced 唔裸賣 Call（接貨後先 Covered Call）</span></div>
-    <div class="card-b" id="winrankBody"></div></div>
-    <div class="card" id="sec-dp-index"><div class="card-h"><span class="t"><span class="sec-num">③</span>指數部署 — 費城半導體 · 納斯達克100期貨 · 七雄</span><span class="meta">中線睇周線 · 短線睇日線</span></div>
-    <div class="card-b" id="indexEtfBody"></div></div>
-  </section>
-  <!-- 業績日曆 -->
-  <section class="subview" data-sub="earnings">
-    <div class="card" id="sec-ov-earn"><div class="card-h"><span class="t"><span class="sec-num">📅</span>業績日曆</span><span class="meta">每隻 watchlist 股票 · 績前風險評估</span></div>
+</div>
+
+<!-- ════════════ 業績日曆 (EARNINGS) — ⭐ 08-24 升格獨立 tab，分美股／港股 ════════════ -->
+<div class="top-pane" data-top="earnings">
+  <section class="subview" data-sub="us">
+    <div class="card" id="sec-ov-earn"><div class="card-h"><span class="t"><span class="sec-num">📅</span>業績日曆 — 美股</span><span class="meta">每隻 watchlist 股票 · 績前風險評估</span></div>
     <div class="card-b" id="earningsCalendarBody"></div></div>
+  </section>
+  <section class="subview" data-sub="hk">
+    <div class="work-banner">🏢 此頁為工作用途 — 恒生銀行客戶市場情報（中期／全年業績，港股慣例），與個人組合完全分開。</div>
+    <div class="card" id="sec-hk-earn"><div class="card-h"><span class="t"><span class="sec-num">📅</span>業績日曆 — 港股</span><span class="meta">港股觀察名單 · 中期／全年業績（estimated＝歷史規律推算）</span></div>
+    <div class="card-b" id="earningsHKBody"></div></div>
   </section>
 </div>
 
@@ -407,21 +362,6 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
   </section>
 </div>
 
-<!-- ════════════ ⑥ 期權收入 (OPTIONS INCOME) — Sell Put / Covered Call ════════════ -->
-<div class="top-pane" data-top="options">
-  <section class="subview" data-sub="csp">
-    <div class="card" id="sec-opt-best"><div class="card-h"><span class="t"><span class="sec-num">🟢</span>今日最佳交易</span><span class="meta">Cash-Secured Put · 7-14 DTE · delta ≈ 0.25 · 紙上參考</span></div>
-    <div class="card-b" id="optionsIncomeBody"></div></div>
-  </section>
-  <section class="subview" data-sub="book">
-    <div class="card" id="sec-opt-book"><div class="card-h"><span class="t"><span class="sec-num">📊</span>建議組合</span><span class="meta">資本感知 sizing · HKD 200k 上限</span></div>
-    <div class="card-b" id="optionsBookBody"></div></div>
-  </section>
-  <section class="subview" data-sub="positions">
-    <div class="card" id="sec-opt-pos"><div class="card-h"><span class="t"><span class="sec-num">📋</span>持倉管理 + 紙上賬</span><span class="meta">50% 平倉 / 業績日 / 接貨 → Covered Call</span></div>
-    <div class="card-b" id="optionsPosBody"></div></div>
-  </section>
-</div>
 
 <div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · All-in-One Financial Dashboard Suite — 四因子量化模型 · 動量減速規則：≥-1 可買入 · ≤-3 建議沽出</div>
 </div>
@@ -450,8 +390,9 @@ const DEPLOY_ALERTS={
   DLLL:{ stop:22.5, t1:28.39, note:'2x ETF 止蝕線' },
   LITE:{ stop:838.79, t1:1055.94, note:'已持1股@$950（pending fill）' },
 };
-const VALID_TOP=['overview','deploy','tech','wave','eln','options'];
-const QVIEW_DEFAULT={top:'overview',sub:'performance',leaf:null};
+// ⭐ 08-24 重組：總覽／部署／期權收入 panes 移除 — 大盤形勢（regime）成首頁預設
+const VALID_TOP=['regime','tech','wave','eln','earnings'];
+const QVIEW_DEFAULT={top:'regime',sub:'regime',leaf:null};
 function openView(top,sub,leaf){
   if(VALID_TOP.indexOf(top)<0)top=QVIEW_DEFAULT.top;
   if(!sub)sub=QVIEW_DEFAULT.sub;
@@ -476,15 +417,7 @@ function openView(top,sub,leaf){
   if(leaf)leafSel+='[data-leaf="'+leaf+'"]';
   const ll=document.querySelector(leafSel);if(ll)ll.classList.add('active');
   try{localStorage.setItem('qview',JSON.stringify({top:top,sub:sub,leaf:leaf||null}));}catch(e){}
-  // 總覽 ⇄ 執倉 quick-jump（mega nav 行尾按鈕，按現處位置顯示對應方向）
-  const jb=document.getElementById('navJump');
-  if(jb){
-    const inPos=(top==='deploy'&&sub==='positions');
-    const inOv=(top==='overview');
-    jb.style.display=(inPos||inOv)?'':'none';
-    const bo=document.getElementById('navBackOv');if(bo)bo.style.display=inPos?'':'none';
-    const fp=document.getElementById('navFwdPos');if(fp)fp.style.display=inOv?'':'none';
-  }
+  // ⭐ 08-24：總覽 ⇄ 執倉 quick-jump 按鈕隨 panes 移除（navJump 元素已刪）
   // 內容導覽 FAB：跟住當前 tab / 子章節刷新 + 高亮
   if(typeof refreshJumpFab==='function')refreshJumpFab();
   window.scrollTo(0,0);
@@ -647,6 +580,7 @@ async function loadHKBreadth(){
 }
 // ⭐ 2026-08-13: 期權收入 rec — 直接讀 bridge /options_income（同 loadHKBreadth 模式；bridge 斷 → 靜默）
 async function loadOptionsIncome(){
+  if(!document.getElementById('optionsIncomeBody'))return;   // ⭐ 08-24：期權收入 pane 已移除 — 唔再拉 bridge /options_income
   if(!activeBridge){const b=await detectBridge();if(!b)return;}
   try{
     const r=await fetchTimeout(activeBridge+'/options_income?secret='+encodeURIComponent(BRIDGE_SECRET),15000);
@@ -943,40 +877,8 @@ function _srIdxName(tk){var a=_SR_IDX[tk];return a?a[0]:tk;}
 
 function buildSearchIndex(){
   var d=lastData,idx=[];if(!d)return idx;
-  // 1. 美股觀察名單
-  (d.watchlist||[]).forEach(function(s){
-    if(!s||!s.ticker)return;var L=s.levels||{},cc=s.chip||{};
-    idx.push({cat:'美股觀察名單',ord:1,go:'deploy,toppick,'+s.ticker,keys:_srKeys([s.ticker,sectorOf(s.ticker),s.name]),
-      html:'<div class="sr-row"><b>'+_srEsc(s.ticker)+'</b>'+(s.name?'<span class="sr-dim">'+_srEsc(s.name)+'</span>':'')+'<span class="sr-tag">'+_srEsc(sectorOf(s.ticker))+'</span><br>'+
-        _srKv('現價',(s.price!=null?('$'+fmt(s.price)+_srChg(s.chg1d)):'—'))+
-        _srKv('動量',(s.momentum!=null?(Math.round(s.momentum*100)+'%'):'—'))+
-        _srKv('減速',(s.decel!=null?('<span class="'+dc(s.decel)+'">'+s.decel+'</span>'):'—'))+
-        _srKv('90日波幅',(s.vol90!=null?(s.vol90+'%'):'—'))+
-        _srKv('12月回報',(s.m12!=null?fmtPct(s.m12):'—'))+
-        (L.resistance1!=null?_srKv('技術位','R '+rD(L.resistance1)+'/'+rD(L.resistance2)+' · 樞紐 '+rD(L.pivot)+' · S '+rD(L.support1)+'/'+rD(L.support2)):'')+
-        (cc.main!=null?_srKv('籌碼','主力 '+rD(cc.main)+' ('+rD(cc.areaLow)+'~'+rD(cc.areaHigh)+')'):'')+
-        (s.earnings?_srKv('業績',_srEsc(s.earnings.date)+' '+_srEsc(s.earnings.timingLabel)+' · 距今 '+s.earnings.daysUntil+'日 · '+_srEsc(s.earnings.risk)):'')+
-      '</div>'});
-  });
-  // 2. ETF
-  (d.etfs||[]).forEach(function(s){
-    if(!s||!s.ticker)return;
-    idx.push({cat:'ETF',ord:2,go:'deploy,toppick,'+s.ticker,keys:_srKeys([s.ticker,s.name,sectorOf(s.ticker)]),
-      html:'<div class="sr-row"><b>'+_srEsc(s.ticker)+'</b>'+(s.name?'<span class="sr-dim">'+_srEsc(s.name)+'</span>':'')+'<br>'+
-        _srKv('現價',(s.price!=null?('$'+fmt(s.price)+_srChg(s.chg1d)):'—'))+
-        _srKv('動量',(s.momentum!=null?(Math.round(s.momentum*100)+'%'):'—'))+
-        _srKv('減速',(s.decel!=null?('<span class="'+dc(s.decel)+'">'+s.decel+'</span>'):'—'))+
-      '</div>'});
-  });
-  // 3. 指數 / ETF 策略
-  (d.indexEtfStrategy||[]).forEach(function(x){
-    if(!x)return;var tk=x.ticker||x.tk||'';
-    idx.push({cat:'指數/ETF 策略',ord:3,go:'deploy,toppick,'+tk,keys:_srKeys([tk,x.title,x.name].concat(_srAlias(tk))),
-      html:'<div class="sr-row"><b>'+_srEsc(x.title||tk)+'</b><br>'+
-        (x.short?_srKv('短線',_srEsc(x.short.side)+(x.short.entry?' · 入 '+_srEsc(x.short.entry):'')+(x.short.stop?' · 止損 '+_srEsc(x.short.stop):'')+(x.short.target?' · 目標 '+_srEsc(x.short.target):'')):'')+
-        (x.mid?_srKv('中線',_srEsc(x.mid.side||x.mid.bias||'')+(x.mid.entry?' · '+_srEsc(x.mid.entry):'')):'')+
-      '</div>'});
-  });
+  // ⭐ 08-24 重組：美股觀察名單／ETF／指數策略／港股觀察名單／最優先部署 search 類別隨 toppick pane 移除
+  //   （美股/港股股票仍可以喺「美股 ELN／港股 ELN」類別搵到；指數喺「指數技術位」）
   // 4. 指數技術位
   Object.keys(d.techAnalysis||{}).forEach(function(tk){
     var t=d.techAnalysis[tk];if(!t||t.error)return;
@@ -1019,7 +921,7 @@ function buildSearchIndex(){
   var rot=d.sectorRot,secs=rot&&((rot.sectors&&rot.sectors.length)?rot.sectors:(Array.isArray(rot)?rot:[]));
   (secs||[]).forEach(function(s){
     if(!s||!(s.name||s.sector))return;
-    idx.push({cat:'板塊輪動',ord:6,go:'deploy,regime',keys:_srKeys([s.name,s.sector,s.ticker]),
+    idx.push({cat:'板塊輪動',ord:6,go:'regime,regime',keys:_srKeys([s.name,s.sector,s.ticker]),
       html:'<div class="sr-row"><b>'+_srEsc(s.name||s.sector)+'</b>'+(s.chg1d!=null?(' <span style="color:'+(s.chg1d>=0?'#16a34a':'#dc2626')+';font-weight:700">'+(s.chg1d>=0?'+':'')+Number(s.chg1d).toFixed(2)+'%</span>'):'')+(s.score!=null?_srKv('評分',s.score):'')+'</div>'});
   });
   // 7. 美股 ELN
@@ -1036,19 +938,8 @@ function buildSearchIndex(){
         (r.healthy===false?'<div style="color:#b45309;font-size:11px;margin-top:3px">⚠️ 虧損企業（ROE≤0），strike 已壓深先穩陣</div>':'')+
       '</div>'});
   });
-  // 8-9. 港股觀察名單 + 港股 ELN
+  // 8-9. 港股 ELN（⭐ 08-24：港股觀察名單 search 類別隨 toppick pane 移除；港股股票經呢度搵到）
   if(d.hk){
-    (d.hk.watchlist||[]).forEach(function(s){
-      if(!s||!s.ticker)return;var L=s.levels||{};
-      idx.push({cat:'港股觀察名單',ord:8,go:'deploy,toppick,'+s.ticker,keys:_srKeys([s.ticker,s.code,s.name,s.sector]),
-        html:'<div class="sr-row"><b>'+_srEsc(s.name||s.ticker)+'</b> <span class="sr-dim">'+_srEsc(s.ticker)+'</span><span class="sr-tag">'+_srEsc(s.sector||sectorOf(s.ticker))+'</span><br>'+
-          _srKv('現價',(s.price!=null?('$'+fmt(s.price)+_srChg(s.chg1d)):'—'))+
-          _srKv('動量',(s.momentum!=null?(Math.round(s.momentum*100)+'%'):'—'))+
-          _srKv('減速',(s.decel!=null?('<span class="'+dc(s.decel)+'">'+s.decel+'</span>'):'—'))+
-          _srKv('90日波幅',(s.vol90!=null?(s.vol90+'%'):'—'))+
-          (s.earnings?_srKv('業績',_srEsc(s.earnings.date)+' · 距今 '+s.earnings.daysUntil+'日'):'')+
-        '</div>'});
-    });
     var eln=(d.hk.eln||{});
     [{k:'recommended',cat:'港股 ELN（可掛）',ord:9},{k:'watch',cat:'港股 ELN（觀察）',ord:10},{k:'avoid',cat:'港股 ELN（避開）',ord:11}].forEach(function(g){
       (eln[g.k]||[]).forEach(function(r){
@@ -1063,15 +954,13 @@ function buildSearchIndex(){
       });
     });
   }
-  // 10. 業績日曆（獨立 facet）
-  (d.watchlist||[]).forEach(function(s){if(s&&s.ticker&&s.earnings)idx.push({cat:'業績日曆',ord:12,go:'deploy,earnings,'+s.ticker,keys:_srKeys([s.ticker,sectorOf(s.ticker)]),html:'<div class="sr-row"><b>'+_srEsc(s.ticker)+'</b> <span class="sr-dim">'+_srEsc(s.earnings.date)+' '+_srEsc(s.earnings.timingLabel)+'</span><br>'+_srKv('距今',(s.earnings.daysUntil+'日'))+_srKv('風險',_srEsc(s.earnings.risk))+'</div>'});});
-  if(d.hk){(d.hk.watchlist||[]).forEach(function(s){if(s&&s.ticker&&s.earnings)idx.push({cat:'業績日曆',ord:12,go:'deploy,earnings,'+s.ticker,keys:_srKeys([s.ticker,s.code,s.name]),html:'<div class="sr-row"><b>'+_srEsc(s.name||s.ticker)+'</b> <span class="sr-dim">'+_srEsc(s.earnings.date)+'</span><br>'+_srKv('距今',(s.earnings.daysUntil+'日'))+_srKv('風險',_srEsc(s.earnings.risk))+'</div>'});});}
-  // 11. 最優先部署
-  if(d.topPick&&d.topPick.ticker){var tp=d.topPick;idx.push({cat:'最優先部署',ord:13,go:'deploy,toppick,'+tp.ticker,keys:_srKeys([tp.ticker,tp.name,sectorOf(tp.ticker)]),html:'<div class="sr-row"><b>'+_srEsc(tp.ticker)+'</b>'+(tp.name?'<span class="sr-dim">'+_srEsc(tp.name)+'</span>':'')+(tp.reason?'<div style="margin-top:4px;color:#475569">'+_srEsc(tp.reason)+'</div>':'')+'</div>'});}
+  // 10. 業績日曆（獨立 facet；⭐ 08-24 升格獨立 tab，分美股／港股）
+  (d.watchlist||[]).forEach(function(s){if(s&&s.ticker&&s.earnings)idx.push({cat:'業績日曆',ord:12,go:'earnings,us,'+s.ticker,keys:_srKeys([s.ticker,sectorOf(s.ticker)]),html:'<div class="sr-row"><b>'+_srEsc(s.ticker)+'</b> <span class="sr-dim">'+_srEsc(s.earnings.date)+' '+_srEsc(s.earnings.timingLabel)+'</span><br>'+_srKv('距今',(s.earnings.daysUntil+'日'))+_srKv('風險',_srEsc(s.earnings.risk))+'</div>'});});
+  if(d.hk){(d.hk.watchlist||[]).forEach(function(s){if(s&&s.ticker&&s.earnings)idx.push({cat:'業績日曆',ord:12,go:'earnings,hk,'+s.ticker,keys:_srKeys([s.ticker,s.code,s.name]),html:'<div class="sr-row"><b>'+_srEsc(s.name||s.ticker)+'</b> <span class="sr-dim">'+_srEsc(s.earnings.date)+'</span><br>'+_srKv('距今',(s.earnings.daysUntil+'日'))+_srKv('風險',_srEsc(s.earnings.risk))+'</div>'});});}
   return idx;
 }
-function _srGoLabel(go){var p=(go||'').split(',');var tm={deploy:'部署',tech:'指數技術位',wave:'波浪',eln:'ELN',overview:'總覽'};var sm={regime:'大盤形勢',toppick:'最優先部署',earnings:'業績日曆',positions:'執倉',us:'美股',hk:'港股',wave:'波浪理論',performance:'組合表現'};return (tm[p[0]]||p[0])+(p[1]?(' · '+(sm[p[1]]||p[1])):'');}
-function searchGo(go){closeModal();if(!go)return;var p=go.split(',');setTimeout(function(){openView(p[0]||'deploy',p[1]||null,p[2]||null);searchScrollTo(p[2]||null);},60);}
+function _srGoLabel(go){var p=(go||'').split(',');var tm={regime:'大盤形勢',tech:'指數技術位',wave:'波浪',eln:'ELN',earnings:'業績日曆'};var sm={regime:'大盤形勢',earnings:'業績日曆',us:'美股',hk:'港股',wave:'波浪理論'};return (tm[p[0]]||p[0])+(p[1]?(' · '+(sm[p[1]]||p[1])):'');}
+function searchGo(go){closeModal();if(!go)return;var p=go.split(',');setTimeout(function(){openView(p[0]||'regime',p[1]||null,p[2]||null);searchScrollTo(p[2]||null);},60);}
 // 搜尋「前往」後：喺當前 subview 搵返嗰隻股票/ETF/指數嘅列（data-tk/data-sr）或卡片（data-idx），置中捲動 + 閃一下（2026-08-11）
 function searchScrollTo(leaf){
   if(!leaf)return;
@@ -1943,7 +1832,11 @@ function elnAvoidHTML(avoid, region){
 
 function render(data){
   const p=data.portfolio||{};
+  // ⭐ 08-24 重組：總覽（組合表現／回本進度／持倉／交易紀錄）＋ toppick（部署總覽／指數部署）panes 已移除。
+  //   呢啲渲染目標元素唔存在 → 成段跳過；techCard／elnBody／waveBody 等現存 pane 照常。
+  const ovGone=!document.getElementById('summaryGrid');
   try{
+  if(!ovGone){
   document.getElementById('summaryGrid').innerHTML=
     '<div class="grid-item"><div class="grid-val">$'+fmt(p.totalValue)+'</div><div class="grid-lbl">組合總值</div><div class="grid-sub">HKD $'+p.totalValueHKD.toLocaleString()+'</div></div>'+
     '<div class="grid-item"><div class="grid-val" style="color:'+cv(-p.gapToTarget)+'">HKD $'+Math.abs(p.gapToTarget).toLocaleString()+'</div><div class="grid-lbl">距回本'+(p.gapToTarget>0?'差距':'✅')+'</div><div class="grid-sub">目標HKD$50,000</div></div>'+
@@ -2074,8 +1967,9 @@ function render(data){
     });
     document.getElementById('indexEtfBody').innerHTML=ieHTML||'<div style="color:#94a3b8">無指數ETF</div>';
   }
+  }   // ⭐ 08-24：ovGone guard 結束（以下 techCard／ELN／波浪 照常渲染）
 
-  // ⑦ 指數技術分析（雙欄）
+  // ⑦ 指數技術分析（雙權）
   if(data.techAnalysis){
     for(const k in data.techAnalysis){
       const c=document.getElementById('techCard-'+k);
@@ -2274,8 +2168,8 @@ function render(data){
     }catch(e){console.error('[render:wave]',e);document.getElementById('waveBody').innerHTML='<div style="color:#dc2626;padding:12px">⚠️ 數浪區塊渲染錯誤：'+e.message+'</div>';}
   }
 
-  // 回本進度（組合頁）
-  if(data.portfolio && data.portfolio.recoveryTimeline){
+  // 回本進度（組合頁）— ⭐ 08-24：recoveryBody 隨總覽 pane 移除，元素唔存在即跳過
+  if(document.getElementById('recoveryBody') && data.portfolio && data.portfolio.recoveryTimeline){
     try{
     const rt=data.portfolio.recoveryTimeline;
     // 領先／落後 = 實際進度% − 當日線性目標%（目標線：由 7/30 起始本金線性遞增至 12/31 HKD$50,000）
@@ -2666,7 +2560,8 @@ function renderTx(){
     const val=t.shares*t.price;
     html+='<tr><td style="font-size:12px;color:#64748b">'+t.date+'</td><td><span class="sig" style="background:'+ac+'">'+t.action+'</span></td><td style="font-weight:700">'+t.ticker+'</td><td class="r">'+t.shares+'</td><td class="r">$'+fmt(t.price)+'</td><td class="r" style="font-weight:600">$'+val.toLocaleString(undefined,{minimumFractionDigits:2})+'</td><td style="font-size:11px;color:#64748b">'+(t.note||'')+'</td></tr>';
   });
-  document.getElementById('txBody').innerHTML=html;
+  const tb=document.getElementById('txBody');   // ⭐ 08-24：txBody 隨總覽 pane 移除 → guard
+  if(tb)tb.innerHTML=html;
 }
 
 // ═══ 其他卡片渲染（最優先部署 + 業績日曆）═══
@@ -2787,6 +2682,57 @@ function renderExtraCards(data){
       ec.innerHTML=sectorFilterBar('earningsCalendarBody',false)+eh; secApply('earningsCalendarBody');
     }
   }
+  // ⭐ 08-24 業績日曆升格獨立 tab：港股 subview — data.hk.watchlist 每股附 earnings（server getHKEarningsInfo）
+  renderHKEarningsCalendar(data);
+}
+
+// 港股業績日曆 — 中期／全年業績（港股慣例）· 格式同美股表一致（日期／時間／日數／風險／建議）＋來源
+function renderHKEarningsCalendar(data){
+  const ec=document.getElementById('earningsHKBody');
+  if(!ec)return;
+  const list=((data.hk&&data.hk.watchlist)||[]).filter(s=>s&&s.earnings)
+    .map(s=>Object.assign({},s.earnings,{ticker:s.ticker,name:s.name,sector:s.sector}))
+    .sort((a,b)=>(a.daysUntil||999)-(b.daysUntil||999));
+  if(list.length===0){ec.innerHTML='<div style="color:#94a3b8;text-align:center;padding:12px">港股觀察名單暫無即將公布業績的股票</div>';return;}
+  let eh='<div style="font-size:11px;line-height:1.6">';
+  eh+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="border-bottom:2px solid #e2e8f0">'+
+    '<th style="text-align:left;padding:4px 6px">股票</th>'+
+    '<th style="text-align:left;padding:4px 6px">板塊</th>'+
+    '<th style="text-align:center;padding:4px">業績日期</th>'+
+    '<th style="text-align:center;padding:4px">時間</th>'+
+    '<th style="text-align:center;padding:4px">日數</th>'+
+    '<th style="text-align:center;padding:4px">風險</th>'+
+    '<th style="text-align:left;padding:4px 6px">建議</th>'+
+    '<th style="text-align:left;padding:4px 6px">來源</th>'+
+    '</tr></thead><tbody>';
+  for(const e of list){
+    const riskCol = e.risk==='極高'?'#dc2626':e.risk==='高'?'#f97316':e.risk==='中'?'#d97706':e.risk==='低'?'#16a34a':e.risk==='已出'?'#94a3b8':'#94a3b8';
+    const riskBg = e.risk==='極高'?'#fef2f2':e.risk==='高'?'#fffbeb':e.risk==='中'?'#fffbeb':e.risk==='已出'?'#f8fafc':'#f0fdf4';
+    const advise = e.risk==='極高'?'⛔ 績前不宜新掛ELN'
+      : e.risk==='高'?'⚠️ 縮短年期或降低行使價'
+      : e.risk==='中'?'🟡 留意績前波動'
+      : e.risk==='已出'?'✅ 業績已公布'
+      : '✅ 業績仍遠，正常操作';
+    eh+='<tr data-sr="'+(e.ticker||'')+'" style="border-bottom:1px solid #f1f5f9;background:'+riskBg+'">'+
+      '<td style="font-weight:700;padding:4px 6px">'+(e.name||e.ticker)+' <span style="color:#64748b;font-weight:400">'+e.ticker+'</span></td>'+
+      '<td style="padding:4px 6px">'+(e.sector||'—')+'</td>'+
+      '<td style="text-align:center;padding:4px">'+e.dateLabel+'</td>'+
+      '<td style="text-align:center;padding:4px;color:#64748b">'+(e.timingLabel||'—')+'</td>'+
+      '<td style="text-align:center;padding:4px;font-weight:600;color:'+riskCol+'">'+(e.daysUntil>0?e.daysUntil+'日':e.daysUntil===0?'今日':'已過')+'</td>'+
+      '<td style="text-align:center;padding:4px"><span style="display:inline-block;padding:1px 8px;border-radius:4px;color:'+riskCol+';font-weight:700;font-size:10px">'+e.risk+'</span></td>'+
+      '<td style="padding:4px 6px;color:#475569">'+advise+'</td>'+
+      '<td style="padding:4px 6px;color:#94a3b8;font-size:10px">'+((e.status||'')+(e.source?' · '+e.source:''))+'</td>'+
+      '</tr>';
+  }
+  eh+='</tbody></table></div>';
+  const imminent=list.filter(e=>e.daysUntil>0&&e.daysUntil<=7);
+  if(imminent.length>0){
+    eh+='<div style="margin-top:8px;padding:8px 10px;background:#fef2f2;border-radius:6px;font-size:11px;color:#dc2626;font-weight:600">'+
+      '⚠️ 未來7日有 '+imminent.length+' 隻港股出業績：'+imminent.map(e=>(e.name||e.ticker)+'('+e.daysUntil+'日)').join('、')+
+      ' — 績前波動大，ELN 唔好撞正業績</div>';
+  }
+  eh+='</div>';
+  ec.innerHTML=eh;
 }
 
 // Helper for frontend: earnings info lookup (mirrors server-side getEarningsInfo)
@@ -3176,7 +3122,7 @@ function checkPriceAlerts(data){
     var a=document.querySelector('.mega-leaf.active');
     if(a)return {top:a.dataset.top,sub:a.dataset.sub,leaf:a.dataset.leaf||null};
     var t=document.querySelector('.mega-tab.active');
-    return {top:t?t.dataset.top:'overview',sub:null,leaf:null};
+    return {top:t?t.dataset.top:'regime',sub:null,leaf:null};
   }
   function render(){
     var v=curView(),top=v.top;
