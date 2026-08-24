@@ -764,7 +764,9 @@ function h6040PoolCand(tk){
     h6040Pool:true,premium_source:'model'};
 }
 function h6040UsedMargin(leg){
-  return h6040Book().filter(p=>p.status==='open'&&p.leg===leg).reduce((s,p)=>s+marginPerPut(p.strike,p.prem,p.spot||p.strike)*p.contracts,0);
+  // ⭐ 08-25：server 監察倉優先（monitor h6040_book.json 權威）；localStorage 舊 manual book 只做兜底
+  const src=(h6040SrvBook&&h6040SrvBook.open&&h6040SrvBook.open.length)?h6040SrvBook.open:h6040Book();
+  return src.filter(p=>p.status==='open'&&p.leg===leg).reduce((s,p)=>s+marginPerPut(p.strike,p.entry_prem!=null?p.entry_prem:p.prem,p.spot||p.strike)*p.contracts,0);
 }
 
 function renderRails(){
@@ -1631,7 +1633,7 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
       if(h6040Leg==='spy'){eq=128000/HKD_USD;budget=eq*0.60;maxPuts=3;capName='單倉 45%';}
       else{eq=192000/HKD_USD;budget=eq*0.70;maxPuts=8;capName='單名 25%';}
       usedM=h6040UsedMargin(h6040Leg);
-      openCount=h6040Book().filter(p=>p.status==='open'&&p.leg===h6040Leg).length+1;
+      openCount=((h6040SrvBook&&h6040SrvBook.open&&h6040SrvBook.open.length)?h6040SrvBook.open:h6040Book()).filter(p=>p.status==='open'&&p.leg===h6040Leg).length+1;
     }else{
       eq=eqUSD(); budget=(rec&&rec.margin_budget)||0.70*eq;
       usedM=usedMarginUSD(); openCount=putCount()+((side!=='CALL')?1:0);
@@ -2316,9 +2318,9 @@ function h6040GateBanner(){
   '</div>';
 }
 function h6040EquityUSD(){
-  const book=h6040Book();
+  const book=(h6040SrvBook&&h6040SrvBook.open&&h6040SrvBook.open.length)?h6040SrvBook.open:h6040Book();   // ⭐ 08-25 server book 權威
   let used=0;
-  book.filter(p=>p.status==='open').forEach(p=>{used+=marginPerPut(p.strike,p.prem,p.spot||p.strike)*p.contracts;});
+  book.filter(p=>p.status==='open').forEach(p=>{used+=marginPerPut(p.strike,p.entry_prem!=null?p.entry_prem:p.prem,p.spot||p.strike)*p.contracts;});
   const eq=H6040_BT.capital/HKD_USD;
   return {eq:eq, used:used};
 }
@@ -2343,7 +2345,7 @@ function renderH6040Overview(){
   const rb=$('ovRailsBody');
   if(rb){
     rb.innerHTML=h6040GateBanner()+
-      '<div class="small muted" style="margin-top:6px">模型：<b>Hybrid 60/40</b> · 此視圖顯示你嘅 <b style="color:#dc2626">真倉</b>（Futu 實單）＋回測績效參考。所有紙上倉已於 2026-08-23 清除。</div>';
+      '<div class="small muted" style="margin-top:6px">模型：<b>Hybrid 60/40</b> · 此視圖顯示你嘅 <b style="color:#dc2626">真倉</b>（Futu 實單）＋<b>監察倉</b>（候選自動紙上執行，出場規則同 v4：PT 50%／止損1.9×／Δ0.50 roll／cut 0.95×MA50——TG 同步推）＋回測績效參考。</div>';
   }
   const rm=$('railsMeta'); if(rm)rm.textContent='實時閘門：單股腿要 VIX 20–32 · SPY 腿要 SPY>200DMA';
   const cb=$('ovCapBody');
@@ -2368,7 +2370,7 @@ function renderH6040Overview(){
       +'<div style="height:14px;background:'+(usedPct>90?'#dc2626':usedPct>70?'#d97706':'#16a34a')+';width:'+usedPct+'%;cursor:help" data-tip="<b>已用按金 vs 回測總資本</b><br>HKD '+fmt(used)+' ／ '+fmt(CAP)+'（'+usedPct+'%）<br>短 put 按金佔用（Reg-T 口徑，開倉時鎖定）"></div></div>'
       +'<div class="small muted">已用 HKD '+fmt(used)+' / '+fmt(CAP)+'（'+usedPct+'%）· 回測總資本 <b>HKD 320,000</b> · 實際資本以你 Futu 戶口為準</div>';
   }
-  $('ovPosMeta').textContent=realPos.length+' 真倉（紙上倉已全部清除）';
+  $('ovPosMeta').textContent=realPos.length+' 真倉'+(((h6040SrvBook&&h6040SrvBook.open)||[]).length?' + '+(h6040SrvBook.open||[]).length+' 監察倉（紙上）':'（監察倉未開）');
   let ph='';
   if(realPos.length){
     ph+='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場/現權利金</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th></tr></thead><tbody>';
@@ -2377,6 +2379,17 @@ function renderH6040Overview(){
     });
     ph+='</tbody></table></div>';
   }else{ph='<div class="muted">暫無真倉。</div>';}
+  /* ⭐ 08-25：總覽加 h6040 監察倉（紙上 book 摘要行 — 出場信號一欄睇到要唔要到期前平倉） */
+  const bk6=h6040SrvBook, bo6=(bk6&&bk6.open)||[];
+  if(bo6.length){
+    ph+='<div style="margin-top:10px" class="small"><b>📋 h6040 監察倉（紙上 '+bo6.length+' 張 · 已實現 '+hkd(bk6.realized_hkd||0)+'）</b></div>';
+    ph+='<div class="table-scroll" style="margin-top:4px"><table class="utable"><thead><tr><th>腿</th><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">DTE</th><th class="r">入場/現</th><th class="r">利潤%</th><th>出場信號</th></tr></thead><tbody>';
+    bo6.forEach(p=>{
+      const trig=(p.triggers||[]);
+      ph+='<tr'+(trig.length?' style="background:#fffbeb"':'')+'><td>'+(p.leg==='spy'?'SPY':'單股')+'</td><td><b>'+esc(p.ticker)+'</b></td><td class="r">$'+px2(p.strike)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+(p.dte!=null?p.dte:'—')+'</td><td class="r">'+px2(p.entry_prem)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'—')+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td>'+(trig.length?trig.map(t=>'<span class="pill '+(t.indexOf('止損')>=0||t==='cut'?'r':(t.indexOf('鎖利')>=0?'g':'w'))+'">'+esc(t)+'</span>').join(' '):'<span class="muted">—</span>')+'</td></tr>';
+    });
+    ph+='</tbody></table></div>';
+  }
   $('ovPosBody').innerHTML=ph;
   const led=((rec&&rec.ledger_recent)||[]).filter(t=>t.real);
   $('ovLedgerBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">尚無真倉平倉紀錄。</div>';
@@ -2392,6 +2405,8 @@ function h6040LedgerTable(led){
 function renderH6040Positions(){
   // ⭐ 2026-08-23：h6040 視圖顯示真倉出場信號（cut/roll/指派 等由 v4 engine 即時推 Telegram）。
   //   actCard 保留顯示，過濾到 real 倉（紙上倉出場唔喺 h6040 彈）。
+  // ⭐ 08-25：加「監察倉」段（monitor h6040_book — 候選自動紙上執行 ×1、出場規則同 v4：
+  //   PT 50%／止損 1.9×／Δ0.50 roll／貼行使價 2%／cut 0.95×MA50／到期結算；TG 同步推）。
   const posAll=((rec&&rec.positions)||[]).filter(x=>x.status==='open');
   const realPos=posAll.filter(x=>x.real);
   const body=$('posBody');
@@ -2402,8 +2417,25 @@ function renderH6040Positions(){
       h+='<tr><td><b>'+p.ticker+'</b> <span style="color:#dc2626;font-weight:700">● 真倉</span></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+p.entry_prem+' / '+p.cur_prem+'</td><td class="r">'+p.pct_max+'%</td><td class="r">'+(p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span></td><td><button class="btn btn-close" onclick="closePos(\''+p.id+'\')">平倉</button></td></tr>';
     });
     h+='</tbody></table></div>';
-    h+='<div class="small muted" style="margin-top:6px">真倉平倉由 engine 自動執行（buy-to-close）· 所有紙上倉已於 2026-08-23 清除。</div>';
   }else{h='<div class="muted">暫無真倉。</div>';}
+  /* ⭐ 08-25 監察倉（h6040 紙上 book，server 權威 — options_monitor §7b 自動開、§7c 自動平） */
+  const bk=h6040SrvBook;
+  const bopen=(bk&&bk.open)||[];
+  h+='<div style="margin-top:12px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">'+
+    '<span style="font-weight:700">📋 h6040 監察倉（紙上）</span>'+
+    '<span class="muted small">'+bopen.length+' 張 · 已實現 <b>'+hkd(bk?bk.realized_hkd:0)+'</b>（平倉 '+((bk&&bk.closed_n)||0)+' 次）· 候選推送自動執行 ×1 · 出場：PT 50%／止損1.9×／Δ0.50 roll／cut 0.95×MA50／到期結算 · Telegram 同步</span></div>';
+  if(bopen.length){
+    h+='<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>腿</th><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">DTE</th><th class="r">入場/現權利金</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th>出場信號</th></tr></thead><tbody>';
+    bopen.forEach(p=>{
+      const trig=(p.triggers||[]);
+      const tH=trig.length?trig.map(t=>'<span class="pill '+(t.indexOf('止損')>=0||t==='cut'?'r':(t.indexOf('鎖利')>=0?'g':'w'))+'">'+esc(t)+'</span>').join(' '):'<span class="muted">—</span>';
+      h+='<tr'+(trig.length?' style="background:#fffbeb"':'')+'><td>'+(p.leg==='spy'?'SPY':'單股')+'</td><td><b>'+esc(p.ticker)+'</b></td><td class="r">$'+px2(p.strike)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+(p.dte!=null?p.dte:'—')+'</td><td class="r">'+px2(p.entry_prem)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'<span class="muted">等mark</span>')+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td class="r">'+(p.pnl_hkd!=null?((p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span>'):'—')+'</td><td>'+tH+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+    h+='<div class="small muted" style="margin-top:4px">「等mark」＝期權鏈暫時攞唔到真實價（模型價唔會推交易建議）；出場信號靚咗成行（琥珀底）＝要到期前處理。</div>';
+  }else{
+    h+='<div class="muted" style="margin-top:4px">尚未有監察倉 —— 閘門開＋有新候選推送時自動紙上開倉。</div>';
+  }
   body.innerHTML=h;
   const pf=(rec&&rec.portfolio)||{};
   $('ledMeta').textContent='真倉已實現 '+hkd((pf.real_realized_hkd!=null)?pf.real_realized_hkd:0);
@@ -2543,6 +2575,7 @@ async function loadH6040Gates(){
    loopback monitor 只做本地 fallback。⚠️ render 要 call renderH6040Best（renderBest 係 v4
    renderer，METHOD=h6040 時 call 佢會用 v4 卡覆蓋 bestCard）。*/
 let h6040Rec=null;
+let h6040SrvBook=null;   // ⭐ 08-25：監察倉（monitor 紙上 book — 自動執行＋出場評估，伺服器權威）
 async function loadH6040Rec(){
   if(!activeBridge){await detectBridge();}   // boot 時同 loadRec 一齊探 bridge，咪 fetch 去 null/
   if(activeBridge){try{
@@ -2553,6 +2586,7 @@ async function loadH6040Rec(){
         let fresh=false;
         try{fresh=(Date.now()-new Date(j.generated).getTime())<4*86400000;}catch(e){}
         h6040Rec={scan:{scan_date:j.scan_date,vix:j.vix,breadth:j.breadth,gate_open:j.gate_open,universe_n:j.universe_n,n_passed:j.n_passed},scan_fresh:fresh,candidates:j.candidates};
+        if(j.book&&j.book.open)h6040Rec.book=j.book;   // ⭐ 08-25：bridge merge 嘅監察倉
       }
     }
   }catch(e){console.error('loadH6040Rec',e);}}
@@ -2561,6 +2595,11 @@ async function loadH6040Rec(){
       const r2=await fetchTimeout('http://127.0.0.1:8799/monitor.json',6000);
       if(r2&&r2.ok){const j2=await r2.json();if(j2&&j2.h6040)h6040Rec=j2.h6040;}
     }catch(e){}
+  }
+  const nb=(h6040Rec&&h6040Rec.book)||null;
+  if(JSON.stringify(nb)!==JSON.stringify(h6040SrvBook)){
+    h6040SrvBook=nb;
+    if(METHOD==='h6040'){renderH6040Positions();renderH6040Overview();}   // book 郁咗 → 持倉/總覽即刻重繪
   }
   if(h6040Rec&&METHOD==='h6040')renderH6040Best();
   return h6040Rec;
