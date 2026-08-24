@@ -1162,9 +1162,12 @@ function renderDetail(){
   // ⭐ Futu 實時期權鏈（買/賣 + IV + Delta，同 Futu App 一樣）
   h+='<div class="card"><div class="card-h"><span class="t">⚡ Futu 實時期權鏈</span><span class="meta">買=bid · 賣=ask · IV/Delta 由真實報價 Black-Scholes 反推' + tip('iv') + '</span></div>';
   h+='<div class="card-b" id="chainCard"><div class="muted">載入實時 Futu 期權鏈…</div></div></div>';
-  // 情境分析（動態 payoff diagram + hover）
-  h+='<div class="card"><div class="card-h"><span class="t">情境分析：到期日 P&amp;L（hover 圖上任意價位）</span><span class="meta">張數 <span class="scen-stepper"><button onclick="scenStep(-1)">−</button><b id="scenN">'+(c.contracts||1)+'</b><button onclick="scenStep(1)">+</button></span>' + tip('contracts') + '</span></div>';
-  h+='<div class="card-b"><div class="payoff-wrap"><svg id="payoffSvg"></svg><div class="payoff-tip" id="payoffTip"></div></div><div id="scenBody"></div></div></div>';
+  // 情境分析（動態 payoff diagram + hover）＋ ⭐ 08-25 旁圖：到期前權利金變化（正股升/跌 → 買回價）
+  h+='<div class="card"><div class="card-h"><span class="t">情境分析：到期日 P&amp;L ＋ 到期前權利金（hover 圖上任意價位）</span><span class="meta">張數 <span class="scen-stepper"><button onclick="scenStep(-1)">−</button><b id="scenN">'+(c.contracts||1)+'</b><button onclick="scenStep(1)">+</button></span>' + tip('contracts') + '</span></div>';
+  h+='<div class="card-b"><div class="grid2" style="margin-bottom:10px">'
+    +'<div><div class="small muted" style="margin-bottom:4px">📊 到期日 P&amp;L</div><div class="payoff-wrap"><svg id="payoffSvg"></svg><div class="payoff-tip" id="payoffTip"></div></div></div>'
+    +'<div><div class="small muted" style="margin-bottom:4px">📈 買入後 → 到期前：權利金變化</div><div class="payoff-wrap"><svg id="premSvg"></svg><div class="payoff-tip" id="premTip"></div></div></div>'
+    +'</div><div id="premNote" class="chart-note"></div><div id="scenBody"></div></div></div>';
   // 執行
   h+='<div class="card"><div class="card-h"><span class="t">決定</span></div>';
   h+='<div class="card-b"><button class="btn btn-go" style="font-size:14px;padding:10px 22px" onclick="execCandidate(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+','+(c.contracts||1)+')">✅ 執行這一單（紙上）</button> <button class="btn btn-no" onclick="skipTrade(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+')">今日不做</button></div></div>';
@@ -1248,12 +1251,71 @@ function payoffSVG(c,n){
     tip.innerHTML='<b>$'+px.toFixed(2)+'</b> · '+(px<K?'價內（被指派）':'價外（全收權利金）')+' → 盈虧 <b style="color:'+(pnl>=0?'#4ade80':'#f87171')+'">'+money(pnl)+' USD</b> ≈ HKD '+fmt(pnl*HKD_USD);
   };
   svg.onmouseleave=function(){tip.style.display='none';};
+}/* ════════════ ⭐ 08-25 到期前權利金變化（payoff 旁圖）：正股升/跌 → 買回價 ════════════ */
+function premSVG(c,n){
+  const svg=$('premSvg'),tip=$('premTip');
+  if(!svg||!c)return;
+  const W=720,H=280,padL=52,padR=14,padT=18,padB=30;
+  const K=c.strike,S=c.spot,prem=c.mid||0,iv=c.iv||0,dte=Math.max(c.dte||12,1);
+  const x0=Math.min(S*0.5,K-prem*2),x1=Math.max(S*1.35,K+prem*2);   // ⭐ 同 payoff 一致 x 範圍，兩圖並排對齊
+  const T0=dte/365,Th=Math.max(dte/2,1)/365;
+  const hasIv=iv>0;
+  const pExp=px=>Math.max(0,K-px);                                   // 到期 = 內在值
+  const pNow=hasIv?px=>bsPutPrice(px,K,T0,iv):null;                  // 今日買回價（T+0）
+  const pHalf=hasIv?px=>bsPutPrice(px,K,Th,iv):null;                 // 剩一半時間（theta 衰減方向）
+  const cur=pNow?pNow(S):null;
+  const y1=Math.max(prem*2.4,(cur||0)*1.25,pExp(S)*1.2,0.5);         // 頂夠 1.9× 止損線＋現價點
+  const X=px=>padL+(px-x0)/(x1-x0)*(W-padL-padR);
+  const Y=py=>padT+(y1-py)/y1*(H-padT-padB);
+  const line=(fn,stroke,w,dash)=>{let pts='';for(let i=0;i<=120;i++){const px=x0+(x1-x0)*i/120;pts+=(pts?',':'')+X(px).toFixed(1)+','+Y(fn(px)).toFixed(1);}
+    return '<polyline points="'+pts+'" fill="none" stroke="'+stroke+'" stroke-width="'+w+'"'+(dash?' stroke-dasharray="'+dash+'"':'')+'/>';};
+  let h='';
+  for(let i=0;i<=4;i++){const py=y1*i/4,yy=Y(py);
+    h+='<line x1="'+padL+'" y1="'+yy+'" x2="'+(W-padR)+'" y2="'+yy+'" stroke="#eceff5"/>';
+    h+='<text x="'+(padL-6)+'" y="'+(yy+3)+'" font-size="9" fill="#94a3b8" text-anchor="end">'+py.toFixed(1)+'</text>';}
+  h+='<defs><clipPath id="premClip"><rect x="'+padL+'" y="'+padT+'" width="'+(W-padL-padR)+'" height="'+(H-padT-padB)+'"/></clipPath></defs>';
+  h+='<g clip-path="url(#premClip)">'+line(pExp,'#334155',1.6)+(pHalf?line(pHalf,'#94a3b8',1.4,'5,4'):'')+(pNow?line(pNow,'#0ea5e9',2.2):'')+'</g>';
+  h+='<line x1="'+X(K).toFixed(1)+'" y1="'+padT+'" x2="'+X(K).toFixed(1)+'" y2="'+(H-padB)+'" stroke="#7c3aed" stroke-dasharray="5,3" stroke-width="1.4"/>';
+  h+='<text x="'+X(K).toFixed(1)+'" y="'+(padT-4)+'" font-size="9" fill="#7c3aed" text-anchor="middle">行使價 '+K+'</text>';
+  if(prem>0){
+    h+='<line x1="'+padL+'" y1="'+Y(prem).toFixed(1)+'" x2="'+(W-padR)+'" y2="'+Y(prem).toFixed(1)+'" stroke="#d97706" stroke-dasharray="5,3" stroke-width="1.4"/>';
+    h+='<text x="'+(W-padR-4)+'" y="'+(Y(prem)-3).toFixed(1)+'" font-size="9" fill="#d97706" text-anchor="end">收到權利金 '+prem.toFixed(2)+'</text>';
+    h+='<line x1="'+padL+'" y1="'+Y(prem*0.5).toFixed(1)+'" x2="'+(W-padR)+'" y2="'+Y(prem*0.5).toFixed(1)+'" stroke="#16a34a" stroke-dasharray="2,3" stroke-width="1.4"/>';
+    h+='<text x="'+(padL+4)+'" y="'+(Y(prem*0.5)-3).toFixed(1)+'" font-size="9" fill="#16a34a">🟢 PT 50% '+ (prem*0.5).toFixed(2)+'</text>';
+    h+='<line x1="'+padL+'" y1="'+Y(prem*1.9).toFixed(1)+'" x2="'+(W-padR)+'" y2="'+Y(prem*1.9).toFixed(1)+'" stroke="#dc2626" stroke-dasharray="2,3" stroke-width="1.4"/>';
+    h+='<text x="'+(padL+4)+'" y="'+(Y(prem*1.9)-3).toFixed(1)+'" font-size="9" fill="#dc2626">🔴 止損 1.9× '+ (prem*1.9).toFixed(2)+'</text>';
+  }
+  if(S>=x0&&S<=x1){
+    h+='<line x1="'+X(S).toFixed(1)+'" y1="'+padT+'" x2="'+X(S).toFixed(1)+'" y2="'+(H-padB)+'" stroke="#0ea5e9" stroke-dasharray="4,3" stroke-width="1.3"/>';
+    if(cur!=null)h+='<circle cx="'+X(S).toFixed(1)+'" cy="'+Y(cur).toFixed(1)+'" r="4" fill="#0ea5e9" stroke="#fff" stroke-width="1.2"/>';
+    h+='<text x="'+X(S).toFixed(1)+'" y="'+(H-padB+13)+'" font-size="9" fill="#0369a1" text-anchor="middle">現價 '+S.toFixed(2)+'</text>';
+  }
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  svg.innerHTML=h;
+  svg.onmousemove=function(ev){
+    if(!pNow){tip.style.display='none';return;}
+    const r=svg.getBoundingClientRect();
+    const xd=(ev.clientX-r.left)/r.width*W;
+    const px=x0+(xd-padL)/(W-padL-padR)*(x1-x0);
+    if(px<x0||px>x1){tip.style.display='none';return;}
+    const eNow=pNow(px),eHalf=pHalf?pHalf(px):null,pnl=Math.round((prem-eNow)*100*n);
+    tip.style.display='block';
+    tip.style.left=(ev.clientX-r.left+12)+'px';
+    tip.style.top=(ev.clientY-r.top-46)+'px';
+    tip.innerHTML='<b>$'+px.toFixed(2)+'</b>（'+((px/S-1)*100>=0?'+':'')+((px/S-1)*100).toFixed(1)+'%）<br>現在買回 $'+eNow.toFixed(2)+(eHalf!=null?' · 剩半期 $'+eHalf.toFixed(2):'')+' · 到期 $'+Math.max(0,K-px).toFixed(2)+'<br>即時平倉盈虧 <b style="color:'+(pnl>=0?'#4ade80':'#f87171')+'">'+(pnl>=0?'+':'')+pnl.toLocaleString()+' USD</b>';
+  };
+  svg.onmouseleave=function(){tip.style.display='none';};
+  const noteEl=$('premNote');
+  if(noteEl)noteEl.innerHTML=hasIv
+    ?('📈 藍線＝今日買回價（剩 '+dte+' 日 · BS 模型 · IV '+(iv*100).toFixed(0)+'%）· 灰虛＝剩一半時間 · 深線＝到期內在值。正股<b>升</b>→權利金沿藍線<b>向下</b>（跌穿綠色 PT 線＝🟢 獲利平倉鎖 50%）；正股<b>跌</b>→沿藍線<b>向上</b>（升穿紅色 1.9× 線＝🔴 止損警報）。橙線＝你收到的權利金 $'+prem.toFixed(2)+'。')
+    :'⚠️ 此候選冇 IV 數據 —— 藍線（到期前買回價）畫唔到，只顯示到期內在值。';
 }
 function renderScenarios(c){
   if(!c)return;
   scenNval=(scenNval==null)?(c.contracts||1):scenNval;
   const nEl=$('scenN');if(nEl)nEl.textContent=scenNval;
   payoffSVG(c,scenNval);
+  premSVG(c,scenNval);
   const d=payoffData(c,scenNval);
   let s='<table class="utable"><thead><tr><th>到期股價情景</th><th class="r">股價</th><th class="r">盈虧 (USD)</th><th class="r">盈虧 (HKD)</th><th>狀態</th></tr></thead><tbody>';
   d.rows.slice().reverse().forEach(r=>{
