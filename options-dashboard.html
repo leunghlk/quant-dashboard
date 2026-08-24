@@ -1323,7 +1323,7 @@ function renderChain(chain,tk){
     h+='<button class="btn '+(i===idx?'btn-go':'btn-ghost')+'" style="margin-right:4px" onclick="setChainExp(\''+tk+'\','+i+')">'+e.expiry+'（'+e.days+'D）'+(isCand?' ⭐':'')+'</button> ';});
   h+='<button class="btn btn-ghost" style="margin-left:6px;font-weight:700" onclick="jumpToRec(\''+tk+'\')">🎯 跳至建議行</button> ';
   h+='<span class="muted small">· 正股 $'+px2(spot)+' · 來源：'+(chain.source==='yfinance'?'<b style="color:#d97706">Yahoo 兜底</b>（Futu 尚無這隻）':'<b style="color:#0d9488">Futu 實時</b>')+'</span>';
-  h+='<div class="muted small" style="margin-top:3px">到期日按 <b>10–14 DTE（v4_balanced 範圍）優先排列</b>；短於 10 日的（例如 5D）用於監察現有倉位 —— 未持有的話不要用它開新倉。</div>';
+  h+='<div class="muted small" style="margin-top:3px">到期日按 <b>10–14 DTE 優先排列</b>（v4_balanced 與 h6040 單股腿 v5 CFG_SINGLE 同一窗口：Δ0.25–0.30 × DTE 10–14）；SPY 腿例外（DTE≥7、最接近 12 日）；短於 10 日的（例如 5D）用於監察現有倉位 —— 未持有的話不要用它開新倉。</div>';
   h+='<div id="selReadout"></div>';   // ⭐ 選定 strike 後的即時 readout
   // merge call/put by strike；只顯示正股 ±40% 內（deep ITM/OTM IV 無意義 + payload 細）
   const m={};
