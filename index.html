@@ -831,6 +831,20 @@ async function loadData(forceHK){
       return;
     }
     lastData=d;render(d);loadLiveData();
+    // ⭐ 2026-08-25：render() 重建 data-idx 卡片會剷走 openView 嘅 leaf 過濾（揀咗「納指100期貨」一分鐘後變返全部 5 個疊住）
+    // — refresh 後重套目前 leaf（淨 toggle hidden，唔行 openView 免得 scrollTo 拉返用戶上頁頂）
+    try{
+      var _qv=JSON.parse(localStorage.getItem('qview')||'null');
+      if(_qv&&_qv.leaf&&_qv.top){
+        var _pn=document.querySelector('.top-pane[data-top="'+_qv.top+'"]');
+        var _sv=_pn&&_pn.querySelector('.subview.active');
+        if(_sv){
+          var _any=false;
+          _sv.querySelectorAll('[data-idx]').forEach(function(c){var on=c.dataset.idx===_qv.leaf;c.classList.toggle('hidden',!on);if(on)_any=true;});
+          if(!_any)_sv.querySelectorAll('[data-idx]').forEach(function(c){c.classList.remove('hidden');});
+        }
+      }
+    }catch(e){}
     // 港股收市後：auto-refresh 唔再 fetch HK 數據（價位唔會變），首次載入／手動刷新／未載入過先 refresh
     try{ localStorage.setItem('qfull-v3', JSON.stringify({ ts: Date.now(), data: d })); }catch(e){}
     hkCacheSave();
