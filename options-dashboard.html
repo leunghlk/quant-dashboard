@@ -195,10 +195,10 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
           <div class="k"><div class="lbl" id="ovMonthlyLbl">估算月收入</div><div class="val" id="ovMonthly">—</div></div>
         </div>
         <div style="margin-top:8px">
-          <div class="small muted">每月進度（目標：HKD 50,000）</div>
+          <div class="small muted">每月進度</div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
             <div class="bar" style="flex:1">
-              <div id="monthlyProgress" style="width:0%;background:#16a34a" data-tip="本月實現收入：HKD 0 / 目標 HKD 50,000（0%）"></div>
+              <div id="monthlyProgress" style="width:0%;background:#16a34a" data-tip="本月實現收入：HKD 0 / 目標 0（0%）"></div>
             </div>
             <span id="monthlyProgressText" style="font-size:11px;color:#64748b;font-weight:700">0%</span>
           </div>
@@ -481,6 +481,10 @@ async function loadLive(){
   (rec&&rec.winrank||[]).forEach(x=>{if(x&&x.ticker)set.add(x.ticker);});   // ⭐ 08-19：winrank 現價都要 live（user 報 winrank 價凍結喺掃描時）
   (rec&&rec.positions||[]).forEach(p=>{if(p.ticker)set.add(p.ticker);});
   (realPos||[]).forEach(p=>{if(p.ticker)set.add(p.ticker);});   // ⭐ 08-24：Futu 真倉（LITE/DLLL 正股＋期權標的）都要 live 現價
+  ((h6040Rec&&Array.isArray(h6040Rec.candidates))?h6040Rec.candidates:[]).forEach(x=>{if(x&&x.ticker)set.add(x.ticker);});   // ⭐ 08-26 價格對齊：v5 回測池都要 live（h6040 表以前出 06:10 掃描凍價，同其他 tab 差成 2%+）
+  ((h6040Rec&&h6040Rec.book&&Array.isArray(h6040Rec.book.open))?h6040Rec.book.open:[]).forEach(x=>{if(x&&x.ticker)set.add(x.ticker);});   // ⭐ 08-26：監察倉標的同樣要 live
+  const _qs=(quant&&quant.strategy)||{};   // ⭐ 08-26 價格對齊：策略台 tickers 入 live set（參考價欄轉 live-first）
+  [].concat(_qs.positions||[],_qs.buys||[],_qs.sells||[],_qs.reentry||[]).forEach(x=>{if(x&&x.tk)set.add(x.tk);});
   if(!set.size)return;
   try{
     const r=await fetchTimeout(activeBridge+'/snapshot?codes='+encodeURIComponent([...set].join(','))+'&secret='+encodeURIComponent(BRIDGE_SECRET),20000);
@@ -520,7 +524,7 @@ async function loadQuant(force){
   if(quant && !force)return quant;
   try{
     const r=await fetchTimeout(QUANT_API,30000);
-    if(r&&r.ok){quant=await r.json();quantTs=Date.now();renderAdvice();renderTopPick();renderEarnings();}
+    if(r&&r.ok){quant=await r.json();quantTs=Date.now();renderAdvice();renderTopPick();renderEarnings();loadLive();}   // ⭐ 08-26：策略台 tickers 即刻攞 live（唔使等下一個 60s 週期，loadLive 早退如 bridge 未探好）
   }catch(e){console.error('loadQuant',e);}
   return quant;
 }
@@ -643,7 +647,7 @@ function renderUnified(){
   } else {
     h += '<div class="muted" style="margin-top:12px">持倉讀取中／暫無（Futu 真戶口）</div>';
   }
-  h += '<div class="small muted" style="margin-top:8px">數據來源：Futu 真戶口 accinfo＋持倉（權威值；US 倉按户口隱含匯率 ×'+realFx.toFixed(2)+' 轉 HKD）· 回本目標 HKD 50,000 @ 2026-12-31</div>';
+  h += '<div class="small muted" style="margin-top:8px">數據來源：Futu 真戶口 accinfo＋持倉（權威值；US 倉按户口隱含匯率 ×'+realFx.toFixed(2)+' 轉 HKD）· 回本目標視當前模型而定</div>';
   el.innerHTML = h;
 }
 
@@ -901,7 +905,7 @@ function renderOverview(){
   // ⭐ 08-23：label 寫明邊個 option model 口徑（v4 run-rate vs h6040 回測月均）—— 兩個方法論數值唔同，唔可以撈亂
   $('ovMonthlyLbl').innerHTML='估算月收入 <span class="muted" style="font-weight:400;font-size:10px">v4_balanced run-rate</span>'+tip('monthly');
 
-  // 每月進度條（目標：HKD 50,000）
+  // 每月進度條
   updateMonthlyProgress();
   $('ovUsedLbl').innerHTML='已用按金（Reg-T） <span class="muted" style="font-weight:400;font-size:10px">v4_balanced</span>';
   // 開倉位
@@ -942,8 +946,8 @@ function updateMonthlyProgress(){
     targetDescription = 'Hybrid 60/40 回測月均 HKD 14,138';
   } else {
     // v4_balanced 模式：以預估月收入為目標
-    monthlyTarget = (rec && rec.projected_monthly_hkd && rec.projected_monthly_hkd.hkd) ? rec.projected_monthly_hkd.hkd : 20000;
-    targetDescription = 'v4_balanced 預估月收入目標';
+    monthlyTarget = (rec && rec.projected_monthly_hkd && rec.projected_monthly_hkd.hkd) ? rec.projected_monthly_hkd.hkd : 25100;
+    targetDescription = 'v4_balanced 月均目標（HKD 25,100）';
   }
 
   // 計算本月已實現收入（累計已實現 P&L）
@@ -1862,8 +1866,24 @@ function lockedHKD(){
 function availHKD(){return CAPITAL_HKD-lockedHKD();}
 function modePos(){const pos=(rec&&rec.positions||[]).filter(x=>x.status==='open');if(pnlMode==='real')return pos.filter(x=>x.real);if(pnlMode==='paper')return pos.filter(x=>!x.real);return pos;}
 function modeTag(){return pnlMode==='real'?'（真倉）':pnlMode==='paper'?'（紙上）':'';}
-function posMarginUSD(p){return (p.margin1!=null?Number(p.margin1):(p.collateral||0)*0.22)*(p.contracts||1);}   // 同 engine fallback：collateral×0.22
-function modeMarginUSD(){return Math.round(modePos().reduce((a,p)=>a+posMarginUSD(p),0));}
+function posMarginUSD(p){
+  if(!p) return 0;
+  const margin = (p.margin1!=null?Number(p.margin1):(p.collateral||0)*0.22)*(p.contracts||1);
+  // Debug: Log individual position margin
+  if(METHOD === 'v4_balanced' && margin === 0 && p.contracts > 0){
+    console.log('Position margin debug - v4_balanced:', p);
+  }
+  return margin;
+}
+function modeMarginUSD(){
+  const positions = modePos();
+  const margin = Math.round(positions.reduce((a,p)=>a+posMarginUSD(p),0));
+  // Debug: Log margin calculation for troubleshooting
+  if(METHOD === 'v4_balanced' && margin === 0){
+    console.log('Margin debug - v4_balanced:', {positions, totalPositions: positions.length});
+  }
+  return margin;
+}
 function modeLockedHKD(){   // 排隊訂單屬紙上 → 真倉 mode 唔計
   let sum=modePos().reduce((a,p)=>a+(p.collateral||0)*HKD_USD,0);
   if(pnlMode!=='real')decLoad('optdash_queued').forEach(q=>{sum+=(Number(q.strike)*100*(Number(q.contracts)||1))*HKD_USD;});
@@ -2065,6 +2085,13 @@ function _pxAsof(x){
   let t='—'; try{t=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(x.asof*1000));}catch(e){}
   return '<div style="font-size:9px;color:#64748b;font-weight:400;margin-top:1px">'+((x.session||'收市')+' '+t+' ET')+'</div>';
 }
+/* ⭐ 08-26 價格對齊：ET 時間 formatter（live asof 標註用）＋「live」來源標註（綠）。
+   全 dashboard 同一個 bridge live map（loadLive）——同一 ticker 喺邊個 tab 都出同一個 live 價。 */
+function _tEt(ts){
+  let t='—'; try{t=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(ts*1000));}catch(e){}
+  return t;
+}
+function _liveAsof(s){return '<div style="font-size:9px;color:#059669;font-weight:400;margin-top:1px">live '+_tEt(s&&s.asof)+' ET</div>';}
 function renderTopPick(){
   const el=document.getElementById('toppickBody'); if(!el)return;
   const d=qStrategy();
@@ -2074,6 +2101,11 @@ function renderTopPick(){
   // ⭐ 08-24：加 native currency 欄（user 要求唔好淨係 HKD）。strategy desk 全部係 US 股票 → USD；
   //   worker btPxHkd 用 USD_HKD=7.80 乘，所以反除返 7.80 先啱數（唔好用 Futu realFx 7.8536）。
   const qUsd=v=>'$'+((v||0)/7.80).toFixed(2);
+  // ⭐ 08-26 價格對齊：參考價 live-first —— 有 bridge live 就用 live（×7.80 入 worker HKD frame，USD 欄內部一致），
+  //   冇 live 先用 worker ref_px_hkd（照舊附 asof）。同一 ticker 喺統一總覽／v4 表／呢度出同一個 live 價。
+  const sdRef=(tk,fbHkd)=>{const s=live[tk];return (s&&s.live_price!=null)?s.live_price*7.80:fbHkd;};
+  const sdRefUsd=(tk,fbUsd)=>{const s=live[tk];return (s&&s.live_price!=null)?s.live_price:fbUsd;};
+  const sdRefNote=(tk,it)=>{const s=live[tk];return (s&&s.live_price!=null)?_liveAsof(s):_pxAsof(it);};
   const params=d.params||{}, maxPos=params.maxPos||5, notional=params.notional||10000;
   let h='<div style="font-size:11px;color:#64748b;margin:0 0 6px">📅 每日訊號(HKT) '+esc(d.date)+' · '+esc(params.mode||'long-only top-5')+' · 建議倉 HKD '+notional.toLocaleString()+'／格 · 剩 '+d.openSlots+' 格可入</div>';
   h+='<div style="font-size:11px;color:#64748b;margin:0 0 8px">long-only（唔可以 short）· 現持倉＝你實際組合 · 買入候選／離場＝模型建議（非已執行），執行＝下個交易日開市 —— 同 quant dashboard 策略交易台完全同一數據。</div>';
@@ -2084,7 +2116,7 @@ function renderTopPick(){
     h+='<div class="table-scroll"><table class="utable"><thead><tr><th>持倉</th><th class="r">買入日</th><th class="r">買入價(HKD)</th><th class="r">買入價(USD)</th><th class="r">股數</th><th class="r">參考價(HKD)</th><th class="r">參考價(USD)</th><th class="r">未實現</th><th>訊號</th><th class="r">Decel</th><th>狀態</th></tr></thead><tbody>';
     d.positions.forEach(p=>{
       const st=p.exit_trigger?'<span style="color:#dc2626;font-weight:800">觸發退出</span>':'<span style="color:#475569">持有</span>';
-      h+='<tr><td style="font-weight:700">'+esc(p.tk)+nmTk(p.tk)+'</td><td class="r">'+esc(p.entry_date)+'</td><td class="r">'+fmt(p.entry_px_hkd)+'</td><td class="r">'+qUsd(p.entry_px_hkd)+'</td><td class="r">'+p.shares+'</td><td class="r">'+fmt(p.ref_px_hkd)+_pxAsof(p)+'</td><td class="r">'+qUsd(p.ref_px_hkd)+'</td><td class="r" style="font-weight:700;color:'+(p.unreal_pct>=0?'#16a34a':'#dc2626')+'">'+(p.unreal_pct>=0?'+':'')+p.unreal_pct+'%</td><td>'+_sigPill(p.curr_signal)+'</td><td class="r">'+(p.curr_decel==null?'—':p.curr_decel)+'</td><td>'+st+'</td></tr>';
+      h+='<tr><td style="font-weight:700">'+esc(p.tk)+nmTk(p.tk)+'</td><td class="r">'+esc(p.entry_date)+'</td><td class="r">'+fmt(p.entry_px_hkd)+'</td><td class="r">'+qUsd(p.entry_px_hkd)+'</td><td class="r">'+p.shares+'</td><td class="r">'+fmt(sdRef(p.tk,p.ref_px_hkd))+sdRefNote(p.tk,p)+'</td><td class="r">'+qUsd(sdRef(p.tk,p.ref_px_hkd))+'</td><td class="r" style="font-weight:700;color:'+(p.unreal_pct>=0?'#16a34a':'#dc2626')+'">'+(p.unreal_pct>=0?'+':'')+p.unreal_pct+'%</td><td>'+_sigPill(p.curr_signal)+'</td><td class="r">'+(p.curr_decel==null?'—':p.curr_decel)+'</td><td>'+st+'</td></tr>';
     });
     h+='</tbody></table></div>';
   }
@@ -2094,7 +2126,7 @@ function renderTopPick(){
     h+='<div style="font-weight:700;margin:12px 0 4px;font-size:13px">🟢 買入候選（score 排序 · 剩 '+d.openSlots+' 格）</div>';
     h+='<div class="table-scroll"><table class="utable"><thead><tr><th>#</th><th>Ticker</th><th class="r">Score</th><th>訊號</th><th class="r">Decel</th><th class="r">參考價(HKD)</th><th class="r">參考價(USD)</th><th class="r">目標 HKD 10k</th><th class="r">約股數</th><th>狀態</th></tr></thead><tbody>';
     d.buys.forEach(b=>{
-      h+='<tr><td>'+b.rank+'</td><td style="font-weight:700">'+esc(b.tk)+nmTk(b.tk)+'</td><td class="r">'+b.score+'</td><td>'+_sigPill(b.signal)+'</td><td class="r">'+b.decel+'</td><td class="r">'+fmt(b.ref_px_hkd)+_pxAsof(b)+'</td><td class="r">'+qUsd(b.ref_px_hkd)+'</td><td class="r">10,000</td><td class="r">'+b.shares+'</td><td style="color:'+(b.fillable?'#16a34a':'#64748b')+';font-weight:700">'+(b.fillable?'可買入':'候補')+'</td></tr>';
+      h+='<tr><td>'+b.rank+'</td><td style="font-weight:700">'+esc(b.tk)+nmTk(b.tk)+'</td><td class="r">'+b.score+'</td><td>'+_sigPill(b.signal)+'</td><td class="r">'+b.decel+'</td><td class="r">'+fmt(sdRef(b.tk,b.ref_px_hkd))+sdRefNote(b.tk,b)+'</td><td class="r">'+qUsd(sdRef(b.tk,b.ref_px_hkd))+'</td><td class="r">10,000</td><td class="r">'+b.shares+'</td><td style="color:'+(b.fillable?'#16a34a':'#64748b')+';font-weight:700">'+(b.fillable?'可買入':'候補')+'</td></tr>';
     });
     h+='</tbody></table></div>';
   }
@@ -2103,14 +2135,14 @@ function renderTopPick(){
   if(!d.sells||!d.sells.length){h+='<div class="muted">無沽出訊號</div>';}
   else{
     h+='<div class="table-scroll"><table class="utable"><thead><tr><th>Ticker</th><th class="r">股數</th><th class="r">參考價(HKD)</th><th class="r">參考價(USD)</th><th>原因</th><th>時機</th></tr></thead><tbody>';
-    d.sells.forEach(s=>{h+='<tr><td style="font-weight:700">'+esc(s.tk)+nmTk(s.tk)+'</td><td class="r">'+s.shares+'</td><td class="r">'+fmt(s.ref_px_hkd)+'</td><td class="r">'+qUsd(s.ref_px_hkd)+'</td><td style="color:#dc2626">'+esc(s.reason)+'</td><td>'+esc(s.timing)+'</td></tr>';});
+    d.sells.forEach(s=>{h+='<tr><td style="font-weight:700">'+esc(s.tk)+nmTk(s.tk)+'</td><td class="r">'+s.shares+'</td><td class="r">'+fmt(sdRef(s.tk,s.ref_px_hkd))+sdRefNote(s.tk,s)+'</td><td class="r">'+qUsd(sdRef(s.tk,s.ref_px_hkd))+'</td><td style="color:#dc2626">'+esc(s.reason)+'</td><td>'+esc(s.timing)+'</td></tr>';});
     h+='</tbody></table></div>';
   }
   if(d.reentry&&d.reentry.length){
     h+='<div style="font-weight:700;margin:12px 0 4px;font-size:13px">🔁 Re-entry 候選（止蝕離場後翻倉評估 · 觀察窗 10 個交易日）</div>';
     h+='<div class="table-scroll"><table class="utable"><thead><tr><th>Ticker</th><th class="r">離場日</th><th class="r">離場價</th><th class="r">現價</th><th class="r">收復</th><th class="r">日數</th><th>訊號</th><th class="r">Decel</th><th>狀態／原因</th></tr></thead><tbody>';
     d.reentry.forEach(r=>{
-      h+='<tr><td style="font-weight:700">'+esc(r.tk)+nmTk(r.tk)+'</td><td class="r">'+esc(r.exit_date)+'</td><td class="r">$'+r.exit_px+'</td><td class="r">$'+r.now_px+'</td><td class="r" style="color:'+(r.reclaim_pct>=0?'#16a34a':'#dc2626')+'">'+(r.reclaim_pct>=0?'+':'')+r.reclaim_pct+'%</td><td class="r">'+r.days_since+'</td><td>'+_sigPill(r.signal)+'</td><td class="r">'+(r.decel==null?'—':r.decel)+'</td><td style="color:'+(r.eligible?'#16a34a':'#64748b')+';font-weight:700">'+(r.eligible?'✅ 可考慮翻倉（下個交易日開市）':'⏸ ')+esc(r.reason)+'</td></tr>';
+      h+='<tr><td style="font-weight:700">'+esc(r.tk)+nmTk(r.tk)+'</td><td class="r">'+esc(r.exit_date)+'</td><td class="r">$'+r.exit_px+'</td><td class="r">$'+px2(sdRefUsd(r.tk,r.now_px))+sdRefNote(r.tk,r)+'</td><td class="r" style="color:'+(r.reclaim_pct>=0?'#16a34a':'#dc2626')+'">'+(r.reclaim_pct>=0?'+':'')+r.reclaim_pct+'%</td><td class="r">'+r.days_since+'</td><td>'+_sigPill(r.signal)+'</td><td class="r">'+(r.decel==null?'—':r.decel)+'</td><td style="color:'+(r.eligible?'#16a34a':'#64748b')+';font-weight:700">'+(r.eligible?'✅ 可考慮翻倉（下個交易日開市）':'⏸ ')+esc(r.reason)+'</td></tr>';
     });
     h+='</tbody></table></div>';
   }
@@ -2125,7 +2157,7 @@ function renderTopPick(){
     });
     h+='</tbody></table></div>';
   }
-  h+='<div style="font-size:11px;color:#64748b;margin-top:10px;padding:8px 10px;background:#f8fafc;border-radius:6px">📌 數據源：quant dashboard 同一個 worker /api（data.strategy＝唯一決策源）· 訊號每收市後更新；執行＝下個交易日開市。 DLLL 為 2× DELL 槓桿 ETF，跟 DELL 走勢、每日 decay，唔宜長揸。</div>';
+  h+='<div style="font-size:11px;color:#64748b;margin-top:10px;padding:8px 10px;background:#f8fafc;border-radius:6px">📌 數據源：quant dashboard 同一個 worker /api（data.strategy＝唯一決策源）· 訊號每收市後更新；執行＝下個交易日開市。 DLLL 為 2× DELL 槓桿 ETF，跟 DELL 走勢、每日 decay，唔宜長揸。<br>⭐ 參考價＝即時 live 優先（bridge live map 60s 刷新，同統一總覽同一來源；綠字＝live 時間）；冇 live 先顯示 worker 參考價（灰字＝asof 時間）。買入價／決策記錄＝歷史價，唔會被 live 覆蓋。</div>';
   el.innerHTML=h;
 }
 
@@ -2589,6 +2621,16 @@ function renderH6040Positions(){
   const led=((rec&&rec.ledger_recent)||[]).filter(t=>t.real);
   $('ledBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">尚無真倉平倉紀錄。</div>';
 }
+/* ⭐ 08-26 價格對齊：h6040 池「現價」live-first —— bridge live 優先（同全 dashboard 同一個 live map），
+   冇 live 先出掃描價；每格細字標明來源（綠=live 時間／琥珀=掃描日期）。以前呢度出 06:10 掃描凍價，
+   同統一總覽／v4 表同一隻股票可以差 2%+（user 08-26 報價唔對齊）。mom/IV/RSI/建議K 等掃描欄位照舊。 */
+function h6040PxLive(tk){const s=live[tk];return (s&&s.live_price!=null)?s.live_price:null;}
+function h6040PxCell(tk,scanPx){
+  const lv=h6040PxLive(tk);
+  if(lv!=null)return '$'+px2(lv)+'<div style="font-size:9px;color:#059669;font-weight:400;margin-top:1px">live '+_tEt(live[tk].asof)+' ET</div>';
+  const sd=(h6040Rec&&h6040Rec.scan&&h6040Rec.scan.scan_date)||'';
+  return '$'+px2(scanPx)+'<div style="font-size:9px;color:#b45309;font-weight:400;margin-top:1px">掃描'+(sd?' '+sd:'')+'</div>';
+}
 function renderH6040Best(){
   const b=$('bestCard');
   if(!b)return;
@@ -2613,8 +2655,10 @@ function renderH6040Best(){
   const pool=(h6040Rec&&h6040Rec.candidates)||[];
   const scan=(h6040Rec&&h6040Rec.scan)||{};
   const top=pool[0];
+  // ⭐ 08-26 價格對齊：top pick 價一樣 live-first（inline 標註，繼承卡片文字色）；冇 live 出掃描價
+  const _tpLv=top?h6040PxLive(top.ticker):null;
   const topLine=top
-    ?('<b>'+top.ticker+'</b> $'+px2(top.price)+' · mom '+(top.score!=null?top.score.toFixed(2):'—')+' · '+_sigPill(top.signal)+' · IV '+(top.iv!=null?(top.iv*100).toFixed(0)+'%':'—')+' · RSI '+(top.rsi!=null?top.rsi.toFixed(0):'—')+' → 沽 '+(top.sug_strike!=null?'$'+px2(top.sug_strike):'—')+' put · '+(top.sug_dte||'—')+'DTE · Δ'+(top.sug_delta!=null?'−'+Math.abs(top.sug_delta).toFixed(2):'—')+' · 年化 '+(top.sug_yield_ann!=null?top.sug_yield_ann+'%':'—')+'（全名單見下方候選名單）')
+    ?('<b>'+top.ticker+'</b> $'+px2(_tpLv!=null?_tpLv:top.price)+(_tpLv!=null?' <span style="font-size:10px;font-weight:400">(live '+_tEt(live[top.ticker].asof)+' ET)</span>':'')+' · mom '+(top.score!=null?top.score.toFixed(2):'—')+' · '+_sigPill(top.signal)+' · IV '+(top.iv!=null?(top.iv*100).toFixed(0)+'%':'—')+' · RSI '+(top.rsi!=null?top.rsi.toFixed(0):'—')+' → 沽 '+(top.sug_strike!=null?'$'+px2(top.sug_strike):'—')+' put · '+(top.sug_dte||'—')+'DTE · Δ'+(top.sug_delta!=null?'−'+Math.abs(top.sug_delta).toFixed(2):'—')+' · 年化 '+(top.sug_yield_ann!=null?top.sug_yield_ann+'%':'—')+'（全名單見下方候選名單）')
     :'';
   if(!h6040Rec||!h6040Rec.scan_fresh){
     h+='<div class="warn-note" style="margin-top:6px">⚠️ v5 回測池掃描過期（'+(scan.scan_date||'—')+'）— com.kathy.h6040-scan 未有新 output，暫不顯示單股候選。</div>';
@@ -2647,12 +2691,12 @@ function renderH6040Best(){
         // ⭐ 08-25 業績欄：earn_in_window（業績落喺 DTE+2 持有期內）→ 紅字 ⚠️；淨日期→灰字；缺→—
         const eD=c.earnings?c.earnings.slice(5):'';
         const eCell=c.earn_in_window?'<span style="color:#dc2626;font-weight:700">⚠️'+eD+'</span>':(c.earnings?'<span class="muted">'+eD+'</span>':'—');
-        rows+='<tr style="cursor:pointer" onclick="showDetail(\''+c.ticker+'\')"><td><b>'+c.ticker+'</b></td><td class="r">$'+px2(c.price)+'</td><td class="r">'+(c.score!=null?c.score.toFixed(2):'—')+'</td><td>'+_sigPill(c.signal)+'</td><td class="r">'+(c.iv!=null?(c.iv*100).toFixed(0)+'%':'—')+'</td><td class="r">'+(c.rsi!=null?c.rsi.toFixed(0):'—')+'</td><td class="r">'+eCell+'</td><td class="r">'+(c.sug_strike!=null?'$'+px2(c.sug_strike):'—')+'</td><td class="r">'+(c.sug_dte||'—')+'</td><td class="r">'+(c.sug_delta!=null?'−'+Math.abs(c.sug_delta).toFixed(2):'—')+'</td><td class="r">'+(c.sug_yield_ann!=null?c.sug_yield_ann+'%':'—')+'</td></tr>';
+        rows+='<tr style="cursor:pointer" onclick="showDetail(\''+c.ticker+'\')"><td><b>'+c.ticker+'</b></td><td class="r">'+h6040PxCell(c.ticker,c.price)+'</td><td class="r">'+(c.score!=null?c.score.toFixed(2):'—')+'</td><td>'+_sigPill(c.signal)+'</td><td class="r">'+(c.iv!=null?(c.iv*100).toFixed(0)+'%':'—')+'</td><td class="r">'+(c.rsi!=null?c.rsi.toFixed(0):'—')+'</td><td class="r">'+eCell+'</td><td class="r">'+(c.sug_strike!=null?'$'+px2(c.sug_strike):'—')+'</td><td class="r">'+(c.sug_dte||'—')+'</td><td class="r">'+(c.sug_delta!=null?'−'+Math.abs(c.sug_delta).toFixed(2):'—')+'</td><td class="r">'+(c.sug_yield_ann!=null?c.sug_yield_ann+'%':'—')+'</td></tr>';
       });
       cd.innerHTML=(rows?banner+'<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">現價</th><th class="r">mom</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th class="r">業績</th><th class="r">建議K</th><th class="r">DTE</th><th class="r">Δ</th><th class="r">年化</th></tr></thead><tbody>'+rows+'</tbody></table></div>':banner+'<div class="muted">今日 v5 池無符合 CFG_SINGLE 過濾嘅候選。</div>');
     }
   }
-  const cm=$('candMeta'); if(cm)cm.textContent='v5 回測池 '+pool.length+' 隻 · scan '+(scan.scan_date||'—')+' · VIX '+(scan.vix!=null?scan.vix.toFixed(1):'—')+' · breadth '+(scan.breadth!=null?(scan.breadth*100).toFixed(0)+'%':'—')+' · 建議K/Δ/年化＝BS 模型價 · 業績⚠️＝落喺持有期內（DTE＋2緩衝，回測冇剔業績——自行迴避）';
+  const cm=$('candMeta'); if(cm)cm.textContent='v5 回測池 '+pool.length+' 隻 · scan '+(scan.scan_date||'—')+' · VIX '+(scan.vix!=null?scan.vix.toFixed(1):'—')+' · breadth '+(scan.breadth!=null?(scan.breadth*100).toFixed(0)+'%':'—')+' · 現價＝live 優先（綠＝即時／琥珀＝掃描價，同其他 tab 同一來源） · 建議K/Δ/年化＝BS 模型價 · 業績⚠️＝落喺持有期內（DTE＋2緩衝，回測冇剔業績——自行迴避）';
   const nt=$('notesBody'); if(nt)nt.innerHTML='<span class="muted">Hybrid 60/40 排除：單股腿要 VIX 20–32＋breadth≥50% 才開（v5 回測池）；SPY 腿要 SPY>200DMA 才開。兩腿皆關 = 今日全場休息（同回測）。</span>';
 }
 function h6040OpenSpyChain(){
