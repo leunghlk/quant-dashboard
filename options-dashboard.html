@@ -194,6 +194,15 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
           <div class="k"><div class="lbl" id="ovUsedLbl">已用按金（Reg-T）</div><div class="val" id="ovUsed">—</div></div>
           <div class="k"><div class="lbl" id="ovMonthlyLbl">估算月收入</div><div class="val" id="ovMonthly">—</div></div>
         </div>
+        <div style="margin-top:8px">
+          <div class="small muted">每月進度（目標：HKD 50,000）</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <div class="bar" style="flex:1">
+              <div id="monthlyProgress" style="width:0%;background:#16a34a" data-tip="本月實現收入：HKD 0 / 目標 HKD 50,000（0%）"></div>
+            </div>
+            <span id="monthlyProgressText" style="font-size:11px;color:#64748b;font-weight:700">0%</span>
+          </div>
+        </div>
       </div></div>
     <div class="card"><div class="card-h"><span class="t" id="railsTitle">🛤️ Hybrid 60/40 執行閘門（即時）</span><span class="meta" id="railsMeta">按照下表規則 = 貼近回測結果</span></div>
       <div class="card-b" id="ovRailsBody"><div class="muted">載入中…</div></div></div>
@@ -891,6 +900,9 @@ function renderOverview(){
   $('ovMonthly').textContent=hkd(rec.projected_monthly_hkd&&rec.projected_monthly_hkd.hkd);
   // ⭐ 08-23：label 寫明邊個 option model 口徑（v4 run-rate vs h6040 回測月均）—— 兩個方法論數值唔同，唔可以撈亂
   $('ovMonthlyLbl').innerHTML='估算月收入 <span class="muted" style="font-weight:400;font-size:10px">v4_balanced run-rate</span>'+tip('monthly');
+
+  // 每月進度條（目標：HKD 50,000）
+  updateMonthlyProgress();
   $('ovUsedLbl').innerHTML='已用按金（Reg-T） <span class="muted" style="font-weight:400;font-size:10px">v4_balanced</span>';
   // 開倉位
   const pos=(rec.positions||[]).filter(x=>x.status==='open');
@@ -911,6 +923,53 @@ function renderOverview(){
   const led=rec.ledger_recent||[];
   $('ovLedgerBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">尚無任何平倉紀錄。</div>';
 }
+
+// 每月進度更新
+function updateMonthlyProgress(){
+  const progressEl = $('monthlyProgress');
+  const progressTextEl = $('monthlyProgressText');
+  if(!progressEl || !progressTextEl) return;
+
+  const now = new Date();
+  const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+  // 每月目標：HKD 50,000
+  const monthlyTarget = 50000;
+
+  // 計算本月已實現收入（累計已實現 P&L）
+  let monthlyIncome = 0;
+
+  // 從累計已實現 P&L 計算本月收入
+  if(rec && rec.realized_hkd !== null && rec.realized_hkd !== undefined){
+    monthlyIncome = rec.realized_hkd;
+  }
+
+  // 計算進度百分比
+  const progress = Math.min(100, Math.round((monthlyIncome / monthlyTarget) * 100));
+
+  // 更新進度條
+  progressEl.style.width = progress + '%';
+
+  // 根據進度設定顏色
+  let color = '#16a34a'; // 綠色（目標達成）
+  if(progress < 30) color = '#dc2626'; // 紅色（遠遠未達標）
+  else if(progress < 70) color = '#d97706'; // 橙色（未達標）
+
+  progressEl.style.background = color;
+
+  // 更新文字顯示
+  progressTextEl.textContent = progress + '%';
+
+  // 更新 hover 提示
+  const currentMonthName = now.toLocaleDateString('zh-HK', { year: 'numeric', month: 'long' });
+  progressEl.setAttribute('data-tip',
+    `<b>${currentMonthName} 月度進度</b><br>` +
+    `本月實現收入：${hkd(monthlyIncome)}<br>` +
+    `目標：HKD ${monthlyTarget.toLocaleString()}<br>` +
+    `進度：${progress}%`
+  );
+}
+
 function ledTable(led){
   let h='<table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>張數</th><th>原因</th><th class="r">P&amp;L (USD)</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
   led.forEach(t=>{
