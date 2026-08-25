@@ -96,9 +96,6 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 /* ===== Misc ===== */
 .fbar-bar{background:#e2e8f0;height:6px;border-radius:3px;width:100%;overflow:hidden}
 .fbar-fill{height:6px;border-radius:3px}
-.alert-banner{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:none}
-.alert-banner.show{display:block}
-.alert-item{display:flex;gap:8px;align-items:center;margin:4px 0;font-size:14px}
 .clickable{cursor:pointer}
 .detail-row{display:none}.detail-row.show{display:''}
 .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,.45);z-index:1000}
@@ -227,7 +224,6 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
     <button class="btn btn-primary" id="refresh" onclick="loadData(true)">🔄 更新</button>
   </div>
 </div></div>
-<div class="alert-banner" id="alertBanner"></div>
 
 <nav class="mega" role="navigation" aria-label="primary">
   <ul class="mega-l1">
@@ -382,14 +378,7 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
 </div>
 <script>
 // ===== Nested mega-menu navigation (replaces flat switchTab + initSubnav) =====
-const FUND_TARGETS={LITE:1055.94}; // consolidated; checkPriceAlerts/dismissAlerts locals removed in cleanup
-// ⭐ 2026-08-18: 部署警報 — ADBE 已沽清 @$252 移除
-// ⭐ 2026-08-13: 部署警報 — MSFT 已沽清移除；LITE 已持 1股@$950（limit pending）
-// ⭐ 2026-08-12: 部署警報 — 已持倉用正式技術位；DDOG 已沽清移除
-const DEPLOY_ALERTS={
-  DLLL:{ stop:22.5, t1:28.39, note:'2x ETF 止蝕線' },
-  LITE:{ stop:838.79, t1:1055.94, note:'已持1股@$950（pending fill）' },
-};
+const FUND_TARGETS={LITE:1055.94}; // 執倉建議 target 用（renderCatchup）；⭐ 08-25 price alert 系統已整個移除（dashboard 轉工作用非 self-trading，user 欽定）
 // ⭐ 08-24 重組：總覽／部署／期權收入 panes 移除 — 大盤形勢（regime）成首頁預設
 const VALID_TOP=['regime','tech','wave','eln','earnings'];
 const QVIEW_DEFAULT={top:'regime',sub:'regime',leaf:null};
@@ -797,7 +786,6 @@ async function loadData(forceHK){
       if(cachedFull && cachedFull.data && cachedFull.ts && (Date.now()-cachedFull.ts) < 24*3600e3){
         lastData=cachedFull.data;
         render(lastData);
-        checkPriceAlerts(lastData);
         const hc=hkCacheLoad();
         if(hc && hc.breadth) hkLive=hc.breadth;
         if(!forceHK) renderHK(lastData);
@@ -824,7 +812,25 @@ async function loadData(forceHK){
       if(rf){rf.disabled=false;rf.textContent='🔄 刷新';}
       return;
     }
-    lastData=d;render(d);checkPriceAlerts(d);loadLiveData();
+    // ⭐ 2026-08-25：殘稿防護 — upstream（Yahoo/bridge）部分失敗時 /api 會返「合法但殘缺」payload
+    // （watchlist 空、techAnalysis 失蹤、波浪未校準）。之前照 render 會剷走成版內容（技術位/波浪/ELN 空白）
+    // 仲將殘稿寫入 qfull-v3（24h cache）。規則：有上次完整數據 → 拒收殘稿、保留舊版＋警示；
+    // 完全冇舊數據（首次載入）→ 照 render（好過空白）但唔寫入 qfull-v3。
+    var _apiHealthy=function(x){return !!(x&&Array.isArray(x.watchlist)&&x.watchlist.length>=40&&x.techAnalysis&&Object.keys(x.techAnalysis).length>=5&&Array.isArray(x.waveCounts)&&x.waveCounts.length>=5&&x.waveCounts.every(function(w){return w&&w.calibrated!==false;}));};
+    if(!_apiHealthy(d)){
+      var _okWaves=((d.waveCounts||[]).filter(function(w){return w&&w.calibrated!==false;}).length);
+      if(lastData){
+        if(document.getElementById('lastUpdate'))document.getElementById('lastUpdate').textContent='⚠️ 數據源暫時不完整（美股'+((d.watchlist||[]).length)+' · 波浪'+_okWaves+'/5）— 保留上次完整數據';
+        loadLiveData();
+        if(rf){rf.disabled=false;rf.textContent='🔄 刷新';}
+        return;
+      }
+      lastData=d;render(d);loadLiveData();
+      if(document.getElementById('lastUpdate'))document.getElementById('lastUpdate').textContent='⚠️ 數據源暫時不完整（首次載入 · 美股'+((d.watchlist||[]).length)+' · 波浪'+_okWaves+'/5）';
+      if(rf){rf.disabled=false;rf.textContent='🔄 刷新';}
+      return;
+    }
+    lastData=d;render(d);loadLiveData();
     // 港股收市後：auto-refresh 唔再 fetch HK 數據（價位唔會變），首次載入／手動刷新／未載入過先 refresh
     try{ localStorage.setItem('qfull-v3', JSON.stringify({ ts: Date.now(), data: d })); }catch(e){}
     hkCacheSave();
@@ -1084,8 +1090,6 @@ function renderOptionsBlock(j){
   h+='</div></div>';
   return h;
 }
-// 價格警報專用：關閉 + 記錄已讀，避免 auto-refresh 重複彈
-function dismissAlerts(){closeModal(); if(lastData&&lastData.portfolio){var pos=lastData.portfolio.positions;for(var t in pos){var p=pos[t];var stopLoss=p.cost*0.92;var target=FUND_TARGETS[t]||p.cost*1.15;if(p.price<=stopLoss)dismissedAlerts[t+'_stop']=true;if(p.price>=target)dismissedAlerts[t+'_target']=true;}if(lastData.watchlist)lastData.watchlist.forEach(function(s){if(pos[s.ticker]&&s.decel<=-3)dismissedAlerts[s.ticker+'_decel']=true;});}}
 function showBidi(ticker){
   const b=(lastData.bidirectional||[]).find(x=>x.ticker===ticker);
   if(!b)return;
@@ -2001,11 +2005,17 @@ function render(data){
   if(data.waveCounts){
     try{
     let wh='';
+    // ⭐ 2026-08-25：波浪校準狀態警示 — 上游 kline 攞唔到時 worker 退回手動數浪基準值（calibrated:false），
+    // 免得「恒指波浪價位唔 update」靜靜地出現而冇人知
+    const _wcStale=(data.waveCounts||[]).filter(x=>x&&x.calibrated===false);
+    if(_wcStale.length){
+      wh+='<div style="margin-bottom:14px;padding:10px 12px;background:#fff7ed;border:1px solid #fdba74;border-radius:8px;color:#9a3412;font-size:12px;line-height:1.6"><b>⚠️ 波浪水位未能在線校準</b>（'+_wcStale.map(x=>x.name||x.ticker).join('、')+'）— 數據源暫時失敗，以下顯示手動數浪基準值，現價／量度目標可能滯後。數據源恢復後自動重新校準。</div>';
+    }
     data.waveCounts.forEach(x=>{
       const wkey=x.ticker||(x.name&&x.name.indexOf('恒')>=0?'^HSI':(x.name&&(x.name.indexOf('半')>=0||x.name.indexOf('SOX')>=0))?'^SOX':'NQ=F');
       if(x.error){wh+='<div data-idx="'+wkey+'" style="color:#dc2626;margin-bottom:14px"><b>'+x.name+'</b>：'+x.error+'</div>';return;}
       wh+='<div data-idx="'+wkey+'" style="margin-bottom:22px;padding:14px;border:1px solid #e2e8f0;border-radius:10px">';
-      wh+='<div style="font-weight:800;font-size:16px;color:#0f172a;margin-bottom:4px">'+x.name+' <span style="font-size:12px;color:#64748b;font-weight:500">現價 '+rD(x.currentPrice)+'</span></div>';
+      wh+='<div style="font-weight:800;font-size:16px;color:#0f172a;margin-bottom:4px">'+x.name+' <span style="font-size:12px;color:#64748b;font-weight:500">現價 '+rD(x.currentPrice)+'</span>'+(x.calibrated===false?' <span style="font-size:10px;color:#b45309;background:#fff7ed;border:1px solid #fdba74;border-radius:4px;padding:1px 6px;font-weight:700">⚠️ 水位未校準</span>':'')+'</div>';
       // 手動數浪格式（MANUAL_WAVE_COUNTS）
       if(x.position && x.pivots && x.currentWaveTargets){
         wh+='<div style="margin-top:10px;display:inline-block;background:#0d9488;color:#fff;padding:2px 10px;border-radius:5px;font-size:11px;font-weight:700">① 首選數浪</div>';
@@ -3014,78 +3024,9 @@ function toggleAutoRefresh(btn){
   if(btn){btn.textContent=autoPaused?'▶ 恢復自動更新':'⏸ 暫停自動更新';btn.style.background=autoPaused?'#16a34a':'#0d9488';}
 }
 loadData();setInterval(function(){if(!autoPaused){loadData();}},60000);
-// ═══ PRICE ALERT SYSTEM ═══
-// dismissedKeys: 記錄 user 已關閉嘅警報 (ticker+type)，避免每60秒 auto-refresh 重複彈出
-var dismissedAlerts = {};
-function checkPriceAlerts(data){
-  if(!data||!data.portfolio||!data.portfolio.positions)return;
-  var alerts=[];
-  var pos=data.portfolio.positions;
-  for(var t in pos){
-    var p=pos[t];
-    var da=(data.deployAlerts&&data.deployAlerts[t])||DEPLOY_ALERTS[t];
-    var stopLoss=da&&da.stop!=null?da.stop:p.cost*0.92;
-    var target=da&&da.t1!=null?da.t1:(FUND_TARGETS[t]||p.cost*1.15);
-    if(p.price<=stopLoss){
-      alerts.push({key:t+'_stop',type:'stop',ticker:t,price:p.price,stopLoss:stopLoss.toFixed(2),msg:'⚠️ 止蝕 watch：'+t+' 現價 $'+p.price.toFixed(2)+' 觸及 2.5×ATR 參考位 $'+stopLoss.toFixed(2)+'（只提示·唔係離場指令）。離場決定以策略台訊號為準；即市唯一行動級係災難軌'+(da&&da.disaster?(' $'+da.disaster+'（≈4×ATR）'):'')+'。'});
-    }
-    if(p.price>=target){
-      alerts.push({key:t+'_target',type:'target',ticker:t,price:p.price,target:target,msg:'🟢 到價警報：'+t+' 現價 $'+p.price.toFixed(2)+' 已到達目標價 $'+target+'！考慮減磅鎖利。'});
-    }
-  }
-  // ⭐ 2026-08-12: 部署警報 — 未持有嘅計劃買入/沽出目標（MSFT 等）都監察
-  if(data.watchlist){
-    var wlMap={}; data.watchlist.forEach(function(s){ wlMap[s.ticker]=s; });
-    Object.keys(DEPLOY_ALERTS).forEach(function(t){
-      var s=wlMap[t]; if(!s||s.price==null)return;
-      var da=DEPLOY_ALERTS[t];
-      // 買入區（未持有 + 價位到 entry）：提你入
-      if(!pos[t] && da.entry!=null && s.price<=da.entry){
-        alerts.push({key:t+'_entry',type:'entry',ticker:t,price:s.price,entry:da.entry,msg:'🟢 買入區警報：'+t+' 現價 $'+s.price.toFixed(2)+' 已到買入區 $'+da.entry+'（止蝕 $'+da.stop+', T1 $'+da.t1+'）'+(da.note?' · '+da.note:'')});
-      }
-      // 沽出區（未持有 + 價位到 t1）：提你沽（short 目標）
-      if(!pos[t] && da.t1!=null && s.price>=da.t1){
-        alerts.push({key:t+'_t1',type:'target',ticker:t,price:s.price,target:da.t1,msg:'🟢 到價警報：'+t+' 現價 $'+s.price.toFixed(2)+' 已到 $'+da.t1+'！'+(da.note?'（'+da.note+'）':'')});
-      }
-    });
-    // Decel deterioration for held positions
-    data.watchlist.forEach(function(s){
-      if(pos[s.ticker]&&s.decel<=-3){
-        alerts.push({key:s.ticker+'_decel',type:'decel',ticker:s.ticker,decel:s.decel,msg:'⚠️ 動量惡化：'+s.ticker+' Decel='+s.decel+' 已跌至-3或以下！建議止蝕離場。'});
-      }
-    });
-    // ⭐ 2026-08-12: R:R≥1.7 部署 alert — 任何未持倉但值博率夠嘅買入訊號（新開倉/換馬）都提你
-    //   條件：R:R≥1.7 + score≥55 + decel≥-1 + 未持有（同 topPick 一致）
-    data.watchlist.forEach(function(s){
-      if(pos[s.ticker])return;
-      if(!(s.levels && s.levels.long && s.levels.long.riskReward>=1.7))return;
-      if(!(s.score>=0.55 && s.decel>=-1))return;
-      if(s.earnings && s.earnings.risk==="極高")return;   // 業績極高危唔alert
-      var lg=s.levels.long;
-      var key=s.ticker+'_rr17';
-      alerts.push({key:key,type:'entry',ticker:s.ticker,price:s.price,msg:'🟢 R:R≥1.7 部署：'+s.ticker+' 現價 $'+s.price.toFixed(2)+'（Score '+Math.round(s.score*100)+' · R:R 1:'+lg.riskReward+'）→ 止蝕 $'+lg.stopLoss+', T1 $'+lg.target1+'。考慮新開倉/換馬。'});
-    });
-  }
-  // 清除已不存在嘅 alert 對應嘅 dismiss 記錄（例如到價後跌穿 target 再升返會重新彈）
-  var liveKeys={};
-  alerts.forEach(function(a){liveKeys[a.key]=true;});
-  Object.keys(dismissedAlerts).forEach(function(k){ if(!liveKeys[k]) delete dismissedAlerts[k]; });
-  // 過濾已 dismiss 嘅 alert
-  alerts=alerts.filter(function(a){return !dismissedAlerts[a.key];});
-  // Show modal if any alerts
-  if(alerts.length>0){
-    var html='<div style="margin-bottom:12px;font-size:16px;font-weight:800;color:#dc2626">⚠️ 價格警報</div>';
-    alerts.forEach(function(a){
-      var bg=a.type==='target'?'#f0fdf4':'#fef2f2';
-      var border=a.type==='target'?'#16a34a':'#dc2626';
-      html+='<div style="padding:12px;margin-bottom:8px;background:'+bg+';border-left:4px solid '+border+';border-radius:6px;font-size:13px;line-height:1.6">'+a.msg+'</div>';
-    });
-    html+='<button onclick="dismissAlerts()" style="margin-top:8px;width:100%;padding:10px;background:#64748b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">知道了</button>';
-    var mo=document.getElementById('modalOverlay');
-    var mc=document.getElementById('modalContent');
-    if(mo&&mc){mc.innerHTML=html;mo.classList.add('show');}
-  }
-}
+// ⭐ 2026-08-25: PRICE ALERT SYSTEM 移除 — dashboard 轉工作用（非 self-trading，user 欽定）。
+//   舊 checkPriceAlerts/dismissAlerts/dismissedAlerts/DEPLOY_ALERTS/alert-banner 全剷。
+//   server /api 嘅 alerts/deployAlerts/fundTargets 字段保留 — price_notifier.py TG 推送照用。
 /* ===== 內容導覽 FAB（仿 gooptions.cc toc-fab：預設收埋，展開跳去當前 tab 嘅子章節；可拖曳）===== */
 (function(){
   var fab=document.getElementById('jumpFab');
