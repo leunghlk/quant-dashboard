@@ -931,10 +931,20 @@ function updateMonthlyProgress(){
   if(!progressEl || !progressTextEl) return;
 
   const now = new Date();
-  const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  const currentMonthName = now.toLocaleDateString('zh-HK', { year: 'numeric', month: 'long' });
 
-  // 每月目標：HKD 50,000
-  const monthlyTarget = 50000;
+  // 根據當前模型設定不同的月收入目標
+  let monthlyTarget, targetDescription;
+
+  if(METHOD === 'h6040') {
+    // Hybrid 60/40 模式：回測月均 HKD 14,138
+    monthlyTarget = 14138;
+    targetDescription = 'Hybrid 60/40 回測月均 HKD 14,138';
+  } else {
+    // v4_balanced 模式：以預估月收入為目標
+    monthlyTarget = (rec && rec.projected_monthly_hkd && rec.projected_monthly_hkd.hkd) ? rec.projected_monthly_hkd.hkd : 20000;
+    targetDescription = 'v4_balanced 預估月收入目標';
+  }
 
   // 計算本月已實現收入（累計已實現 P&L）
   let monthlyIncome = 0;
@@ -961,12 +971,12 @@ function updateMonthlyProgress(){
   progressTextEl.textContent = progress + '%';
 
   // 更新 hover 提示
-  const currentMonthName = now.toLocaleDateString('zh-HK', { year: 'numeric', month: 'long' });
   progressEl.setAttribute('data-tip',
     `<b>${currentMonthName} 月度進度</b><br>` +
     `本月實現收入：${hkd(monthlyIncome)}<br>` +
-    `目標：HKD ${monthlyTarget.toLocaleString()}<br>` +
-    `進度：${progress}%`
+    `${targetDescription}：HKD ${monthlyTarget.toLocaleString()}<br>` +
+    `進度：${progress}%<br>` +
+    `<small>模型：${METHOD === 'h6040' ? 'Hybrid 60/40 (回測驗證)' : 'v4_balanced (即時運行)'}</small>`
   );
 }
 
