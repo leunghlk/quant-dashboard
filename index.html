@@ -767,11 +767,16 @@ function renderWinRank(d){
   h+='<div style="font-size:11px;color:#64748b;margin-top:4px">⭐ 排序 = 總評分由高到低（最值得做排第一，揉合周回報/IV/decel/股票質素；勝率只係顯示）。動量減速 ≤-2 琥珀、≤-3 紅。⚠ = 單名按金超 30% equity（engine 會 reject）。</div>';
   el.innerHTML=h;
 }
-function liveBadge(sess, timestamp){
+function liveBadge(sess, timestamp, symbol) {
   const c={'盤中':'#16a34a','盤前':'#3b82f6','盤後':'#6366f1','夜盤':'#7c3aed','收市':'#64748b'}[sess]||'#64748b';
 
+  // If market is closed, don't show staleness warnings for indices/stocks
+  if (sess === '收市') {
+    return '<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff;background:'+c+';margin-left:4px">'+sess+'</span>';
+  }
+
   // Determine market for staleness check
-  const market = sess && (sess.includes('HK') || sess.includes('港股')) ? 'hk' : 'us';
+  const market = (sess && (sess.includes('HK') || sess.includes('港股'))) || (symbol && (symbol.includes('HK.') || symbol === '^HSI')) ? 'hk' : 'us';
   const warning = timestamp ? getPriceStalenessWarning(timestamp, market) : null;
   const stalenessText = warning ? formatStalenessWarning(warning) : '';
 
@@ -795,12 +800,12 @@ function applyLiveData(map){
 
     // Futu live 優先（用家 2026-08-06 指示：live prices for ALL prices，包括夜盤；Yahoo close 只做 fallback）
     const cur=(s.code&&s.code.indexOf('HK.')===0)?'HK$':'$';
-    const priceHtml = cur+fmt(price)+liveBadge(s.session, timestamp);
+    const priceHtml = cur+fmt(price)+liveBadge(s.session, timestamp, s.code || tr.getAttribute('data-tk'));
 
     // Add visual staleness indicator
     const market = (s.code&&s.code.indexOf('HK.')===0) ? 'hk' : 'us';
     const warning = getPriceStalenessWarning(timestamp, market);
-    if (warning.status === 'stale') {
+    if (warning.status === 'stale' && s.session !== '收市') {
       cell.style.opacity = '0.7';
       cell.style.position = 'relative';
       cell.innerHTML = priceHtml + '<span style="position:absolute;right:5px;top:50%;transform:translateY(-50%);color:#dc2626;" title="價格可能已過時">⚠️</span>';
@@ -821,12 +826,17 @@ function applyLiveData(map){
     // Add timestamp for staleness check
     const timestamp = s.last_updated || Date.now();
 
-    // Determine background color based on staleness
+    // For closed market, use green background regardless of age
     const market = (tk.startsWith('HK.') || tk.startsWith('^HSI')) ? 'hk' : 'us';
     const warning = getPriceStalenessWarning(timestamp, market);
     let bgCol = '#ccfbf1'; // default fresh
     let borderCol = '#5eead4';
-    if (warning.status === 'stale') {
+
+    if (s.session === '收市') {
+      // Closed market - always use green background
+      bgCol = '#f0fdf4';
+      borderCol = '#bbf7d0';
+    } else if (warning.status === 'stale') {
       bgCol = '#fef2f2'; // red background for stale
       borderCol = '#fecaca';
     } else if (warning.status === 'acceptable') {
@@ -838,7 +848,7 @@ function applyLiveData(map){
       '<div style="font-weight:800;font-size:15px;color:#115e59">'+(s.name||el.getAttribute('data-live'))+'</div>'+
       '<div style="margin-left:auto;text-align:right"><div style="font-size:20px;font-weight:800;color:#0d9488">'+disp+'</div>'+
       '<div style="font-size:11px;font-weight:700;color:'+chgCol+'">'+chg+'</div></div>'+
-      '<div>'+liveBadge(s.session, timestamp)+'</div></div>';
+      '<div>'+liveBadge(s.session, timestamp, tk)+'</div></div>';
   });
   // 細價位標籤（細 header 用：ETF 價 + session badge，例如 ③ 指數部署 ETF 價）
   document.querySelectorAll('[data-livepx]').forEach(function(el){
@@ -846,7 +856,7 @@ function applyLiveData(map){
     const price=(s.live_price!=null)?s.live_price:s.price;if(price==null)return;
     const disp=(price>=1000)?Math.round(price).toLocaleString():(Math.round(price*100)/100);
     const cur=(s.code&&s.code.indexOf('HK.')===0)?'HK$':'$';
-    el.innerHTML=cur+disp+liveBadge(s.session);
+    el.innerHTML=cur+disp+liveBadge(s.session, null, s.code || el.getAttribute('data-livepx'));
   });
 }
 
@@ -2532,6 +2542,7 @@ function renderHK(data){
     if (!idx || !idx.price) continue;
     const name = idx.name || hkNames[key] || key;
     const chg5d = (idx.chg5d!=null) ? idx.chg5d : 0;
+    const hkSession = idx.session || '收市';
     // 指數一律用 RSI9（股票／ETF 先用 RSI14）
     const rsi9 = (idx.rsi9!=null) ? idx.rsi9 : (idx.rsi14!=null ? idx.rsi14 : null);
     const macd = idx.macd || {};
@@ -2616,7 +2627,7 @@ function renderHK(data){
 
     stripHtml += '<div style="flex:1;min-width:290px;padding:12px 14px;background:#f8fafc;border-radius:10px;border-left:3px solid ' + chgColor + '">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
-        '<span style="font-size:13px;font-weight:800">' + name + ' '+liveBadge(hkSession)+'</span>'+
+        '<span style="font-size:13px;font-weight:800">' + name + ' '+liveBadge(hkSession, null, key)+'</span>'+
         '<span style="text-align:right"><span style="font-size:18px;font-weight:800">' + (idx.price>=1000?Math.round(idx.price).toLocaleString():idx.price) + '</span>'+
         (chg1d!=null?'<div style="font-size:11px;font-weight:700;color:'+c1Col+'">'+(chg1d>=0?'+':'')+chg1d.toFixed(2)+'% 今日</div>':'')+
         '<div style="font-size:10px;color:'+chgColor+'">' + chgSign + chg5d.toFixed(2) + '% 5日</div></span>'+
