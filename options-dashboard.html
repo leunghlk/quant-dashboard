@@ -437,6 +437,65 @@ function gauge(itm,otm){
 }
 function pill(k,txt){return '<span class="pill '+k+'">'+txt+'</span>';}
 
+// ===== Price freshness validation system =====
+const PRICE_FRESHNESS_THRESHOLD = 5 * 60 * 1000; // 5 minutes stale threshold
+const MARKET_HOURS = {
+  us: { open: 21 * 60 * 60 * 1000, close: 4 * 60 * 60 * 1000 }, // 21:00-04:00 HKT (US market hours)
+  hk: { open: 9 * 60 * 60 * 1000, close: 16 * 60 * 60 * 1000 + 10 * 60 * 1000 } // 09:00-16:10 HKT
+};
+
+function isMarketOpen(market, currentTime = Date.now()) {
+  const hktTime = new Date(currentTime).toLocaleString('en-US', {timeZone: 'Asia/Hong_Kong'});
+  const hkTime = new Date(hktTime);
+  const minutes = hkTime.getHours() * 60 + hkTime.getMinutes();
+  const totalMs = minutes * 60 * 1000;
+
+  if (market === 'us') {
+    // US market crosses midnight in HKT (21:00-04:00)
+    return totalMs >= MARKET_HOURS.us.open || totalMs < MARKET_HOURS.us.close;
+  } else if (market === 'hk') {
+    // HK market 09:00-16:10
+    return totalMs >= MARKET_HOURS.hk.open && totalMs < MARKET_HOURS.hk.close;
+  }
+  return false;
+}
+
+function getPriceStalenessWarning(timestamp, market = 'us') {
+  const now = Date.now();
+  const age = now - timestamp;
+  const threshold = PRICE_FRESHNESS_THRESHOLD;
+
+  if (age < threshold) return { status: 'fresh', age: age };
+
+  // Extended threshold during non-market hours
+  const marketOpen = isMarketOpen(market);
+  const extendedThreshold = marketOpen ? threshold : threshold * 3; // 15 min when market closed
+
+  if (age < extendedThreshold) return { status: 'acceptable', age: age };
+
+  return {
+    status: 'stale',
+    age: age,
+    marketOpen: marketOpen,
+    threshold: extendedThreshold
+  };
+}
+
+function formatStalenessWarning(warning) {
+  if (warning.status === 'fresh') return '';
+
+  const ageMinutes = Math.round(warning.age / 60000);
+  if (warning.status === 'acceptable') {
+    return ` · <span style="color: #f59e0b">注意：價格已 ${ageMinutes} 分鐘前更新</span>`;
+  }
+
+  if (!warning.marketOpen) {
+    return ` · <span style="color: #dc2626; font-weight: bold">警告：價格已 ${ageMinutes} 分鐘前更新（非交易時間）</span>`;
+  }
+
+  return ` · <span style="color: #dc2626; font-weight: bold">警告：價格已 ${ageMinutes} 分鐘前更新，可能已過時</span>`;
+}
+
 /* ════════════ load + refresh ════════════ */
 let lastUpdated=null;
 async function loadRec(force){
@@ -449,7 +508,9 @@ async function loadRec(force){
     if(!j||!j.generated)throw 0;
     rec=j;
     lastUpdated=new Date();
-    setLive((rec.paper?'📝 紙上':'🔴 LIVE')+' · '+rec.date+(activeBridge&&activeBridge.indexOf('workers')>=0?' · ⚙ proxy':'')+' · 更新 '+lastUpdated.toLocaleTimeString('zh-HK'));
+    const warning = getPriceStalenessWarning(Date.now(), 'us'); // Assuming US market for options
+    const stalenessText = formatStalenessWarning(warning);
+    setLive((rec.paper?'📝 紙上':'🔴 LIVE')+' · '+rec.date+(activeBridge&&activeBridge.indexOf('workers')>=0?' · ⚙ proxy':'')+' · 更新 '+lastUpdated.toLocaleTimeString('zh-HK')+stalenessText);
   }catch(e){
     // ⭐ 08-18：fetch/JSON 失敗 → 60 秒自動重試（以前淨係顯示「重試中」但永遠唔會自己重試）
     setLive('載入失敗，60 秒後自動重試…');

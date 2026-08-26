@@ -492,65 +492,6 @@ function r2(v){return Math.round(v*100)/100}
 function rD(v){return (v>=1000)?Math.round(v).toLocaleString():((Math.round(v*100)/100).toLocaleString())}
 function cv(v){return v>=0?'#16a34a':'#dc2626'}
 function dc(d){if(d<=-3)return'decel decel-ex';if(d<=-2)return'decel decel-d';if(d<=-1)return'decel decel-c';return''}
-// ===== Price freshness validation system =====
-const PRICE_FRESHNESS_THRESHOLD = 5 * 60 * 1000; // 5 minutes stale threshold
-const MARKET_HOURS = {
-  us: { open: 21 * 60 * 60 * 1000, close: 4 * 60 * 60 * 1000 }, // 21:00-04:00 HKT (US market hours)
-  hk: { open: 9 * 60 * 60 * 1000, close: 16 * 60 * 60 * 1000 + 10 * 60 * 1000 } // 09:00-16:10 HKT
-};
-
-function isMarketOpen(market, currentTime = Date.now()) {
-  const hktTime = new Date(currentTime).toLocaleString('en-US', {timeZone: 'Asia/Hong_Kong'});
-  const hkTime = new Date(hktTime);
-  const minutes = hkTime.getHours() * 60 + hkTime.getMinutes();
-  const totalMs = minutes * 60 * 1000;
-
-  if (market === 'us') {
-    // US market crosses midnight in HKT (21:00-04:00)
-    return totalMs >= MARKET_HOURS.us.open || totalMs < MARKET_HOURS.us.close;
-  } else if (market === 'hk') {
-    // HK market 09:00-16:10
-    return totalMs >= MARKET_HOURS.hk.open && totalMs < MARKET_HOURS.hk.close;
-  }
-  return false;
-}
-
-function getPriceStalenessWarning(timestamp, market = 'us') {
-  const now = Date.now();
-  const age = now - timestamp;
-  const threshold = PRICE_FRESHNESS_THRESHOLD;
-
-  if (age < threshold) return { status: 'fresh', age: age };
-
-  // Extended threshold during non-market hours
-  const marketOpen = isMarketOpen(market);
-  const extendedThreshold = marketOpen ? threshold : threshold * 3; // 15 min when market closed
-
-  if (age < extendedThreshold) return { status: 'acceptable', age: age };
-
-  return {
-    status: 'stale',
-    age: age,
-    marketOpen: marketOpen,
-    threshold: extendedThreshold
-  };
-}
-
-function formatStalenessWarning(warning) {
-  if (warning.status === 'fresh') return '';
-
-  const ageMinutes = Math.round(warning.age / 60000);
-  if (warning.status === 'acceptable') {
-    return ` · <span style="color: #f59e0b">注意：價格已 ${ageMinutes} 分鐘前更新</span>`;
-  }
-
-  if (!warning.marketOpen) {
-    return ` · <span style="color: #dc2626; font-weight: bold">警告：價格已 ${ageMinutes} 分鐘前更新（非交易時間）</span>`;
-  }
-
-  return ` · <span style="color: #dc2626; font-weight: bold">警告：價格已 ${ageMinutes} 分鐘前更新，可能已過時</span>`;
-}
-
 // ===== Live data overlay (local Futu bridge) — real-time prices + real HSTECH index =====
 const BRIDGE_SECRET='qtbridge-K7s2-wolf-9mX4';
 // Bridge candidates tried in order:
@@ -767,15 +708,9 @@ function renderWinRank(d){
   h+='<div style="font-size:11px;color:#64748b;margin-top:4px">⭐ 排序 = 總評分由高到低（最值得做排第一，揉合周回報/IV/decel/股票質素；勝率只係顯示）。動量減速 ≤-2 琥珀、≤-3 紅。⚠ = 單名按金超 30% equity（engine 會 reject）。</div>';
   el.innerHTML=h;
 }
-function liveBadge(sess, timestamp){
+function liveBadge(sess){
   const c={'盤中':'#16a34a','盤前':'#3b82f6','盤後':'#6366f1','夜盤':'#7c3aed','收市':'#64748b'}[sess]||'#64748b';
-
-  // Determine market for staleness check
-  const market = sess && (sess.includes('HK') || sess.includes('港股')) ? 'hk' : 'us';
-  const warning = timestamp ? getPriceStalenessWarning(timestamp, market) : null;
-  const stalenessText = warning ? formatStalenessWarning(warning) : '';
-
-  return '<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff;background:'+c+';margin-left:4px">'+(sess||'')+'</span>'+stalenessText;
+  return '<span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff;background:'+c+';margin-left:4px">'+(sess||'')+'</span>';
 }
 function applyLiveData(map){
   // 儲存美股四大指數 live 報價（俾大盤形勢 index strip 用）
@@ -789,24 +724,9 @@ function applyLiveData(map){
     const s=map[(tr.getAttribute('data-tk')||'').toUpperCase()];if(!s)return;
     const cell=tr.querySelector('.lp');if(!cell)return;
     const price=(s.live_price!=null)?s.live_price:s.price;if(price==null)return;
-
-    // Add timestamp for staleness check
-    const timestamp = s.last_updated || Date.now();
-
     // Futu live 優先（用家 2026-08-06 指示：live prices for ALL prices，包括夜盤；Yahoo close 只做 fallback）
     const cur=(s.code&&s.code.indexOf('HK.')===0)?'HK$':'$';
-    const priceHtml = cur+fmt(price)+liveBadge(s.session, timestamp);
-
-    // Add visual staleness indicator
-    const market = (s.code&&s.code.indexOf('HK.')===0) ? 'hk' : 'us';
-    const warning = getPriceStalenessWarning(timestamp, market);
-    if (warning.status === 'stale') {
-      cell.style.opacity = '0.7';
-      cell.style.position = 'relative';
-      cell.innerHTML = priceHtml + '<span style="position:absolute;right:5px;top:50%;transform:translateY(-50%);color:#dc2626;" title="價格可能已過時">⚠️</span>';
-    } else {
-      cell.innerHTML = priceHtml;
-    }
+    cell.innerHTML=cur+fmt(price)+liveBadge(s.session);
   });
   // index live headers
   document.querySelectorAll('[data-live]').forEach(function(el){
@@ -817,28 +737,11 @@ function applyLiveData(map){
     const disp=(price>=1000)?Math.round(price).toLocaleString():price;
     const chg=(s.change_pct!=null)?((s.change_pct>=0?'+':'')+s.change_pct+'%'):'';
     const chgCol=(s.change_pct==null)?'#64748b':(s.change_pct>=0?'#16a34a':'#dc2626');
-
-    // Add timestamp for staleness check
-    const timestamp = s.last_updated || Date.now();
-
-    // Determine background color based on staleness
-    const market = (tk.startsWith('HK.') || tk.startsWith('^HSI')) ? 'hk' : 'us';
-    const warning = getPriceStalenessWarning(timestamp, market);
-    let bgCol = '#ccfbf1'; // default fresh
-    let borderCol = '#5eead4';
-    if (warning.status === 'stale') {
-      bgCol = '#fef2f2'; // red background for stale
-      borderCol = '#fecaca';
-    } else if (warning.status === 'acceptable') {
-      bgCol = '#fffbeb'; // amber for acceptable staleness
-      borderCol = '#fde68a';
-    }
-
-    el.innerHTML='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:10px;background:'+bgCol+';border-radius:8px;border:1px solid '+borderCol+'">'+
+    el.innerHTML='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:10px;background:#ccfbf1;border-radius:8px;border:1px solid #5eead4">'+
       '<div style="font-weight:800;font-size:15px;color:#115e59">'+(s.name||el.getAttribute('data-live'))+'</div>'+
       '<div style="margin-left:auto;text-align:right"><div style="font-size:20px;font-weight:800;color:#0d9488">'+disp+'</div>'+
       '<div style="font-size:11px;font-weight:700;color:'+chgCol+'">'+chg+'</div></div>'+
-      '<div>'+liveBadge(s.session, timestamp)+'</div></div>';
+      '<div>'+liveBadge(s.session)+'</div></div>';
   });
   // 細價位標籤（細 header 用：ETF 價 + session badge，例如 ③ 指數部署 ETF 價）
   document.querySelectorAll('[data-livepx]').forEach(function(el){
@@ -948,10 +851,7 @@ async function loadData(forceHK){
     const hkLoaded=(typeof hkLive!=='undefined'&&hkLive&&hkLive.updated);
     if(forceHK||hkMarketOpen()||!hkLoaded){loadHKBreadth();}
     loadOptionsIncome();
-    // Validate price freshness and update status
-    const priceWarning = getPriceStalenessWarning(d.timestamp);
-    const statusText = '更新: '+new Date(d.timestamp).toLocaleTimeString('zh-HK')+(activeBridge?' · 🔴Futu':' · Yahoo') + formatStalenessWarning(priceWarning);
-    document.getElementById('lastUpdate').textContent = statusText;
+    document.getElementById('lastUpdate').textContent='更新: '+new Date(d.timestamp).toLocaleTimeString('zh-HK')+(activeBridge?' · 🔴Futu':' · Yahoo');
   }catch(e){document.getElementById('lastUpdate').textContent='❌ '+e.message}
   if(rf){rf.disabled=false;rf.textContent='🔄 刷新';}
 }
