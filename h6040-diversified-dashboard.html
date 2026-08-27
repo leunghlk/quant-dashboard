@@ -2630,7 +2630,7 @@ function renderH6040Overview(){
     ph+='<div class="table-scroll" style="margin-top:4px"><table class="utable"><thead><tr><th>腿</th><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">DTE</th><th class="r">入場/現</th><th class="r">盈虧平衡</th><th class="r">利潤%</th><th>出場信號</th></tr></thead><tbody>';
     bo6.forEach(p=>{
       const trig=(p.triggers||[]);
-      ph+='<tr'+(trig.length?' style="background:#fffbeb"':'')+'><td>'+(p.leg==='spy'?'SPY':'單股')+'</td><td><b>'+esc(p.ticker)+'</b></td><td class="r">$'+px2(p.strike)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+(p.dte!=null?p.dte:'—')+'</td><td class="r">'+px2(p.entry_prem)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'—')+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td>'+(trig.length?trig.map(t=>'<span class="pill '+(t.indexOf('止損')>=0||t==='cut'?'r':(t.indexOf('鎖利')>=0?'g':'w'))+'">'+esc(t)+'</span>').join(' '):'<span class="muted">—</span>')+'</td></tr>';
+      ph+='<tr'+(trig.length?' style="background:#fffbeb"':'')+'><td>'+(p.leg==='spy'?'XSP':'單股')+'</td><td><b>'+esc(p.ticker)+'</b></td><td class="r">$'+px2(p.strike)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+(p.dte!=null?p.dte:'—')+'</td><td class="r">'+px2(p.entry_prem)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'—')+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td>'+(trig.length?trig.map(t=>'<span class="pill '+(t.indexOf('止損')>=0||t==='cut'?'r':(t.indexOf('鎖利')>=0?'g':'w'))+'">'+esc(t)+'</span>').join(' '):'<span class="muted">—</span>')+'</td></tr>';
     });
     ph+='</tbody></table></div>';
   }
@@ -2642,7 +2642,7 @@ function renderH6040Overview(){
 function h6040LedgerTable(led){
   let h='<table class="utable"><thead><tr><th>腿</th><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
   led.forEach(t=>{
-    h+='<tr><td>'+(t.leg==='spy'?'SPY':'單股')+'</td><td><b>'+esc(t.ticker)+'</b></td><td class="r">$'+t.strike+'</td><td>'+t.expiry+'</td><td class="r">'+t.contracts+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
+    h+='<tr><td>'+(t.leg==='spy'?'XSP':'單股')+'</td><td><b>'+esc(t.ticker)+'</b></td><td class="r">$'+t.strike+'</td><td>'+t.expiry+'</td><td class="r">'+t.contracts+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
   });
   return h+'</tbody></table>';
 }
@@ -2674,7 +2674,7 @@ function renderH6040Positions(){
     bopen.forEach(p=>{
       const trig=(p.triggers||[]);
       const tH=trig.length?trig.map(t=>'<span class="pill '+(t.indexOf('止損')>=0||t==='cut'?'r':(t.indexOf('鎖利')>=0?'g':'w'))+'">'+esc(t)+'</span>').join(' '):'<span class="muted">—</span>';
-      h+='<tr'+(trig.length?' style="background:#fffbeb"':'')+'><td>'+(p.leg==='spy'?'SPY':'單股')+'</td><td><b>'+esc(p.ticker)+'</b></td><td class="r">$'+px2(p.strike)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+(p.dte!=null?p.dte:'—')+'</td><td class="r">'+px2(p.entry_prem)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'<span class="muted">等mark</span>')+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td class="r">'+(p.pnl_hkd!=null?((p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span>'):'—')+'</td><td>'+tH+'</td></tr>';
+      h+='<tr'+(trig.length?' style="background:#fffbeb"':'')+'><td>'+(p.leg==='spy'?'XSP':'單股')+'</td><td><b>'+esc(p.ticker)+'</b></td><td class="r">$'+px2(p.strike)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+(p.dte!=null?p.dte:'—')+'</td><td class="r">'+px2(p.entry_prem)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'<span class="muted">等mark</span>')+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td class="r">'+(p.pnl_hkd!=null?((p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span>'):'—')+'</td><td>'+tH+'</td></tr>';
     });
     h+='</tbody></table></div>';
     h+='<div class="small muted" style="margin-top:4px">「等mark」＝期權鏈暫時攞唔到真實價（模型價唔會推交易建議）；出場信號靚咗成行（琥珀底）＝要到期前處理。</div>';
