@@ -202,6 +202,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
             </div>
             <span id="monthlyProgressText" style="font-size:11px;color:#64748b;font-weight:700">0%</span>
           </div>
+          <div id="monthlyRealizedList" style="margin-top:6px"></div>
         </div>
       </div></div>
     <div class="card"><div class="card-h"><span class="t" id="railsTitle">🛤️ Hybrid 60/40 執行閘門（即時）</span><span class="meta" id="railsMeta">按照下表規則 = 貼近回測結果</span></div>
@@ -720,7 +721,7 @@ function setLive(t){const el=$('liveBadge');if(el)el.textContent=t;}
 
 /* ════════════ render ════════════ */
 function renderAll(){
-  if(METHOD==='h6040'){renderH6040Overview();renderH6040Best();renderPositions();renderDecisions();renderMethod();renderAlarm();renderAdvice();renderTopPick();renderEarnings();if(activeTk)renderDetail();return;}
+  if(METHOD==='h6040'){renderH6040Overview();renderH6040Best();renderPositions();renderDecisions();renderMethod();renderAlarm();renderAdvice();renderTopPick();renderEarnings();if(activeTk)renderDetail();if(rec)updateMonthlyProgress();return;}   // ⭐ 08-28：h6040 mode 以前冇 call → 每月進度條永遠 0%（renderAll 早退唔經 renderOverview）
   if(!rec)return;   // ⭐ 2026-08-23：boot 時 rec 未到，唔好炸
   renderUnified();   // ⭐ 2026-08-23：統一證券組合卡（正股＋期權＋現金寶）
   renderOverview();renderBest();renderCandidates();renderWinRank();renderPositions();renderNotes();renderDecisions();renderMethod();renderAlarm();renderAdvice();renderTopPick();renderEarnings();if(activeTk)renderDetail();}
@@ -1044,8 +1045,8 @@ function updateMonthlyProgress(){
 
   progressEl.style.background = color;
 
-  // 更新文字顯示
-  progressTextEl.textContent = progress + '%';
+  // 更新文字顯示（⭐ 08-28 加實際金額——user 要求直接見到數）
+  progressTextEl.textContent = progress + '% · ' + hkd(monthlyIncome);
 
   // 更新 hover 提示
   progressEl.setAttribute('data-tip',
@@ -1055,6 +1056,19 @@ function updateMonthlyProgress(){
     `進度：${progress}%<br>` +
     `<small>模型：${METHOD === 'h6040' ? 'Hybrid 60/40 (回測驗證)' : 'v4_balanced (即時運行)'}</small>`
   );
+
+  // ⭐ 08-28：每月實際 realized P&L（真倉口徑，paper-test 倉 bridge 已剔）——每月一行實際金額
+  const _ml = $('monthlyRealizedList');
+  if(_ml){
+    const _rows = (rec && rec.monthly_realized) || [];
+    _ml.innerHTML = _rows.length ? _rows.map(function(r){
+      const _pos = (r.pnl_hkd||0) >= 0, _cur = r.month === _mk;
+      return '<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11px;padding:2px 0'+(_cur?';border-top:1px dashed #334155;margin-top:3px;padding-top:4px':'')+'">'
+        + '<span style="color:#64748b">'+(_cur?'📍 ':'')+r.month+'（'+r.trades+' 筆）</span>'
+        + '<span style="font-weight:700;color:'+(_pos?'#16a34a':'#dc2626')+'">'+hkd(r.pnl_hkd||0)+'</span>'
+        + '</div>';
+    }).join('') : '';
+  }
 }
 
 function ledTable(led){
