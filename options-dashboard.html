@@ -580,11 +580,14 @@ function uMask(html){return uniHideOn()? UNI_MASK : html;}
 
 /* ⭐ 08-23：正股 quant model（主 dashboard 策略交易台）數據層 —— worker /api 一次過拎 strategy＋watchlist(業績) */
 const QUANT_API='https://quant-api.leunghlk.workers.dev/api';
+const QUANT_API_SPARE='https://quant-api-beta.vercel.app/api';   // ⭐ 08-27：worker 死時策略台 fallback（zero-data 防線；同 index.html API_SPARE 同源）
 let quant=null, quantTs=0;
 async function loadQuant(force){
   if(quant && !force)return quant;
   try{
-    const r=await fetchTimeout(QUANT_API,30000);
+    let r=null;
+    try{ r=await fetchTimeout(QUANT_API,30000); }catch(e){}
+    if(!r||!r.ok){ try{ r=await fetchTimeout(QUANT_API_SPARE,30000); }catch(e){} }
     if(r&&r.ok){quant=await r.json();quantTs=Date.now();renderAdvice();renderTopPick();renderEarnings();loadLive();}   // ⭐ 08-26：策略台 tickers 即刻攞 live（唔使等下一個 60s 週期，loadLive 早退如 bridge 未探好）
   }catch(e){console.error('loadQuant',e);}
   return quant;
