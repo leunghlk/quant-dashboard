@@ -847,6 +847,25 @@ function applyLiveData(map){
     const cur=(s.code&&s.code.indexOf('HK.')===0)?'HK$':'$';
     el.innerHTML=cur+disp+liveBadge(s.session, null, s.code || el.getAttribute('data-livepx'));
   });
+  // ⭐ 2026-08-27 一價原則（跨 tab 一致）：數浪 tab「現價」＋大盤形勢指數 strip 價格
+  // 都用呢個 bridge snapshot live map 覆蓋——worker waveCounts.currentPrice 係 kline 校準值
+  // （攞唔到時仲係 manual 基準 25408），盤中會同 live 價脫節，令 HSI 喺大盤形勢/數浪兩 tab 唔同價。
+  // ^SOX 跳過：snapshot 錯映射去 US.SOXX ETF(~528) 而非 SOX 指數(~12000)，同 data-live handler 同一 guard。
+  document.querySelectorAll('[data-wavepx]').forEach(function(el){
+    const tk=(el.getAttribute('data-wavepx')||'').toUpperCase();
+    if(tk==='^SOX')return;
+    const s=map[tk];if(!s)return;
+    const price=(s.live_price!=null)?s.live_price:s.price;if(price==null)return;
+    const disp=(price>=1000)?Math.round(price).toLocaleString():(Math.round(price*100)/100);
+    el.innerHTML='現價 '+disp+liveBadge(s.session, s.last_updated||Date.now(), s.code||tk);
+  });
+  document.querySelectorAll('[data-striplive]').forEach(function(el){
+    const tk=(el.getAttribute('data-striplive')||'').toUpperCase();
+    if(tk==='^SOX')return;
+    const s=map[tk];if(!s)return;
+    const price=(s.live_price!=null)?s.live_price:s.price;if(price==null)return;
+    el.textContent=(price>=1000)?Math.round(price).toLocaleString():price;
+  });
 }
 
 // 港股交易日曆（HKT）：星期一至五 09:30-12:00 + 13:00-16:00 = 盤中；其餘（含午休）＝收市
@@ -2125,7 +2144,7 @@ function render(data){
       const wkey=x.ticker||(x.name&&x.name.indexOf('恒')>=0?'^HSI':(x.name&&(x.name.indexOf('半')>=0||x.name.indexOf('SOX')>=0))?'^SOX':'NQ=F');
       if(x.error){wh+='<div data-idx="'+wkey+'" style="color:#dc2626;margin-bottom:14px"><b>'+x.name+'</b>：'+x.error+'</div>';return;}
       wh+='<div data-idx="'+wkey+'" style="margin-bottom:22px;padding:14px;border:1px solid #e2e8f0;border-radius:10px">';
-      wh+='<div style="font-weight:800;font-size:16px;color:#0f172a;margin-bottom:4px">'+x.name+' <span style="font-size:12px;color:#64748b;font-weight:500">現價 '+rD(x.currentPrice)+'</span>'+(x.calibrated===false?' <span style="font-size:10px;color:#b45309;background:#fff7ed;border:1px solid #fdba74;border-radius:4px;padding:1px 6px;font-weight:700">⚠️ 水位未校準</span>':'')+'</div>';
+      wh+='<div style="font-weight:800;font-size:16px;color:#0f172a;margin-bottom:4px">'+x.name+' <span data-wavepx="'+wkey+'" style="font-size:12px;color:#64748b;font-weight:500">現價 '+rD(x.currentPrice)+'</span>'+(x.calibrated===false?' <span style="font-size:10px;color:#b45309;background:#fff7ed;border:1px solid #fdba74;border-radius:4px;padding:1px 6px;font-weight:700">⚠️ 水位未校準</span>':'')+'</div>';
       // 手動數浪格式（MANUAL_WAVE_COUNTS）
       if(x.position && x.pivots && x.currentWaveTargets){
         wh+='<div style="margin-top:10px;display:inline-block;background:#0d9488;color:#fff;padding:2px 10px;border-radius:5px;font-size:11px;font-weight:700">① 首選數浪</div>';
@@ -2613,7 +2632,7 @@ function renderHK(data){
     stripHtml += '<div style="flex:1;min-width:290px;padding:12px 14px;background:#f8fafc;border-radius:10px;border-left:3px solid ' + chgColor + '">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
         '<span style="font-size:13px;font-weight:800">' + name + ' '+liveBadge(hkSession)+'</span>'+
-        '<span style="text-align:right"><span style="font-size:18px;font-weight:800">' + (idx.price>=1000?Math.round(idx.price).toLocaleString():idx.price) + '</span>'+
+        '<span style="text-align:right"><span data-striplive="'+key+'" style="font-size:18px;font-weight:800">' + (idx.price>=1000?Math.round(idx.price).toLocaleString():idx.price) + '</span>'+
         (chg1d!=null?'<div style="font-size:11px;font-weight:700;color:'+c1Col+'">'+(chg1d>=0?'+':'')+chg1d.toFixed(2)+'% 今日</div>':'')+
         '<div style="font-size:10px;color:'+chgColor+'">' + chgSign + chg5d.toFixed(2) + '% 5日</div></span>'+
       '</div>' +
