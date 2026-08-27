@@ -1921,6 +1921,64 @@ function elnTableHTML(items, region, id){
   h+='</tbody></table></div>';
   return h;
 }
+// ⭐ 2026-08-27: 板塊 ELN 摘要卡 — 邊個板塊最值得做 ELN（按 3/6/12 個月年期）
+// 計法：每個板塊喺該年期嘅 per-tenor ELN 評分（elnScoreTenor：動量/技術＋質素＋波幅＋strike 深度，年期各有權重）
+//       平均分排名；≥2 隻候選先入排名（單股板塊冇代表性）；票息=年化（couponPa）。純 client 聚合，唔加 worker CPU。
+function elnSectorSummaryHTML(eln){
+  const recs = eln.recommended || [];
+  if(!recs.length) return '';
+  const secs = {};
+  recs.forEach(function(r){
+    const sec = sectorOf(r.ticker);
+    (secs[sec] = secs[sec] || []).push(r);
+  });
+  const COLS = [
+    {m:3,  label:'3 個月', note:'短倉快收'},
+    {m:6,  label:'6 個月', note:'攻守平衡'},
+    {m:12, label:'12 個月', note:'長期收息'},
+  ];
+  let h='<div style="margin-bottom:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;overflow:hidden">'+
+    '<div style="padding:10px 12px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px">'+
+    '<div style="font-weight:800;font-size:14px;color:#0f172a">📊 板塊 ELN 摘要 — 各年期最值得做的板塊</div>'+
+    '<div style="font-size:10.5px;color:#94a3b8">按該年期 ELN 評分（動量/技術＋質素＋波幅＋strike 深度）平均分排名 · ≥2 隻候選 · 票息=年化指示</div></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">';
+  COLS.forEach(function(c,ci){
+    const rows=[];
+    for(const sec in secs){
+      const items=secs[sec].filter(function(r){return r.tenors&&r.tenors[c.m]&&r.tenors[c.m].score!=null;});
+      if(items.length<2) continue;
+      let sSum=0,starSum=0,cN=0,cSum=0,kN=0,kSum=0,best=null;
+      items.forEach(function(r){
+        const t=r.tenors[c.m];
+        sSum+=t.score; starSum+=(t.stars||0);
+        if(t.couponPa!=null){cSum+=t.couponPa;cN++;}
+        if(t.strikePct!=null){kSum+=t.strikePct;kN++;}
+        if(!best||t.score>best.t.score) best={t:t,r:r};
+      });
+      const n=items.length;
+      rows.push({sec:sec,n:n,avgS:sSum/n,avgStar:starSum/n,avgC:cN?cSum/cN:null,avgK:kN?kSum/kN:null,best:best});
+    }
+    rows.sort(function(a,b){return b.avgS-a.avgS;});
+    const top=rows.slice(0,3);
+    h+='<div style="padding:10px 12px;'+(ci>0?'border-left:1px solid #e2e8f0;':'')+'">'+
+      '<div style="font-weight:700;font-size:13px;color:#0d9488;margin-bottom:8px">'+c.label+' <span style="font-size:10px;color:#94a3b8;font-weight:500">'+c.note+'</span></div>';
+    if(!top.length){
+      h+='<div style="font-size:11.5px;color:#94a3b8;padding:6px 0">無足夠候選板塊（≥2 隻）</div>';
+    }
+    top.forEach(function(row,i){
+      const cTxt = row.avgC!=null?('年化 <b style="color:#15803d">'+row.avgC.toFixed(1)+'%</b>'):'年化 —';
+      const kTxt = row.avgK!=null?('Strike <b style="color:#be123c">'+Math.round(row.avgK)+'%</b>'):'Strike —';
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin-bottom:6px;border-radius:8px;background:'+(i===0?'#f0fdf4':'#f8fafc')+';border:1px solid '+(i===0?'#bbf7d0':'#e2e8f0')+'">'+
+        '<div style="font-weight:800;font-size:12.5px;color:#0f172a;min-width:76px">'+(i+1)+'. '+row.sec+'</div>'+
+        '<div style="flex:1;font-size:11px;color:#475569;line-height:1.6">'+cTxt+' · '+kTxt+' · <span style="color:#ca8a04;font-weight:700">★'+row.avgStar.toFixed(1)+'</span> · '+row.n+' 隻</div>'+
+        (row.best&&row.best.r?'<div style="font-size:10.5px;color:#64748b;text-align:right;line-height:1.5">代表<br><b style="color:#0f172a">'+row.best.r.ticker+'</b></div>':'')+
+        '</div>';
+    });
+    h+='</div>';
+  });
+  h+='</div></div>';
+  return h;
+}
 // 2026-08-11 ELN 年期切換：即時更新 strike/coupon/iv cell + 業績警告 + 重排（同 secSort main+sub pair 模式）+ secApply 保板塊過濾
 // 2026-08-11 v2：排序改為「推薦優先」— 先按 data-score(=★*1000+score) desc（最推薦行先），同分先按 couponPa desc；唔再單按票息（user：order 好亂）
 function elnSetTenor(btn, m){
@@ -2139,6 +2197,8 @@ function render(data){
         '<div style="font-weight:700;font-size:14px;color:#15803d">⭐ 首選：'+eln.bestPick.ticker+' ('+starHtml(eln.bestPick.stars)+')</div>'+
         '<div style="font-size:12px;color:#475569;margin-top:4px">'+eln.rationale+'</div></div>';
     }
+    // 2026-08-27 板塊×年期摘要卡（放在 stock list 上面）
+    if(eln.recommended&&eln.recommended.length>0){ elnHTML+=elnSectorSummaryHTML(eln); }
     if(eln.recommended&&eln.recommended.length>0){
       elnHTML+=elnTableHTML(eln.recommended,'US','elnBody');
     } else {
