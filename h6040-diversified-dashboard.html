@@ -1843,10 +1843,11 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
     const S=c&&c.spot?c.spot:K;
     const mPer=(c&&c.margin1)?c.margin1:marginPerPut(K,sellPx,S);
     const mTot=mPer*n;
-    // ⭐ 方法論感知按金預算：h6040 兩腿獨立（單股 70%×192k / XSP 60%×128k）；v4 用引擎數
+    // ⭐ 方法論感知按金預算：h6040 兩腿獨立（單股 70%×192k / XSP 90%×128k——⭐ 08-27 Path A：
+    //    舊 60%/45% 雙牆令 128k 腿喺 XSP 600+ 開唔到一張倉；0.90/0.90 解鎖＋每倉≤2張 guardrail）；v4 用引擎數
     let eq,budget,usedM,openCount,maxPuts,capName;
     if(isH6040){
-      if(h6040Leg==='spy'){eq=128000/HKD_USD;budget=eq*0.60;maxPuts=3;capName='單倉 45%';}
+      if(h6040Leg==='spy'){eq=128000/HKD_USD;budget=eq*0.90;maxPuts=2;capName='單倉 90%';}
       else{eq=192000/HKD_USD;budget=eq*0.70;maxPuts=8;capName='單名 25%';}
       usedM=h6040UsedMargin(h6040Leg);
       openCount=((h6040SrvBook&&h6040SrvBook.open&&h6040SrvBook.open.length)?h6040SrvBook.open:h6040Book()).filter(p=>p.status==='open'&&p.leg===h6040Leg).length+1;
@@ -1856,9 +1857,10 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
       maxPuts=6; capName='單名 30%';
     }
     const remAfter=Math.max(0,budget-usedM-mTot), moreAfter=mPer>0?Math.floor(remAfter/mPer):0;
-    const capFrac=isH6040?(h6040Leg==='spy'?0.45:0.25):0.30;
+    const capFrac=isH6040?(h6040Leg==='spy'?0.90:0.25):0.30;
+    const overContracts=(isH6040&&h6040Leg==='spy'&&n>2);   // ⭐ 08-27 Path A guardrail：XSP 每倉最多 2 張
     const overBudget=(usedM+mTot>budget+1), overName=(mTot>eq*capFrac+1), fullPuts=((side!=='CALL'||isH6040)&&openCount>maxPuts);
-    const insufficient=overBudget||overName||fullPuts;   // 同 engine 硬檢查同款 → 紅警示 + 鎖確認掣
+    const insufficient=overBudget||overName||fullPuts||overContracts;   // 同 engine 硬檢查同款 → 紅警示 + 鎖確認掣
     const locked=lockedHKD(), avail=availHKD(), need=coll*HKD_USD;
     const methodLabel=isH6040?'Hybrid 60/40 '+h6040Leg+' 腿':'v4_balanced';
     box.innerHTML=
@@ -1871,6 +1873,7 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
         (fullPuts?'put 倉已滿 '+maxPuts+'/'+maxPuts+'；':'')+
         (overBudget?'按金會爆預算（$'+fmt(usedM+mTot)+' &gt; $'+fmt(budget)+'）；':'')+
         (overName?'按金 $'+fmt(mTot)+' 超過 '+capName+' 上限（$'+fmt(Math.round(eq*capFrac))+'）；':'')+
+        (overContracts?'XSP 每倉最多 2 張（Path A guardrail）；':'')+
         '減張數／平一倉先做到。</div>'):'')+
       (bid!=null?('<div class="row"><span class="k">實時報價（Futu）</span><span class="mono">買(bid) $'+px2(bid)+' · 賣(ask) $'+px2(ask)+'</span></div>'):'')+
       (bid!=null&&c&&c.mid&&!c.fromChain&&Math.abs(bid-c.mid)>0.01?('<div class="row"><span class="k">系統建議 vs 實時</span><span>建議 $'+px2(c.mid)+' → 實時 bid $'+px2(bid)+'：'+(bid<c.mid?'<span style="color:#d97706">賣出價偏低（少收 $'+px2(c.mid-bid)+'/股）</span>':'<span style="color:#16a34a">更划算（多收 $'+px2(bid-c.mid)+'/股）</span>')+'</span></div>'):'')+
@@ -2450,7 +2453,7 @@ function renderMethodH6040(){
     '<tr><td>賣 put Delta</td><td><b>0.25–0.30</b>（兩腿相同）</td><td class="muted">被指派機率 ≈25–30%</td></tr>'+
     '<tr><td>DTE</td><td><b>10–14 日</b></td><td class="muted">同 v4</td></tr>'+
     '<tr><td>單股腿倉數 / 單名上限</td><td><b>≤8 倉 · 單名 ≤25% equity</b>（util 70%）</td><td class="muted">分散 + 防單股爆雷</td></tr>'+
-    '<tr><td>XSP 腿倉數 / 單倉上限</td><td><b>≤3 倉 · 單倉 ≤45% equity</b>（util 60%）</td><td class="muted">XSP 係指數（1/10 SPX），無單股風險，容許較大單倉</td></tr>'+
+    '<tr><td>XSP 腿倉數 / 單倉上限</td><td><b>≤2 倉 · 每倉 ≤2 張 · 單倉 ≤90% equity</b>（util 90%）</td><td class="muted">⭐ 08-27 Path A：128k 腿喺 XSP 600+ 一張倉按金 89–116k 撞舊 45%/60% 雙牆開唔到倉 → 0.90/0.90 解鎖；XSP 係現金結算歐式指數（1/10 SPX）無接貨無 gap，tail 有界；每倉≤2張斬 pyramiding</td></tr>'+
     '<tr><td>利潤平倉 PT</td><td><b>50%</b> 權利金</td><td class="muted">收一半就走</td></tr>'+
     '<tr><td>接貨處理</td><td><b>不接貨 — 被指派即時平倉（no wheel）</b></td><td class="muted">研發發現「接貨持股」腿係 2022-26 最大虧損來源（−$84K）；即場平倉消除股票下行風險</td></tr>'+
     '<tr><td>利潤平倉 / 止損</td><td>PT 50% · 無硬止損（靠閘門 + 分散）</td><td class="muted">短倉期權止損實測有害（最差價位執行）</td></tr>'+
@@ -2471,7 +2474,7 @@ function renderMethodH6040(){
     '已用 VIX 做錨校準（相關 0.73），並且用「溢價打 86 折」壓力測試確認策略仍然通過。真實落盤前要用真實期權鏈數據再校準。</p>';
 
   $('methodSize').innerHTML=
-    '<p><b>配倉（兩腿獨立）：</b>每腿獨立嘅按金預算（單股 70%、XSP 60%）。XSP 腿單倉較大（≤45%）因為指數無單股風險。</p>'+
+    '<p><b>配倉（兩腿獨立）：</b>每腿獨立嘅按金預算（單股 70%、XSP 90%——08-27 Path A）。XSP 腿單倉大（≤90%、每倉≤2張）因為指數無單股風險＋現金結算 tail 有界。</p>'+
     '<p style="margin-top:8px"><b>出場規則：</b></p>'+
     '<ol style="margin:4px 0 0 18px;line-height:1.9">'+
     '<li>權利金收到 <b>50%</b> → 平倉鎖利（兩腿相同）</li>'+
@@ -2600,7 +2603,7 @@ function renderH6040Overview(){
     const usedPct=Math.min(100,Math.round(used/CAP*100));
     const capTips={
       stk:'<b>單股腿（60%）目標配置</b><br>HKD 192,000（320k × 60%）<br>util 70% · ≤8 倉 · 單名 ≤25%<br>閘門：VIX 20–32 先開（'+(h6040Gates&&h6040Gates.vixOk?'🟢 而家開':'🔴 而家閂')+'）',
-      spy:'<b>SPY 腿（40%）目標配置</b><br>HKD 128,000（320k × 40%）<br>util 60% · ≤3 倉 · 單倉 ≤45%<br>閘門：SPY＞200DMA 先開（'+(h6040Gates&&h6040Gates.spyAbove?'🟢 而家開':'🔴 而家閂')+'）'
+      spy:'<b>XSP 腿（40%）目標配置</b><br>HKD 128,000（320k × 40%）<br>util 90% · ≤2 倉 · 每倉 ≤2 張（Path A）<br>閘門：XSP＞200DMA 先開（'+(h6040Gates&&h6040Gates.spyAbove?'🟢 而家開':'🔴 而家閂')+'）'
     };
     cb.innerHTML=
       '<div class="small muted">① 60/40 目標配置（hover 每段睇規則）</div>'
@@ -2879,7 +2882,7 @@ function setMethod(m){
   const sub=$('appbarSub');
   if(sub){
     sub.innerHTML=m==='h6040'
-      ?'Hybrid 60/40 · 60% 單股 + 40% XSP Put · <strong>回測 +33.5%/年 · 回撤 −9.7%</strong>'
+      ?'Hybrid 60/40 · 60% 單股 + 40% XSP Put · <strong>回測 +39.3%/年 · 回撤 −10.0%</strong>（08-27 Path A：XSP 腿 caps 0.90/0.90＋每倉≤2張；OOS 2025+ 月均 17.1k · worst 月 −12.1k）'
       :'v4_balanced · 沽 Put 輪動 · <strong>2026 回測 +151.7%</strong> · 紙上 · Futu 實時';
   }
   // ⭐ 08-24 v4：h6040 模式 — 候選名單 title 換 mom score 口徑；「勝率排名」card 收起（v4 winrank 概念）
