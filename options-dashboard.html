@@ -766,7 +766,7 @@ function renderAlarm(){
 }
 
 function findCandidate(tk){
-  if(METHOD==='h6040'&&tk==='SPY'){return h6040SpyCandidate();}
+  if(METHOD==='h6040'&&tk==='XSP'){return h6040SpyCandidate();}
   if(METHOD==='h6040'){const pc=h6040PoolCand(tk);if(pc)return pc;}   // ⭐ 08-24：v5 池掃描行 → 詳情 candidate（修「跳去個股詳情但內容唔轉」——之前呢度只搵 rec/_wrDetail，掃描行永远搵唔到）
   const list=[].concat(rec.book||[],rec.best?[rec.best]:[],rec.candidates||[]);
   return list.find(x=>x&&x.ticker===tk)||((window._wrDetail||{})[tk]||null);
@@ -774,7 +774,7 @@ function findCandidate(tk){
 /* ⭐ h6040：SPY 合成候選（由實時期權鏈揀 Δ≈0.275、10–14 DTE） */
 function h6040SpyCandidate(){
   const g=h6040Gates;
-  const chain=chainCache['SPY'];
+  const chain=chainCache['XSP'];
   if(chain&&chain.expiries&&chain.expiries.length){
     let bestE=null;
     chain.expiries.forEach(e=>{
@@ -792,7 +792,7 @@ function h6040SpyCandidate(){
     if(bestR){
       const probs=bsPutProbs(chain.spot,bestR.strike,bestE.days/365,bestR.iv||0.2);
       const yld=bestR.strike>0?bestR.bid/bestR.strike*100:0;
-      return {ticker:'SPY',name:'SPDR S&P 500 ETF',expiry:bestE.expiry,dte:bestE.days,strike:bestR.strike,
+      return {ticker:'XSP',name:'Mini-S&P 500 Index (XSP)',expiry:bestE.expiry,dte:bestE.days,strike:bestR.strike,
         spot:chain.spot,mid:bestR.bid,delta:bestR.delta,iv:bestR.iv,iv_rank:null,
         prob_otm:probs.otm,prob_itm:probs.itm,gamma:null,theta:null,vega:null,levels:{},
         contracts:1,premium:Math.round(bestR.bid*100),premium_total:Math.round(bestR.bid*100),
@@ -803,7 +803,7 @@ function h6040SpyCandidate(){
     }
   }
   if(g.spy){
-    return {ticker:'SPY',name:'SPDR S&P 500 ETF',expiry:null,dte:null,strike:null,spot:g.spy,mid:null,
+    return {ticker:'XSP',name:'Mini-S&P 500 Index (XSP)',expiry:null,dte:null,strike:null,spot:g.spy,mid:null,
       delta:null,iv:null,prob_otm:null,prob_itm:null,gamma:null,theta:null,vega:null,levels:{},contracts:1,
       premium:null,premium_total:null,premium_total_hkd:null,collateral:null,fromChain:true,spyPlaceholder:true};
   }
@@ -811,7 +811,7 @@ function h6040SpyCandidate(){
 }
 /* ⭐ 08-24：h6040 單股腿候選 —— v5 池掃描行 → 詳情 candidate（點候選名單行 → 同 v4_balanced 完全同一套個股詳情）：
    日線 K 線 / S&R＋希臘字母經 /kline 非同步補（_klStore）、Futu 實時期權鏈、情境分析 payoff、出場規則、執行掣。
-   有實時鏈（chainCache）→ 直接用鏈價起 candidate（同 SPY 腿同一招揀行：最貼 sug_dte 嘅到期日＋最貼 sug_delta 嘅 PUT）；
+   有實時鏈（chainCache）→ 直接用鏈價起 candidate（同 XSP 腿同一招揀行：最貼 sug_dte 嘅到期日＋最貼 sug_delta 嘅 PUT）；
    冇 → 用掃描嘅 BS 模型價起 placeholder，實時鏈一到 loadChain 就一次性升級重繪（_h6040ScanStage 閘，唔會 loop）。 */
 function h6040ExpiryFromDte(dte){
   const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(dte||12));
@@ -820,7 +820,7 @@ function h6040ExpiryFromDte(dte){
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
 }
 function h6040PoolCand(tk){
-  if(!h6040Rec||tk==='SPY')return null;
+  if(!h6040Rec||tk==='XSP')return null;
   const row=(h6040Rec.candidates||[]).find(x=>x&&x.ticker===tk);
   if(!row)return null;
   const wantDte=row.sug_dte||12, wantD=row.sug_delta!=null?Math.abs(row.sug_delta):0.275;
@@ -1005,9 +1005,9 @@ function updateMonthlyProgress(){
   let monthlyTarget, targetDescription;
 
   if(METHOD === 'h6040') {
-    // Hybrid 60/40 模式：回測月均 HKD 14,138
-    monthlyTarget = 14138;
-    targetDescription = 'Hybrid 60/40 回測月均 HKD 14,138';
+    // Hybrid 60/40 模式：回測月均 HKD 18,693（08-27 Path A）
+    monthlyTarget = 18693;
+    targetDescription = 'Hybrid 60/40 回測月均 HKD 18,693（Path A）';
   } else {
     // v4_balanced 模式：以預估月收入為目標
     monthlyTarget = (rec && rec.projected_monthly_hkd && rec.projected_monthly_hkd.hkd) ? rec.projected_monthly_hkd.hkd : 25100;
@@ -1269,10 +1269,10 @@ function renderDetail(){
   const c=detailCtx(activeTk);   // ⭐ _klStore 補齊 levels/greeks（winrank 行）
   if(!c){$('dtBody').innerHTML='<div class="muted">這隻股票暫時沒有候選資料。</div>';return;}
   if(METHOD==='h6040'&&c.spyPlaceholder){
-    $('dtTitle').textContent='📈 SPY 個股詳情';
+    $('dtTitle').textContent='📈 XSP 個股詳情';
     $('dtLive').innerHTML='現價 <b>$'+px2(c.spot)+'</b>';
-    $('dtBody').innerHTML='<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">實時期權鏈載入中 / 未攞到 —— 請稍後再試，或去「今日最佳」先撳「揀 SPY 行使價下單」拉一次實時鏈。</div><div class="card"><div class="card-b" id="chainCard"><div class="muted">載入實時期權鏈…</div></div></div>';
-    loadChain('SPY');
+    $('dtBody').innerHTML='<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">實時期權鏈載入中 / 未攞到 —— 請稍後再試，或去「今日最佳」先撳「揀 XSP 行使價下單」拉一次實時鏈。</div><div class="card"><div class="card-b" id="chainCard"><div class="muted">載入實時期權鏈…</div></div></div>';
+    loadChain('XSP');
     return;
   }
   $('dtTitle').textContent='📈 '+c.ticker+' 個股詳情';
@@ -1541,7 +1541,7 @@ function renderChain(chain,tk){
     h+='<button class="btn '+(i===idx?'btn-go':'btn-ghost')+'" style="margin-right:4px" onclick="setChainExp(\''+tk+'\','+i+')">'+e.expiry+'（'+e.days+'D）'+(isCand?' ⭐':'')+'</button> ';});
   h+='<button class="btn btn-ghost" style="margin-left:6px;font-weight:700" onclick="jumpToRec(\''+tk+'\')">🎯 跳至建議行</button> ';
   h+='<span class="muted small">· 正股 $'+px2(spot)+' · 來源：'+(chain.source==='yfinance'?'<b style="color:#d97706">Yahoo 兜底</b>（Futu 尚無這隻）':'<b style="color:#0d9488">Futu 實時</b>')+'</span>';
-  h+='<div class="muted small" style="margin-top:3px">到期日按 <b>10–14 DTE 優先排列</b>（v4_balanced 與 h6040 單股腿 v5 CFG_SINGLE 同一窗口：Δ0.25–0.30 × DTE 10–14）；SPY 腿例外（DTE≥7、最接近 12 日）；短於 10 日的（例如 5D）用於監察現有倉位 —— 未持有的話不要用它開新倉。</div>';
+  h+='<div class="muted small" style="margin-top:3px">到期日按 <b>10–14 DTE 優先排列</b>（v4_balanced 與 h6040 單股腿 v5 CFG_SINGLE 同一窗口：Δ0.25–0.30 × DTE 10–14）；XSP 腿例外（DTE≥7、最接近 12 日）；短於 10 日的（例如 5D）用於監察現有倉位 —— 未持有的話不要用它開新倉。</div>';
   h+='<div id="selReadout"></div>';   // ⭐ 選定 strike 後的即時 readout
   // merge call/put by strike；只顯示正股 ±40% 內（deep ITM/OTM IV 無意義 + payload 細）
   const m={};
@@ -1836,17 +1836,17 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
   const dte=(c&&c.dte!=null)?c.dte:Math.floor((new Date(exp+'T23:59:59')-Date.now())/864e5);   // ⭐ 2026-08-17：tenor 顯示（candidate 有 dte 用佢，否則即場計）
   window._lastExecCtx=c; window._lastExecSide=side;   // ⭐ confirmExec 要知 side + ctx（winrank 合成 candidate）
   const isH6040=(METHOD==='h6040');
-  const h6040Leg=isH6040?(tk==='SPY'?'spy':'single'):null;
+  const h6040Leg=isH6040?(tk==='XSP'?'spy':'single'):null;
   const renderBox=()=>{
     const coll=K*100*n, prem=sellPx*100*n;
     const maxLoss=(K-sellPx)*100*n, be=isCall?(K+sellPx):(K-sellPx);   // 短 call BE = K + 權利金（升穿才虧損）
     const S=c&&c.spot?c.spot:K;
     const mPer=(c&&c.margin1)?c.margin1:marginPerPut(K,sellPx,S);
     const mTot=mPer*n;
-    // ⭐ 方法論感知按金預算：h6040 兩腿獨立（單股 70%×192k / SPY 60%×128k）；v4 用引擎數
+    // ⭐ 方法論感知按金預算：h6040 兩腿獨立（單股 70%×192k / XSP 90%×128k——⭐ 08-27 Path A：舊 60%/45% 雙牆令 128k 腿喺 XSP 600+ 開唔到一張倉；0.90/0.90 解鎖＋每倉≤2張 guardrail）；v4 用引擎數
     let eq,budget,usedM,openCount,maxPuts,capName;
     if(isH6040){
-      if(h6040Leg==='spy'){eq=128000/HKD_USD;budget=eq*0.60;maxPuts=3;capName='單倉 45%';}
+      if(h6040Leg==='spy'){eq=128000/HKD_USD;budget=eq*0.90;maxPuts=2;capName='單倉 90%';}
       else{eq=192000/HKD_USD;budget=eq*0.70;maxPuts=8;capName='單名 25%';}
       usedM=h6040UsedMargin(h6040Leg);
       openCount=((h6040SrvBook&&h6040SrvBook.open&&h6040SrvBook.open.length)?h6040SrvBook.open:h6040Book()).filter(p=>p.status==='open'&&p.leg===h6040Leg).length+1;
@@ -1856,9 +1856,10 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
       maxPuts=6; capName='單名 30%';
     }
     const remAfter=Math.max(0,budget-usedM-mTot), moreAfter=mPer>0?Math.floor(remAfter/mPer):0;
-    const capFrac=isH6040?(h6040Leg==='spy'?0.45:0.25):0.30;
+    const capFrac=isH6040?(h6040Leg==='spy'?0.90:0.25):0.30;
+    const overContracts=(isH6040&&h6040Leg==='spy'&&n>2);   // ⭐ 08-27 Path A guardrail：XSP 每倉最多 2 張
     const overBudget=(usedM+mTot>budget+1), overName=(mTot>eq*capFrac+1), fullPuts=((side!=='CALL'||isH6040)&&openCount>maxPuts);
-    const insufficient=overBudget||overName||fullPuts;   // 同 engine 硬檢查同款 → 紅警示 + 鎖確認掣
+    const insufficient=overBudget||overName||fullPuts||overContracts;   // 同 engine 硬檢查同款 → 紅警示 + 鎖確認掣
     const locked=lockedHKD(), avail=availHKD(), need=coll*HKD_USD;
     const methodLabel=isH6040?'Hybrid 60/40 '+h6040Leg+' 腿':'v4_balanced';
     box.innerHTML=
@@ -1871,6 +1872,7 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
         (fullPuts?'put 倉已滿 '+maxPuts+'/'+maxPuts+'；':'')+
         (overBudget?'按金會爆預算（$'+fmt(usedM+mTot)+' &gt; $'+fmt(budget)+'）；':'')+
         (overName?'按金 $'+fmt(mTot)+' 超過 '+capName+' 上限（$'+fmt(Math.round(eq*capFrac))+'）；':'')+
+        (overContracts?'XSP 每倉最多 2 張（Path A guardrail）；':'')+
         '減張數／平一倉先做到。</div>'):'')+
       (bid!=null?('<div class="row"><span class="k">實時報價（Futu）</span><span class="mono">買(bid) $'+px2(bid)+' · 賣(ask) $'+px2(ask)+'</span></div>'):'')+
       (bid!=null&&c&&c.mid&&!c.fromChain&&Math.abs(bid-c.mid)>0.01?('<div class="row"><span class="k">系統建議 vs 實時</span><span>建議 $'+px2(c.mid)+' → 實時 bid $'+px2(bid)+'：'+(bid<c.mid?'<span style="color:#d97706">賣出價偏低（少收 $'+px2(c.mid-bid)+'/股）</span>':'<span style="color:#16a34a">更划算（多收 $'+px2(bid-c.mid)+'/股）</span>')+'</span></div>'):'')+
@@ -2444,13 +2446,13 @@ function renderMethodH6040(){
     '</div>'+
     '<div class="table-scroll"><table class="utable">'+
     '<thead><tr><th>參數</th><th>值</th><th>為什麼</th></tr></thead><tbody>'+
-    '<tr><td>資本配置</td><td><b>60% 單股腿（HKD 192,000）+ 40% SPY 腿（HKD 128,000）</b></td><td class="muted">九個比例掃描中，60/40 係月均收入最高（$14,138）而最差月份可控（−$18,066）嘅配置</td></tr>'+
-    '<tr><td>單股腿入場閘</td><td><b>VIX 20–32</b>（實時；＞32 恐慌關）</td><td class="muted">只在波動率偏高、權利金偏貴時賣單股 Put；低波時期呢條腿休息（靠 SPY 腿同利息補），恐慌 >32 亦唔開</td></tr>'+
-    '<tr><td>SPY 腿入場閘</td><td><b>SPY 收市 &gt; 200DMA</b>（實時）</td><td class="muted">研究證實 200DMA 閘將指數賣 Put 嘅最大回撤減半（−37%→−19%）</td></tr>'+
+    '<tr><td>資本配置</td><td><b>60% 單股腿（HKD 192,000）+ 40% XSP 腿（HKD 128,000）</b></td><td class="muted">九個比例掃描中 60/40 勝出（舊 caps 掃描：月均 $14,138/最差 −$18,066）；⭐ 08-27 Path A caps 後同款 60/40：月均 $18,693/最差 −$24,180</td></tr>'+
+    '<tr><td>單股腿入場閘</td><td><b>VIX 20–32</b>（實時；＞32 恐慌關）</td><td class="muted">只在波動率偏高、權利金偏貴時賣單股 Put；低波時期呢條腿休息（靠 XSP 腿同利息補），恐慌 >32 亦唔開</td></tr>'+
+    '<tr><td>XSP 腿入場閘</td><td><b>XSP 收市 &gt; 200DMA</b>（實時）</td><td class="muted">研究證實 200DMA 閘將指數賣 Put 嘅最大回撤減半（−37%→−19%）</td></tr>'+
     '<tr><td>賣 put Delta</td><td><b>0.25–0.30</b>（兩腿相同）</td><td class="muted">被指派機率 ≈25–30%</td></tr>'+
     '<tr><td>DTE</td><td><b>10–14 日</b></td><td class="muted">同 v4</td></tr>'+
     '<tr><td>單股腿倉數 / 單名上限</td><td><b>≤8 倉 · 單名 ≤25% equity</b>（util 70%）</td><td class="muted">分散 + 防單股爆雷</td></tr>'+
-    '<tr><td>SPY 腿倉數 / 單倉上限</td><td><b>≤3 倉 · 單倉 ≤45% equity</b>（util 60%）</td><td class="muted">SPY 無單股風險，容許較大單倉</td></tr>'+
+    '<tr><td>XSP 腿倉數 / 單倉上限</td><td><b>≤2 倉 · 每倉 ≤2 張 · 單倉 ≤90% equity</b>（util 90%）</td><td class="muted">⭐ 08-27 Path A：128k 腿喺 XSP 600+ 一張倉按金 89–116k 撞舊 45%/60% 雙牆開唔到倉 → 0.90/0.90 解鎖；XSP 係現金結算歐式指數（1/10 SPX）無接貨無 gap，tail 有界；每倉≤2張斬 pyramiding</td></tr>'+
     '<tr><td>利潤平倉 PT</td><td><b>50%</b> 權利金</td><td class="muted">收一半就走</td></tr>'+
     '<tr><td>接貨處理</td><td><b>不接貨 — 被指派即時平倉（no wheel）</b></td><td class="muted">研發發現「接貨持股」腿係 2022-26 最大虧損來源（−$84K）；即場平倉消除股票下行風險</td></tr>'+
     '<tr><td>利潤平倉 / 止損</td><td>PT 50% · 無硬止損（靠閘門 + 分散）</td><td class="muted">短倉期權止損實測有害（最差價位執行）</td></tr>'+
@@ -2458,11 +2460,11 @@ function renderMethodH6040(){
     '<div class="small muted" style="margin-top:8px">成本假設（回測已計）：期權 $1.10/腿/單向 · 滑價 1.5% · 時變無風險利率（2022 0.05% → 2023-24 5.4% → 2026 3.8%）· 閒置現金按 85% T-bill 息計。按金公式（Reg-T）：max(20%×現價＋權利金−OTM, 10%×行使價＋權利金)×100。</div>';
 
   $('methodBest').innerHTML=
-    '<p><b>兩腿互補：</b>單股腿賺「波動溢價」，SPY 腿賺「平靜月份嘅指數保險費」。</p>'+
+    '<p><b>兩腿互補：</b>單股腿賺「波動溢價」，XSP 腿賺「平靜月份嘅指數保險費」。</p>'+
     '<ol style="margin:8px 0 0 18px;line-height:2">'+
     '<li><b>單股腿</b>（60% 資本）：VIX≥20 時，喺動量宇宙（163 隻，含插濕名）揀分數最高嘅候選，賣 Δ0.25–0.30、10–14 DTE 嘅 Put。</li>'+
-    '<li><b>SPY 腿</b>（40% 資本）：SPY 企穩 200DMA 之上就賣 Δ0.25–0.30、10–14 DTE 嘅 SPY Put —— 無單股尾部風險。</li>'+
-    '<li><b>兩腿都關</b>（低波 + 熊市）= 全場休息，閒置現金食利息（2022 熊市都賺到 +$104,699）。</li></ol>'+
+    '<li><b>XSP 腿</b>（40% 資本）：XSP 企穩 200DMA 之上就賣 Δ0.25–0.30、DTE≥7 最接近 12 日嘅 XSP Put —— 無單股尾部風險。</li>'+
+    '<li><b>兩腿都關</b>（低波 + 熊市）= 全場休息，閒置現金食利息（2022 熊市都賺到 +$89,644）。</li></ol>'+
     '<div class="small muted" style="margin-top:6px">「今日最佳」分頁嘅單股候選＝v5 回測池每日掃描（h6040_scan 06:10，同回測同宇宙同過濾），只在 VIX 20–32 時顯示；Telegram 由 options_monitor §7b 同步推送。</div>';
 
   $('methodIV').innerHTML=
@@ -2471,7 +2473,7 @@ function renderMethodH6040(){
     '已用 VIX 做錨校準（相關 0.73），並且用「溢價打 86 折」壓力測試確認策略仍然通過。真實落盤前要用真實期權鏈數據再校準。</p>';
 
   $('methodSize').innerHTML=
-    '<p><b>配倉（兩腿獨立）：</b>每腿獨立嘅按金預算（單股 70%、SPY 60%）。SPY 腿單倉較大（≤45%）因為指數無單股風險。</p>'+
+    '<p><b>配倉（兩腿獨立）：</b>每腿獨立嘅按金預算（單股 70%、XSP 90%——08-27 Path A）。XSP 腿單倉大（≤90%、每倉≤2張）因為指數無單股風險＋現金結算 tail 有界。</p>'+
     '<p style="margin-top:8px"><b>出場規則：</b></p>'+
     '<ol style="margin:4px 0 0 18px;line-height:1.9">'+
     '<li>權利金收到 <b>50%</b> → 平倉鎖利（兩腿相同）</li>'+
@@ -2503,7 +2505,7 @@ function renderMethodH6040(){
   perf+='<div class="table-scroll" style="margin-top:10px"><table class="utable">'+
     '<thead><tr><th>腿</th><th class="r">年化</th><th class="r">回撤</th><th class="r">贏率</th><th class="r">交易數</th><th class="r">資本</th></tr></thead><tbody>'+
     '<tr><td>單股腿（VIX≥20）</td><td class="r up">+'+B.legs.single.ann+'%</td><td class="r dn">'+B.legs.single.dd+'%</td><td class="r">'+B.legs.single.wr+'%</td><td class="r">'+B.legs.single.n+'</td><td class="r">'+fmt(B.legs.single.cap)+'</td></tr>'+
-    '<tr><td>SPY 腿（200DMA）</td><td class="r up">+'+B.legs.spy.ann+'%</td><td class="r dn">'+B.legs.spy.dd+'%</td><td class="r">'+B.legs.spy.wr+'%</td><td class="r">'+B.legs.spy.n+'</td><td class="r">'+fmt(B.legs.spy.cap)+'</td></tr>'+
+    '<tr><td>XSP 腿（200DMA）</td><td class="r up">+'+B.legs.spy.ann+'%</td><td class="r dn">'+B.legs.spy.dd+'%</td><td class="r">'+B.legs.spy.wr+'%</td><td class="r">'+B.legs.spy.n+'</td><td class="r">'+fmt(B.legs.spy.cap)+'</td></tr>'+
     '</tbody></table></div>';
   $('methodPerfBody').innerHTML=perf;
 
@@ -2528,7 +2530,7 @@ function renderMethodH6040(){
     '<b>Hybrid 60/40 暫無 Telegram／engine 警報。</b>呢個模式係回測驗證嘅策略，實時信號經儀表板本地顯示。'+
     '紙上倉記錄喺瀏覽器（與 v4 engine 分開）。要接入 v4 engine 自動警報／執行，需要另外建 60/40 實時引擎。<br>'+
     '而家你可以：<br>'+
-    '· 睇實時閘門（VIX≥20 / SPY>200DMA）決定今日開唔開倉<br>'+
+    '· 睇實時閘門（VIX≥20 / XSP>200DMA）決定今日開唔開倉<br>'+
     '· 喺「今日最佳」手動記錄本地紙上倉（執行／平倉都存喺瀏覽器）<br>'+
     '· 對照回測績效檢視自己執行有冇貼近</div>';
 
@@ -2537,7 +2539,7 @@ function renderMethodH6040(){
     '<div class="warn-note">'+
     '<b>誠實話（好重要）：</b><br>'+
     '· 呢個回測用 <b>合成期權定價</b>（由歷史波動率推），唔係真實歷史報價。所有回報係上限估計。<br>'+
-    '· 2025 年 +$279,049 係強年景，唔好錨定。中位數月收入只係 $'+fmt(B.median_mo)+'，有 '+B.n_neg+' 個月蝕錢。<br>'+
+    '· 2025 年 +$352,495 係強年景，唔好錨定。中位數月收入只係 $'+fmt(B.median_mo)+'，有 '+B.n_neg+' 個月蝕錢。<br>'+
     '· 賣 Put 最大虧損 =（行使價−權利金）×100×張數。單股腿靠「不接貨」消除股票下行風險，但被指派即時平倉喺大跌時仍會蝕。<br>'+
     '· 兩個入場閘門係回撤控制核心；閘門失靈（如 VIX 假訊號）會令策略喺錯嘅時間開倉。<br>'+
     '· 而家係回測模式，實時部分只記錄本地。落盤前要：(1) 用真實期權鏈數據校準定價 (2) 建 60/40 實時引擎 (3) 紙上跟至少一季。</div>';
@@ -2546,18 +2548,18 @@ function renderMethodH6040(){
 /* ════════════ Hybrid 60/40 renders ════════════ */
 function h6040GateBanner(){
   const g=h6040Gates;
-  if(!g.loaded)return '<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">⏳ 實時閘門讀取中（VIX + SPY 200DMA）… 請確認 bridge 連線。</div>';
+  if(!g.loaded)return '<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">⏳ 實時閘門讀取中（VIX + XSP 200DMA）… 請確認 bridge 連線。</div>';
   const vixTxt=g.vix!=null?('VIX <b>'+g.vix.toFixed(1)+'</b>'):'VIX —';
   const vixOk=g.vixOk;
-  const spyTxt=g.spy!=null&&g.spyMa200!=null?('SPY <b>$'+g.spy.toFixed(1)+'</b> vs 200DMA $'+g.spyMa200.toFixed(1)+' → '+(g.spyAbove?'<b style="color:#16a34a">之上 ✓</b>':'<b style="color:#dc2626">之下 ✗</b>')):'SPY —';
+  const spyTxt=g.spy!=null&&g.spyMa200!=null?('XSP <b>$'+g.spy.toFixed(1)+'</b> vs 200DMA $'+g.spyMa200.toFixed(1)+' → '+(g.spyAbove?'<b style="color:#16a34a">之上 ✓</b>':'<b style="color:#dc2626">之下 ✗</b>')):'XSP —';
   return '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">'+
     '<div style="flex:1;min-width:220px;background:'+(vixOk?'#ecfdf5':'#f8fafc')+';border:1px solid '+(vixOk?'#99f6e4':'#e2e8f0')+';border-radius:10px;padding:10px 12px">'+
       '<div class="small muted">單股腿閘門：VIX 20–32</div>'+
       '<div style="font-size:14px;margin-top:2px">'+vixTxt+' → '+(vixOk?'<span style="color:#16a34a;font-weight:700">✓ 開放（可開單股 Put）</span>':'<span style="color:#64748b;font-weight:700">✗ 關閉（今日不開單股腿）</span>')+'</div>'+
     '</div>'+
     '<div style="flex:1;min-width:220px;background:'+(g.spyAbove?'#ecfdf5':'#fef2f2')+';border:1px solid '+(g.spyAbove?'#99f6e4':'#fecaca')+';border-radius:10px;padding:10px 12px">'+
-      '<div class="small muted">SPY 腿閘門：SPY &gt; 200DMA</div>'+
-      '<div style="font-size:14px;margin-top:2px">'+spyTxt+' → '+(g.spyAbove?'<span style="color:#16a34a;font-weight:700">✓ 開放（可開 SPY Put）</span>':'<span style="color:#dc2626;font-weight:700">✗ 關閉（今日不開 SPY 腿）</span>')+'</div>'+
+      '<div class="small muted">XSP 腿閘門：XSP &gt; 200DMA</div>'+
+      '<div style="font-size:14px;margin-top:2px">'+spyTxt+' → '+(g.spyAbove?'<span style="color:#16a34a;font-weight:700">✓ 開放（可開 XSP Put）</span>':'<span style="color:#dc2626;font-weight:700">✗ 關閉（今日不開 XSP 腿）</span>')+'</div>'+
     '</div>'+
   '</div>';
 }
@@ -2591,7 +2593,7 @@ function renderH6040Overview(){
     rb.innerHTML=h6040GateBanner()+
       '<div class="small muted" style="margin-top:6px">模型：<b>Hybrid 60/40</b> · 此視圖顯示你嘅 <b style="color:#dc2626">真倉</b>（Futu 實單）＋回測績效參考。h6040 出場監察（PT 50%／止損1.9×／Δ0.50 roll）跟真倉行，TG 同步推。</div>';
   }
-  const rm=$('railsMeta'); if(rm)rm.textContent='實時閘門：單股腿要 VIX 20–32 · SPY 腿要 SPY>200DMA';
+  const rm=$('railsMeta'); if(rm)rm.textContent='實時閘門：單股腿要 VIX 20–32 · XSP 腿要 XSP>200DMA';
   const cb=$('ovCapBody');
   if(cb){
     // ⭐ 08-24：資本運用加 hover bars（同統一總覽資產分佈 bar 同款 data-tip 機制）
@@ -2600,7 +2602,7 @@ function renderH6040Overview(){
     const usedPct=Math.min(100,Math.round(used/CAP*100));
     const capTips={
       stk:'<b>單股腿（60%）目標配置</b><br>HKD 192,000（320k × 60%）<br>util 70% · ≤8 倉 · 單名 ≤25%<br>閘門：VIX 20–32 先開（'+(h6040Gates&&h6040Gates.vixOk?'🟢 而家開':'🔴 而家閂')+'）',
-      spy:'<b>SPY 腿（40%）目標配置</b><br>HKD 128,000（320k × 40%）<br>util 60% · ≤3 倉 · 單倉 ≤45%<br>閘門：SPY＞200DMA 先開（'+(h6040Gates&&h6040Gates.spyAbove?'🟢 而家開':'🔴 而家閂')+'）'
+      spy:'<b>XSP 腿（40%）目標配置</b><br>HKD 128,000（320k × 40%）<br>util 90% · ≤2 倉 · 每倉 ≤2 張（Path A）<br>閘門：XSP＞200DMA 先開（'+(h6040Gates&&h6040Gates.spyAbove?'🟢 而家開':'🔴 而家閂')+'）'
     };
     cb.innerHTML=
       '<div class="small muted">① 60/40 目標配置（hover 每段睇規則）</div>'
@@ -2608,7 +2610,7 @@ function renderH6040Overview(){
       +'<div style="height:14px;background:#1a73e8;width:60%;cursor:help" data-tip="'+capTips.stk.replace(/"/g,'&quot;')+'"></div>'
       +'<div style="height:14px;background:#7c3aed;width:40%;cursor:help" data-tip="'+capTips.spy.replace(/"/g,'&quot;')+'"></div></div>'
       +'<div style="margin-bottom:8px"><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;margin-right:14px"><span style="width:10px;height:10px;border-radius:2px;background:#1a73e8;display:inline-block"></span>單股腿 <b>HKD 192,000</b></span>'
-      +'<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px"><span style="width:10px;height:10px;border-radius:2px;background:#7c3aed;display:inline-block"></span>SPY 腿 <b>HKD 128,000</b></span></div>'
+      +'<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px"><span style="width:10px;height:10px;border-radius:2px;background:#7c3aed;display:inline-block"></span>XSP 腿 <b>HKD 128,000</b></span></div>'
       +'<div class="small muted">② 已用按金（Reg-T · 真倉）</div>'
       +'<div style="display:flex;border-radius:6px;overflow:hidden;background:#e2e8f0;margin:4px 0 6px">'
       +'<div style="height:14px;background:'+(usedPct>90?'#dc2626':usedPct>70?'#d97706':'#16a34a')+';width:'+usedPct+'%;cursor:help" data-tip="<b>已用按金 vs 回測總資本</b><br>HKD '+fmt(used)+' ／ '+fmt(CAP)+'（'+usedPct+'%）<br>短 put 按金佔用（Reg-T 口徑，開倉時鎖定）"></div></div>'
@@ -2630,7 +2632,7 @@ function renderH6040Overview(){
     ph+='<div class="table-scroll" style="margin-top:4px"><table class="utable"><thead><tr><th>腿</th><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">DTE</th><th class="r">入場/現</th><th class="r">盈虧平衡</th><th class="r">利潤%</th><th>出場信號</th></tr></thead><tbody>';
     bo6.forEach(p=>{
       const trig=(p.triggers||[]);
-      ph+='<tr'+(trig.length?' style="background:#fffbeb"':'')+'><td>'+(p.leg==='spy'?'SPY':'單股')+'</td><td><b>'+esc(p.ticker)+'</b></td><td class="r">$'+px2(p.strike)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+(p.dte!=null?p.dte:'—')+'</td><td class="r">'+px2(p.entry_prem)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'—')+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td>'+(trig.length?trig.map(t=>'<span class="pill '+(t.indexOf('止損')>=0||t==='cut'?'r':(t.indexOf('鎖利')>=0?'g':'w'))+'">'+esc(t)+'</span>').join(' '):'<span class="muted">—</span>')+'</td></tr>';
+      ph+='<tr'+(trig.length?' style="background:#fffbeb"':'')+'><td>'+(p.leg==='spy'?'XSP':'單股')+'</td><td><b>'+esc(p.ticker)+'</b></td><td class="r">$'+px2(p.strike)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+(p.dte!=null?p.dte:'—')+'</td><td class="r">'+px2(p.entry_prem)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'—')+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td>'+(trig.length?trig.map(t=>'<span class="pill '+(t.indexOf('止損')>=0||t==='cut'?'r':(t.indexOf('鎖利')>=0?'g':'w'))+'">'+esc(t)+'</span>').join(' '):'<span class="muted">—</span>')+'</td></tr>';
     });
     ph+='</tbody></table></div>';
   }
@@ -2642,7 +2644,7 @@ function renderH6040Overview(){
 function h6040LedgerTable(led){
   let h='<table class="utable"><thead><tr><th>腿</th><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
   led.forEach(t=>{
-    h+='<tr><td>'+(t.leg==='spy'?'SPY':'單股')+'</td><td><b>'+esc(t.ticker)+'</b></td><td class="r">$'+t.strike+'</td><td>'+t.expiry+'</td><td class="r">'+t.contracts+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
+    h+='<tr><td>'+(t.leg==='spy'?'XSP':'單股')+'</td><td><b>'+esc(t.ticker)+'</b></td><td class="r">$'+t.strike+'</td><td>'+t.expiry+'</td><td class="r">'+t.contracts+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
   });
   return h+'</tbody></table>';
 }
@@ -2674,7 +2676,7 @@ function renderH6040Positions(){
     bopen.forEach(p=>{
       const trig=(p.triggers||[]);
       const tH=trig.length?trig.map(t=>'<span class="pill '+(t.indexOf('止損')>=0||t==='cut'?'r':(t.indexOf('鎖利')>=0?'g':'w'))+'">'+esc(t)+'</span>').join(' '):'<span class="muted">—</span>';
-      h+='<tr'+(trig.length?' style="background:#fffbeb"':'')+'><td>'+(p.leg==='spy'?'SPY':'單股')+'</td><td><b>'+esc(p.ticker)+'</b></td><td class="r">$'+px2(p.strike)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+(p.dte!=null?p.dte:'—')+'</td><td class="r">'+px2(p.entry_prem)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'<span class="muted">等mark</span>')+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td class="r">'+(p.pnl_hkd!=null?((p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span>'):'—')+'</td><td>'+tH+'</td></tr>';
+      h+='<tr'+(trig.length?' style="background:#fffbeb"':'')+'><td>'+(p.leg==='spy'?'XSP':'單股')+'</td><td><b>'+esc(p.ticker)+'</b></td><td class="r">$'+px2(p.strike)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+(p.dte!=null?p.dte:'—')+'</td><td class="r">'+px2(p.entry_prem)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'<span class="muted">等mark</span>')+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td class="r">'+(p.pnl_hkd!=null?((p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span>'):'—')+'</td><td>'+tH+'</td></tr>';
     });
     h+='</tbody></table></div>';
     h+='<div class="small muted" style="margin-top:4px">「等mark」＝期權鏈暫時攞唔到真實價（模型價唔會推交易建議）；出場信號靚咗成行（琥珀底）＝要到期前處理。</div>';
@@ -2699,19 +2701,19 @@ function renderH6040Best(){
   const b=$('bestCard');
   if(!b)return;
   let h='';
-  h+='<div class="small muted" style="margin-bottom:8px">Hybrid 60/40 實時信號 —— <b>回測規則</b>＋<b>實時閘門</b>。單股腿候選＝<b>v5 回測池</b>（h6040_scan 每日 06:10 掃 ~190 隻宇宙＋CFG_SINGLE 過濾，同回測同源），只在 VIX 20–32 開放；SPY 腿只在 SPY>200DMA 開放。</div>';
+  h+='<div class="small muted" style="margin-bottom:8px">Hybrid 60/40 實時信號 —— <b>回測規則</b>＋<b>實時閘門</b>。單股腿候選＝<b>v5 回測池</b>（h6040_scan 每日 06:10 掃 ~190 隻宇宙＋CFG_SINGLE 過濾，同回測同源），只在 VIX 20–32 開放；XSP 腿只在 XSP>200DMA 開放。</div>';
   h+=h6040GateBanner();
   const g=h6040Gates;
-  // SPY leg card
+  // XSP leg card
   if(g.spyAbove){
     h+='<div style="background:#1e293b;border-radius:10px;padding:14px;color:#fff;margin-bottom:10px">'+
-      '<div style="font-size:12px;color:#4ade80">🟢 SPY 腿（40% 資本）· 閘門開放</div>'+
-      '<div style="font-size:15px;font-weight:700;margin:6px 0">SPY Cash-Secured Put · Δ0.25–0.30 · 10–14 DTE</div>'+
-      '<div style="font-size:12px;color:#cbd5e1">SPY 現價 $'+(g.spy!=null?g.spy.toFixed(2):'—')+' · 200DMA $'+(g.spyMa200!=null?g.spyMa200.toFixed(2):'—')+'</div>'+
-      '<div style="margin-top:8px"><button class="btn btn-go" onclick="h6040OpenSpyChain()">✅ 揀 SPY 行使價下單（實時期權鏈）</button></div>'+
+      '<div style="font-size:12px;color:#4ade80">🟢 XSP 腿（40% 資本）· 閘門開放</div>'+
+      '<div style="font-size:15px;font-weight:700;margin:6px 0">XSP Cash-Secured Put · Δ≈0.275 · DTE≥7 最近 12 日</div>'+
+      '<div style="font-size:12px;color:#cbd5e1">XSP 現價 $'+(g.spy!=null?g.spy.toFixed(2):'—')+' · 200DMA $'+(g.spyMa200!=null?g.spyMa200.toFixed(2):'—')+'</div>'+
+      '<div style="margin-top:8px"><button class="btn btn-go" onclick="h6040OpenSpyChain()">✅ 揀 XSP 行使價下單（實時期權鏈）</button></div>'+
     '</div>';
   }else{
-    h+='<div class="warn-note" style="border-color:#fecaca;background:#fef2f2;color:#b91c1c">🚧 SPY 腿關閉：SPY '+(g.spy!=null&&g.spyMa200!=null?('跌穿 200DMA（$'+g.spy.toFixed(1)+' < $'+g.spyMa200.toFixed(1)+'）'):'—')+'。回測規則今日不開 SPY Put。</div>';
+    h+='<div class="warn-note" style="border-color:#fecaca;background:#fef2f2;color:#b91c1c">🚧 XSP 腿關閉：XSP '+(g.spy!=null&&g.spyMa200!=null?('跌穿 200DMA（$'+g.spy.toFixed(1)+' < $'+g.spyMa200.toFixed(1)+'）'):'—')+'。回測規則今日不開 XSP Put。</div>';
   }
   // single-name leg（⭐ 08-24：v5 回測池 h6040Rec —— 同回測同宇宙同過濾，唔用 v4 宇宙）。
   // ⭐ 08-24 v4 user 指正：呢卡只出狀態＋top pick 一行；**全池表出喺「候選名單」section**
@@ -2761,10 +2763,10 @@ function renderH6040Best(){
     }
   }
   const cm=$('candMeta'); if(cm)cm.textContent='v5 回測池 '+pool.length+' 隻 · scan '+(scan.scan_date||'—')+' · VIX '+(scan.vix!=null?scan.vix.toFixed(1):'—')+' · breadth '+(scan.breadth!=null?(scan.breadth*100).toFixed(0)+'%':'—')+' · 現價＝live 優先（綠＝即時／琥珀＝掃描價，同其他 tab 同一來源） · 建議K/Δ/年化＝BS 模型價 · 業績⚠️＝落喺持有期內（DTE＋2緩衝，回測冇剔業績——自行迴避）';
-  const nt=$('notesBody'); if(nt)nt.innerHTML='<span class="muted">Hybrid 60/40 排除：單股腿要 VIX 20–32＋breadth≥50% 才開（v5 回測池）；SPY 腿要 SPY>200DMA 才開。兩腿皆關 = 今日全場休息（同回測）。</span>';
+  const nt=$('notesBody'); if(nt)nt.innerHTML='<span class="muted">Hybrid 60/40 排除：單股腿要 VIX 20–32＋breadth≥50% 才開（v5 回測池）；XSP 腿要 XSP>200DMA 才開。兩腿皆關 = 今日全場休息（同回測）。</span>';
 }
 function h6040OpenSpyChain(){
-  activeTk='SPY';
+  activeTk='XSP';
   switchPane('detail');
   renderDetail();
 }
@@ -2796,17 +2798,19 @@ let METHOD='h6040';   // ⭐ 08-24 user 欽定：一開即 Hybrid 60/40（唔讀
 /* ⭐ 2026-08-23：清除所有 paper trade 本地記錄（v4 排隊/跳过 + hybrid 本地賬）—— 只保留真倉 */
 try{localStorage.removeItem('h6040_book');localStorage.removeItem('h6040_ledger');localStorage.removeItem('optdash_queued');localStorage.removeItem('optdash_skips');}catch(e){}
 const H6040_BT = {
-  capital:320000, ann:33.5, total_return:281.3, dd:-9.7, sharpe:2.36,
-  final_hkd:1220031, mean_mo:14138, median_mo:8716, n_months:56,
-  n_neg:6, n_zero:8, n_ge10k:22, n_ge15k:15, worst:-18066, best:104019,
-  yearly:{'2022':104699,'2023':93545,'2024':147128,'2025':279049,'2026':167317},
+  /* ⭐ 08-27 Path A（XSP 腿 caps 0.90/0.90＋每倉≤2張 guardrail）guardrailed FULL 回測——
+     old-caps regression＋OOS 逐分核對過；iv095 實際＝IV×0.86 */
+  capital:320000, ann:39.3, total_return:364.5, dd:-10.0, sharpe:2.49,
+  final_hkd:1486548, mean_mo:18693, median_mo:15199, n_months:56,
+  n_neg:8, n_zero:6, n_ge10k:34, n_ge15k:30, worst:-24180, best:113471,
+  yearly:{'2022':89644,'2023':121471,'2024':234556,'2025':352495,'2026':248636},
   legs:{single:{ann:34.8,dd:-13.5,wr:91.4,n:174,cap:192000},
-        spy:{ann:31.4,dd:-8.8,wr:93.7,n:190,cap:128000}},
-  stress:{iv095:{ann:25.4,dd:-12.7},costs2x:{ann:30.4,dd:-11.1}},
-  wf:{is:{ann:30.8,dd:-9.7},oos:{ann:24.6,dd:-4.5}},
-  mc:{dd_p5:-14.1,dd_p50:-6.3,p_below:0.0},
-  n_trades:364, n_assign:40,
-  monthly:[["2022-01",0],["2022-02",0],["2022-03",1760],["2022-04",14681],["2022-05",0],["2022-06",0],["2022-07",29296],["2022-08",17730],["2022-09",-11297],["2022-10",0],["2022-11",70594],["2022-12",-18066],["2023-01",42630],["2023-02",-6375],["2023-03",14518],["2023-04",6118],["2023-05",6677],["2023-06",8350],["2023-07",9199],["2023-08",1418],["2023-09",-4025],["2023-10",-11505],["2023-11",9237],["2023-12",16952],["2024-01",8826],["2024-02",-5843],["2024-03",11791],["2024-04",-3682],["2024-05",12752],["2024-06",10750],["2024-07",-14233],["2024-08",8233],["2024-09",-6284],["2024-10",17710],["2024-11",-6988],["2024-12",58437],["2025-01",7685],["2025-02",-10356],["2025-03",-10620],["2025-04",64498],["2025-05",50393],["2025-06",56078],["2025-07",4461],["2025-08",15012],["2025-09",17929],["2025-10",21927],["2025-11",-11083],["2025-12",-5181],["2026-01",-14076],["2026-02",2117],["2026-03",3207],["2026-04",53685],["2026-05",53685],["2026-06",49547],["2026-07",3641],["2026-08",7159]]
+        spy:{ann:45.2,dd:-13.6,wr:92.8,n:195,cap:128000}},
+  stress:{iv095:{ann:37.1,dd:-10.4},costs2x:{ann:36.2,dd:-11.5}},
+  wf:{is:{ann:36.6,dd:-10.0},oos:{ann:60.0,dd:-4.5}},
+  mc:{dd_p5:-8.7,dd_p50:-4.0,p_below:0.0},
+  n_trades:369, n_assign:22,
+  monthly:[["2022-01",-15926],["2022-02",0],["2022-03",4573],["2022-04",11873],["2022-05",0],["2022-06",0],["2022-07",29296],["2022-08",17730],["2022-09",-11297],["2022-10",0],["2022-11",70594],["2022-12",-17199],["2023-01",42479],["2023-02",-5790],["2023-03",14607],["2023-04",6005],["2023-05",6474],["2023-06",12450],["2023-07",17879],["2023-08",1255],["2023-09",-5340],["2023-10",0],["2023-11",12890],["2023-12",18562],["2024-01",21604],["2024-02",17606],["2024-03",17808],["2024-04",-6265],["2024-05",15328],["2024-06",18451],["2024-07",8169],["2024-08",4539],["2024-09",8735],["2024-10",62841],["2024-11",50695],["2024-12",15044],["2025-01",18542],["2025-02",15226],["2025-03",-24180],["2025-04",0],["2025-05",113471],["2025-06",63262],["2025-07",23738],["2025-08",38131],["2025-09",25257],["2025-10",69165],["2025-11",-10179],["2025-12",20062],["2026-01",43384],["2026-02",34537],["2026-03",2812],["2026-04",53431],["2026-05",30889],["2026-06",15173],["2026-07",22256],["2026-08",46154]]
 };
 let h6040Gates={vix:null,spy:null,spyMa200:null,spyAbove:null,vixOk:null,loaded:false};
 async function loadH6040Gates(){
@@ -2814,7 +2818,7 @@ async function loadH6040Gates(){
   try{
     const [rv,rs]=await Promise.all([
       fetchTimeout(activeBridge+'/kline?code=%5EVIX&type=DAY&count=10&secret='+encodeURIComponent(BRIDGE_SECRET),12000).then(r=>r.json()).catch(()=>null),
-      fetchTimeout(activeBridge+'/kline?code=SPY&type=DAY&count=210&secret='+encodeURIComponent(BRIDGE_SECRET),12000).then(r=>r.json()).catch(()=>null)
+      fetchTimeout(activeBridge+'/kline?code=%5EXSP&type=DAY&count=210&secret='+encodeURIComponent(BRIDGE_SECRET),12000).then(r=>r.json()).catch(()=>null)
     ]);
     if(rv&&rv.bars&&rv.bars.length)h6040Gates.vix=rv.bars[rv.bars.length-1].c;
     if(rs&&rs.bars&&rs.bars.length>=200){
@@ -2879,7 +2883,7 @@ function setMethod(m){
   const sub=$('appbarSub');
   if(sub){
     sub.innerHTML=m==='h6040'
-      ?'Hybrid 60/40 · 60% 單股 + 40% SPY Put · <strong>回測 +33.5%/年 · 回撤 −9.7%</strong>'
+      ?'Hybrid 60/40 · 60% 單股 + 40% XSP Put · <strong>回測 +39.3%/年 · 回撤 −10.0%</strong>（08-27 Path A：XSP 腿 caps 0.90/0.90＋每倉≤2張；OOS 2025+ 月均 17.1k · worst 月 −12.1k）'
       :'v4_balanced · 沽 Put 輪動 · <strong>2026 回測 +151.7%</strong> · 紙上 · Futu 實時';
   }
   // ⭐ 08-24 v4：h6040 模式 — 候選名單 title 換 mom score 口徑；「勝率排名」card 收起（v4 winrank 概念）
