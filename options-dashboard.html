@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
@@ -1018,8 +1018,10 @@ function updateMonthlyProgress(){
   let monthlyIncome = 0;
 
   // 從累計已實現 P&L 計算本月收入
-  if(rec && rec.realized_hkd !== null && rec.realized_hkd !== undefined){
-    monthlyIncome = rec.realized_hkd;
+  if(rec && rec.portfolio && rec.portfolio.realized_hkd !== null && rec.portfolio.realized_hkd !== undefined){
+    monthlyIncome = rec.portfolio.realized_hkd;
+  } else if(rec && rec.realized_hkd !== null && rec.realized_hkd !== undefined){
+    monthlyIncome = rec.realized_hkd; // fallback for backwards compatibility
   }
 
   // 計算進度百分比
@@ -2697,18 +2699,52 @@ function h6040PxCell(tk,scanPx){
   const sd=(h6040Rec&&h6040Rec.scan&&h6040Rec.scan.scan_date)||'';
   return '$'+px2(scanPx)+'<div style="font-size:9px;color:#b45309;font-weight:400;margin-top:1px">掃描'+(sd?' '+sd:'')+'</div>';
 }
+/* ⭐ 08-28：XSP 腿 card 直接寫 tenor＋strike＋bid＋按金檢查 —— 自動拉一次實時鏈入
+   chainCache['XSP']（免撳「揀 XSP 行使價下單」先見到行使價）。60s 節流＋已有 cache 唔重拉；
+   揀法 100% 重用 h6040SpyCandidate（≥7DTE 最近 12 日 · PUT |Δ−0.275| 最近）。 */
+let h6040XspChainAt=0;
+async function h6040AutoXspChain(force){
+  if(METHOD!=='h6040'||!activeBridge)return;
+  if(!force&&Date.now()-h6040XspChainAt<60000)return;
+  const cached=chainCache['XSP'];
+  if(!force&&cached&&cached.expiries&&cached.expiries.length)return;
+  h6040XspChainAt=Date.now();
+  try{
+    const r=await fetchTimeout(activeBridge+'/options/chain?code=XSP&secret='+encodeURIComponent(BRIDGE_SECRET),25000);
+    const j=await r.json().catch(()=>null);
+    if(j&&j.ok&&j.expiries&&j.expiries.length){chainCache['XSP']=j;renderH6040Best();}
+  }catch(e){}
+}
 function renderH6040Best(){
   const b=$('bestCard');
   if(!b)return;
+  h6040AutoXspChain();
   let h='';
   h+='<div class="small muted" style="margin-bottom:8px">Hybrid 60/40 實時信號 —— <b>回測規則</b>＋<b>實時閘門</b>。單股腿候選＝<b>v5 回測池</b>（h6040_scan 每日 06:10 掃 ~190 隻宇宙＋CFG_SINGLE 過濾，同回測同源），只在 VIX 20–32 開放；XSP 腿只在 XSP>200DMA 開放。</div>';
   h+=h6040GateBanner();
   const g=h6040Gates;
   // XSP leg card
   if(g.spyAbove){
+    // ⭐ 08-28：鏈到手 → 直接寫埋建議行使價/到期/Δ/IV/bid＋按金 vs 128k×90% 預算（今日 razor-edge 嗰種 $10 差 skip 要一眼見到）
+    const _xc=(typeof h6040SpyCandidate==='function')?h6040SpyCandidate():null;
+    const _xl=_xc&&_xc.premium_source==='live'&&_xc.strike!=null;
+    const _pick=_xl
+      ?('沽 XSP $'+px2(_xc.strike)+' Put · '+_xc.expiry+'（'+_xc.dte+'DTE）· Δ'+(_xc.delta!=null?('−'+Math.abs(_xc.delta).toFixed(2)):'—')+' · IV '+(_xc.iv!=null?(_xc.iv*100).toFixed(1)+'%':'—'))
+      :'XSP Cash-Secured Put · Δ≈0.275 · DTE≥7 最近 12 日（實時鏈載入中…）';
+    const _bud=128000/HKD_USD*0.90;   // Path A：XSP 腿 128k × util 90%（USD）
+    const _mg=_xl&&_xc.margin1!=null?_xc.margin1:null;
+    const _mgLine=_mg!=null
+      ?('<div style="font-size:12px;margin-top:3px;color:'+(_mg>_bud?'#f87171':'#4ade80')+'">'+(_mg>_bud
+          ?('⚠️ 一張按金 $'+_mg.toLocaleString()+' > 腿預算 $'+Math.round(_bud).toLocaleString()+' → engine 會 skip（價位太高，等回落／D1 後備）')
+          :('✅ 一張按金 $'+_mg.toLocaleString()+' ≤ 預算 $'+Math.round(_bud).toLocaleString()+' · 可落 1 張（limit 掛 mid）'))+'</div>')
+      :'';
+    const _bid=_xl
+      ?('<div style="font-size:12px;color:#4ade80;margin-top:3px">bid $'+(_xc.mid!=null?_xc.mid.toFixed(2):'—')+' ×100 ≈ $'+(_xc.premium!=null?_xc.premium.toLocaleString():'—')+'/張（≈HK$'+(_xc.premium_total_hkd!=null?_xc.premium_total_hkd.toLocaleString():'—')+'）</div>')
+      :'';
     h+='<div style="background:#1e293b;border-radius:10px;padding:14px;color:#fff;margin-bottom:10px">'+
       '<div style="font-size:12px;color:#4ade80">🟢 XSP 腿（40% 資本）· 閘門開放</div>'+
-      '<div style="font-size:15px;font-weight:700;margin:6px 0">XSP Cash-Secured Put · Δ≈0.275 · DTE≥7 最近 12 日</div>'+
+      '<div style="font-size:15px;font-weight:700;margin:6px 0">'+_pick+'</div>'+
+      _bid+_mgLine+
       '<div style="font-size:12px;color:#cbd5e1">XSP 現價 $'+(g.spy!=null?g.spy.toFixed(2):'—')+' · 200DMA $'+(g.spyMa200!=null?g.spyMa200.toFixed(2):'—')+'</div>'+
       '<div style="margin-top:8px"><button class="btn btn-go" onclick="h6040OpenSpyChain()">✅ 揀 XSP 行使價下單（實時期權鏈）</button></div>'+
     '</div>';
