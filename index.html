@@ -1760,7 +1760,27 @@ const SECTOR_MAP = {
   '0005.HK':'銀行','2388.HK':'銀行','0939.HK':'銀行','1398.HK':'銀行',
   '2628.HK':'保險','2318.HK':'保險','0941.HK':'電訊','0883.HK':'能源',
   '2382.HK':'光學元件','1888.HK':'PCB/覆銅板','2476.HK':'PCB/覆銅板',
-  '2513.HK':'AI大模型','0100.HK':'AI大模型'
+  '2513.HK':'AI大模型','0100.HK':'AI大模型',
+  // === 2026-08-27: sector ETF holdings +100（板塊 = 所屬 SPDR/IGV ETF；META/GOOGL/TSLA 歸 M7 同現有分組慣例）===
+  'META':'M7','GOOGL':'M7','TSLA':'M7',
+  'T':'電訊','VZ':'電訊','TMUS':'電訊',
+  'CMCSA':'通訊服務','DIS':'通訊服務',
+  'EA':'遊戲','TTWO':'遊戲',
+  'CSCO':'網絡設備',
+  'HD':'非必需消費','MCD':'非必需消費','TJX':'非必需消費','BKNG':'非必需消費','SBUX':'非必需消費','LOW':'非必需消費','MAR':'非必需消費','ROST':'非必需消費',
+  'WMT':'必需消費','COST':'必需消費','KO':'必需消費','PG':'必需消費','PM':'必需消費','CL':'必需消費','MDLZ':'必需消費','MNST':'必需消費','PEP':'必需消費','MO':'必需消費',
+  'XOM':'能源','CVX':'能源','COP':'能源','MPC':'能源','PSX':'能源','VLO':'能源','EOG':'能源','SLB':'能源','KMI':'能源','WMB':'能源',
+  'JPM':'金融','BRK-B':'金融','V':'金融','MA':'金融','BAC':'金融','GS':'金融','WFC':'金融','MS':'金融','C':'金融','AXP':'金融',
+  'LLY':'醫療','JNJ':'醫療','ABBV':'醫療','UNH':'醫療','MRK':'醫療','TMO':'醫療','AMGN':'醫療','ABT':'醫療','GILD':'醫療','PFE':'醫療',
+  'GE':'航太國防','RTX':'航太國防','BA':'航太國防',
+  'UNP':'鐵路運輸',
+  'ETN':'工業/機械','DE':'工業/機械','PH':'工業/機械',
+  'UBER':'互聯網',
+  'LIN':'物料','NEM':'物料','FCX':'物料','SHW':'物料','ECL':'物料','APD':'物料','CTVA':'物料','NUE':'物料','VMC':'物料','CRH':'物料',
+  'WELL':'地產REIT','PLD':'地產REIT','EQIX':'地產REIT','AMT':'地產REIT','SPG':'地產REIT','DLR':'地產REIT','PSA':'地產REIT','VTR':'地產REIT','O':'地產REIT','CBRE':'地產REIT',
+  'NEE':'公用事業','SO':'公用事業','DUK':'公用事業','CEG':'公用事業','AEP':'公用事業','D':'公用事業','SRE':'公用事業','ETR':'公用事業','XEL':'公用事業','VST':'公用事業',
+  'ORCL':'軟件','APP':'軟件',
+  'FTNT':'網絡安全',
 };
 function sectorOf(t){ return t ? (SECTOR_MAP[t] || '其他') : '其他'; }
 function sectorOfSummary(it){ var tk = it.tk || (it.opt && it.opt.t); return tk ? sectorOf(tk) : '指數'; }
@@ -2898,6 +2918,20 @@ function getEarningsInfoJS(ticker, price) {
     WDC:{date:'2026-11-05'},WOLF:{date:'2026-08-19'},
     CRM:{date:'2026-08-26',timing:'AMC'},CRWD:{date:'2026-08-26',timing:'AMC'},PLTR:{date:'2026-11-02',timing:'AMC'},IBM:{date:'2026-10-21',timing:'AMC'},
     AXTI:{date:'2026-10-30',timing:'AMC'},
+    // === 2026-08-27: sector ETF holdings +100（timing 未核實，唔填）===
+    META:{date:'2026-10-29'},GOOGL:{date:'2026-10-29'},T:{date:'2026-10-21'},VZ:{date:'2026-10-20'},EA:{date:'2026-11-04'},TMUS:{date:'2026-10-22'},CMCSA:{date:'2026-10-29'},TTWO:{date:'2026-11-09'},
+    DIS:{date:'2026-11-12'},TSLA:{date:'2026-10-22'},HD:{date:'2026-11-17'},MCD:{date:'2026-11-05'},TJX:{date:'2026-11-18'},BKNG:{date:'2026-10-28'},SBUX:{date:'2026-10-29'},LOW:{date:'2026-11-18'},
+    MAR:{date:'2026-11-03'},ROST:{date:'2026-11-20'},WMT:{date:'2026-11-19'},COST:{date:'2026-09-25'},KO:{date:'2026-10-20'},PG:{date:'2026-10-22'},PM:{date:'2026-10-21'},CL:{date:'2026-10-30'},
+    MDLZ:{date:'2026-10-28'},MNST:{date:'2026-11-06'},PEP:{date:'2026-10-08'},MO:{date:'2026-10-29'},XOM:{date:'2026-10-30'},CVX:{date:'2026-10-30'},COP:{date:'2026-11-05'},MPC:{date:'2026-11-03'},
+    PSX:{date:'2026-10-29'},VLO:{date:'2026-10-22'},EOG:{date:'2026-11-06'},SLB:{date:'2026-10-23'},KMI:{date:'2026-10-29'},WMB:{date:'2026-11-03'},JPM:{date:'2026-10-13'},'BRK-B':{date:'2026-11-08'},
+    V:{date:'2026-10-28'},MA:{date:'2026-10-29'},BAC:{date:'2026-10-14'},GS:{date:'2026-10-13'},WFC:{date:'2026-10-13'},MS:{date:'2026-10-14'},C:{date:'2026-10-13'},AXP:{date:'2026-10-23'},
+    LLY:{date:'2026-10-29'},JNJ:{date:'2026-10-13'},ABBV:{date:'2026-10-29'},UNH:{date:'2026-10-27'},MRK:{date:'2026-10-29'},TMO:{date:'2026-10-21'},AMGN:{date:'2026-11-04'},ABT:{date:'2026-10-14'},
+    GILD:{date:'2026-10-30'},PFE:{date:'2026-11-03'},GE:{date:'2026-10-20'},RTX:{date:'2026-10-20'},UNP:{date:'2026-10-22'},BA:{date:'2026-10-28'},ETN:{date:'2026-11-03'},DE:{date:'2026-11-25'},
+    UBER:{date:'2026-11-03'},PH:{date:'2026-11-05'},LIN:{date:'2026-10-30'},NEM:{date:'2026-10-23'},FCX:{date:'2026-10-22'},SHW:{date:'2026-10-27'},ECL:{date:'2026-10-27'},APD:{date:'2026-11-05'},
+    CTVA:{date:'2026-11-04'},NUE:{date:'2026-10-27'},VMC:{date:'2026-10-29'},CRH:{date:'2026-10-29'},WELL:{date:'2026-10-27'},PLD:{date:'2026-10-14'},EQIX:{date:'2026-10-29'},AMT:{date:'2026-10-27'},
+    SPG:{date:'2026-11-03'},DLR:{date:'2026-10-23'},PSA:{date:'2026-10-29'},VTR:{date:'2026-10-29'},O:{date:'2026-11-03'},CBRE:{date:'2026-10-22'},NEE:{date:'2026-10-27'},SO:{date:'2026-10-29'},
+    DUK:{date:'2026-11-05'},CEG:{date:'2026-11-09'},AEP:{date:'2026-10-29'},D:{date:'2026-10-30'},SRE:{date:'2026-11-04'},ETR:{date:'2026-10-29'},XEL:{date:'2026-10-29'},VST:{date:'2026-11-05'},
+    CSCO:{date:'2026-11-13'},ORCL:{date:'2026-09-11'},FTNT:{date:'2026-11-05'},APP:{date:'2026-11-05'},
   };
   const cal=EARNINGS_JS[ticker]; if(!cal) return null;
   const now=new Date();
