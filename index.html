@@ -2200,19 +2200,43 @@ async function elnJudgeRun(region){
     else if(!ext&&ratio!=null&&ratio>=0.55&&L.pTouch<=0.20&&stars>=4&&!earnFlag){ verdict='🟢 安全兼抵做'; vBg='#f0fdf4'; vBd='#bbf7d0'; }
     else { verdict='🟡 做得過但知風險 — '+valTxt+' · 接貨'+safeTxt+(ext?' · 非模型池（質素未評）':''); vBg='#fffbeb'; vBd='#fde68a'; }
     var be=strikeL-coupT-100; // 打和點（連票息淨成本，對入場價）
+    // ⭐ 08-28 v3 反向求解（user 要求「FiniQ 票息下合理 put level 有幾高」）：
+    //   fair(k) 隨 k 單調升 → ratio=coupF/fair(k) 隨 k 單調跌。
+    //   ratio≥55%（合理）⇔ fair(k)≤coupF/0.55 ⇔ k≤k55；ratio≥80%（極抵）⇔ k≤k80（更低）。
+    //   下限：fair(k→0)=e^{rT}·call(call水平)（純 call 腿）——coupF 連呢個都唔夠 → 冇任何 strike 合理。
+    //   ⚠️ 呢段係 backtick template 內嵌 client JS，嚴禁 raw backtick 同 dollar-brace 序列。
+    var floorFair=elnBsLegs(1,callL,m,iv,RF,q).fairTenor;  // k=1% ≈ 純 call 腿
+    var bsSolve=function(targetFrac){
+      if(targetFrac<=0||floorFair>targetFrac) return null;
+      var lo=1, hi=98;
+      for(var it=0;it<40;it++){ var mid=(lo+hi)/2; if(elnBsLegs(mid,callL,m,iv,RF,q).fairTenor<=targetFrac) lo=mid; else hi=mid; }
+      return Math.round(lo*10)/10;
+    };
+    var k55=bsSolve(coupF/0.55), k80=bsSolve(coupF/0.80);
+    var plHtml='';
+    var coupPaShow=(coupT*12/m).toFixed(1);
+    if(k55==null||k55<40){
+      plHtml='<div style="margin-top:6px;border:1px dashed #f87171;background:#fef2f2;border-radius:8px;padding:7px 10px;font-size:11px;color:#7f1d1d;line-height:1.7">📐 呢個票息（'+coupPaShow+'% 年化＝'+coupT.toFixed(2)+'% 全期）下<b>搵唔到實際可行嘅合理 put level</b>'+(k55!=null?('（技術上要壓到 ≤'+k55+'% 先達 55% 公平值——冇實際意義）'):'')+'：公平票息下限（純 call 腿、strike 壓到幾深都唔會低過呢個數）＝<b>'+(floorFair*100).toFixed(1)+'% 全期（'+(floorFair*100*12/m).toFixed(1)+'% 年化）</b>，你收嘅票息最高只達 <b>'+Math.round(coupF/floorFair*100)+'%</b> 公平值——任何 strike 都補唔夠，要銀行加票息先有得傾。</div>';
+    } else {
+      var p55=elnBsLegs(k55,callL,m,iv,RF,q).pTouch;
+      var line80='';
+      if(k80!=null&&k80>=40){ var p80=elnBsLegs(k80,callL,m,iv,RF,q).pTouch; line80='；壓到 ≤'+k80+'%（接貨 '+(p80*100).toFixed(1)+'%）達極抵（80% 公平值）'; }
+      plHtml='<div style="margin-top:6px;border:1px dashed #94a3b8;background:#f8fafc;border-radius:8px;padding:7px 10px;font-size:11px;color:#334155;line-height:1.7">📐 呢個票息（'+coupPaShow+'% 年化）嘅<b>合理 put level 上限：'+k55+'%</b>（接貨機率 '+(p55*100).toFixed(1)+'%，≥55% 公平值＝合理價）'+line80+'——你而家 '+strikeL+'% '+(strikeL<=k55?'已喺合理區內（價值方面 OK，風險睇接貨機率）':'高過上限，價值未達合理線，要求降 strike 或加票息')+'。</div>';
+    }
     h+='<div style="border:1px solid '+vBd+';background:'+vBg+';border-radius:8px;padding:8px 10px;margin-bottom:6px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px">'+
       '<div style="font-weight:800;font-size:13px;color:#0f172a">'+tk+' <span style="font-weight:400;font-size:11px;color:#64748b">'+(rec.name||'')+' · '+((ext)?'<span style="color:#0284c7;font-weight:700">非模型池 · Yahoo 即評</span>':starHtml(stars))+'</span></div>'+
       '<div style="font-weight:700;font-size:12.5px;color:'+(verdict.indexOf('🔴')===0?'#dc2626':(verdict.indexOf('🟢')===0?'#15803d':'#b45309'))+'">'+verdict+'</div></div>'+
+      '<div style="margin-top:6px;border-radius:6px;padding:5px 10px;border:1px solid '+safeCls+'55;background:'+(L.pTouch<=0.15?'#f0fdf4':(L.pTouch<=0.25?'#f7fee7':(L.pTouch<=0.40?'#fffbeb':'#fef2f2')))+'"><b style="font-size:13.5px;color:'+safeCls+'">📉 接貨機率 '+(L.pTouch*100).toFixed(1)+'%</b><span style="font-size:11px;color:#64748b">（Strike '+strikeL+'% · 到期收市價低過 strike 就接貨）— '+safeTxt+'</span></div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:6px;font-size:11px;color:#475569;line-height:1.7">'+
       '<div>IV <b>'+(Math.round(iv*10)/10)+'%</b>（'+(ext?'Yahoo 90D':'模型90D')+'）</div>'+
-      '<div>接貨機率 <b style="color:'+safeCls+'">'+(L.pTouch*100).toFixed(1)+'%</b>'+((Lm&&t.strikePct>0)?('<span style="color:#94a3b8">（模型strike '+t.strikePct+'% → '+(Lm.pTouch*100).toFixed(1)+'%）</span>'):'')+'</div>'+
+      ((Lm&&t.strikePct>0)?('<div>模型strike '+t.strikePct+'% → '+(Lm.pTouch*100).toFixed(1)+'%</div>'):'')+
       '<div>保護距離 <b>'+(100-strikeL)+'pp</b>＝<b>'+(Math.round((100-strikeL)/100/L.sq*100)/100)+'σ</b></div>'+
       '<div>打和點 <b style="color:'+(be<-5?'#b45309':'#15803d')+'">'+be.toFixed(1)+'%</b><span style="color:#94a3b8">（strike−票息淨成本）</span></div>'+
       '<div>公平票息 <b>'+(L.fairTenor*100).toFixed(1)+'%</b> 全期<span style="color:#94a3b8">（'+(L.fairTenor*100*12/m).toFixed(1)+'% 年化）</span></div>'+
       '<div>你收 <b>'+coupT.toFixed(2)+'%</b> 全期（<b>'+(coupT*12/m).toFixed(1)+'%</b> 年化）＝公平票息嘅 <b style="color:'+valCls+'">'+(ratio!=null?Math.round(ratio*100)+'%':'—')+'</b>（同年化口徑：'+(coupT*12/m).toFixed(1)+'% vs '+(L.fairTenor*100*12/m).toFixed(1)+'%）</div>'+
       (earnFlag?'<div style="color:#dc2626;font-weight:700">🚩 業績在年期內 — IV crush／跳空風險</div>':'')+
-      '</div></div>';
+      '</div>'+plHtml+'</div>';
     // ⭐ 08-28 v2 建議分兩類（user case：72% put 收 11% 公平值，舊 logic 竟建議升 strike 去 75%「以獲更好保護」——
     //   固定票息下升 strike＝接貨機率升＋公平值升→比值跌，兩樣都差，係錯建議）：
     //   風險類（strike>90 / 接貨>30%）→ sweep 降 strike（真係加保護）；
