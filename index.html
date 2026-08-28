@@ -2058,6 +2058,19 @@ function elnJudgeBasis(btn, bas){
     var bs=box.querySelectorAll('.eln-jbasis-btn');
     for(var i=0;i<bs.length;i++){ var b=bs[i]; var on=(b.getAttribute('data-b')===bas); b.style.background=on?'#0d9488':'#fff'; b.style.color=on?'#fff':'#475569'; } }
 }
+// ⭐ 08-28 v2: 評估結果持久化 — 頁面每 60s auto-refresh 會重建成個 ELN pane（剷走結果＝user 投訴「彈走太快」）
+//   → render 完寫 localStorage，elnJudgeHTML 重建時種返（带上次評估時間）
+function elnJudgeRestore(region){
+  try{
+    var c=JSON.parse(localStorage.getItem('elnJudgeOut_'+region)||'null');
+    if(c&&c.h){
+      var d=new Date(c.ts||Date.now());
+      var hh=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+      return '<div style="font-size:10px;color:#94a3b8;padding:2px 0 4px">— 上次評估 '+hh+'（改輸入後撳「評估」更新）—</div>'+c.h;
+    }
+  }catch(e){}
+  return '';
+}
 // ⭐⭐ 2026-08-28: 自訂 ELN 審批（US/HK 各一 instance）— 輸入 localStorage 持久化（連年期/票息基準）、IV 欄已移除（自動用模型 90D 波幅）
 function elnJudgeHTML(region){
   var v=elnJudgeStore(region);
@@ -2074,20 +2087,20 @@ function elnJudgeHTML(region){
     '<div style="font-weight:800;font-size:14px;color:#0f172a">🧮 自訂'+(region==='HK'?'港股':'美股')+' ELN 審批 — 輸入報價，我幫你判 safe 唔 safe、抵唔抵</div>'+
     '<div style="font-size:10.5px;color:#94a3b8">BS·rf 4%·接貨機率=到期收市價低於 strike · IV 自動=90D 實現波幅（唔使填）· 任何代號都得——唔喺股票 list 會自動查 Yahoo 即評 · 輸入會自動記住，刷新唔會彈走</div></div>'+
     '<div style="padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">'+
-    '<div><div style="font-size:10.5px;color:#64748b;margin-bottom:3px">標的（1-3 隻，逗號分隔）</div><input id="elnJudgeTickers'+S+'" placeholder="'+(region==='HK'?'0700 或 0700,0005,0941':'JNJ 或 JNJ,XOM,V')+'" value="'+tickersVal+'" style="width:200px;'+inp+'"></div>'+
+    '<div><div style="font-size:10.5px;color:#64748b;margin-bottom:3px" title="任何代號都得，唔使喺你個 stock list：美股如 PANW、SNOW；港股如 0700。1-3 隻，逗號分隔">標的（1-3 隻，逗號分隔）</div><input id="elnJudgeTickers'+S+'" placeholder="'+(region==='HK'?'0700 或 0700,0005,0941':'JNJ 或 PANW,SNOW')+'" value="'+tickersVal+'" style="width:200px;'+inp+'"></div>'+
     '<div><div style="font-size:10.5px;color:#64748b;margin-bottom:3px">年期</div><div style="display:flex;gap:4px">'+
     '<button type="button" class="eln-jtenor-btn" data-m="3" onclick="elnJudgeTenor(this,3)" style="padding:3px 10px;border:1px solid #cbd5e1;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer;'+(tAct(3)?on:off)+'">3 個月</button>'+
     '<button type="button" class="eln-jtenor-btn" data-m="6" onclick="elnJudgeTenor(this,6)" style="padding:3px 10px;border:1px solid #cbd5e1;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer;'+(tAct(6)?on:off)+'">6 個月</button>'+
     '<button type="button" class="eln-jtenor-btn" data-m="12" onclick="elnJudgeTenor(this,12)" style="padding:3px 10px;border:1px solid #cbd5e1;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer;'+(tAct(12)?on:off)+'">12 個月</button></div></div>'+
-    '<div><div style="font-size:10.5px;color:#64748b;margin-bottom:3px">票息</div><div style="display:flex;gap:4px">'+
+    '<div><div style="font-size:10.5px;color:#64748b;margin-bottom:3px" title="銀行報價嘅票息率。年化＝FiniQ 顯示口徑（例如 8% 年化 × 3 個月 ＝ 2% 全期）；全期＝成個年期總票息">票息（銀行報價）</div><div style="display:flex;gap:4px">'+
     '<input id="elnJudgeCoupon'+S+'" type="number" step="0.1" placeholder="8" value="'+coupVal+'" style="width:72px;'+inp+'">'+
     '<button type="button" class="eln-jbasis-btn" data-b="pa" onclick="elnJudgeBasis(this,&#39;pa&#39;)" style="padding:3px 8px;border:1px solid #cbd5e1;border-radius:999px;font-size:10.5px;font-weight:700;cursor:pointer;'+(bAct('pa')?on:off)+'">年化%</button>'+
     '<button type="button" class="eln-jbasis-btn" data-b="tenor" onclick="elnJudgeBasis(this,&#39;tenor&#39;)" style="padding:3px 8px;border:1px solid #cbd5e1;border-radius:999px;font-size:10.5px;font-weight:700;cursor:pointer;'+(bAct('tenor')?on:off)+'">全期%</button></div></div>'+
-    '<div><div style="font-size:10.5px;color:#64748b;margin-bottom:3px">Call%</div><input id="elnJudgeCall'+S+'" type="number" step="0.5" placeholder="100" value="'+callVal+'" style="width:70px;'+inp+'"></div>'+
-    '<div><div style="font-size:10.5px;color:#64748b;margin-bottom:3px">Strike%</div><input id="elnJudgeStrike'+S+'" type="number" step="0.5" placeholder="94" value="'+strikeVal+'" style="width:70px;'+inp+'"></div>'+
+    '<div><div style="font-size:10.5px;color:#64748b;margin-bottom:3px" title="提早贖回觸發價（相對現價%）：期內任何計價日現價升到呢個水平，銀行提早贖回、單完結。100＝現價">Call%（贖回觸發）</div><input id="elnJudgeCall'+S+'" type="number" step="0.5" placeholder="100" value="'+callVal+'" style="width:70px;'+inp+'"></div>'+
+    '<div><div style="font-size:10.5px;color:#64748b;margin-bottom:3px" title="接貨行使價（相對現價%）：到期日收市價低過呢個水平，就要用呢個價接貨。72＝現價嘅 72%">Strike%（接貨價）</div><input id="elnJudgeStrike'+S+'" type="number" step="0.5" placeholder="94" value="'+strikeVal+'" style="width:70px;'+inp+'"></div>'+
     '<button type="button" onclick="elnJudgeRun(&#39;'+region+'&#39;)" style="padding:7px 18px;background:#0d9488;color:#fff;border:none;border-radius:6px;font-size:12.5px;font-weight:700;cursor:pointer">評估</button>'+
     '</div>'+
-    '<div id="elnJudgeOut'+S+'" style="padding:0 12px 4px"></div>'+
+    '<div id="elnJudgeOut'+S+'" style="padding:0 12px 4px">'+elnJudgeRestore(region)+'</div>'+
     '<div style="padding:8px 12px;border-top:1px solid #e2e8f0;font-size:10.5px;color:#94a3b8;line-height:1.7">公平票息（全期）＝e^{rT}·[Call(call%) 讓出腿＋Put(strike%)/k 接貨腿]＝揸到期、收足全期票息、讓出 call 上方全部升幅嘅理論值——<b>係買家公平值上限</b>。若結構有 autocall（提早贖回按日數比例收票息），期望值仲要打折。<b>≥80% 極抵 · 55-80% 合理（銀行正常價）· 40-55% 偏貴 · <40% 食水深</b>。接貨機率安全線（同判決 band 一致）：<b>≤15% 安全｜15-25% 尚可｜25-40% 偏博｜>40% 高危（避免）</b>——超標時會自動建議 safer put level（call level 照舊：銀行 early call 後可再轉倉）。IV=90D 實現波幅自動代入（池內標的=模型值；非池=Yahoo 即場計——質素/業績未評，判決上限 🟡）。</div>'+
     '</div>';
 }
@@ -2197,14 +2210,18 @@ async function elnJudgeRun(region){
       '<div>保護距離 <b>'+(100-strikeL)+'pp</b>＝<b>'+(Math.round((100-strikeL)/100/L.sq*100)/100)+'σ</b></div>'+
       '<div>打和點 <b style="color:'+(be<-5?'#b45309':'#15803d')+'">'+be.toFixed(1)+'%</b><span style="color:#94a3b8">（strike−票息淨成本）</span></div>'+
       '<div>公平票息 <b>'+(L.fairTenor*100).toFixed(1)+'%</b> 全期<span style="color:#94a3b8">（'+(L.fairTenor*100*12/m).toFixed(1)+'% 年化）</span></div>'+
-      '<div>你收 <b>'+coupT.toFixed(2)+'%</b> 全期＝<b style="color:'+valCls+'">'+(ratio!=null?Math.round(ratio*100)+'%':'—')+'</b> 公平值</div>'+
+      '<div>你收 <b>'+coupT.toFixed(2)+'%</b> 全期（<b>'+(coupT*12/m).toFixed(1)+'%</b> 年化）＝公平票息嘅 <b style="color:'+valCls+'">'+(ratio!=null?Math.round(ratio*100)+'%':'—')+'</b>（同年化口徑：'+(coupT*12/m).toFixed(1)+'% vs '+(L.fairTenor*100*12/m).toFixed(1)+'%）</div>'+
       (earnFlag?'<div style="color:#dc2626;font-weight:700">🚩 業績在年期內 — IV crush／跳空風險</div>':'')+
       '</div></div>';
-    // 2026-08-27/28: 智能建議（per-ticker）— 報價唔理想時 sweep put level（用呢隻嘅 iv/q），搵接貨機率≈15% 嘅 strike
-    var safePutLevel=null;
-    if(strikeL>90 || L.pTouch>0.30 || (ratio!=null&&ratio<0.40)){
-      var bestStrike=null, bestTouch=0.15;
-      for(var st=Math.max(75,strikeL-15); st<=Math.min(98,strikeL+5); st+=1){
+    // ⭐ 08-28 v2 建議分兩類（user case：72% put 收 11% 公平值，舊 logic 竟建議升 strike 去 75%「以獲更好保護」——
+    //   固定票息下升 strike＝接貨機率升＋公平值升→比值跌，兩樣都差，係錯建議）：
+    //   風險類（strike>90 / 接貨>30%）→ sweep 降 strike（真係加保護）；
+    //   價值類（比值<40%）→ 唔郁 strike，俾議價目標票息（公平值×55%＝合理、×80%＝好價，年化口徑）
+    var riskSweep=(strikeL>90||L.pTouch>0.30);
+    var safePutLevel=null, bestTouch=0.15;
+    if(riskSweep){
+      var bestStrike=null;
+      for(var st=Math.max(70,strikeL-15); st<=Math.min(98,strikeL+5); st+=1){
         var testL=elnBsLegs(st,callL,m,iv,RF,q);
         if(testL.pTouch<=0.20 && (bestStrike===null||Math.abs(testL.pTouch-0.15)<Math.abs(bestTouch-0.15))){
           bestStrike=st; bestTouch=testL.pTouch;
@@ -2215,12 +2232,21 @@ async function elnJudgeRun(region){
     if(safePutLevel!==null){
       var recTexts=[];
       if(strikeL>90) recTexts.push('❗ Strike 太高（'+strikeL+'%）→ 建議降至 '+safePutLevel+'%（接貨機率降至 '+Math.round(bestTouch*100)+'%）');
-      else if(L.pTouch>0.30) recTexts.push('❗ 接貨機率 '+Math.round(L.pTouch*100)+'% 太高 → 建議降至 '+safePutLevel+'%');
-      else if(ratio!=null&&ratio<0.40) recTexts.push('❗ 票息價值 '+Math.round(ratio*100)+'% 偏低 → 可調整 strike 至 '+safePutLevel+'% 以獲更好保護');
+      else recTexts.push('❗ 接貨機率 '+Math.round(L.pTouch*100)+'% 太高 → 建議降至 '+safePutLevel+'%');
       recTexts.push('🎯 推薦 put level：'+safePutLevel+'%（保護距離='+(100-safePutLevel)+'pp）｜call level 保持 '+callL+'%（早期轉倉機制不變）');
       h+='<div style="border:1px dashed #f59e0b;background:#fff7ed;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:11.5px;color:#92400e">'+
         '<div style="font-weight:700;font-size:12px;margin-bottom:4px">💡 智能調整建議（銀行角度：降低接貨風險 + 客戶安全）</div>'+
         recTexts.join(' · ')+
+        '</div>';
+    }
+    else if(ratio!=null&&ratio<0.40){
+      var coupPa=coupT*12/m; // 你收年化
+      var need55=(L.fairTenor*0.55*100)*12/m, need80=(L.fairTenor*0.80*100)*12/m; // 議價目標（年化）
+      h+='<div style="border:1px dashed #f59e0b;background:#fff7ed;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:11.5px;color:#92400e;line-height:1.7">'+
+        '<div style="font-weight:700;font-size:12px;margin-bottom:4px">💡 票息議價建議 — 問題係價，唔係 strike</div>'+
+        '你收 '+coupT.toFixed(2)+'% 全期（'+coupPa.toFixed(1)+'% 年化）＝公平票息嘅 '+Math.round(ratio*100)+'%。呢個 strike（'+strikeL+'%）接貨機率 '+Math.round(L.pTouch*100)+'% 本身'+(L.pTouch<=0.25?'已經安全，唔使再壓深':'偏博')+'；但公平票息係 '+(L.fairTenor*100).toFixed(1)+'% 全期（'+(L.fairTenor*100*12/m).toFixed(1)+'% 年化），銀行只俾你 '+coupPa.toFixed(1)+'% 年化＝食水深。'+
+        '<b>同銀行要求：≥'+need55.toFixed(1)+'% 年化（公平值 55%＝合理價）；≥'+need80.toFixed(1)+'% 年化（80%＝好價）先好做</b>。唔肯加價就唔做或轉標的。'+
+        '（⚠️ 唔好靠升 strike 搏——同一票息下，strike 72%→75% 只會接貨機率升、比值再跌，兩樣都蝕底）'+
         '</div>';
     }
   }
@@ -2229,7 +2255,9 @@ async function elnJudgeRun(region){
     h+='<div style="border:1px dashed #cbd5e1;background:#f8fafc;border-radius:8px;padding:8px 10px;font-size:11.5px;color:#334155;line-height:1.7">'+
       '<b>Basket（worst-of 假設）</b>：任一隻跌穿 strike 機率 ≈ <b style="color:'+(pAny>0.4?'#dc2626':(pAny>0.25?'#b45309':'#15803d'))+'">'+(pAny*100).toFixed(1)+'%</b>（獨立近似下限；實際關聯高啲）。worst-of 結構銀行應該俾<b>高過</b>單一標的嘅票息補償——如果報價同單股差唔多，即係用 basket 名義壓你價。</div>';
   }
-  out.innerHTML=h;
+  var live=document.getElementById('elnJudgeOut'+S); if(live) live.innerHTML=h;  // await 後 box 可能已被 re-render 換走 → re-lookup
+  // ⭐ 08-28 v2: 結果持久化 — auto-refresh（60s 重 render）後 elnJudgeHTML 會種返
+  try{ localStorage.setItem('elnJudgeOut_'+region,JSON.stringify({ts:Date.now(),h:h})); }catch(e){}
 }
 // 2026-08-11 ELN 年期切換：即時更新 strike/coupon/iv cell + 業績警告 + 重排（同 secSort main+sub pair 模式）+ secApply 保板塊過濾
 // 2026-08-11 v2：排序改為「推薦優先」— 先按 data-score(=★*1000+score) desc（最推薦行先），同分先按 couponPa desc；唔再單按票息（user：order 好亂）
