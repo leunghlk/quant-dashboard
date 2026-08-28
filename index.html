@@ -2072,7 +2072,7 @@ function elnJudgeHTML(region){
   return '<div id="elnJudge'+S+'" class="eln-judge-box" data-region="'+region+'" style="margin-top:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;overflow:hidden">'+
     '<div style="padding:10px 12px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px">'+
     '<div style="font-weight:800;font-size:14px;color:#0f172a">🧮 自訂'+(region==='HK'?'港股':'美股')+' ELN 審批 — 輸入報價，我幫你判 safe 唔 safe、抵唔抵</div>'+
-    '<div style="font-size:10.5px;color:#94a3b8">BS·rf 4%·接貨機率=到期收市價低於 strike · IV 自動=模型 90D 波幅（唔使填）· 輸入會自動記住，刷新唔會彈走</div></div>'+
+    '<div style="font-size:10.5px;color:#94a3b8">BS·rf 4%·接貨機率=到期收市價低於 strike · IV 自動=90D 實現波幅（唔使填）· 任何代號都得——唔喺股票 list 會自動查 Yahoo 即評 · 輸入會自動記住，刷新唔會彈走</div></div>'+
     '<div style="padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">'+
     '<div><div style="font-size:10.5px;color:#64748b;margin-bottom:3px">標的（1-3 隻，逗號分隔）</div><input id="elnJudgeTickers'+S+'" placeholder="'+(region==='HK'?'0700 或 0700,0005,0941':'JNJ 或 JNJ,XOM,V')+'" value="'+tickersVal+'" style="width:200px;'+inp+'"></div>'+
     '<div><div style="font-size:10.5px;color:#64748b;margin-bottom:3px">年期</div><div style="display:flex;gap:4px">'+
@@ -2088,10 +2088,32 @@ function elnJudgeHTML(region){
     '<button type="button" onclick="elnJudgeRun(&#39;'+region+'&#39;)" style="padding:7px 18px;background:#0d9488;color:#fff;border:none;border-radius:6px;font-size:12.5px;font-weight:700;cursor:pointer">評估</button>'+
     '</div>'+
     '<div id="elnJudgeOut'+S+'" style="padding:0 12px 4px"></div>'+
-    '<div style="padding:8px 12px;border-top:1px solid #e2e8f0;font-size:10.5px;color:#94a3b8;line-height:1.7">公平票息（全期）＝e^{rT}·[Call(call%) 讓出腿＋Put(strike%)/k 接貨腿]＝揸到期、收足全期票息、讓出 call 上方全部升幅嘅理論值——<b>係買家公平值上限</b>。若結構有 autocall（提早贖回按日數比例收票息），期望值仲要打折。<b>≥80% 極抵 · 55-80% 合理（銀行正常價）· 40-55% 偏貴 · <40% 食水深</b>。接貨機率安全線（同判決 band 一致）：<b>≤15% 安全｜15-25% 尚可｜25-40% 偏博｜>40% 高危（避免）</b>——超標時會自動建議 safer put level（call level 照舊：銀行 early call 後可再轉倉）。IV=模型 90D 實現波幅自動代入。</div>'+
+    '<div style="padding:8px 12px;border-top:1px solid #e2e8f0;font-size:10.5px;color:#94a3b8;line-height:1.7">公平票息（全期）＝e^{rT}·[Call(call%) 讓出腿＋Put(strike%)/k 接貨腿]＝揸到期、收足全期票息、讓出 call 上方全部升幅嘅理論值——<b>係買家公平值上限</b>。若結構有 autocall（提早贖回按日數比例收票息），期望值仲要打折。<b>≥80% 極抵 · 55-80% 合理（銀行正常價）· 40-55% 偏貴 · <40% 食水深</b>。接貨機率安全線（同判決 band 一致）：<b>≤15% 安全｜15-25% 尚可｜25-40% 偏博｜>40% 高危（避免）</b>——超標時會自動建議 safer put level（call level 照舊：銀行 early call 後可再轉倉）。IV=90D 實現波幅自動代入（池內標的=模型值；非池=Yahoo 即場計——質素/業績未評，判決上限 🟡）。</div>'+
     '</div>';
 }
-function elnJudgeRun(region){
+// ⭐ 2026-08-28: 任意 ticker fallback — 唔喺模型池都照判：worker /api/eln-judge 用 Yahoo 2y 日線
+//   計 90/180/250D 實現波幅。localStorage 6h cache（key=elnJudgeLk_<tk>）。name 過濾 HTML 特殊字元。
+//   ⚠️ 呢段係 backtick template 內嵌 client JS——嚴禁 raw backtick 同 dollar-brace 插值序列（historical 炸彈）。
+function elnJudgeLookup(tk){
+  var now=Date.now();
+  try{
+    var c=JSON.parse(localStorage.getItem('elnJudgeLk_'+tk)||'null');
+    if(c&&c.rec&&c.rec.external&&(now-c.ts)<21600000) return Promise.resolve(c.rec);
+  }catch(e){}
+  return fetch(API_PRIMARY+'/eln-judge?s='+encodeURIComponent(tk)).then(function(r){ return r.ok?r.json():null; }).then(function(j){
+    if(!j||!(j.vol90>0)) return null;
+    var iv6=(j.vol180!=null&&j.vol180>0)?j.vol180:j.vol90;
+    var iv12=(j.vol250!=null&&j.vol250>0)?j.vol250:iv6;
+    var nm=String(j.name||'').replace(/[<>&"]/g,'');
+    var rec={ ticker:j.ticker||tk, name:nm, price:j.price, external:true, divYield:0,
+      tenors:{ 3:{iv:j.vol90,strikePct:null,stars:null,earningsInTenor:false},
+               6:{iv:iv6,strikePct:null,stars:null,earningsInTenor:false},
+              12:{iv:iv12,strikePct:null,stars:null,earningsInTenor:false} } };
+    try{ localStorage.setItem('elnJudgeLk_'+tk,JSON.stringify({ts:now,rec:rec})); }catch(e){}
+    return rec;
+  }).catch(function(){ return null; });
+}
+async function elnJudgeRun(region){
   var S=(region==='HK')?'_HK':'_US';
   var out=document.getElementById('elnJudgeOut'+S); if(!out) return;
   // 固定輸入值（避免彈走）
@@ -2109,22 +2131,38 @@ function elnJudgeRun(region){
   // ⭐ 2026-08-28 region 制數據 stash：US/HK 各自嘅 ELN 池（recommended/avoid）
   var jd=(region==='HK'?window._elnJudgeData_HK:window._elnJudgeData_US)||{};
   var recs=jd.recommended||[], avoid=jd.avoid||[];
-  var h=''; var probs=[];
+  // ⭐ 08-28 修復：HK pool ticker='0700.HK' 但 code='0700'——ticker/code 雙試（唔可以 || 短路）（⚠️ 呢段係 backtick template 內嵌 client JS，註解嚴禁 raw backtick）
+  var hit=function(o,tk){ return !!o&&((o.ticker===tk)||(o.code===tk)); };
+  var poolRec={}, avoidRec={};
   tks.forEach(function(tk){
-    // ⭐ 08-28 修復：HK pool ticker='0700.HK' 但 code='0700'——舊 ticker||code 短路令 HK 輸入 '0700' 永遠 match 唔到（成個 HK judge 誤報唔喺池）→ ticker/code 雙試（⚠️ 呢段係 backtick template 內嵌 client JS，註解嚴禁 raw backtick）
-    var hit=function(o){ return !!o&&((o.ticker===tk)||(o.code===tk)); };
-    var rec=null; for(var i=0;i<recs.length;i++){ if(hit(recs[i])){ rec=recs[i]; break; } }
-    var av=null; for(var j=0;j<avoid.length;j++){ if(hit(avoid[j])){ av=avoid[j]; break; } }
-    var border='#e2e8f0', bg='#f8fafc';
-    if(!rec||!rec.tenors||!rec.tenors[m]||!(rec.tenors[m].iv>0)){
-      h+='<div style="border:1px solid #fecaca;background:#fef2f2;border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;color:#991b1b">⚠️ '+tk+' 唔喺 ELN 候選池（冇波幅/質素數據）'+(av?(' — 模型不宜名單：'+(av.reason||'')):'')+'</div>';
-      return;
+    for(var i=0;i<recs.length;i++){ if(hit(recs[i],tk)){ poolRec[tk]=recs[i]; break; } }
+    for(var j=0;j<avoid.length;j++){ if(hit(avoid[j],tk)){ avoidRec[tk]=avoid[j]; break; } }
+  });
+  // ⭐ 08-28 任意 ticker：唔喺池（又唔喺 avoid）→ 即場經 /api/eln-judge 查 Yahoo 實現波幅，照判
+  var synth={}; var misses=[];
+  tks.forEach(function(tk){ if(!poolRec[tk]&&!avoidRec[tk]) misses.push(tk); });
+  if(misses.length){
+    out.innerHTML='<div style="border:1px solid #bae6fd;background:#f0f9ff;border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;color:#075985">⏳ '+misses.join(', ')+' 唔喺模型池 — 即場查 Yahoo 90D 波幅（約 2-5 秒）…</div>';
+    try{ await Promise.all(misses.map(function(tk){ return elnJudgeLookup(tk).then(function(r){ if(r) synth[tk]=r; }); })); }catch(e){}
+  }
+  var h=''; var probs=[];
+  for(var ti=0;ti<tks.length;ti++){ var tk=tks[ti];
+    var av=avoidRec[tk]||null;
+    if(av){
+      h+='<div style="border:1px solid #fecaca;background:#fef2f2;border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;color:#991b1b">⚠️ '+tk+' 唔喺 ELN 候選池 — 模型不宜名單：'+(av.reason||'')+'</div>';
+      continue;
     }
+    var rec=poolRec[tk]||synth[tk]||null;
+    if(!rec||!rec.tenors||!rec.tenors[m]||!(rec.tenors[m].iv>0)){
+      h+='<div style="border:1px solid #fecaca;background:#fef2f2;border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;color:#991b1b">⚠️ '+tk+' 查唔到數據 — 核對代號（美股如 JNJ／港股如 0700）後再試</div>';
+      continue;
+    }
+    var ext=!!rec.external; // ⭐ 非模型池（Yahoo 即場評）：質素/業績未評 → 判決上限 🟡
     var t=rec.tenors[m];
-    var iv=t.iv; // 移除 IV 覆寫欄後，只採用模型值
+    var iv=t.iv; // 池內=模型值；非池=Yahoo 即場計（elnJudgeLookup）
     var q=(rec.divYield>0?rec.divYield/100:0);
     var L=elnBsLegs(strikeL,callL,m,iv,RF,q);
-    var Lm=elnBsLegs(t.strikePct,callL,m,iv,RF,q);
+    var Lm=(t.strikePct>0)?elnBsLegs(t.strikePct,callL,m,iv,RF,q):null; // 非池冇模型 strike → 唔比較
     var stars=(t.stars!=null?t.stars:rec.stars)||0;
     var earnFlag=!!(t.earningsInTenor||rec.earningsInTenor);
     var coupF=coupT/100; // 票息全期（分數，同 fairTenor 口徑）
@@ -2144,18 +2182,18 @@ function elnJudgeRun(region){
     else { safeCls='#dc2626'; safeTxt='高危'; }
     var verdict, vBg, vBd;
     if(av){ verdict='🔴 唔好做 — 模型不宜名單：'+(av.reason||''); vBg='#fef2f2'; vBd='#fecaca'; }
-    else if(stars<=2){ verdict='🔴 質素唔夠（'+stars+'★）— 接貨等於接劣質股'; vBg='#fef2f2'; vBd='#fecaca'; }
+    else if(!ext&&stars<=2){ verdict='🔴 質素唔夠（'+stars+'★）— 接貨等於接劣質股'; vBg='#fef2f2'; vBd='#fecaca'; }
     else if(valTxt==='食水深'||L.pTouch>0.40){ verdict='🔴 唔值得 — '+(valTxt==='食水深'?'票息對唔起風險':'接貨機率 '+Math.round(L.pTouch*100)+'% 太高'); vBg='#fef2f2'; vBd='#fecaca'; }
-    else if(ratio!=null&&ratio>=0.55&&L.pTouch<=0.20&&stars>=4&&!earnFlag){ verdict='🟢 安全兼抵做'; vBg='#f0fdf4'; vBd='#bbf7d0'; }
-    else { verdict='🟡 做得過但知風險 — '+valTxt+' · 接貨'+safeTxt; vBg='#fffbeb'; vBd='#fde68a'; }
+    else if(!ext&&ratio!=null&&ratio>=0.55&&L.pTouch<=0.20&&stars>=4&&!earnFlag){ verdict='🟢 安全兼抵做'; vBg='#f0fdf4'; vBd='#bbf7d0'; }
+    else { verdict='🟡 做得過但知風險 — '+valTxt+' · 接貨'+safeTxt+(ext?' · 非模型池（質素未評）':''); vBg='#fffbeb'; vBd='#fde68a'; }
     var be=strikeL-coupT-100; // 打和點（連票息淨成本，對入場價）
     h+='<div style="border:1px solid '+vBd+';background:'+vBg+';border-radius:8px;padding:8px 10px;margin-bottom:6px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px">'+
-      '<div style="font-weight:800;font-size:13px;color:#0f172a">'+tk+' <span style="font-weight:400;font-size:11px;color:#64748b">'+(rec.name||'')+' · '+starHtml(stars)+'</span></div>'+
+      '<div style="font-weight:800;font-size:13px;color:#0f172a">'+tk+' <span style="font-weight:400;font-size:11px;color:#64748b">'+(rec.name||'')+' · '+((ext)?'<span style="color:#0284c7;font-weight:700">非模型池 · Yahoo 即評</span>':starHtml(stars))+'</span></div>'+
       '<div style="font-weight:700;font-size:12.5px;color:'+(verdict.indexOf('🔴')===0?'#dc2626':(verdict.indexOf('🟢')===0?'#15803d':'#b45309'))+'">'+verdict+'</div></div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:6px;font-size:11px;color:#475569;line-height:1.7">'+
-      '<div>IV <b>'+(Math.round(iv*10)/10)+'%</b>（模型90D）</div>'+
-      '<div>接貨機率 <b style="color:'+safeCls+'">'+(L.pTouch*100).toFixed(1)+'%</b><span style="color:#94a3b8">（模型strike '+t.strikePct+'% → '+(Lm.pTouch*100).toFixed(1)+'%）</span></div>'+
+      '<div>IV <b>'+(Math.round(iv*10)/10)+'%</b>（'+(ext?'Yahoo 90D':'模型90D')+'）</div>'+
+      '<div>接貨機率 <b style="color:'+safeCls+'">'+(L.pTouch*100).toFixed(1)+'%</b>'+((Lm&&t.strikePct>0)?('<span style="color:#94a3b8">（模型strike '+t.strikePct+'% → '+(Lm.pTouch*100).toFixed(1)+'%）</span>'):'')+'</div>'+
       '<div>保護距離 <b>'+(100-strikeL)+'pp</b>＝<b>'+(Math.round((100-strikeL)/100/L.sq*100)/100)+'σ</b></div>'+
       '<div>打和點 <b style="color:'+(be<-5?'#b45309':'#15803d')+'">'+be.toFixed(1)+'%</b><span style="color:#94a3b8">（strike−票息淨成本）</span></div>'+
       '<div>公平票息 <b>'+(L.fairTenor*100).toFixed(1)+'%</b> 全期<span style="color:#94a3b8">（'+(L.fairTenor*100*12/m).toFixed(1)+'% 年化）</span></div>'+
@@ -2185,7 +2223,7 @@ function elnJudgeRun(region){
         recTexts.join(' · ')+
         '</div>';
     }
-  });
+  }
   if(tks.length>1&&probs.length){
     var pAny=1; probs.forEach(function(p){ pAny*=(1-p); }); pAny=1-pAny;
     h+='<div style="border:1px dashed #cbd5e1;background:#f8fafc;border-radius:8px;padding:8px 10px;font-size:11.5px;color:#334155;line-height:1.7">'+
