@@ -683,7 +683,7 @@ function renderUnified(){
   h += '<div class="kpi" style="margin-top:0">';
   h += '<div class="k"><div class="lbl">總資產（'+uniCCY()+'）</div><div class="val" id="uTotal">'+uMask(uMoney(total))+'</div><div class="small muted">基準 HKD '+(BASE_HKD/1000).toFixed(0)+'k · 回報 '+(retPct>=0?'+':'')+retPct.toFixed(1)+'%</div></div>';
   h += '<div class="k"><div class="lbl">已實現 P&L（'+uniCCY()+'）</div><div class="val '+(realized>=0?'up':'dn')+'">'+uPnl(realized)+'</div><div class="small muted">＝ 總資產 − 本金 HKD 320,000（含浮動）</div></div>';
-  h += '<div class="k"><div class="lbl">未實現 P&L（'+uniCCY()+'）</div><div class="val '+(unreal>=0?'up':'dn')+'">'+uPnl(unreal)+'</div><div class="small muted">Futu 持倉口徑 ＝ 權利金 − 市值</div></div>';
+  h += '<div class="k"><div class="lbl">未實現 P&L（'+uniCCY()+'）</div><div class="val '+(unreal>=0?'up':'dn')+'">'+uPnl(unreal)+'</div><div class="small muted">Futu 全戶口口徑：期權＋正股（XSP 倉＋LITE/DLLL）加總</div></div>';
   h += '<div class="k"><div class="lbl">可動用現金寶（'+uniCCY()+'）</div><div class="val" style="color:#16a34a">'+uMask(uMoney(avail))+'</div><div class="small muted">'+availPct.toFixed(0)+'% 資產 · 現金−抵押 · 0佣金收息</div></div>';
   h += '<div class="k"><div class="lbl">抵押鎖定（'+uniCCY()+'）</div><div class="val" style="color:#b45309">'+uMask(uMoney(locked))+'</div><div class="small muted">短 put 按金佔用 · 不可動用</div></div>';
   h += '</div>';
