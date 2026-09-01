@@ -489,7 +489,7 @@ function fmt(v,d=2){return v!=null?Number(v).toFixed(d):'—'}
 function fmtPct(v){return v!=null?(v*100).toFixed(1)+'%':'—'}
 function sigClass(s){return 'sig sig-'+s}
 function r2(v){return Math.round(v*100)/100}
-function rD(v){return (v>=1000)?Math.round(v).toLocaleString():((Math.round(v*100)/100).toLocaleString())}
+function rD(v){return (v==null||isNaN(v))?'—':((v>=1000)?Math.round(v).toLocaleString():((Math.round(v*100)/100).toLocaleString()))}
 function cv(v){return v>=0?'#16a34a':'#dc2626'}
 function dc(d){if(d<=-3)return'decel decel-ex';if(d<=-2)return'decel decel-d';if(d<=-1)return'decel decel-c';return''}
 // ===== Price freshness validation system =====
@@ -678,17 +678,17 @@ function renderOptionsIncome(d){
     h+='<div style="font-size:13px;color:#cbd5e1">權利金 $'+best.mid+'/股 = <b>$'+best.premium+'/張 ≈ HKD '+best.premium_hkd+'</b></div>';
     h+=probGauge(best.prob_itm,best.prob_otm);
     h+='<div style="font-size:10px;color:#94a3b8">OTM = 賺足權利金機率 · ITM = 被指派機率</div>';
-    h+='<div style="font-size:11px;color:#cbd5e1;margin-top:6px">到期 '+best.expiry+'（'+best.dte+'D）· Delta '+best.delta+' · IV '+Math.round(best.iv*100)+'%（rank '+best.iv_rank+'）· 抵押 $'+best.collateral.toLocaleString()+'</div>';
-    h+='<div style="font-size:13px;font-weight:700;color:#fbbf24;margin-top:6px">回報 '+best.yield_pct+'%/週 ≈ '+best.yield_ann+'%/年</div>';
+    h+='<div style="font-size:11px;color:#cbd5e1;margin-top:6px">到期 '+best.expiry+'（'+(best.dte!=null?best.dte:'—')+'D）· Delta '+(best.delta!=null?best.delta:'—')+' · IV '+(best.iv!=null?Math.round(best.iv*100)+'%':'—')+'（rank '+(best.iv_rank!=null?best.iv_rank:'—')+'）· 抵押 $'+(best.collateral!=null?Number(best.collateral).toLocaleString():'—')+'</div>';
+    h+='<div style="font-size:13px;font-weight:700;color:#fbbf24;margin-top:6px">回報 '+(best.yield_pct!=null?best.yield_pct:'—')+'%/週 ≈ '+(best.yield_ann!=null?best.yield_ann:'—')+'%/年</div>';
     h+=earnFlag;
     h+='</div>';
     if(pi===0){
     h+='<div style="flex:1;min-width:230px;background:#1e293b;border-radius:10px;padding:12px;color:#fff">';
     h+='<div style="font-size:12px;color:#94a3b8">資本狀況（HKD 200k 上限）</div>';
-    h+='<div style="font-size:20px;font-weight:800">HKD '+d.capital_hkd.toLocaleString()+'</div>';
-    h+='<div style="margin-top:8px"><div style="height:10px;background:#334155;border-radius:5px;overflow:hidden"><div style="height:100%;width:'+d.used_pct+'%;background:#3b82f6"></div></div></div>';
-    h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">已用 '+d.used_pct+'% · 抵押 $'+d.used_usd.toLocaleString()+'</div>';
-    h+='<div style="font-size:13px;color:#4ade80;margin-top:8px">估算月收入 <b>~HKD '+d.projected_monthly_hkd.hkd.toLocaleString()+'</b></div>';
+    h+='<div style="font-size:20px;font-weight:800">HKD '+(d.capital_hkd!=null?Number(d.capital_hkd).toLocaleString():'—')+'</div>';
+    h+='<div style="margin-top:8px"><div style="height:10px;background:#334155;border-radius:5px;overflow:hidden"><div style="height:100%;width:'+(d.used_pct!=null?d.used_pct:0)+'%;background:#3b82f6"></div></div></div>';
+    h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">已用 '+(d.used_pct!=null?d.used_pct:'—')+'% · 抵押 $'+(d.used_usd!=null?Number(d.used_usd).toLocaleString():'—')+'</div>';
+    h+='<div style="font-size:13px;color:#4ade80;margin-top:8px">估算月收入 <b>~HKD '+((d.projected_monthly_hkd&&d.projected_monthly_hkd.hkd!=null)?Number(d.projected_monthly_hkd.hkd).toLocaleString():'—')+'</b></div>';
     h+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">'+d.target_monthly_hkd_note+'</div>';
     h+='</div>';
     }
@@ -703,7 +703,7 @@ function renderOptionsIncome(d){
   if(book.length){
     hb+='<table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">權利金/張</th><th class="r">抵押</th><th class="r">週回報</th><th class="c">ITM / OTM</th></tr></thead><tbody>';
     book.forEach(function(c){
-      hb+='<tr><td><b>'+c.ticker+'</b></td><td class="r">$'+c.strike+'</td><td>'+c.expiry+'（'+c.dte+'D）</td><td class="r">$'+c.premium+'<br><span style="color:#94a3b8;font-size:10px">≈HKD '+c.premium_hkd+'</span></td><td class="r">$'+c.collateral.toLocaleString()+'</td><td class="r">'+c.yield_pct+'%</td><td class="c" style="min-width:150px">'+probGauge(c.prob_itm,c.prob_otm)+'</td></tr>';
+      hb+='<tr><td><b>'+c.ticker+'</b></td><td class="r">$'+c.strike+'</td><td>'+c.expiry+'（'+(c.dte!=null?c.dte:'—')+'D）</td><td class="r">$'+(c.premium!=null?c.premium:'—')+'<br><span style="color:#94a3b8;font-size:10px">≈HKD '+(c.premium_hkd!=null?c.premium_hkd:'—')+'</span></td><td class="r">$'+(c.collateral!=null?Number(c.collateral).toLocaleString():'—')+'</td><td class="r">'+(c.yield_pct!=null?c.yield_pct:'—')+'%</td><td class="c" style="min-width:150px">'+probGauge(c.prob_itm,c.prob_otm)+'</td></tr>';
     });
     hb+='</tbody></table>';
   }else{hb+='<div style="color:#64748b">暫無建議組合（資本 / veto 限制）。</div>';}
@@ -730,7 +730,7 @@ function renderOptionsIncome(d){
   const cc=d.covered_calls||[];
   if(cc.length){
     hp+='<div style="font-size:12px;font-weight:700;margin-top:12px;color:#f59e0b">🟡 接貨後可賣 Covered Call</div>';
-    cc.forEach(function(c){hp+='<div style="font-size:12px;color:#cbd5e1;margin:2px 0">'+c.note+' · OTM '+c.prob_otm+'%</div>';});
+    cc.forEach(function(c){hp+='<div style="font-size:12px;color:#cbd5e1;margin:2px 0">'+c.note+' · OTM '+(c.prob_otm!=null?c.prob_otm:'—')+'%</div>';});
   }
   if(hp)ps.innerHTML=hp;
   secApply('optionsIncomeBody');secApply('optionsBookBody');secApply('optionsPosBody');
@@ -986,7 +986,7 @@ function showDetail(ticker,data){
   const decelInfo=s.decelReasons&&s.decelReasons.length?'<div style="margin-top:8px;font-size:12px;color:#64748b">減速原因:<br>'+s.decelReasons.map(r=>'• '+r).join('<br>')+'</div>':'';
   document.getElementById('modalContent').innerHTML=
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div><span style="font-size:20px;font-weight:800">'+(s.name?(s.code+' '+s.name):ticker)+'</span>'+(held?' <span style="background:#0d9488;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">持有 '+held.shares+'股</span>':'')+'</div><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></div>'+
-    '<div style="font-size:13px;color:#64748b;margin-bottom:12px">現價 '+cur+fmt(s.price)+' · 最近交易日 '+(s.chg1d!=null?('<span style="color:'+(s.chg1d>=0?'#16a34a':'#dc2626')+';font-weight:700">'+(s.chg1d>=0?'+':'')+s.chg1d+'%</span>'):'—')+' · 90日波幅 '+(s.vol90!=null?s.vol90+'%':'—')+' · Vol30 '+s.vol30+'% · 12M '+fmtPct(s.m12)+(s.sector?' · '+s.sector:'')+'</div>'+
+    '<div style="font-size:13px;color:#64748b;margin-bottom:12px">現價 '+cur+fmt(s.price)+' · 最近交易日 '+(s.chg1d!=null?('<span style="color:'+(s.chg1d>=0?'#16a34a':'#dc2626')+';font-weight:700">'+(s.chg1d>=0?'+':'')+s.chg1d+'%</span>'):'—')+' · 90日波幅 '+(s.vol90!=null?s.vol90+'%':'—')+' · Vol30 '+(s.vol30!=null?s.vol30+'%':'—')+' · 12M '+fmtPct(s.m12)+(s.sector?' · '+s.sector:'')+'</div>'+
     '<div style="margin-bottom:16px">'+fbar(s.quality,'Quality 質素','30%')+fbar(s.momentum,'Momentum 動量','25%')+fbar(s.value,'Value 價值','20%')+fbar(s.growth,'Growth 增長','25%')+'</div>'+
     '<div style="padding:10px;background:#f8fafc;border-radius:8px;margin-bottom:8px"><b>總分: '+fmt(s.score*100,0)+'</b> · Decel: <span class="'+dc(s.decel)+'">'+s.decel+'</span></div>'+
     decelInfo+
@@ -1234,7 +1234,7 @@ function showBidi(ticker){
     '<span style="background:'+(b.stance==='偏淡'?'#dc2626':b.stance==='偏好'?'#16a34a':'#94a3b8')+';color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700">'+b.stance+'</span></div>';
   // 即市速覽：現價 / 最近交易日升跌 / 90日波幅 / 籌碼區
   h+='<div style="padding:9px 11px;background:#f8fafc;border-radius:8px;margin-bottom:10px;font-size:11.5px;color:#334155;line-height:1.8">'+
-    '<b>現價</b> $'+fmt(b.price)+'　<b>最近交易日</b> '+chgTxt+'　<b>90日波幅</b> '+(vol90!=null?vol90+'%':'—')+'　<b>Vol30</b> '+b.vol30+'%<br>'+
+    '<b>現價</b> $'+fmt(b.price)+'　<b>最近交易日</b> '+chgTxt+'　<b>90日波幅</b> '+(vol90!=null?vol90+'%':'—')+'　<b>Vol30</b> '+(b.vol30!=null?b.vol30+'%':'—')+'<br>'+
     (chip?('<b>籌碼區（主力位）</b> $'+fmt(chip.main)+' <span style="color:#94a3b8">（區間 $'+fmt(chip.areaLow)+' ~ $'+fmt(chip.areaHigh)+'）</span><br>'):'')+
     '<b>1M</b> '+(b.m1m*100).toFixed(1)+'%　<b>5D</b> '+(b.m5d*100).toFixed(1)+'%　<b>Score</b> '+Math.round(b.score*100)+'　<b>Decel</b> <span class="'+dc(b.decel)+'">'+b.decel+'</span></div>';
   // 四因子模型
@@ -1408,11 +1408,11 @@ function buildTechHTML(techObj){
         '<div style="flex:1"><table style="width:100%;font-size:12px;border-collapse:collapse">'+
         '<tr><td style="padding:3px 8px;color:#dc2626;font-weight:600">R3 (頂)</td><td class="n" style="color:#dc2626;font-weight:600">'+rD(t.levels.resistance3)+'</td></tr>'+
         '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R2</td><td class="n" style="color:#f97316;font-weight:600">'+rD(t.levels.resistance2)+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R1</td><td class="n" style="color:#f97316;font-weight:600">'+rD(t.levels.resistance1)+' <span style="font-size:10px;color:#94a3b8">('+t.distR1+'%)</span></td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#f97316;font-weight:600">R1</td><td class="n" style="color:#f97316;font-weight:600">'+rD(t.levels.resistance1)+' <span style="font-size:10px;color:#94a3b8">('+((t.distR1!=null)?t.distR1:'—')+'%)</span></td></tr>'+
         '<tr><td style="padding:3px 8px;color:#64748b">MA20</td><td class="n" style="color:#64748b">'+rD(t.ma20)+'</td></tr>'+
         '<tr><td style="padding:3px 8px;color:#64748b">MA50</td><td class="n" style="color:#64748b">'+rD(t.ma50)+'</td></tr>'+
         '<tr><td style="padding:3px 8px;color:#1e293b;font-weight:700">現價</td><td class="n" style="color:#1e293b;font-weight:700">'+rD(t.price)+'</td></tr>'+
-        '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S1</td><td class="n" style="color:#3b82f6;font-weight:600">'+rD(t.levels.support1)+' <span style="font-size:10px;color:#94a3b8">('+t.distS1+'%)</span></td></tr>'+
+        '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S1</td><td class="n" style="color:#3b82f6;font-weight:600">'+rD(t.levels.support1)+' <span style="font-size:10px;color:#94a3b8">('+((t.distS1!=null)?t.distS1:'—')+'%)</span></td></tr>'+
         '<tr><td style="padding:3px 8px;color:#3b82f6;font-weight:600">S2</td><td class="n" style="color:#3b82f6;font-weight:600">'+rD(t.levels.support2)+'</td></tr>'+
         '<tr><td style="padding:3px 8px;color:#22c55e;font-weight:600">S3 (底)</td><td class="n" style="color:#22c55e;font-weight:600">'+rD(t.levels.support3)+'</td></tr>'+
         '</table></div>'+
@@ -3466,7 +3466,7 @@ function renderMonthly(data){
     const eln=data.elnStrategy;
     h+='<div style="font-weight:800;font-size:15px;color:#5b21b6;margin-bottom:10px">💡 附註（非強制動作）</div>';
     h+='<div style="padding:10px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a;margin-bottom:8px;font-size:12px;line-height:1.6">';
-    h+='<b>ELN 首選</b>：'+eln.bestPick.ticker+' ⭐'.repeat(eln.bestPick.stars)+' — Q='+Math.round(eln.bestPick.quality*100)+', Decel='+eln.bestPick.decel+', Vol30='+eln.bestPick.vol30+'%<br>';
+    h+='<b>ELN 首選</b>：'+eln.bestPick.ticker+' ⭐'.repeat(eln.bestPick.stars)+' — Q='+Math.round(eln.bestPick.quality*100)+', Decel='+eln.bestPick.decel+', Vol30='+(eln.bestPick.vol30!=null?eln.bestPick.vol30:'—')+'%<br>';
     h+='建議：3個月期，strike 打 85-90%，全期票息以切換表內值為準（3M 一般 1-3%、年期愈長票息愈高）';
     h+='</div>';
     if(eln.avoid&&eln.avoid.length>0){
