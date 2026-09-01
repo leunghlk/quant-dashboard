@@ -983,7 +983,7 @@ function renderOverview(){
     h+='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th>類型</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場/現權利金</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th>訊號</th></tr></thead><tbody>';
     pos.forEach(p=>{
       const a=p.pct_max>=50?'<span style="color:#16a34a;font-weight:700">✅ 平倉（≥50%）</span>':(p.close_requested?'<span style="color:#d97706">待平倉</span>':'<span class="muted">持有</span>');
-      h+='<tr><td><b>'+p.ticker+'</b></td><td>'+realBadge(p)+'</td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+p.entry_prem+' / '+p.cur_prem+'</td><td class="r">'+p.pct_max+'%</td><td class="r">'+(p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span></td><td>'+a+'</td></tr>';
+      h+='<tr><td><b>'+p.ticker+'</b></td><td>'+realBadge(p)+'</td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+px2(p.entry_prem)+' / '+px2(p.cur_prem)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td class="r">'+(p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span></td><td>'+a+'</td></tr>';
     });
     h+='</tbody></table></div>';
   }else{h+='<div class="muted">暫無開倉位 — 請到「今日最佳」選一單執行。</div>';}
@@ -1100,12 +1100,12 @@ function bestCardHTML(b,idx,total){   // ⭐ 2026-08-18 v2：兩張最佳卡共�
   h+='<div style="flex:1.3;min-width:300px;background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:10px;padding:14px;color:#fff'+(ref?';outline:1px solid #b45309':'')+'">';
   h+='<div style="font-size:12px;color:'+(ref?'#fbbf24':'#4ade80')+'">'+(ref?'🟡 最佳交易（僅參考）':'🟢 最佳交易')+esc(tag)+' · SELL PUT <b>'+b.ticker+'</b> ×'+(b.contracts||1)+tip('csp')+'</div>';
   h+='<div style="font-size:24px;font-weight:800;margin:6px 0">行使價 $'+b.strike+'<span style="font-size:12px;color:#94a3b8;font-weight:400">（現價 $'+liveSpot(b.ticker,b.spot)+'）</span>'+tip('strike')+'</div>';
-  h+='<div style="font-size:13px;color:#cbd5e1">權利金 $'+b.mid+'/股 = <b>$'+b.premium_total+'</b> ≈ HKD '+b.premium_total_hkd+tip('premium')+'</div>';
+  h+='<div style="font-size:13px;color:#cbd5e1">權利金 $'+px2(b.mid)+'/股 = <b>$'+(b.premium_total!=null?b.premium_total:'—')+'</b> ≈ HKD '+px2(b.premium_total_hkd)+tip('premium')+'</div>';
   h+=gauge(b.prob_itm,b.prob_otm);
   h+='<div style="font-size:10px;color:#94a3b8">OTM = 賺足權利金機率 · ITM = 被指派機率'+tip('otm')+tip('itm')+'</div>';
-  h+='<div style="font-size:11px;color:#cbd5e1;margin-top:6px">到期 '+b.expiry+'（'+b.dte+'D）· Delta '+b.delta+tip('delta')+' · IV '+Math.round(b.iv*100)+'%（rank '+b.iv_rank+'）'+tip('ivrank')+' · 按金 $'+fmt(b.margin_total||b.margin1||0)+tip('margin')+' · 接貨現金 $'+b.collateral_total+tip('collateral')+'</div>';
-  h+='<div style="font-size:13px;font-weight:700;color:#fbbf24;margin-top:6px">回報 '+(b.yield_pct!=null?Number(b.yield_pct).toFixed(2):'—')+'%/週 ≈ '+b.yield_ann+'%/年'+tip('ann')+'</div>';
-  if(sc.breakeven){h+='<div style="font-size:11px;color:#94a3b8;margin-top:2px">盈虧平衡 $'+sc.breakeven+tip('breakeven')+' · 最大虧損（股價→0）$'+sc.max_loss+' ≈ HKD '+sc.max_loss_hkd+tip('maxloss')+'</div>';}
+  h+='<div style="font-size:11px;color:#cbd5e1;margin-top:6px">到期 '+b.expiry+'（'+(b.dte!=null?b.dte:'—')+'D）· Delta '+(b.delta!=null?b.delta:'—')+tip('delta')+' · IV '+(b.iv!=null?Math.round(b.iv*100)+'%':'—')+'（rank '+(b.iv_rank!=null?b.iv_rank:'—')+'）'+tip('ivrank')+' · 按金 $'+fmt(b.margin_total||b.margin1||0)+tip('margin')+' · 接貨現金 $'+(b.collateral_total!=null?b.collateral_total:'—')+tip('collateral')+'</div>';
+  h+='<div style="font-size:13px;font-weight:700;color:#fbbf24;margin-top:6px">回報 '+(b.yield_pct!=null?Number(b.yield_pct).toFixed(2):'—')+'%/週 ≈ '+(b.yield_ann!=null?b.yield_ann:'—')+'%/年'+tip('ann')+'</div>';
+  if(sc.breakeven){h+='<div style="font-size:11px;color:#94a3b8;margin-top:2px">盈虧平衡 $'+px2(sc.breakeven)+tip('breakeven')+' · 最大虧損（股價→0）$'+px2(sc.max_loss)+' ≈ HKD '+px2(sc.max_loss_hkd)+tip('maxloss')+'</div>';}
   if(b.earnings){h+='<div style="font-size:11px;color:#f59e0b;margin-top:4px">📅 下一業績日 '+b.earnings+tip('earnings')+'</div>';}
   h+='<div style="margin-top:10px">'+(ref
     ?'<span style="font-size:11px;color:#94a3b8">🚧 執行掣暫停（閘門關閉中，engine 會拒單）</span> <button class="btn btn-ghost" onclick="showDetail(\''+b.ticker+'\')">詳情 →</button>'
@@ -1170,7 +1170,7 @@ function renderCandidates(){
     h+='<td><span class="co">'+c.ticker+'</span><br><span class="tk">'+esc(c.name||c.ticker)+'</span></td>';
     h+='<td class="r">$'+liveSpot(c.ticker,c.spot)+'</td>';
     h+='<td class="r">$'+px2(c.strike)+'</td>';
-    h+='<td>'+c.expiry+'<br><span class="muted small">'+c.dte+'D</span></td>';
+    h+='<td>'+c.expiry+'<br><span class="muted small">'+(c.dte!=null?c.dte:'—')+'D</span></td>';
     h+='<td class="r">$'+(c.premium!=null?c.premium:'—')+'<br><span class="muted small">≈HKD '+(c.premium_hkd!=null?c.premium_hkd:'—')+'</span></td>';
     h+='<td class="r">'+(una?'—':(c.contracts||1))+'</td>';
     h+='<td class="r">$'+fmt(c.margin_total||(c.margin1?(c.margin1*(c.contracts||1)):0))+'<br><span class="muted small">$'+fmt(c.margin1||0)+'/張</span></td>';
@@ -1271,7 +1271,7 @@ function renderPositions(){
     h+='<div class="table-scroll"><table class="utable"><thead><tr><th>類型</th><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場權利金</th><th class="r">現權利金</th><th class="r">盈虧平衡</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th>訊號 / 動作</th></tr></thead><tbody>';
     pos.forEach(p=>{
       const a=p.pct_max>=50?'<span style="color:#16a34a;font-weight:700">✅ 建議平倉（≥50%）'+tip('close50')+'</span>':(p.close_requested?'<span style="color:#d97706">⏳ 待 engine 確認</span>':'<span class="muted">持有</span>');
-      h+='<tr><td>'+(p.side==='CSP'?'沽 Put':'沽 Call')+'<br>'+realBadge(p)+'</td><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">$'+p.entry_prem+'</td><td class="r">$'+p.cur_prem+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+p.pct_max+'%</td><td class="r">'+(p.pnl_hkd>=0?'<span style="color:#16a34a;font-weight:700">':'<span style="color:#dc2626;font-weight:700">')+money(p.pnl_hkd)+'</span></td><td>'+a+'<br><button class="btn btn-close" style="margin-top:4px" onclick="closePos(\''+p.id+'\')">平倉</button> <button class="btn btn-ghost" style="margin-top:4px" onclick="toggleReal(\''+p.id+'\','+(!p.real)+')">'+(p.real?'轉紙上':'標真倉')+'</button></td></tr>';
+      h+='<tr><td>'+(p.side==='CSP'?'沽 Put':'沽 Call')+'<br>'+realBadge(p)+'</td><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">$'+px2(p.entry_prem)+'</td><td class="r">$'+px2(p.cur_prem)+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td class="r">'+(p.pnl_hkd>=0?'<span style="color:#16a34a;font-weight:700">':'<span style="color:#dc2626;font-weight:700">')+money(p.pnl_hkd)+'</span></td><td>'+a+'<br><button class="btn btn-close" style="margin-top:4px" onclick="closePos(\''+p.id+'\')">平倉</button> <button class="btn btn-ghost" style="margin-top:4px" onclick="toggleReal(\''+p.id+'\','+(!p.real)+')">'+(p.real?'轉紙上':'標真倉')+'</button></td></tr>';
     });
     h+='</tbody></table></div>';
   }else{h+='<div class="muted">暫無開倉位。</div>';}
@@ -1307,14 +1307,14 @@ function renderDetail(){
   h+='<span class="pill t">SELL PUT ×'+(c.contracts||1)+'</span>';
   h+='<span class="pill b">行使價 $'+c.strike+'</span>';
   h+='<span class="pill w">權利金 $'+c.premium_total+'（HKD '+c.premium_total_hkd+'）</span>';
-  h+='<span class="pill g">OTM '+c.prob_otm+'%</span>';
+  h+='<span class="pill g">OTM '+(c.prob_otm!=null?c.prob_otm:'—')+'%</span>';
   if(c.premium_source)h+='<span class="pill t">報價:'+c.premium_source+tip('premiumsrc')+'</span>';
   h+='</div>';
   // 圖表 + 右邊 S/R + 希臘字母
   h+='<div class="grid2">';
   h+='<div><div class="card"><div class="card-h"><span class="t">日線 K 線<span id="chartDays"></span></span><span class="meta">紅升綠跌（港式）· 紫=行使價 · 橙=盈虧平衡 · 綠/紅虛線=S/R</span></div>';
   h+='<div class="card-b"><div class="chartwrap" id="chart"><div class="muted" id="chartFallback">圖表載入中…</div></div>';
-  h+='<div class="chart-note">S/R：經典 pivot（20 日）P=(H+L+C)/3'+tip('pivot')+' · 支援/阻力'+(c.levels?('：S1 $'+c.levels.support1+' / R1 $'+c.levels.resistance1):'')+tip('sr')+'</div></div></div></div>';
+  h+='<div class="chart-note">S/R：經典 pivot（20 日）P=(H+L+C)/3'+tip('pivot')+' · 支援/阻力'+((c.levels&&c.levels.support1!=null&&c.levels.resistance1!=null)?('：S1 $'+c.levels.support1+' / R1 $'+c.levels.resistance1):'：暫無（等日線）')+tip('sr')+'</div></div></div></div>';
   h+='<div>';
   h+='<div class="card"><div class="card-h"><span class="t">支援 / 阻力 + 希臘字母</span><span class="meta">hover ⓘ 查看解釋</span></div>';
   h+='<div class="card-b" id="detailMeta"></div></div>';
@@ -1472,6 +1472,7 @@ function premSVG(c,n){
 }
 function renderScenarios(c){
   if(!c)return;
+  if(!(c.mid>0)||!(c.spot>0)){$('scenBody').innerHTML='<div class="muted">報價未齊（等 live mark），情境分析暫不可用。</div>';return;}
   scenNval=(scenNval==null)?(c.contracts||1):scenNval;
   const nEl=$('scenN');if(nEl)nEl.textContent=scenNval;
   payoffSVG(c,scenNval);
@@ -2148,7 +2149,7 @@ function renderAdvice(){
       else if(decel<=-3){action='強制沽出：動量減速崩損 Decel='+decel+'（不論盈虧）';cls='sell';}
       else if(sig==='SELL'||sig==='REDUCE'){action='減持：信號轉弱 '+sig;cls='reduce';}
       else if(sig==='BUY'&&decel>=-1){action='可加倉：信號 BUY · Decel '+decel+' 正常';cls='buy';}
-      else{action='續持：信號 '+sig+' · Decel '+decel+(qp?' · 未實現 '+qp.unreal_pct+'%':'');cls='hold';}
+      else{action='續持：信號 '+sig+' · Decel '+decel+(qp?' · 未實現 '+(qp.unreal_pct!=null?qp.unreal_pct+'%':'—'):'');cls='hold';}
     }
     const aCol=cls==='sell'||cls==='reduce'?'#dc2626':cls==='buy'?'#16a34a':'#475569';
     const pnlCls=p.pnl_hkd>=0?'pos':'neg';
@@ -2684,7 +2685,7 @@ function renderH6040Positions(){
   if(realPos.length){
     h+='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場/現權利金</th><th class="r">盈虧平衡</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th></th></tr></thead><tbody>';
     realPos.forEach(p=>{
-      h+='<tr><td><b>'+p.ticker+'</b> <span style="color:#dc2626;font-weight:700">● 真倉</span></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+p.entry_prem+' / '+p.cur_prem+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+p.pct_max+'%</td><td class="r">'+(p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span></td><td><button class="btn btn-close" onclick="closePos(\''+p.id+'\')">平倉</button></td></tr>';
+      h+='<tr><td><b>'+p.ticker+'</b> <span style="color:#dc2626;font-weight:700">● 真倉</span></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+px2(p.entry_prem)+' / '+px2(p.cur_prem)+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td class="r">'+(p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span></td><td><button class="btn btn-close" onclick="closePos(\''+p.id+'\')">平倉</button></td></tr>';
     });
     h+='</tbody></table></div>';
   }else{h='<div class="muted">暫無真倉。</div>';}
