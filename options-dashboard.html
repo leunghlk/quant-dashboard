@@ -2670,14 +2670,14 @@ function h6040MarginCard(m){
     core='<div style="font-size:14px;margin-top:2px"><b style="color:#16a34a">✓ 毋須贖回現金寶</b> — 證券側按金空間夠開 1 張，仲剩 '+hk(m.headroom_hkd-m.im_hkd)+'</div>';
   }else{
     const gap2=Math.max(0,m.im_hkd*2-m.headroom_hkd);
-    core='<div style="font-size:14px;margin-top:2px">→ <b style="color:#b45309">要贖回現金寶 ≈ '+hk(m.gap1_hkd)+'（'+us(m.redeem1_usd)+'）</b><span class="small"> — 現金寶現有 '+hk(m.fund_assets_hkd)+(m.fund_assets_hkd>=m.gap1_hkd?'，夠贖 ✓':'，⚠️ 唔夠')+'</span></div>'+
+    core='<div style="font-size:14px;margin-top:2px">→ <b style="color:#b45309">要贖回現金寶 ≈ '+hk(m.gap1_hkd)+'（'+us(m.redeem1_usd)+'）</b><span class="small"> — 現金寶現有 '+hk(m.fund_assets_hkd)+(m.fund_assets_hkd>=m.gap1_hkd?'，夠贖 ✓':'，<b style="color:#dc2626">⚠️ 贖晒都唔夠（差 '+hk(m.shortfall1_hkd!=null?m.shortfall1_hkd:(m.gap1_hkd-m.fund_assets_hkd))+'）— 要入金或先平倉／等到期</b>')+'</span></div>'+
       '<div class="small muted" style="margin-top:2px">開 2 張'+(m.leg==='spy'?'（Path A 每倉上限 2）':'')+' → 要贖回 ≈ '+hk(gap2)+'（'+us(gap2/(m.fx||7.8))+'）'+(m.fund_assets_hkd>=gap2?'，夠贖 ✓':' — <b style="color:#dc2626">⚠️ 唔夠（差 '+hk(gap2-m.fund_assets_hkd)+'）</b>')+'</div>';
   }
   return '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:10px">'+
-    '<div class="small muted">💰 按金試算（Futu 實時）— '+(m.leg==='spy'?'今日最佳交易':'最佳交易')+'（'+lbl+'閘門開）· 落單前贖夠現金寶就開得起</div>'+
+    '<div class="small muted">💰 按金試算（Futu 實時）— '+(m.leg==='spy'?'今日最佳交易':'最佳交易')+'（'+lbl+'閘門開）· 現金（唔係現金寶）先係 Futu 認嘅沽 option 抵押品 — 贖夠就開得起</div>'+
     '<div style="font-size:13px;margin-top:2px"><b>'+desc+'</b></div>'+
     '<div class="small" style="margin-top:2px">每張按金（<b style="color:#b45309">Futu 實收</b>）<b>'+us(m.im_usd)+' ≈ '+hk(m.im_hkd)+'</b>（7.8 計）</div>'+
-    '<div class="small" style="margin-top:2px">證券側按金空間 <b>'+hk(m.headroom_hkd)+'</b>（總資產 − 現金寶 − 已用按金；現金寶沽 option 唔認）'+(m.headroom_gross_hkd!=null?'<span class="muted">· 賬面含現金寶 '+hk(m.headroom_gross_hkd)+'</span>':'')+'</div>'+
+    '<div class="small" style="margin-top:2px">證券側（現金+股票 − 已用按金）<b>'+hk(m.headroom_hkd)+'</b>'+(m.headroom_hkd<0?'（負數＝已佔按金蝕住，要贖埋呢份）':'')+'（現金寶沽 option 唔認）'+(m.headroom_gross_hkd!=null?'<span class="muted">· 賬面含現金寶 '+hk(m.headroom_gross_hkd)+'</span>':'')+'</div>'+
     core+
     '<div class="small muted" style="margin-top:2px">合約 <span style="font-family:monospace">'+esc(m.code||'')+'</span> · <b>模型按金</b>（Reg-T 估計）'+(m.model_margin1?us(m.model_margin1):'—')+' vs <b>Futu 實收</b> '+us(m.im_usd)+'（house buffer ~25%）— 落單以 Futu 為準'+(m.stale?' · ⚠️ 快取舊數':'')+(m.ts?' · 資料 '+esc(String(m.ts).slice(0,16).replace('T',' ')):'')+'</div>'+
   '</div>';
