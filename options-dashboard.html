@@ -1107,7 +1107,7 @@ async function loadBestFutuMargin(picks){
     try{
       const ed=String(b.expiry||'').replace(/-/g,'');
       const px=(b.mid!=null&&b.mid>0)?b.mid:null;
-      const code=(b.ticker&&ed.length===8&&b.strike>0&&px)?('US.'+String(b.ticker).toUpperCase()+ed.slice(2)+'P'+String(Math.round(b.strike*1000)).padStart(6,'0')):null;
+      const code=(b.ticker&&ed.length===8&&b.strike>0&&px)?('US.'+String(b.ticker).toUpperCase()+ed.slice(2)+'P'+Math.round(b.strike*1000)):null;   // ⭐strike×1000 天然位數（49.5→49500，唔好 pad）
       if(!code){slot.innerHTML='<div style="font-size:11px;color:#94a3b8;margin-top:2px">💰 Futu 實收按金 — 冇齊 code/價，載唔到</div>';continue;}
       const r=await fetchTimeout(activeBridge+'/margin_gap?code='+encodeURIComponent(code)+'&price='+px+'&secret='+encodeURIComponent(BRIDGE_SECRET),15000);
       const m=r&&r.ok?await r.json():null;
