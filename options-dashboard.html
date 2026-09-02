@@ -658,7 +658,8 @@ function renderUnified(){
   // ⭐ 09-03：買股真 deployable＝Futu 購買力 power（auto-redeem 已計入現金寶、已扣現有倉按金食水）—
   //   cash=0／基金 282.6k 時實測 power 240.6k < 池 282.6k（差額＝764P IM 173.9k vs 證券側 9.3k 嘅按金佔用）。
   //   舊卡直接擺池數做「可動用」＝夸大 4.2 萬，照數買股會俾 Futu 拒。沽 option 唯另一 regime，隔離格已覆蓋。
-  const power   = (realFunds && realFunds.power_hkd!=null)? realFunds.power_hkd : avail;
+  const powerFb = !(realFunds && realFunds.power_hkd!=null);   // bridge 舊 payload 冇 power → fallback 池數（KPI 會標明，唔准無聲冒充購買力）
+  const power   = powerFb ? avail : realFunds.power_hkd;
   const imReq   = (realFunds && realFunds.init_margin_hkd!=null)? realFunds.init_margin_hkd : 0;  // 已佔沽出按金
   const eligCS  = cashAll + secVal;                     // Futu 認嘅抵押品＝現金+證券（現金寶唔入圍）
   const colGap  = eligCS - imReq;                       // 證券側空間（負＝已欠）
@@ -696,7 +697,7 @@ function renderUnified(){
   h += '<div class="k"><div class="lbl">總資產（'+uniCCY()+'）</div><div class="val" id="uTotal">'+uMask(uMoney(total))+'</div><div class="small muted">基準 HKD '+(BASE_HKD/1000).toFixed(0)+'k · 回報 '+(retPct>=0?'+':'')+retPct.toFixed(1)+'%</div></div>';
   h += '<div class="k"><div class="lbl">已實現 P&L（'+uniCCY()+'）</div><div class="val '+(realized>=0?'up':'dn')+'">'+uPnl(realized)+'</div><div class="small muted">＝ 總資產 − 本金 HKD 320,000（含浮動）</div></div>';
   h += '<div class="k"><div class="lbl">未實現 P&L（'+uniCCY()+'）</div><div class="val '+(unreal>=0?'up':'dn')+'">'+uPnl(unreal)+'</div><div class="small muted">Futu 全戶口口徑：期權＋正股加總</div></div>';
-  h += '<div class="k"><div class="lbl">買股可動用（購買力）('+uniCCY()+')</div><div class="val" style="color:#16a34a">'+uMask(uMoney(power))+'</div><div class="small muted">現金寶池 '+uMask(uMoney(avail))+'（'+fundPct.toFixed(0)+'% 資產）· auto-redeem ✓ · 沽 option 按金 ✗ · 0佣金收息</div></div>';
+  h += '<div class="k"><div class="lbl">買股可動用（購買力）('+uniCCY()+')</div><div class="val" style="color:#16a34a">'+uMask(uMoney(power))+'</div><div class="small muted">現金寶池 '+uMask(uMoney(avail))+'（'+fundPct.toFixed(0)+'% 資產）· auto-redeem ✓ · 沽 option 按金 ✗ · 0佣金收息'+(powerFb?' · <span style="color:#b45309">⚠️冇購買力數，暫以池計</span>':'')+'</div></div>';
   h += '<div class="k"><div class="lbl">沽出按金需求（'+uniCCY()+'）</div><div class="val" style="color:#b45309">'+uMask(uMoney(imReq))+'</div><div class="small muted">認可抵押品（現金+證券）'+uMoney(eligCS)+(colGap<0?' · <span style="color:#dc2626">證券側已欠 −'+uMoney(Math.abs(colGap))+'</span>（新倉要贖現金寶）':' · 證券側空間 +'+uMoney(colGap))+'</div></div>';
   h += '</div>';
   h += '<div style="margin:10px 0 6px;font-weight:700;font-size:13px">資產分佈（總資產 '+uMask(uMoney(total))+'）<span class="muted" style="font-weight:400;font-size:11px"> · mouseover 每段睇明細</span></div>';
