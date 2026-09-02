@@ -305,7 +305,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 
   <!-- ═══════════ 最優先部署（正股） ═══════════ -->
   <div class="pane" id="pane-toppick">
-    <div class="card" style="border:1.5px solid #7c3aed"><div class="card-h"><span class="t">📈 策略交易台（正股 quant model）</span><span class="meta">活體回測決策 · 同 quant dashboard 同一 table · long-only top-5 · HKD 10,000/倉</span></div>
+    <div class="card" style="border:1.5px solid #7c3aed"><div class="card-h"><span class="t">📈 策略交易台（正股 quant model）</span><span class="meta">活體回測決策 · 同 quant dashboard 同一 table · long-only top-5 · HKD 10,000/倉 · 🎯 今日最佳交易 top-3</span></div>
       <div class="card-b" id="toppickBody"><div class="muted">載入中…</div></div></div>
   </div>
 
@@ -2215,7 +2215,7 @@ function renderTopPick(){
   const el=document.getElementById('toppickBody'); if(!el)return;
   const d=qStrategy();
   if(!d){el.innerHTML='<div class="muted" style="padding:16px;text-align:center">⏳ 正股 quant model（策略交易台）載入中…<br><span style="font-size:11px">worker /api 每日訊號 · 載入到即刻顯示（自動重試 15 分鐘一次）</span></div>';return;}
-  const nameMap={};[].concat(d.positions||[],d.buys||[],d.sells||[]).forEach(x=>{if(x&&x.tk&&x.name)nameMap[x.tk]=x.name;});
+  const nameMap={};[].concat(d.positions||[],d.buys||[],d.sells||[],d.reentry||[]).forEach(x=>{if(x&&x.tk&&x.name)nameMap[x.tk]=x.name;});   // ⭐ 09-02：reentry 都入 name map（最佳交易卡 ticker 旁出公司名）
   const nmTk=tk=>(nameMap[tk]&&nameMap[tk]!==tk)?'<span style="font-size:11px;color:#64748b;font-weight:400;margin-left:4px">'+esc(nameMap[tk])+'</span>':'';   // name＝ticker（DLLL）時唔重複
   // ⭐ 08-24：加 native currency 欄（user 要求唔好淨係 HKD）。strategy desk 全部係 US 股票 → USD；
   //   worker btPxHkd 用 USD_HKD=7.80 乘，所以反除返 7.80 先啱數（唔好用 Futu realFx 7.8536）。
@@ -2228,6 +2228,41 @@ function renderTopPick(){
   const params=d.params||{}, maxPos=params.maxPos||5, notional=params.notional||10000;
   let h='<div style="font-size:11px;color:#64748b;margin:0 0 6px">📅 每日訊號(HKT) '+esc(d.date)+' · '+esc(params.mode||'long-only top-5')+' · 建議倉 HKD '+notional.toLocaleString()+'／格 · 剩 '+d.openSlots+' 格可入</div>';
   h+='<div style="font-size:11px;color:#64748b;margin:0 0 8px">long-only（唔可以 short）· 現持倉＝你實際組合 · 買入候選／離場＝模型建議（非已執行），執行＝下個交易日開市 —— 同 quant dashboard 策略交易台完全同一數據。</div>';
+  // ⭐ 09-02 🎯 今日最佳交易（正股）：🟢 可入新倉（fillable 買入候選）＋ 🔁 可翻倉（eligible re-entry）合併按 score 排 top 3
+  //   排序＝score ↓，同分新倉優先；只計「真可執行」（fillable/eligible），候補同窗外的唔入圍
+  const bestPool=[];
+  (d.buys||[]).forEach(b=>{ if(b&&b.fillable) bestPool.push({kind:'buy',o:b}); });
+  (d.reentry||[]).forEach(r=>{ if(r&&r.eligible) bestPool.push({kind:'re',o:r}); });
+  bestPool.sort((a,b)=>((b.o.score||0)-(a.o.score||0))||((a.kind==='buy'?0:1)-(b.kind==='buy'?0:1)));
+  const bestN=bestPool.slice(0,3), bestMedal=['🥇','🥈','🥉'];
+  h+='<div style="border:1.5px solid #d97706;background:#fffbeb;border-radius:10px;padding:10px 12px;margin:0 0 4px">';
+  h+='<div style="font-weight:800;font-size:13.5px">🎯 今日最佳交易（正股 · top '+bestN.length+'）</div>';
+  h+='<div style="font-size:11px;color:#92400e;margin:2px 0 8px">🟢 可入新倉 ＋ 🔁 可翻倉 合併計（score ↓ · 同分新倉優先）· 每格 HKD '+notional.toLocaleString()+' · 執行＝下個交易日開市（模型建議，非已執行）</div>';
+  if(!bestN.length){
+    h+='<div style="font-size:12px;color:#92400e">'+(d.openSlots?'今日無符合條件嘅可執行交易 —— 買入候選要「可買入」、re-entry 要「✅ 可考慮翻倉」先入圍，等收市訊號更新再睇':'5 格已滿 → 冇可入新倉；亦暫無符合條件嘅翻倉候選（要模型 ≥HOLD、decel &gt; −3、價收返離場價上）')+'</div>';
+  }else{
+    bestN.forEach((p,i)=>{
+      const md=bestMedal[i]||('#'+(i+1));
+      if(p.kind==='buy'){
+        const b=p.o, hk=sdRef(b.tk,b.ref_px_hkd);
+        h+='<div style="background:#fff;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin:6px 0">'
+          +'<div style="font-size:13px;line-height:1.5"><span style="font-size:15px">'+md+'</span> <span style="font-weight:800">'+esc(b.tk)+'</span>'+nmTk(b.tk)
+          +'　<span style="font-size:11px;font-weight:700;color:#b45309">🆕 新倉（買入候選 #'+b.rank+'）</span> '+_sigPill(b.signal)
+          +'<span style="font-size:11px;color:#64748b;margin-left:6px">score <b style="color:#111827">'+(b.score==null?'—':b.score)+'</b> · decel '+(b.decel==null?'—':b.decel)+'</span></div>'
+          +'<div style="font-size:12px;margin-top:3px;color:#374151">參考價 <b>'+fmt(hk)+'</b> HKD（'+qUsd(hk)+'）· 約 <b>'+b.shares+'</b> 股／'+notional.toLocaleString()+' HKD 格'+sdRefNote(b.tk,b)+'</div>'
+          +'<div style="font-size:11px;color:#78716c;margin-top:2px">點解：模型 '+esc(b.signal||'—')+' · score 排全場 #'+b.rank+' · decel '+(b.decel==null?'—':b.decel)+'（未過 −3 強制線）· 可入（剩 '+d.openSlots+' 格）</div></div>';
+      }else{
+        const r=p.o, usd=sdRefUsd(r.tk,r.now_px), hk=usd*7.80;
+        h+='<div style="background:#fff;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin:6px 0">'
+          +'<div style="font-size:13px;line-height:1.5"><span style="font-size:15px">'+md+'</span> <span style="font-weight:800">'+esc(r.tk)+'</span>'+nmTk(r.tk)
+          +'　<span style="font-size:11px;font-weight:700;color:#b45309">🔁 翻倉（離場後第 '+r.days_since+' 日）</span> '+_sigPill(r.signal)
+          +'<span style="font-size:11px;color:#64748b;margin-left:6px">score <b style="color:#111827">'+(r.score==null?'—':r.score)+'</b> · decel '+(r.decel==null?'—':r.decel)+'</span></div>'
+          +'<div style="font-size:12px;margin-top:3px;color:#374151">現價 <b>$'+px2(usd)+'</b>（'+fmt(hk)+' HKD）· 對比離場價 $'+px2(r.exit_px)+' 已收復 <b style="color:'+(r.reclaim_pct>=0?'#16a34a':'#dc2626')+'">'+(r.reclaim_pct>=0?'+':'')+r.reclaim_pct+'%</b> · 約 <b>'+((10000/hk)||0).toFixed(2)+'</b> 股／'+notional.toLocaleString()+' HKD 格'+sdRefNote(r.tk,r)+'</div>'
+          +'<div style="font-size:11px;color:#78716c;margin-top:2px">點解：'+esc(r.reason||'')+'</div></div>';
+      }
+    });
+  }
+  h+='</div>';
   // 📦 現持倉
   if(!d.positions||!d.positions.length){h+='<div style="font-weight:700;margin:8px 0 4px;font-size:13px">📦 現持倉</div><div class="muted">暫無持倉（有 BUY / ACCUMULATE 訊號先入）</div>';}
   else{
