@@ -562,6 +562,7 @@ async function loadLive(){
 const BASE_HKD = 320000;            // ⭐ user 指定真倉總資本基準（回本進度分母）
 let realPos = [];                   // [{ticker,shares,avg_cost,price,mkt_val_hkd,cost_hkd,pnl_hkd,pnl_pct,kind,unrealized_pl,realized_pl}]
 let realFunds = null;               // {power_hkd,total_hkd,cash_hkd,us_cash,withdraw_hkd,init_margin_hkd,maint_margin_hkd,market_val_hkd,ts}
+let fundHoldings = null;            // ⭐ 09-03：現金寶持倉明細（bridge /fund_holdings 現金流推導：每基金 Σ申購−Σ贖回）
 let realFx = 7.8536;                // ⭐ 08-23：bridge 反推嘅 USD→HKD 匯率（live 價 override 用）
 const EQUITY_TICKERS = ['LITE','DLLL'];
 
@@ -601,12 +602,14 @@ function qWatchOf(tk){return ((quant&&quant.watchlist)||[]).find(s=>s&&s.ticker=
 async function loadReal(){
   if(!activeBridge)return;
   try{
-    const [pr,pf] = await Promise.all([
+    const [pr,pf,fh] = await Promise.all([
       fetchTimeout(activeBridge+'/real_positions?secret='+encodeURIComponent(BRIDGE_SECRET),15000).then(r=>r.json().catch(()=>null)),
-      fetchTimeout(activeBridge+'/real_funds?secret='+encodeURIComponent(BRIDGE_SECRET),15000).then(r=>r.json().catch(()=>null))
+      fetchTimeout(activeBridge+'/real_funds?secret='+encodeURIComponent(BRIDGE_SECRET),15000).then(r=>r.json().catch(()=>null)),
+      fetchTimeout(activeBridge+'/fund_holdings?secret='+encodeURIComponent(BRIDGE_SECRET),20000).then(r=>r.json().catch(()=>null))   // ⭐ 09-03：首計 bridge 要拉 30 日現金流（~60s）會 timeout → fail-soft，下個 60s 週期再嚟
     ]);
     if(pr && pr.positions){ realPos = pr.positions; if(pr.fx) realFx = pr.fx; }
     if(pf && pf.ok) realFunds = pf;
+    if(fh && fh.ok) fundHoldings = fh;
     // ⭐ 用 live 價更新正股市值（/real_positions 嘅 price 有時係 cost fallback）
     // ⭐ 08-23 兩個 fix：(a) 只限正股——期權市值（每張 USD）唔可以被正股 live 價 clobber；
     //   (b) live 價係 USD，要 ×realFx 先係 HKD（舊 code 直接當 HKD 用，LITE 市值細咗 7.85 倍）。
@@ -696,6 +699,21 @@ function renderUnified(){
   h += '<div style="display:flex;border-radius:6px;overflow:hidden;background:#e2e8f0">'+bar+'</div>';
   h += '<div style="margin-top:8px">'+legend+'</div>';
   h += '<div class="small muted" style="margin-top:6px">'+(uniHideOn()?'':'現金寶 '+uMoney(fundAv)+' ＋ 結算現金 '+uMoney(cashAll)+' ＋ 證券市值 '+uMoney(secVal)+' ＝ 正股 +'+uMoney(stockVal)+' ＋ 期權 −'+uMoney(Math.abs(optNet))+'（沽空負債）· 沽出按金需求 '+uMoney(imReq)+' vs 認可抵押品 '+uMoney(eligCS)+(colGap<0?' → 證券側已欠 −'+uMoney(Math.abs(colGap)):' → 證券側空間 +'+uMoney(colGap)))+'</div>';
+  // ⭐ 2026-09-03：現金寶持倉明細（bridge /fund_holdings 現金流推導 — OpenD 冇 per-fund position API）
+  if(fundHoldings && fundHoldings.ok){
+    const frows=(fundHoldings.funds||[]).map(f=>{
+      const nm=(f.name_zh&&f.name_zh!==f.name)? f.name_zh : f.name;
+      const sub=f.isin?(' <span class="muted" style="font-size:10px">'+esc(f.isin)+'</span>'):'';
+      const st=f.fully_redeemed?' <span class="muted" style="font-size:10px">已全贖連息</span>':'';
+      return '<tr'+(f.fully_redeemed?' style="opacity:.55"':'')+'><td><b>'+esc(nm)+'</b>'+sub+st+'</td>'
+        + '<td class="r">'+uMask('US$'+fmt(f.net_usd))+'</td>'
+        + '<td class="r">'+uMask(uMoney(f.net_hkd))+'</td>'
+        + '<td class="r muted">'+esc(f.last_flow||'—')+'</td></tr>';
+    }).join('');
+    h += '<div style="margin-top:10px"><div style="font-weight:700;font-size:13px">現金寶持倉明細<span class="muted" style="font-weight:400;font-size:11px"> · 現金流推導（Σ申購−Σ贖回，30 日窗）· 總額以 Futu accinfo 為準</span></div>'
+      + '<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>基金</th><th class="r">淨投入(USD)</th><th class="r">≈市值(HKD)</th><th class="r">最近流水</th></tr></thead><tbody>'+frows+'</tbody></table></div>'
+      + '<div class="small muted" style="margin-top:4px">Σ淨投入 US$'+fmt(fundHoldings.known_usd)+' ×'+fundHoldings.fx+' ＋ 累計收益／匯差 ≈ '+uMoney(fundHoldings.residual_hkd)+' ＝ 現金寶 '+uMoney(fundHoldings.fund_assets_hkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div></div>';
+  }
   // 持倉細項（正股＋期權）
   const all = (realPos||[]).slice().sort((a,b)=> (b.mkt_val_hkd||0)-(a.mkt_val_hkd||0));
   if(all.length){
