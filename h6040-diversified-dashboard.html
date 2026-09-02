@@ -640,16 +640,21 @@ function renderUnified(){
   const stocks = stocksList(), opts = optsList();
   const stockVal = sumF(stocks,'mkt_val_hkd');          // 正股市值（HKD，bridge 已 ×fx）
   const optVal   = sumF(opts,'mkt_val_hkd');            // 短 put 負債（負值）
-  // ⭐⭐ 08-23 v2（user 糾正：要扣抵押）：全部用 Futu accinfo 權威值做錨——
-  //   證券市值 = market_val_hkd；現金總值 = cash_hkd；可動用現金寶 = withdraw_hkd（最大可提，已扣抵押）；
-  //   抵押鎖定 = 現金 − 可提。四部分加埋 = total_hkd（對富途截圖分毫不差：−5,050＋248,497＋36,943＝280,390）。
+  // ⭐⭐ 09-02 v3（現金寶 auto-sweep 後修正；同日晚經 OpenD probe 證實沽 option 按金淨計現金+認可證券）：
+  //   證券市值 = market_val_hkd；現金寶基金 = fund_assets_hkd（⭐cash_hkd 係結算現金，唔包基金 —
+  //   舊版攞 withdraw_hkd 做「可動用現金寶」，auto-sweep 掃晒錢入基金後 cash/withdraw 都係 0，
+  //   條 bar 得返 ~9k、97% 資產隱形）。資產四段：正股＋期權負債＋現金寶＋結算現金 ≡ total_hkd
+  //   （09-02 23:31 實數：9,497＋0＋282,565＝292,062 ✓）。按金係需求唔係資產 → 唔入 bar，落 KPI 格：
+  //   已佔按金 init_margin vs 認可抵押品（現金+證券）→ 證券側空間（負＝已欠）。
   const total   = (realFunds && realFunds.total_hkd!=null)? realFunds.total_hkd : (stockVal+optVal);
   const secVal  = (realFunds && realFunds.market_val_hkd!=null)? realFunds.market_val_hkd : (stockVal+optVal);
   const optNet  = secVal - stockVal;                    // 期權淨值 = 證券市值 − 正股（沽空負債，可負）
-  const cashAll = (realFunds && realFunds.cash_hkd!=null)? realFunds.cash_hkd : (total-secVal);
-  const hasW    = !!(realFunds && realFunds.withdraw_hkd>0);
-  const avail   = hasW? realFunds.withdraw_hkd : cashAll;      // 可動用放在現金寶嘅 amount
-  const locked  = hasW? Math.max(0, cashAll-avail) : 0;        // 抵押鎖定（短 put 按金佔用）
+  const fundAv  = (realFunds && realFunds.fund_assets_hkd!=null)? realFunds.fund_assets_hkd : 0;
+  const cashAll = (realFunds && realFunds.cash_hkd!=null)? realFunds.cash_hkd : Math.max(0,total-secVal-fundAv);
+  const avail   = fundAv + cashAll;                     // 可動用現金寶＝基金＋結算現金（買股 auto-redeem ✓；沽 option 按金 ✗）
+  const imReq   = (realFunds && realFunds.init_margin_hkd!=null)? realFunds.init_margin_hkd : 0;  // 已佔沽出按金
+  const eligCS  = cashAll + secVal;                     // Futu 認嘅抵押品＝現金+證券（現金寶唔入圍）
+  const colGap  = eligCS - imReq;                       // 證券側空間（負＝已欠）
   // ⭐ 08-24（user 欽定口徑）：已實現 P&L ＝ 總資產（HKD 當刻）− 投入本金 HKD 320,000。
   //   舊計法 sumF(realPos,'realized_pl') 漏已平倉不留倉位的實現盈虧。
   const realized = total - BASE_HKD;
@@ -661,16 +666,16 @@ function renderUnified(){
   const parts = [
     {k:'正股',          v:stockVal, c:'#1a73e8'},
     {k:'期權（沽空負債）', v:optNet,  c:'#dc2626'},
-    {k:'抵押鎖定',      v:locked,   c:'#f59e0b'},
-    {k:'可動用現金寶',  v:avail,    c:'#16a34a'}
+    {k:'現金寶（收息）',  v:fundAv,   c:'#16a34a'},
+    {k:'結算現金',      v:cashAll,  c:'#059669'}
   ];
   const sumAbs = parts.reduce((s,p)=>s+Math.abs(p.v),0)||1;
   const pctOf = v => (Math.abs(v)/sumAbs*100);
   const tipDef = {
     '正股': '<b>正股市值</b><br>'+uMask(uMoney(stockVal))+'（bar 佔 '+pctOf(stockVal).toFixed(1)+'%）<br>LITE ＋ DLLL 等正股持倉市值（US 倉 ×'+realFx.toFixed(4)+' 轉 HKD）',
     '期權（沽空負債）': '<b>期權（沽空負債）</b><br>−'+uMask(uMoney(Math.abs(optNet)))+'（bar 佔 '+pctOf(optNet).toFixed(1)+'%）<br>短 put 市值（負債）：權利金跌＝賺、標的插水＝負債漲。總資產已扣除此負債。',
-    '抵押鎖定': '<b>抵押鎖定</b><br>'+uMask(uMoney(locked))+'（bar 佔 '+pctOf(locked).toFixed(1)+'%）<br>＝ 現金總值 − 可動用現金寶（Futu withdraw_hkd 口徑）。短 put 按金佔用，不可提取。',
-    '可動用現金寶': '<b>可動用現金寶</b><br>'+uMask(uMoney(avail))+'（bar 佔 '+pctOf(avail).toFixed(1)+'% · '+availPct.toFixed(0)+'% 資產）<br>＝ Futu withdraw_hkd（最大可提，已扣抵押）。放現金寶 0 佣金收息。'
+    '現金寶（收息）': '<b>現金寶（貨幣基金，收息）</b><br>'+uMask(uMoney(fundAv))+'（bar 佔 '+pctOf(fundAv).toFixed(1)+'% · '+availPct.toFixed(0)+'% 資產）<br>＝ Futu fund_assets_hkd。0 佣金收息；買股 auto-redeem ✓，⚠️沽 option 按金唔認（要贖返做現金先入圍）。',
+    '結算現金': '<b>結算現金</b><br>'+uMask(uMoney(cashAll))+'<br>＝ Futu cash_hkd（未掃入現金寶嘅結算現金 — 沽 option 唯一認嘅現金側抵押品，現金寶基金唔入圍）。'
   };
   const bar = parts.map(p=>'<div style="height:14px;background:'+p.c+';width:'+Math.max(0,Math.min(100,pctOf(p.v)))+'%;cursor:help" data-tip="'+tipDef[p.k].replace(/"/g,'&quot;')+'"></div>').join('');
   const legend = parts.map(p=>'<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;margin-right:14px"><span style="width:10px;height:10px;border-radius:2px;background:'+p.c+';display:inline-block"></span>'+p.k+' <b>'+(uniHideOn()? '•••' : (p.v>=0?'':'−')+uMoney(Math.abs(p.v)).replace('HKD ','').replace('USD ',''))+'</b></span>').join('');
@@ -684,13 +689,13 @@ function renderUnified(){
   h += '<div class="k"><div class="lbl">總資產（'+uniCCY()+'）</div><div class="val" id="uTotal">'+uMask(uMoney(total))+'</div><div class="small muted">基準 HKD '+(BASE_HKD/1000).toFixed(0)+'k · 回報 '+(retPct>=0?'+':'')+retPct.toFixed(1)+'%</div></div>';
   h += '<div class="k"><div class="lbl">已實現 P&L（'+uniCCY()+'）</div><div class="val '+(realized>=0?'up':'dn')+'">'+uPnl(realized)+'</div><div class="small muted">＝ 總資產 − 本金 HKD 320,000（含浮動）</div></div>';
   h += '<div class="k"><div class="lbl">未實現 P&L（'+uniCCY()+'）</div><div class="val '+(unreal>=0?'up':'dn')+'">'+uPnl(unreal)+'</div><div class="small muted">Futu 全戶口口徑：期權＋正股加總</div></div>';
-  h += '<div class="k"><div class="lbl">可動用現金寶（'+uniCCY()+'）</div><div class="val" style="color:#16a34a">'+uMask(uMoney(avail))+'</div><div class="small muted">'+availPct.toFixed(0)+'% 資產 · 現金−抵押 · 0佣金收息</div></div>';
-  h += '<div class="k"><div class="lbl">抵押鎖定（'+uniCCY()+'）</div><div class="val" style="color:#b45309">'+uMask(uMoney(locked))+'</div><div class="small muted">短 put 按金佔用 · 不可動用</div></div>';
+  h += '<div class="k"><div class="lbl">可動用現金寶（'+uniCCY()+'）</div><div class="val" style="color:#16a34a">'+uMask(uMoney(avail))+'</div><div class="small muted">'+availPct.toFixed(0)+'% 資產 · 買股 auto-redeem ✓ · 沽 option 按金 ✗ · 0佣金收息</div></div>';
+  h += '<div class="k"><div class="lbl">沽出按金需求（'+uniCCY()+'）</div><div class="val" style="color:#b45309">'+uMask(uMoney(imReq))+'</div><div class="small muted">認可抵押品（現金+證券）'+uMoney(eligCS)+(colGap<0?' · <span style="color:#dc2626">證券側已欠 −'+uMoney(Math.abs(colGap))+'</span>（新倉要贖現金寶）':' · 證券側空間 +'+uMoney(colGap))+'</div></div>';
   h += '</div>';
   h += '<div style="margin:10px 0 6px;font-weight:700;font-size:13px">資產分佈（總資產 '+uMask(uMoney(total))+'）<span class="muted" style="font-weight:400;font-size:11px"> · mouseover 每段睇明細</span></div>';
   h += '<div style="display:flex;border-radius:6px;overflow:hidden;background:#e2e8f0">'+bar+'</div>';
   h += '<div style="margin-top:8px">'+legend+'</div>';
-  h += '<div class="small muted" style="margin-top:6px">'+(uniHideOn()?'':'現金總值 '+uMoney(cashAll)+' ＝ 抵押鎖定 '+uMoney(locked)+' ＋ 可動用 '+uMoney(avail)+' · 證券市值 '+uMoney(secVal)+' ＝ 正股 +'+uMoney(stockVal)+' ＋ 期權 −'+uMoney(Math.abs(optNet))+'（沽空負債）')+'</div>';
+  h += '<div class="small muted" style="margin-top:6px">'+(uniHideOn()?'':'現金寶 '+uMoney(fundAv)+' ＋ 結算現金 '+uMoney(cashAll)+' ＋ 證券市值 '+uMoney(secVal)+' ＝ 正股 +'+uMoney(stockVal)+' ＋ 期權 −'+uMoney(Math.abs(optNet))+'（沽空負債）· 沽出按金需求 '+uMoney(imReq)+' vs 認可抵押品 '+uMoney(eligCS)+(colGap<0?' → 證券側已欠 −'+uMoney(Math.abs(colGap)):' → 證券側空間 +'+uMoney(colGap)))+'</div>';
   // 持倉細項（正股＋期權）
   const all = (realPos||[]).slice().sort((a,b)=> (b.mkt_val_hkd||0)-(a.mkt_val_hkd||0));
   if(all.length){
