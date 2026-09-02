@@ -1092,6 +1092,33 @@ function gateReason(){   // ⭐ 2026-08-17 v3：閘門關閉嘅「真實原因�
 function gateWarnHTML(){
   return '<div class="warn-note" style="margin:0 0 10px">🚧 <b>開倉閘門關閉：'+esc(gateReason())+'</b>。以下排名/候選僅供觀察 —— 執行會被 engine 拒絕（Telegram 會收到拒單原因）。</div>';
 }
+/* ⭐ 2026-09-02：best 卡（v4_balanced／h6040 共用）嘅 Futu 實收按金＋贖回試算 —
+   bridge /margin_gap?code=&price=（卡上原本嘅 $ 按金係模型 Reg-T 口徑；呢行係落單口徑：
+   現金寶唔認 → 證券側空間唔夠就要贖）。async 注入 data-mgfut 格，seq 防舊 render 蓋寫。 */
+let _mgFutSeq=0;
+async function loadBestFutuMargin(picks){
+  const seq=++_mgFutSeq;
+  if(!activeBridge){await detectBridge();}
+  if(!activeBridge)return;
+  for(let i=0;i<(picks||[]).length;i++){
+    const b=picks[i];
+    const el=$('bestCard'), slot=el&&el.querySelector('[data-mgfut="'+i+'"]');
+    if(!slot)continue;
+    try{
+      const ed=String(b.expiry||'').replace(/-/g,'');
+      const px=(b.mid!=null&&b.mid>0)?b.mid:null;
+      const code=(b.ticker&&ed.length===8&&b.strike>0&&px)?('US.'+String(b.ticker).toUpperCase()+ed.slice(2)+'P'+String(Math.round(b.strike*1000)).padStart(6,'0')):null;
+      if(!code){slot.innerHTML='<div style="font-size:11px;color:#94a3b8;margin-top:2px">💰 Futu 實收按金 — 冇齊 code/價，載唔到</div>';continue;}
+      const r=await fetchTimeout(activeBridge+'/margin_gap?code='+encodeURIComponent(code)+'&price='+px+'&secret='+encodeURIComponent(BRIDGE_SECRET),15000);
+      const m=r&&r.ok?await r.json():null;
+      if(seq!==_mgFutSeq)return;   // 卡已重 render — 唔好寫舊格
+      if(!m||!m.ok){slot.innerHTML='<div style="font-size:11px;color:#94a3b8;margin-top:2px">💰 Futu 實收按金 — 暫時攞唔到</div>';continue;}
+      const q=Math.max(1,b.contracts||1), need=m.im_hkd*q, gap=Math.max(0,need-(m.headroom_hkd||0));
+      const hk=function(v){return 'HK$'+fmt(Math.round(v));};
+      slot.innerHTML='<div style="font-size:11px;color:#fcd34d;margin-top:2px">💰 <b>Futu 實收</b>按金 US$'+fmt(Math.round(m.im_usd))+' ≈ '+hk(m.im_hkd)+'/張 ×'+q+' ｜ 證券側空間 '+hk(m.headroom_hkd||0)+' → '+(gap>0?('要贖回現金寶 ≈ <b style="color:#fbbf24">'+hk(gap)+'</b>（現金寶 '+hk(m.fund_assets_hkd)+(m.fund_assets_hkd>=gap?'，夠贖 ✓':'，⚠️ 唔夠')+'）'):'毋須贖回 ✓')+(m.stale?' · ⚠️快取舊數':'')+'</div>';
+    }catch(e){slot.innerHTML='<div style="font-size:11px;color:#94a3b8;margin-top:2px">💰 Futu 實收按金 — 載入失敗</div>';}
+  }
+}
 function bestCardHTML(b,idx,total){   // ⭐ 2026-08-18 v2：兩張最佳卡共用（best/best2，每日上限 2 倉）
   const ref=!!(b.reference_only||(rec&&rec.gate_closed));
   const sc=b.scenarios||{};
@@ -1101,6 +1128,7 @@ function bestCardHTML(b,idx,total){   // ⭐ 2026-08-18 v2：兩張最佳卡共�
   h+='<div style="font-size:12px;color:'+(ref?'#fbbf24':'#4ade80')+'">'+(ref?'🟡 最佳交易（僅參考）':'🟢 最佳交易')+esc(tag)+' · SELL PUT <b>'+b.ticker+'</b> ×'+(b.contracts||1)+tip('csp')+'</div>';
   h+='<div style="font-size:24px;font-weight:800;margin:6px 0">行使價 $'+b.strike+'<span style="font-size:12px;color:#94a3b8;font-weight:400">（現價 $'+liveSpot(b.ticker,b.spot)+'）</span>'+tip('strike')+'</div>';
   h+='<div style="font-size:13px;color:#cbd5e1">權利金 $'+px2(b.mid)+'/股 = <b>$'+(b.premium_total!=null?b.premium_total:'—')+'</b> ≈ HKD '+px2(b.premium_total_hkd)+tip('premium')+'</div>';
+  h+='<div style="font-size:11px;color:#94a3b8;margin-top:2px" data-mgfut="'+idx+'">💰 Futu 實收按金／贖回試算載入中…</div>';
   h+=gauge(b.prob_itm,b.prob_otm);
   h+='<div style="font-size:10px;color:#94a3b8">OTM = 賺足權利金機率 · ITM = 被指派機率'+tip('otm')+tip('itm')+'</div>';
   h+='<div style="font-size:11px;color:#cbd5e1;margin-top:6px">到期 '+b.expiry+'（'+(b.dte!=null?b.dte:'—')+'D）· Delta '+(b.delta!=null?b.delta:'—')+tip('delta')+' · IV '+(b.iv!=null?Math.round(b.iv*100)+'%':'—')+'（rank '+(b.iv_rank!=null?b.iv_rank:'—')+'）'+tip('ivrank')+' · 按金 $'+fmt(b.margin_total||b.margin1||0)+tip('margin')+' · 接貨現金 $'+(b.collateral_total!=null?b.collateral_total:'—')+tip('collateral')+'</div>';
@@ -1149,6 +1177,7 @@ function renderBest(){
     h+='</div>';
   }
   el.innerHTML=h;
+  loadBestFutuMargin(picks);           // ⭐ 09-02：Futu 實收按金＋贖回現金寶（async 注入 data-mgfut 格）
   const bb=el.querySelector('.bar');   // ⭐ hover bar 看按金實數
   if(bb){bb.style.cursor='help';const _bp=rec.margin_budget?Math.round((rec.used_margin_open||0)/rec.margin_budget*100):0;
     bb.dataset.tip='<b>按金運用（成個組合）</b><br>$'+fmt(rec.used_margin_open||0)+' ／ $'+fmt(rec.margin_budget||0)+'（equity×70%）= <b>'+_bp+'%</b><br>6 put 上限 · 每日 ≤2 新倉 · 單名按金 ≤30% equity';}
@@ -2574,7 +2603,7 @@ function renderMethodH6040(){
 /* ⭐ 2026-09-02：開倉按金試算（bridge /margin_gap）—「要贖回幾多現金寶，先開得起
    今日最佳交易（gate open 嘅）」。背景：現金寶唔係期權按金抵押品 → 落單俾 Futu 拒
    「購買力不足」都唔知要赎幾多。數字係 Futu 實時 short_required_im 對 headroom。60s refresh。*/
-let h6040Margin=null;
+let h6040Margin=null,h6040MarginSingle=null;
 async function loadH6040Margin(){
   if(!activeBridge){await detectBridge();}
   if(!activeBridge)return h6040Margin;
@@ -2582,11 +2611,17 @@ async function loadH6040Margin(){
     const r=await fetchTimeout(activeBridge+'/margin_gap?secret='+encodeURIComponent(BRIDGE_SECRET),15000);
     if(r&&r.ok){h6040Margin=await r.json();}
   }catch(e){console.error('loadH6040Margin',e);}
+  if(METHOD==='h6040'){
+    try{   // ⭐ 09-02：單股腿 gate 開（monitor 有 stock_pick）→ 拉埋單股腿自己嘅按金/贖回數
+      const r2=await fetchTimeout(activeBridge+'/margin_gap?leg=single&secret='+encodeURIComponent(BRIDGE_SECRET),15000);
+      const j2=r2&&r2.ok?await r2.json():null;
+      h6040MarginSingle=(j2&&j2.ok)?j2:null;
+    }catch(e){h6040MarginSingle=null;}
+  }else h6040MarginSingle=null;
   if(METHOD==='h6040')renderH6040Best();
   return h6040Margin;
 }
-function h6040MarginBlock(){
-  const m=h6040Margin;
+function h6040MarginCard(m){
   if(!m)return '<div class="small muted" style="margin-top:6px">💰 按金試算讀取中…（bridge /margin_gap）</div>';
   if(!m.ok){
     if(m.error==='no_open_pick')return '';   // 閘門閉 — 閘門格已經紅，唔使嘥位
@@ -2602,16 +2637,22 @@ function h6040MarginBlock(){
   }else{
     const gap2=Math.max(0,m.im_hkd*2-m.headroom_hkd);
     core='<div style="font-size:14px;margin-top:2px">→ <b style="color:#b45309">要贖回現金寶 ≈ '+hk(m.gap1_hkd)+'（'+us(m.redeem1_usd)+'）</b><span class="small"> — 現金寶現有 '+hk(m.fund_assets_hkd)+(m.fund_assets_hkd>=m.gap1_hkd?'，夠贖 ✓':'，⚠️ 唔夠')+'</span></div>'+
-      '<div class="small muted" style="margin-top:2px">開 2 張（Path A 每倉上限 2）→ 要贖回 ≈ '+hk(gap2)+'（'+us(gap2/(m.fx||7.8))+'）'+(m.fund_assets_hkd>=gap2?'，夠贖 ✓':' — <b style="color:#dc2626">⚠️ 唔夠（差 '+hk(gap2-m.fund_assets_hkd)+'）</b>')+'</div>';
+      '<div class="small muted" style="margin-top:2px">開 2 張'+(m.leg==='spy'?'（Path A 每倉上限 2）':'')+' → 要贖回 ≈ '+hk(gap2)+'（'+us(gap2/(m.fx||7.8))+'）'+(m.fund_assets_hkd>=gap2?'，夠贖 ✓':' — <b style="color:#dc2626">⚠️ 唔夠（差 '+hk(gap2-m.fund_assets_hkd)+'）</b>')+'</div>';
   }
   return '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:10px">'+
-    '<div class="small muted">💰 按金試算（Futu 實時）— 今日最佳交易（'+lbl+'閘門開）· 落單前贖夠現金寶就開得起</div>'+
+    '<div class="small muted">💰 按金試算（Futu 實時）— '+(m.leg==='spy'?'今日最佳交易':'最佳交易')+'（'+lbl+'閘門開）· 落單前贖夠現金寶就開得起</div>'+
     '<div style="font-size:13px;margin-top:2px"><b>'+desc+'</b></div>'+
     '<div class="small" style="margin-top:2px">每張按金（<b style="color:#b45309">Futu 實收</b>）<b>'+us(m.im_usd)+' ≈ '+hk(m.im_hkd)+'</b>（7.8 計）</div>'+
     '<div class="small" style="margin-top:2px">證券側按金空間 <b>'+hk(m.headroom_hkd)+'</b>（總資產 − 現金寶 − 已用按金；現金寶沽 option 唔認）'+(m.headroom_gross_hkd!=null?'<span class="muted">· 賬面含現金寶 '+hk(m.headroom_gross_hkd)+'</span>':'')+'</div>'+
     core+
     '<div class="small muted" style="margin-top:2px">合約 <span style="font-family:monospace">'+esc(m.code||'')+'</span> · <b>模型按金</b>（Reg-T 估計）'+(m.model_margin1?us(m.model_margin1):'—')+' vs <b>Futu 實收</b> '+us(m.im_usd)+'（house buffer ~25%）— 落單以 Futu 為準'+(m.stale?' · ⚠️ 快取舊數':'')+(m.ts?' · 資料 '+esc(String(m.ts).slice(0,16).replace('T',' ')):'')+'</div>'+
   '</div>';
+}
+function h6040MarginBlock(){   // ⭐ 09-02：兩條腿 gate 同開 → XSP 格＋單股腿格各自出（同一 card builder）
+  const m=h6040Margin;
+  let out=h6040MarginCard(m);
+  if(m&&m.ok&&m.leg!=='single'&&h6040MarginSingle&&h6040MarginSingle.ok)out+=h6040MarginCard(h6040MarginSingle);
+  return out;
 }
 function h6040GateBanner(){
   const g=h6040Gates;
