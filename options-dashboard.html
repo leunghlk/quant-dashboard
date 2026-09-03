@@ -567,6 +567,23 @@ let realPos = [];                   // [{ticker,shares,avg_cost,price,mkt_val_hk
 let realFunds = null;               // {power_hkd,total_hkd,cash_hkd,us_cash,withdraw_hkd,init_margin_hkd,maint_margin_hkd,market_val_hkd,ts}
 let fundHoldings = null;            // ⭐ 09-03：現金寶持倉明細（bridge /fund_holdings 現金流推導：每基金 Σ申購−Σ贖回）
 let realFx = 7.8536;                // ⭐ 08-23：bridge 反推嘅 USD→HKD 匯率（live 價 override 用）
+/* ⭐⭐ 09-03 晚（三 agent 核數）：現金寶累計收益要將 OpenD 原生 fund_assets_hkd ÷ 即市匯率還原 USD 先準
+ *   （fund_assets_hkd 係 OpenD accinfo 原生估值，貼 intraday mid；對 ECB 日價誤差 <1 pip）。
+ *   bridge /yh_chart 唔收 HKD=X、/snapshot 都空 → 用 frankfurter.dev（ACAO:* client 直連，ECB 每日一價）。 */
+let usdHkdFx = null;                // 即市 USD/HKD（ECB 日價）；null=未到
+let __fxTs = 0;                     // 上次攞匯率時間（12h throttle — ECB 一日一價）
+async function loadFx(){
+  if(usdHkdFx!=null && Date.now()-__fxTs < 12*3600*1000) return usdHkdFx;
+  try{
+    const r = await fetchTimeout('https://api.frankfurter.dev/v1/latest?base=USD&symbols=HKD',8000);
+    if(r && r.ok){
+      const j = await r.json();
+      const v = j&&j.rates? Number(j.rates.HKD) : NaN;
+      if(v>6 && v<10){ usdHkdFx = v; __fxTs = Date.now(); renderUnified(); }   // 匯率到 → 統一總覽即刻重繪（收益 strip 由 fallback 匯率升級做 ECB）
+    }
+  }catch(e){}
+  return usdHkdFx;
+}
 const EQUITY_TICKERS = ['LITE','DLLL'];
 /* ⭐ 09-03 honest no-data：bridge 重啟窗口／OpenD 未連到時，loadReal 三 fetch 全 fail → 舊 code 照樣
  *   用 fallback 算式畫「總資產 HKD 0／回報 −100%」假數。加三個 state 位分辨「未載入」vs「真係咁」：
@@ -612,6 +629,7 @@ function qWatchOf(tk){return ((quant&&quant.watchlist)||[]).find(s=>s&&s.ticker=
 async function loadReal(){
   if(!activeBridge)return;
   clearTimeout(__realRetry);__realRetry=null;   // ⭐ 09-03：開新回合，取消 pending fast-retry（單飛，唔准堆疊）
+  loadFx();   // ⭐ 09-03：即市 USD/HKD（ECB）— 現金寶累計收益 strip 用；12h throttle，fail-soft 唔擋主鏈
   try{
     const [pr,pf,fh] = await Promise.all([
       fetchTimeout(activeBridge+'/real_positions?secret='+encodeURIComponent(BRIDGE_SECRET),15000).then(r=>r.json().catch(()=>null)),
@@ -758,9 +776,27 @@ function renderUnified(){
     const fArr=(fundHoldings.funds||[]);
     const fSU=fArr.reduce((s,f)=>s+(f.net_usd||0),0), fSH=fArr.reduce((s,f)=>s+(f.net_hkd||0),0);
     const fsum=fArr.length? '<tr style="border-top:2px solid #64748b;font-weight:700;background:#f8fafc"><td>Σ '+fArr.length+' 隻'+(fArr.some(f=>f.fully_redeemed)?'（含已全贖）':'')+'</td><td class="r">US$'+fmt(fSU)+'</td><td class="r">'+uMask(uMoney(fSH))+'</td><td></td></tr>' : '';
+    // ⭐⭐ 09-03 晚（三 agent 核數終版）：真·累計收益 ＝ 現值(fund_assets÷即市匯率) − 淨投入。
+    //   舊 residual_hkd 用固定 7.8 計：1,623 HKD 入面 92–94% 係匯率假象、真息只有 ~12–17 USD — 唔再展示。
+    //   fund_assets 用 realFunds（60s cache）優先，fundHoldings（900s）兜底；匯率 ECB 即市 → 戶口隱含 → 7.84。
+    const faHkd  = (fundsOk && realFunds.fund_assets_hkd!=null)? realFunds.fund_assets_hkd : (fundHoldings.fund_assets_hkd||0);
+    const fhFx   = (usdHkdFx!=null)? usdHkdFx : ((realFx>6&&realFx<10)? realFx : 7.84);
+    const prinUsd= fundHoldings.known_usd || 0;
+    const navUsd = (prinUsd>0 && faHkd>0)? faHkd/fhFx : null;
+    const intUsd = (navUsd!=null)? navUsd - prinUsd : null;               // 累計收益 USD（含 CUAM 08-31 已實現息 3.32）
+    const intHkd = (intUsd!=null)? faHkd - prinUsd*fhFx : null;
+    const intPct = (intUsd!=null && prinUsd>0)? intUsd/prinUsd*100 : null;
+    const iSgn   = v => (v>=0?'+':'−');
+    const iCol   = (intUsd!=null && intUsd<0)? '#dc2626' : '#15803d';
+    const intBox = (intUsd==null)
+      ? '<div class="small muted" style="margin-top:4px">淨投入 US$'+fmt(prinUsd,2)+'（現值匯率未到，累計收益稍後補上）</div>'
+      : '<div style="margin-top:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:7px 10px;font-size:12.5px">'
+        + '<b style="color:'+iCol+'">💰 累計收益（08-24 起息）'+uMask(' '+iSgn(intUsd)+'US$'+fmt(Math.abs(intUsd),2)+' ≈ '+iSgn(intHkd)+'HKD '+fmt(Math.abs(intHkd),0)+'（'+iSgn(intPct)+Math.abs(intPct).toFixed(3)+'% 本金）')+'</b>'
+        + '<div class="small muted" style="margin-top:3px">淨投入 US$'+fmt(prinUsd,2)+' → 現值 ≈ US$'+fmt(navUsd,2)+'（USD/HKD '+fhFx.toFixed(4)+(usdHkdFx!=null?' · ECB 即市':' · 戶口隱含')+'）＝ 現金寶 '+uMoney(faHkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div>'
+        + '<div class="small muted" style="margin-top:2px">收益＝現值−淨投入（含 CUAM 08-31 贖回已實現息 US$3.32）；peg band 內匯率折算可令單日浮動 ±US$2–7，睇趨勢唔好睇單日跳動。</div></div>';
     h += '<div style="margin-top:10px"><div style="font-weight:700;font-size:13px">現金寶持倉明細<span class="muted" style="font-weight:400;font-size:11px"> · 現金流推導（Σ申購−Σ贖回，30 日窗）· 總額以 Futu accinfo 為準</span></div>'
       + '<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>基金</th><th class="r">淨投入(USD)</th><th class="r">≈市值(HKD)</th><th class="r">最近流水</th></tr></thead><tbody>'+frows+fsum+'</tbody></table></div>'
-      + '<div class="small muted" style="margin-top:4px">Σ淨投入 US$'+fmt(fundHoldings.known_usd)+' ×'+fundHoldings.fx+' ＋ 累計收益／匯差 ≈ '+uMoney(fundHoldings.residual_hkd)+' ＝ 現金寶 '+uMoney(fundHoldings.fund_assets_hkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div></div>';
+      + intBox + '</div>';
   }
   // 持倉細項（正股＋期權）
   const all = (realPos||[]).slice().sort((a,b)=> (b.mkt_val_hkd||0)-(a.mkt_val_hkd||0));
