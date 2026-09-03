@@ -754,8 +754,12 @@ function renderUnified(){
         + '<td class="r">'+uMask(uMoney(f.net_hkd))+'</td>'
         + '<td class="r muted">'+esc(f.last_flow||'—')+'</td></tr>';
     }).join('');
+    // ⭐ 09-03：Σ row —— 淨投入＋≈市值加總（含已全贖 row 會標明；last_flow 冇 sum 意義留空）
+    const fArr=(fundHoldings.funds||[]);
+    const fSU=fArr.reduce((s,f)=>s+(f.net_usd||0),0), fSH=fArr.reduce((s,f)=>s+(f.net_hkd||0),0);
+    const fsum=fArr.length? '<tr style="border-top:2px solid #64748b;font-weight:700;background:#f8fafc"><td>Σ '+fArr.length+' 隻'+(fArr.some(f=>f.fully_redeemed)?'（含已全贖）':'')+'</td><td class="r">US$'+fmt(fSU)+'</td><td class="r">'+uMask(uMoney(fSH))+'</td><td></td></tr>' : '';
     h += '<div style="margin-top:10px"><div style="font-weight:700;font-size:13px">現金寶持倉明細<span class="muted" style="font-weight:400;font-size:11px"> · 現金流推導（Σ申購−Σ贖回，30 日窗）· 總額以 Futu accinfo 為準</span></div>'
-      + '<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>基金</th><th class="r">淨投入(USD)</th><th class="r">≈市值(HKD)</th><th class="r">最近流水</th></tr></thead><tbody>'+frows+'</tbody></table></div>'
+      + '<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>基金</th><th class="r">淨投入(USD)</th><th class="r">≈市值(HKD)</th><th class="r">最近流水</th></tr></thead><tbody>'+frows+fsum+'</tbody></table></div>'
       + '<div class="small muted" style="margin-top:4px">Σ淨投入 US$'+fmt(fundHoldings.known_usd)+' ×'+fundHoldings.fx+' ＋ 累計收益／匯差 ≈ '+uMoney(fundHoldings.residual_hkd)+' ＝ 現金寶 '+uMoney(fundHoldings.fund_assets_hkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div></div>';
   }
   // 持倉細項（正股＋期權）
@@ -775,6 +779,9 @@ function renderUnified(){
         + '<td class="r '+(p.unrealized_pl>=0?'pos':'neg')+'">'+money(p.unrealized_pl)+'</td>'
         + '<td class="r '+(p.realized_pl>=0?'pos':'neg')+'">'+money(p.realized_pl)+'</td></tr>';
     });
+    // ⭐ 09-03：Σ row —— 市值/未實現/已實現加總（股數/價格跨代號冇 sum 意義留空）
+    const sMV=sumF(all,'mkt_val_hkd'), sUP=sumF(all,'unrealized_pl'), sRP=sumF(all,'realized_pl');
+    h += '<tr style="border-top:2px solid #64748b;font-weight:700;background:#f8fafc"><td>Σ '+all.length+' 倉</td><td></td><td></td><td></td><td></td><td class="r">'+hkd(sMV)+'</td><td class="r '+(sUP>=0?'pos':'neg')+'">'+money(sUP)+'</td><td class="r '+(sRP>=0?'pos':'neg')+'">'+money(sRP)+'</td></tr>';
     h += '</tbody></table></div>';
   } else {
     // ⭐ 09-03：拆「讀取中」vs「真係冇倉」——舊 code 兩個 state 同一句，user 分唔到
@@ -1144,6 +1151,11 @@ function ledTable(led){
   led.forEach(t=>{
     h+='<tr><td><b>'+esc(t.ticker)+'</b></td><td class="r">$'+t.strike+'</td><td class="r">'+(t.contracts||1)+'</td><td>'+esc(t.close_reason)+'</td><td class="r">'+money(t.pnl)+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
   });
+  // ⭐ 09-03：Σ row —— 張數＋P&L 兩幣加總（行使價/原因冇 sum 意義留空）；call site 有 led.length guard
+  const sC=led.reduce((s,t)=>s+(Number(t.contracts)||1),0);
+  const sU=led.reduce((s,t)=>s+(Number(t.pnl)||0),0);
+  const sH=led.reduce((s,t)=>s+(Number(t.pnl_hkd)||0),0);
+  h+='<tr style="border-top:2px solid #64748b;font-weight:700;background:#f8fafc"><td>Σ '+led.length+' 筆</td><td></td><td class="r">'+sC+'</td><td></td><td class="r">'+money(sU)+'</td><td class="r">'+money(sH)+'</td></tr>';
   return h+'</tbody></table>';
 }
 
