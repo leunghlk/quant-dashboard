@@ -931,6 +931,15 @@ function h6040ExpiryFromDte(dte){
   const p=n=>String(n).padStart(2,'0');
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
 }
+function h6040ExpNearest(dte){
+  // ⭐ 09-03：同 h6040PoolCand live-chain 揀到期口徑一致（今日+dte → 最近星期五，退後最多 3 日且唔少過 7D，否則向前）——
+  // 池表「到期」欄同詳情頁重揀必須同一條式，唔係又會出現「表 09-18 / 詳情 09-11」兩個口徑。
+  const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+(dte||12));
+  const back=(d.getDay()+7-5)%7, fwd=(5-d.getDay()+7)%7;
+  if(back&&back<=3&&((dte||12)-back)>=7)d.setDate(d.getDate()-back); else d.setDate(d.getDate()+fwd);
+  const p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
+}
 function h6040PoolCand(tk){
   if(!h6040Rec||tk==='XSP')return null;
   const row=(h6040Rec.candidates||[]).find(x=>x&&x.ticker===tk);
@@ -960,7 +969,7 @@ function h6040PoolCand(tk){
   const probs=(K&&S)?bsPutProbs(S,K,dte/365,iv):{otm:null,itm:null};
   const yld=K>0?prem/K*100:0;
   (window._h6040ScanStage=window._h6040ScanStage||{})[tk]=1;   // placeholder 標記：實時鏈到手 → loadChain 一次性升級重繪
-  return {ticker:tk,name:tk,expiry:h6040ExpiryFromDte(dte),dte:dte,strike:K,spot:S,mid:prem,
+  return {ticker:tk,name:tk,expiry:h6040ExpNearest(dte),dte:dte,strike:K,spot:S,mid:prem,
     delta:row.sug_delta!=null?-Math.abs(row.sug_delta):null,iv:row.iv,iv_rank:null,
     prob_otm:probs.otm,prob_itm:probs.itm,gamma:null,theta:null,vega:null,levels:{},
     contracts:1,premium:Math.round(prem*100),premium_total:Math.round(prem*100),
@@ -1455,6 +1464,14 @@ function renderDetail(){
   h+='<span class="pill g">OTM '+(c.prob_otm!=null?c.prob_otm:'—')+'%</span>';
   if(c.premium_source)h+='<span class="pill t">報價:'+c.premium_source+tip('premiumsrc')+'</span>';
   h+='</div>';
+  // ⭐ 09-03：h6040 池候選——詳情頁係即市 chain 重揀（貼 sug_delta），池表係掃描快照；兩者有出入就要講明，唔係又「表 $102/10D、入嚟 $118/8D」
+  if(c.h6040Pool&&h6040Rec){
+    const sr=(h6040Rec.candidates||[]).find(x=>x&&x.ticker===c.ticker);
+    if(sr&&((sr.sug_strike!=null&&Math.abs((sr.sug_strike||0)-(c.strike||0))>0.01)||(sr.sug_dte&&sr.sug_dte!==c.dte))){
+      const est=sr.sug_dte?h6040ExpNearest(sr.sug_dte).slice(5):'—';
+      h+='<div class="muted" style="font-size:11px;margin:-4px 0 10px">📌 候選名單嗰行係 '+esc(h6040Rec.scan_date||'')+' 掃描快照：建議 '+(sr.sug_strike!=null?'$'+px2(sr.sug_strike)+'/'+sr.sug_dte+'D（≈'+est+' 到期）':'—')+'、當時價 $'+px2(sr.price)+'。現價已移到 $'+px2(c.spot)+'，呢頁按即市 chain 貼返 |Δ|≈'+(sr.sug_delta!=null?Math.abs(sr.sug_delta).toFixed(2):'0.28')+' 重揀 → $'+px2(c.strike)+'/'+c.dte+'D（'+c.expiry+' 到期）。同一策略兩個時間點，落盤以即市數為準。</div>';
+    }
+  }
   // 圖表 + 右邊 S/R + 希臘字母
   h+='<div class="grid2">';
   h+='<div><div class="card"><div class="card-h"><span class="t">日線 K 線<span id="chartDays"></span></span><span class="meta">紅升綠跌（港式）· 紫=行使價 · 橙=盈虧平衡 · 綠/紅虛線=S/R</span></div>';
@@ -3051,12 +3068,12 @@ function renderH6040Best(){
         // ⭐ 08-25 業績欄：earn_in_window（業績落喺 DTE+2 持有期內）→ 紅字 ⚠️；淨日期→灰字；缺→—
         const eD=c.earnings?c.earnings.slice(5):'';
         const eCell=c.earn_in_window?'<span style="color:#dc2626;font-weight:700">⚠️'+eD+'</span>':(c.earnings?'<span class="muted">'+eD+'</span>':'—');
-        rows+='<tr style="cursor:pointer" onclick="showDetail(\''+c.ticker+'\')"><td><b>'+c.ticker+'</b></td><td class="r">'+h6040PxCell(c.ticker,c.price)+'</td><td class="r">'+(c.score!=null?c.score.toFixed(2):'—')+'</td><td>'+_sigPill(c.signal)+'</td><td class="r">'+(c.iv!=null?(c.iv*100).toFixed(0)+'%':'—')+'</td><td class="r">'+(c.rsi!=null?c.rsi.toFixed(0):'—')+'</td><td class="r">'+eCell+'</td><td class="r">'+(c.sug_strike!=null?'$'+px2(c.sug_strike):'—')+'</td><td class="r">'+(c.sug_dte||'—')+'</td><td class="r">'+(c.sug_delta!=null?'−'+Math.abs(c.sug_delta).toFixed(2):'—')+'</td><td class="r">'+(c.sug_yield_ann!=null?c.sug_yield_ann+'%':'—')+'</td></tr>';
+        rows+='<tr style="cursor:pointer" onclick="showDetail(\''+c.ticker+'\')"><td><b>'+c.ticker+'</b></td><td class="r">'+h6040PxCell(c.ticker,c.price)+'</td><td class="r">'+(c.score!=null?c.score.toFixed(2):'—')+'</td><td>'+_sigPill(c.signal)+'</td><td class="r">'+(c.iv!=null?(c.iv*100).toFixed(0)+'%':'—')+'</td><td class="r">'+(c.rsi!=null?c.rsi.toFixed(0):'—')+'</td><td class="r">'+eCell+'</td><td class="r">'+(c.sug_strike!=null?'$'+px2(c.sug_strike):'—')+'</td><td class="r">'+(c.sug_dte||'—')+'</td><td class="r">'+(c.sug_dte?h6040ExpNearest(c.sug_dte).slice(5)+'<br><span class="muted small">≈</span>':'—')+'</td><td class="r">'+(c.sug_delta!=null?'−'+Math.abs(c.sug_delta).toFixed(2):'—')+'</td><td class="r">'+(c.sug_yield_ann!=null?c.sug_yield_ann+'%':'—')+'</td></tr>';
       });
-      cd.innerHTML=(rows?banner+'<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">現價</th><th class="r">mom</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th class="r">業績</th><th class="r">建議K</th><th class="r">DTE</th><th class="r">Δ</th><th class="r">年化</th></tr></thead><tbody>'+rows+'</tbody></table></div>':banner+'<div class="muted">今日 v5 池無符合 CFG_SINGLE 過濾嘅候選。</div>');
+      cd.innerHTML=(rows?banner+'<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">現價</th><th class="r">mom</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th class="r">業績</th><th class="r">建議K</th><th class="r">DTE</th><th class="r">到期</th><th class="r">Δ</th><th class="r">年化</th></tr></thead><tbody>'+rows+'</tbody></table></div>':banner+'<div class="muted">今日 v5 池無符合 CFG_SINGLE 過濾嘅候選。</div>');
     }
   }
-  const cm=$('candMeta'); if(cm)cm.textContent='v5 回測池 '+pool.length+' 隻 · scan '+(scan.scan_date||'—')+' · VIX '+(scan.vix!=null?scan.vix.toFixed(1):'—')+' · breadth '+(scan.breadth!=null?(scan.breadth*100).toFixed(0)+'%':'—')+' · 現價＝live 優先（綠＝即時／琥珀＝掃描價，同其他 tab 同一來源） · 建議K/Δ/年化＝BS 模型價 · 業績⚠️＝落喺持有期內（DTE＋2緩衝，回測冇剔業績——自行迴避）';
+  const cm=$('candMeta'); if(cm)cm.textContent='v5 回測池 '+pool.length+' 隻 · scan '+(scan.scan_date||'—')+' · VIX '+(scan.vix!=null?scan.vix.toFixed(1):'—')+' · breadth '+(scan.breadth!=null?(scan.breadth*100).toFixed(0)+'%':'—')+' · 現價＝live 優先（綠＝即時／琥珀＝掃描價，同其他 tab 同一來源） · 建議K/Δ/年化＝BS 模型價 · 業績⚠️＝落喺持有期內（DTE＋2緩衝，回測冇剔業績——自行迴避） · 到期＝sug_dte 推算最近週五（≈；詳情頁以 live chain 為準，建議K/DTE＝掃描快照、詳情頁係即市重揀）';
   const nt=$('notesBody'); if(nt)nt.innerHTML='<span class="muted">Hybrid 60/40 排除：單股腿要 VIX 20–32＋breadth≥50% 才開（v5 回測池）；XSP 腿要 XSP>200DMA 才開。兩腿皆關 = 今日全場休息（同回測）。</span>';
 }
 function h6040OpenSpyChain(){
