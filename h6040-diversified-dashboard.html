@@ -424,7 +424,7 @@ async function detectBridge(){
     if(!u)continue;
     try{
       const r=await fetchTimeout(u+'/health',5000);
-      if(r&&r.ok){const j=await r.json().catch(()=>null);if(j&&j.ok){activeBridge=u;return true;}}
+      if(r&&r.ok){const j=await r.json().catch(()=>null);if(j&&j.ok){activeBridge=u;try{localStorage.setItem('qbridge',u);}catch(e){}return true;}}   // ⭐ 09-03：寫返 qbridge（boot 嗰邊 BRIDGE_URLS 有讀），下次開頁跳過死候選
     }catch(e){}
   }
   return false;
@@ -514,6 +514,9 @@ async function loadRec(force){
     setLive((rec.paper?'📝 紙上':'🔴 LIVE')+' · '+rec.date+(activeBridge&&activeBridge.indexOf('workers')>=0?' · ⚙ proxy':'')+' · 更新 '+lastUpdated.toLocaleTimeString('zh-HK')+stalenessText);
   }catch(e){
     // ⭐ 08-18：fetch/JSON 失敗 → 60 秒自動重試（以前淨係顯示「重試中」但永遠唔會自己重試）
+    // ⭐ 09-03：失敗時重置 activeBridge → 下次重試重新 detectBridge 行勻全部候選
+    //   （舊 code 鎖定候選後永遠唔 re-detect，URL 半路死咗就對住屍體 URL 打到天光）
+    activeBridge=null;
     setLive('載入失敗，60 秒後自動重試…');
     clearTimeout(window.__recRR);window.__recRR=setTimeout(()=>loadRec(true),60000);
     if(btn)btn.classList.remove('loading');return;
@@ -565,6 +568,13 @@ let realFunds = null;               // {power_hkd,total_hkd,cash_hkd,us_cash,wit
 let fundHoldings = null;            // ⭐ 09-03：現金寶持倉明細（bridge /fund_holdings 現金流推導：每基金 Σ申購−Σ贖回）
 let realFx = 7.8536;                // ⭐ 08-23：bridge 反推嘅 USD→HKD 匯率（live 價 override 用）
 const EQUITY_TICKERS = ['LITE','DLLL'];
+/* ⭐ 09-03 honest no-data：bridge 重啟窗口／OpenD 未連到時，loadReal 三 fetch 全 fail → 舊 code 照樣
+ *   用 fallback 算式畫「總資產 HKD 0／回報 −100%」假數。加三個 state 位分辨「未載入」vs「真係咁」：
+ *   seen＝收過 ok:true 未（真載入過）；fails＝連續失敗次數；__realRetry＝15s fast-retry 單飛鎖。 */
+let realFundsSeen = false;
+let realPosSeen  = false;
+let realFails    = 0;
+let __realRetry  = null;
 
 /* ⭐ 08-23：統一總覽 KPI 隱藏＋HKD/USD 切換（localStorage 記 state，renderUnified 每次照 state 出） */
 function uniHideOn(){try{return localStorage.getItem('optdash_uni_hide')==='1';}catch(e){return false;}}
@@ -601,14 +611,18 @@ function qWatchOf(tk){return ((quant&&quant.watchlist)||[]).find(s=>s&&s.ticker=
 
 async function loadReal(){
   if(!activeBridge)return;
+  clearTimeout(__realRetry);__realRetry=null;   // ⭐ 09-03：開新回合，取消 pending fast-retry（單飛，唔准堆疊）
   try{
     const [pr,pf,fh] = await Promise.all([
       fetchTimeout(activeBridge+'/real_positions?secret='+encodeURIComponent(BRIDGE_SECRET),15000).then(r=>r.json().catch(()=>null)),
       fetchTimeout(activeBridge+'/real_funds?secret='+encodeURIComponent(BRIDGE_SECRET),15000).then(r=>r.json().catch(()=>null)),
       fetchTimeout(activeBridge+'/fund_holdings?secret='+encodeURIComponent(BRIDGE_SECRET),20000).then(r=>r.json().catch(()=>null))   // ⭐ 09-03：首計 bridge 要拉 30 日現金流（~60s）會 timeout → fail-soft，下個 60s 週期再嚟
     ]);
-    if(pr && pr.positions){ realPos = pr.positions; if(pr.fx) realFx = pr.fx; }
-    if(pf && pf.ok) realFunds = pf;
+    // ⭐ 09-03：閘門加 ok —— OpenD 重啟窗口 bridge 回 {positions:[],ok:false}，舊 code 照樣清空 realPos／
+    //   當載入成功（空 array 係 truthy）。ok:false 一律當「未到數」，留舊值。
+    let okAny = false;
+    if(pr && pr.ok && pr.positions){ realPos = pr.positions; if(pr.fx) realFx = pr.fx; realPosSeen=true; okAny=true; }
+    if(pf && pf.ok){ realFunds = pf; realFundsSeen=true; okAny=true; }
     if(fh && fh.ok) fundHoldings = fh;
     // ⭐ 用 live 價更新正股市值（/real_positions 嘅 price 有時係 cost fallback）
     // ⭐ 08-23 兩個 fix：(a) 只限正股——期權市值（每張 USD）唔可以被正股 live 價 clobber；
@@ -619,6 +633,8 @@ async function loadReal(){
       if(lv && (lv.live_price!=null)){ p.price = lv.live_price; const m = lv.live_price*p.shares*realFx; p.mkt_val_hkd = Math.round(m); p.pnl_hkd = Math.round(m - p.cost_hkd); p.pnl_pct = (p.cost_hkd>0? p.pnl_hkd/p.cost_hkd*100:0); }
     });
     renderUnified();
+    if(okAny){ realFails=0; }
+    else { realFails++; clearTimeout(__realRetry); __realRetry=setTimeout(loadReal,15000); }   // ⭐ 09-03：真倉三 fetch 全冇到 → 15 秒 fast-retry（唔使等 60s loadRec 週期；banner 同步顯示未到數）
   }catch(e){ console.error('loadReal',e); }
 }
 
@@ -640,6 +656,11 @@ function realCcyOf(p){ return (p&&/\.HK$/.test(p.ticker||''))?'HKD':'USD'; }   /
 
 function renderUnified(){
   const el = $('unifiedBody'); if(!el)return;
+  // ⭐⭐ 09-03 honest no-data（user 撞到「全 0＋回報 −100%」事故後加）：bridge 重啟窗口／OpenD 未連到時
+  //   realFunds 係 null，下面啲 fallback 算式會畫「總資產 HKD 0／回報 −100%／購買力 0」假數冒充真倉。
+  //   noData 時：卡頂琥珀 banner＋KPI 出「—」＋壓回報＋唔畫 bar——真數到咗（realFunds.ok）先還原。
+  const fundsOk = !!(realFunds && realFunds.total_hkd!=null);
+  const noData  = !fundsOk;
   const stocks = stocksList(), opts = optsList();
   const stockVal = sumF(stocks,'mkt_val_hkd');          // 正股市值（HKD，bridge 已 ×fx）
   const optVal   = sumF(opts,'mkt_val_hkd');            // 短 put 負債（負值）
@@ -658,8 +679,11 @@ function renderUnified(){
   // ⭐ 09-03（官方文檔核實 openapi get-funds）：power＝「最大購買力」＝50% 融資初始保證金率近似
   //   （≈2×(淨資產−已佔IM)，含槓桿；現金寶 auto-redeem 計入，官方 0.95 折算）；us_cash_power_hkd＝
   //   現金購買力（唔使融資，≈淨資產−已佔IM）。沽 option 係另一 regime（淨計現金+證券），隔離格已覆蓋。
-  const powerFb = !(realFunds && realFunds.power_hkd!=null);   // bridge 舊 payload 冇 power → fallback 池數（KPI 會標明，唔准無聲冒充購買力）
-  const power   = powerFb ? avail : realFunds.power_hkd;
+  // ⭐ 09-03 powerFb 語義收窄：只有「真數到咗但冇 power 欄」（bridge 舊 payload）先係 fallback；
+  //   realFunds 整個 null（連線失敗）行 noData banner，唔准出「暫以池計」誤導（08-29 f315b93 嘅標記
+  //   喺 09-03 事故中被見到喺全 0 畫面上，語義錯咗）。
+  const powerFb = fundsOk && !(realFunds && realFunds.power_hkd!=null);
+  const power   = (realFunds && realFunds.power_hkd!=null)? realFunds.power_hkd : avail;
   const cashPow = (realFunds && realFunds.us_cash_power_hkd>0)? realFunds.us_cash_power_hkd : null;   // 冇借貸嘅真上限
   const imReq   = (realFunds && realFunds.init_margin_hkd!=null)? realFunds.init_margin_hkd : 0;  // 已佔沽出按金
   const eligCS  = cashAll + secVal;                     // Futu 認嘅抵押品＝現金+證券（現金寶唔入圍）
@@ -690,21 +714,35 @@ function renderUnified(){
   const legend = parts.map(p=>'<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;margin-right:14px"><span style="width:10px;height:10px;border-radius:2px;background:'+p.c+';display:inline-block"></span>'+p.k+' <b>'+(uniHideOn()? '•••' : (p.v>=0?'':'−')+uMoney(Math.abs(p.v)).replace('HKD ','').replace('USD ',''))+'</b></span>').join('');
   const uniBtn='font-size:11px;font-weight:700;border-radius:8px;padding:2px 10px;border:1.5px solid #cbd5e1;background:#f1f5f9;color:#475569;cursor:pointer';
   let h = '';
+  if(noData) h += '<div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:8px 12px;margin:0 0 10px;font-size:12.5px;color:#92400e"><b>⚠️ Futu 真戶口數據未到（bridge／OpenD 連線中，自動重試中）</b> — 以下「—」唔係真倉數，唔好攞嚟做決定。</div>';
   h += '<div style="display:flex;gap:8px;align-items:center;margin:0 0 8px;flex-wrap:wrap">'
     + '<button onclick="toggleUniHide()" style="'+uniBtn+'" title="顯示／隱藏金額">'+(uniHideOn()?EYE_OFF:EYE_ON)+'</button>'
     + '<button onclick="toggleUniCcy()" style="'+uniBtn+'">💱 '+(uniCcyHKD()?'轉 USD':'轉 HKD')+'</button>'
     + '<span class="small muted">當前顯示：<b>'+uniCCY()+'</b>（USD 按 Futu 戶口隱含匯率 '+realFx.toFixed(4)+'）</span></div>';
   h += '<div class="kpi" style="margin-top:0">';
+  if(noData){
+    // ⭐ 09-03：未到數出「—」，唔准假 0 冒充（舊 code 呢度會出 HKD 0／回報 −100%）
+    h += '<div class="k"><div class="lbl">總資產（'+uniCCY()+'）</div><div class="val">—</div><div class="small muted">基準 HKD '+(BASE_HKD/1000).toFixed(0)+'k · 回報 —（真數未到）</div></div>';
+    h += '<div class="k"><div class="lbl">已實現 P&L（'+uniCCY()+'）</div><div class="val">—</div><div class="small muted">＝ 總資產 − 本金 HKD 320,000（含浮動）</div></div>';
+    h += '<div class="k"><div class="lbl">未實現 P&L（'+uniCCY()+'）</div><div class="val">—</div><div class="small muted">Futu 全戶口口徑：期權＋正股加總</div></div>';
+    h += '<div class="k"><div class="lbl">買股可動用（購買力）('+uniCCY()+')</div><div class="val">—</div><div class="small muted">連線中，未到數'+(realFails>0?'（已重試 '+realFails+' 次）':'')+'</div></div>';
+    h += '<div class="k"><div class="lbl">沽出按金需求（'+uniCCY()+'）</div><div class="val">—</div><div class="small muted">連線中，未到數</div></div>';
+  } else {
   h += '<div class="k"><div class="lbl">總資產（'+uniCCY()+'）</div><div class="val" id="uTotal">'+uMask(uMoney(total))+'</div><div class="small muted">基準 HKD '+(BASE_HKD/1000).toFixed(0)+'k · 回報 '+(retPct>=0?'+':'')+retPct.toFixed(1)+'%</div></div>';
   h += '<div class="k"><div class="lbl">已實現 P&L（'+uniCCY()+'）</div><div class="val '+(realized>=0?'up':'dn')+'">'+uPnl(realized)+'</div><div class="small muted">＝ 總資產 − 本金 HKD 320,000（含浮動）</div></div>';
   h += '<div class="k"><div class="lbl">未實現 P&L（'+uniCCY()+'）</div><div class="val '+(unreal>=0?'up':'dn')+'">'+uPnl(unreal)+'</div><div class="small muted">Futu 全戶口口徑：期權＋正股加總</div></div>';
   h += '<div class="k"><div class="lbl">買股可動用（購買力）('+uniCCY()+')</div><div class="val" style="color:#16a34a">'+uMask(uMoney(power))+'</div><div class="small muted">'+(cashPow?'現金購買力（唔使融資）'+uMask(uMoney(cashPow))+' · ':'')+'現金寶池 '+uMask(uMoney(avail))+'（'+fundPct.toFixed(0)+'% 資產）· auto-redeem ✓ · 沽 option 按金 ✗ · 0佣金收息'+(powerFb?' · <span style="color:#b45309">⚠️冇購買力數，暫以池計</span>':'')+'</div></div>';
   h += '<div class="k"><div class="lbl">沽出按金需求（'+uniCCY()+'）</div><div class="val" style="color:#b45309">'+uMask(uMoney(imReq))+'</div><div class="small muted">認可抵押品（現金+證券）'+uMoney(eligCS)+(colGap<0?' · <span style="color:#dc2626">證券側已欠 −'+uMoney(Math.abs(colGap))+'</span>（新倉要贖現金寶）':' · 證券側空間 +'+uMoney(colGap))+'</div></div>';
+  }
   h += '</div>';
+  if(noData){
+    h += '<div class="muted" style="margin:10px 0 6px;font-size:12px">資產分佈：真數未到，唔畫（避免假比例）</div>';
+  } else {
   h += '<div style="margin:10px 0 6px;font-weight:700;font-size:13px">資產分佈（總資產 '+uMask(uMoney(total))+'）<span class="muted" style="font-weight:400;font-size:11px"> · mouseover 每段睇明細</span></div>';
   h += '<div style="display:flex;border-radius:6px;overflow:hidden;background:#e2e8f0">'+bar+'</div>';
   h += '<div style="margin-top:8px">'+legend+'</div>';
   h += '<div class="small muted" style="margin-top:6px">'+(uniHideOn()?'':'現金寶 '+uMoney(fundAv)+' ＋ 結算現金 '+uMoney(cashAll)+' ＋ 證券市值 '+uMoney(secVal)+' ＝ 正股 +'+uMoney(stockVal)+' ＋ 期權 −'+uMoney(Math.abs(optNet))+'（沽空負債）· 沽出按金需求 '+uMoney(imReq)+' vs 認可抵押品 '+uMoney(eligCS)+(colGap<0?' → 證券側已欠 −'+uMoney(Math.abs(colGap)):' → 證券側空間 +'+uMoney(colGap)))+'</div>';
+  }
   // ⭐ 2026-09-03：現金寶持倉明細（bridge /fund_holdings 現金流推導 — OpenD 冇 per-fund position API）
   if(fundHoldings && fundHoldings.ok){
     const frows=(fundHoldings.funds||[]).map(f=>{
@@ -739,9 +777,10 @@ function renderUnified(){
     });
     h += '</tbody></table></div>';
   } else {
-    h += '<div class="muted" style="margin-top:12px">持倉讀取中／暫無（Futu 真戶口）</div>';
+    // ⭐ 09-03：拆「讀取中」vs「真係冇倉」——舊 code 兩個 state 同一句，user 分唔到
+    h += '<div class="muted" style="margin-top:12px">'+(realPosSeen? '真戶口暫無持倉' : '持倉讀取中…（Futu 真戶口）')+'</div>';
   }
-  h += '<div class="small muted" style="margin-top:8px">數據來源：Futu 真戶口 accinfo＋持倉（權威值；US 倉按户口隱含匯率 ×'+realFx.toFixed(2)+' 轉 HKD）· 回本目標視當前模型而定</div>';
+  h += '<div class="small muted" style="margin-top:8px">'+(noData? '數據來源：Futu 真戶口 accinfo＋持倉（<span style="color:#b45309">未連線 — 見上方警示</span>）' : '數據來源：Futu 真戶口 accinfo＋持倉（權威值；US 倉按户口隱含匯率 ×'+realFx.toFixed(2)+' 轉 HKD）· 回本目標視當前模型而定')+'</div>';
   el.innerHTML = h;
 }
 
