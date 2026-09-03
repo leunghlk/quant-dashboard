@@ -775,7 +775,7 @@ function renderUnified(){
     // ⭐ 09-03：Σ row —— 淨投入＋≈市值加總（含已全贖 row 會標明；last_flow 冇 sum 意義留空）
     const fArr=(fundHoldings.funds||[]);
     const fSU=fArr.reduce((s,f)=>s+(f.net_usd||0),0), fSH=fArr.reduce((s,f)=>s+(f.net_hkd||0),0);
-    const fsum=fArr.length? '<tr style="border-top:2px solid #64748b;font-weight:700;background:#f8fafc"><td>Σ '+fArr.length+' 隻'+(fArr.some(f=>f.fully_redeemed)?'（含已全贖）':'')+'</td><td class="r">US$'+fmt(fSU)+'</td><td class="r">'+uMask(uMoney(fSH))+'</td><td></td></tr>' : '';
+    const fsum=fArr.length? '<tr style="border-top:2px solid var(--line);font-weight:700;background:#f8fafc"><td>Σ '+fArr.length+' 隻'+(fArr.some(f=>f.fully_redeemed)?'（含已全贖）':'')+'</td><td class="r">US$'+fmt(fSU)+'</td><td class="r">'+uMask(uMoney(fSH))+'</td><td></td></tr>' : '';
     // ⭐⭐ 09-03 晚（三 agent 核數終版）：真·累計收益 ＝ 現值(fund_assets÷即市匯率) − 淨投入。
     //   舊 residual_hkd 用固定 7.8 計：1,623 HKD 入面 92–94% 係匯率假象、真息只有 ~12–17 USD — 唔再展示。
     //   fund_assets 用 realFunds（60s cache）優先，fundHoldings（900s）兜底；匯率 ECB 即市 → 戶口隱含 → 7.84。
@@ -817,7 +817,7 @@ function renderUnified(){
     });
     // ⭐ 09-03：Σ row —— 市值/未實現/已實現加總（股數/價格跨代號冇 sum 意義留空）
     const sMV=sumF(all,'mkt_val_hkd'), sUP=sumF(all,'unrealized_pl'), sRP=sumF(all,'realized_pl');
-    h += '<tr style="border-top:2px solid #64748b;font-weight:700;background:#f8fafc"><td>Σ '+all.length+' 倉</td><td></td><td></td><td></td><td></td><td class="r">'+hkd(sMV)+'</td><td class="r '+(sUP>=0?'pos':'neg')+'">'+money(sUP)+'</td><td class="r '+(sRP>=0?'pos':'neg')+'">'+money(sRP)+'</td></tr>';
+    h += '<tr style="border-top:2px solid var(--line);font-weight:700;background:#f8fafc"><td>Σ '+all.length+' 倉</td><td></td><td></td><td></td><td></td><td class="r">'+hkd(sMV)+'</td><td class="r '+(sUP>=0?'pos':'neg')+'">'+money(sUP)+'</td><td class="r '+(sRP>=0?'pos':'neg')+'">'+money(sRP)+'</td></tr>';
     h += '</tbody></table></div>';
   } else {
     // ⭐ 09-03：拆「讀取中」vs「真係冇倉」——舊 code 兩個 state 同一句，user 分唔到
@@ -1191,7 +1191,7 @@ function ledTable(led){
   const sC=led.reduce((s,t)=>s+(Number(t.contracts)||1),0);
   const sU=led.reduce((s,t)=>s+(Number(t.pnl)||0),0);
   const sH=led.reduce((s,t)=>s+(Number(t.pnl_hkd)||0),0);
-  h+='<tr style="border-top:2px solid #64748b;font-weight:700;background:#f8fafc"><td>Σ '+led.length+' 筆</td><td></td><td class="r">'+sC+'</td><td></td><td class="r">'+money(sU)+'</td><td class="r">'+money(sH)+'</td></tr>';
+  h+='<tr style="border-top:2px solid var(--line);font-weight:700;background:#f8fafc"><td>Σ '+led.length+' 筆</td><td></td><td class="r">'+sC+'</td><td></td><td class="r">'+money(sU)+'</td><td class="r">'+money(sH)+'</td></tr>';
   return h+'</tbody></table>';
 }
 
