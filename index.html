@@ -1718,7 +1718,7 @@ function renderSectorInner(){
     }).join('');
     inner+='<div class="sec-title">板塊輪動 — 9 大 SPDR 行業 ETF（'+cmpTenor[1]+' vs SPY）</div>'+
       '<div style="font-size:10.5px;color:#94a3b8;margin-bottom:6px">點擊 1日/5日/1月/3月 欄位排序（先降後升）；相對大市與狀態自動切換至該時期。</div>'+
-      (sr.asof?'<div style="font-size:10.5px;margin-bottom:6px;font-weight:700;color:'+(sr.stale?'#d97706':'#0d9488')+'">📅 收市數據日：'+sr.asof+'（美東）— 各時期均以已完成收市嘅日線計，唔包即市未完成時段'+(sr.stale?' ⚠️ 超過 5 日未更新':'')+'</div>':'')+
+      (sr.asof?'<div style="font-size:10.5px;margin-bottom:6px;font-weight:700;color:'+(sr.stale?'#d97706':'#0d9488')+'">📅 收市數據日：'+sr.asof+'（美東）— 各時期均以已完成收市嘅日線計，唔包即市未完成時段'+(sr.stale?' ⚠️ 收市數據日落後 ≥2 個交易日':'')+'</div>':'')+
       '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px">'+
       '<thead><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:5px 4px">板塊</th>'+th('d1','1日')+th('d5','5日')+th('d20','1月')+th('d60','3月')+'<th style="text-align:center">相對大市</th><th style="text-align:center">狀態</th></tr></thead>'+
       '<tbody>'+rows+'</tbody></table></div>'+
