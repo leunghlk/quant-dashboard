@@ -897,7 +897,7 @@ async function loadData(forceHK){
   try{
     // 即時畫緩存：先顯示上次數據（港股收市後尤其重要，唔使等 /api 先有嘢睇）
     try{
-      const cachedFull=JSON.parse(localStorage.getItem('qfull-v3')||'null');
+      const cachedFull=JSON.parse(localStorage.getItem('qfull-v4')||'null');
       if(cachedFull && cachedFull.data && cachedFull.ts && (Date.now()-cachedFull.ts) < 24*3600e3){
         lastData=cachedFull.data;
         render(lastData);
@@ -929,8 +929,8 @@ async function loadData(forceHK){
     }
     // ⭐ 2026-08-25：殘稿防護 — upstream（Yahoo/bridge）部分失敗時 /api 會返「合法但殘缺」payload
     // （watchlist 空、techAnalysis 失蹤、波浪未校準）。之前照 render 會剷走成版內容（技術位/波浪/ELN 空白）
-    // 仲將殘稿寫入 qfull-v3（24h cache）。規則：有上次完整數據 → 拒收殘稿、保留舊版＋警示；
-    // 完全冇舊數據（首次載入）→ 照 render（好過空白）但唔寫入 qfull-v3。
+    // 仲將殘稿寫入 qfull-v4（24h cache）。規則：有上次完整數據 → 拒收殘稿、保留舊版＋警示；
+    // 完全冇舊數據（首次載入）→ 照 render（好過空白）但唔寫入 qfull-v4。
     var _apiHealthy=function(x){return !!(x&&Array.isArray(x.watchlist)&&x.watchlist.length>=40&&x.techAnalysis&&Object.keys(x.techAnalysis).length>=5&&Array.isArray(x.waveCounts)&&x.waveCounts.length>=5&&x.waveCounts.every(function(w){return w&&w.calibrated!==false;}));};
     if(!_apiHealthy(d)){
       var _okWaves=((d.waveCounts||[]).filter(function(w){return w&&w.calibrated!==false;}).length);
@@ -961,7 +961,7 @@ async function loadData(forceHK){
       }
     }catch(e){}
     // 港股收市後：auto-refresh 唔再 fetch HK 數據（價位唔會變），首次載入／手動刷新／未載入過先 refresh
-    try{ localStorage.setItem('qfull-v3', JSON.stringify({ ts: Date.now(), data: d })); }catch(e){}
+    try{ localStorage.setItem('qfull-v4', JSON.stringify({ ts: Date.now(), data: d })); }catch(e){}
     hkCacheSave();
     const hkLoaded=(typeof hkLive!=='undefined'&&hkLive&&hkLive.updated);
     if(forceHK||hkMarketOpen()||!hkLoaded){loadHKBreadth();}
@@ -1718,6 +1718,7 @@ function renderSectorInner(){
     }).join('');
     inner+='<div class="sec-title">板塊輪動 — 9 大 SPDR 行業 ETF（'+cmpTenor[1]+' vs SPY）</div>'+
       '<div style="font-size:10.5px;color:#94a3b8;margin-bottom:6px">點擊 1日/5日/1月/3月 欄位排序（先降後升）；相對大市與狀態自動切換至該時期。</div>'+
+      (sr.asof?'<div style="font-size:10.5px;margin-bottom:6px;font-weight:700;color:'+(sr.stale?'#d97706':'#0d9488')+'">📅 收市數據日：'+sr.asof+'（美東）— 各時期均以已完成收市嘅日線計，唔包即市未完成時段'+(sr.stale?' ⚠️ 超過 5 日未更新':'')+'</div>':'')+
       '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px">'+
       '<thead><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0"><th style="padding:5px 4px">板塊</th>'+th('d1','1日')+th('d5','5日')+th('d20','1月')+th('d60','3月')+'<th style="text-align:center">相對大市</th><th style="text-align:center">狀態</th></tr></thead>'+
       '<tbody>'+rows+'</tbody></table></div>'+
@@ -1731,7 +1732,7 @@ function renderSectorInner(){
   inner+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
     '<a href="https://finviz.com/map?t=sec" target="_blank" rel="noopener" style="flex:1;min-width:150px;text-align:center;padding:11px;background:#0d9488;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📊 finviz 板塊熱力圖</a>'+
     '<a href="https://finviz.com/groups?g=sector&v=210&o=-perf" target="_blank" rel="noopener" style="flex:1;min-width:150px;text-align:center;padding:11px;background:#fff;color:#0d9488;border:1px solid #0d9488;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📈 板塊升跌排行</a></div>';
-  if(sr.updated) inner+='<div style="font-size:10px;color:#94a3b8;margin-top:6px">數據更新：'+sr.updated+'（來源：Yahoo Finance · 9 大 SPDR 行業 ETF）</div>';
+  if(sr.updated) inner+='<div style="font-size:10px;color:#94a3b8;margin-top:6px">數據更新：'+sr.updated+'（收市數據日 '+(sr.asof||'—')+' 美東 · 來源：Yahoo Finance · 9 大 SPDR 行業 ETF）</div>';
   body.innerHTML=inner;
 }
 // ELN 統一表格（美股/港股同一格式）— 2026-08-08
