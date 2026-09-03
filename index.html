@@ -445,12 +445,13 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')document.que
 // (legacy switchTab / initSubnav / _subnavScrollHandler removed — mega-menu openView replaces them)
 // 2026-08-09: 主/備 host 自動切換（解決「fetching live prices」成日失敗）。
 //   API_PRIMARY = Cloudflare（而家實際 primary；v3 已低過 quota）
-//   API_SPARE   = Deno Deploy（port 已準備好，但 account creation 暫時 unavailable）
+//   API_SPARE   = Vercel
 // fetchApiFallback() 用 localStorage.qapiHost 記住上次成功嘅 host → 下次優先試佢，
-// 邊個掂就用邊個：Cloudflare 一直掂就一直用 CF；Deno 一上線第一次成功就自動 promote。
+// 邊個掂就用邊個：Cloudflare 一直掂就一直用 CF。
+// 2026-09-03: Deno spare 剔除 — Deno Deploy Classic 2026-07-20 sunset，deno.dev 唔再 serve
+//   （DEPLOYMENT_NOT_FOUND；quant_sentinel PAGE_API_KNOWN_DEAD 早已標記）。failover = CF→Vercel。
 const API_PRIMARY='https://quant-api.leunghlk.workers.dev/api';  // Cloudflare — 而家 primary
 const API_SPARE='https://quant-api-beta.vercel.app/api';        // Vercel（無 subrequest cap；HK 網絡 SNI-block vercel.app）
-const API_SPARE2='https://quant-api-deno.deno.dev/api';         // Deno spare（account 開通後；HK 同樣 block）
 const OPT_API=API_PRIMARY+'/options'; // 期權策略（Hybrid：Yahoo chain 優先 / BS 估算 fallback）
 async function fetchApiFallback(timeoutMs){
   // 2026-08-09: CF workers.dev 係唯一從 HK 穩定 reachable 嘅 host（Vercel SNI-block、Deno Deploy 404）。
@@ -467,7 +468,7 @@ async function fetchApiFallback(timeoutMs){
   catch(e){
     await new Promise(function(r){ setTimeout(r,800); });  // 跨 CF 瞬斷 / 530
     try{ return await tryHost(API_PRIMARY); }catch(e2){}
-    for(const u of [API_SPARE,API_SPARE2]){ try{ return await tryHost(u); }catch(_){} }
+    for(const u of [API_SPARE]){ try{ return await tryHost(u); }catch(_){} }
     throw new Error('api unreachable');
   }
 }
