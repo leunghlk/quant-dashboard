@@ -898,7 +898,7 @@ async function loadData(forceHK){
   try{
     // 即時畫緩存：先顯示上次數據（港股收市後尤其重要，唔使等 /api 先有嘢睇）
     try{
-      const cachedFull=JSON.parse(localStorage.getItem('qfull-v4')||'null');
+      const cachedFull=JSON.parse(localStorage.getItem('qfull-v5')||'null');
       if(cachedFull && cachedFull.data && cachedFull.ts && (Date.now()-cachedFull.ts) < 24*3600e3){
         lastData=cachedFull.data;
         render(lastData);
@@ -930,8 +930,8 @@ async function loadData(forceHK){
     }
     // ⭐ 2026-08-25：殘稿防護 — upstream（Yahoo/bridge）部分失敗時 /api 會返「合法但殘缺」payload
     // （watchlist 空、techAnalysis 失蹤、波浪未校準）。之前照 render 會剷走成版內容（技術位/波浪/ELN 空白）
-    // 仲將殘稿寫入 qfull-v4（24h cache）。規則：有上次完整數據 → 拒收殘稿、保留舊版＋警示；
-    // 完全冇舊數據（首次載入）→ 照 render（好過空白）但唔寫入 qfull-v4。
+    // 仲將殘稿寫入 qfull-v5（24h cache）。規則：有上次完整數據 → 拒收殘稿、保留舊版＋警示；
+    // 完全冇舊數據（首次載入）→ 照 render（好過空白）但唔寫入 qfull-v5。
     var _apiHealthy=function(x){return !!(x&&Array.isArray(x.watchlist)&&x.watchlist.length>=40&&x.techAnalysis&&Object.keys(x.techAnalysis).length>=5&&Array.isArray(x.waveCounts)&&x.waveCounts.length>=5&&x.waveCounts.every(function(w){return w&&w.calibrated!==false;}));};
     if(!_apiHealthy(d)){
       var _okWaves=((d.waveCounts||[]).filter(function(w){return w&&w.calibrated!==false;}).length);
@@ -962,7 +962,7 @@ async function loadData(forceHK){
       }
     }catch(e){}
     // 港股收市後：auto-refresh 唔再 fetch HK 數據（價位唔會變），首次載入／手動刷新／未載入過先 refresh
-    try{ localStorage.setItem('qfull-v4', JSON.stringify({ ts: Date.now(), data: d })); }catch(e){}
+    try{ localStorage.setItem('qfull-v5', JSON.stringify({ ts: Date.now(), data: d })); }catch(e){}
     hkCacheSave();
     const hkLoaded=(typeof hkLive!=='undefined'&&hkLive&&hkLive.updated);
     if(forceHK||hkMarketOpen()||!hkLoaded){loadHKBreadth();}
@@ -2910,8 +2910,10 @@ function renderHK(data){
     const prev = (b && b.prevClose>0) ? b.prevClose : (w ? w.prevClose : null);
     return {
       price: price, name: (b&&b.name)||(w&&w.name)||key, prevClose: prev,
-      chg1d: (b&&b.chg1d!=null) ? b.chg1d : ((price&&prev)?Math.round((price/prev-1)*10000)/100:null),
+      // 2026-09-03: server 下發 chg1d（收市錨定後官方數）優先；冇先至 client 自計
+      chg1d: (b&&b.chg1d!=null) ? b.chg1d : ((w&&w.chg1d!=null) ? w.chg1d : ((price&&prev)?Math.round((price/prev-1)*10000)/100:null)),
       chg5d: (b&&b.chg5d!=null) ? b.chg5d : ((w&&w.chg5d!=null) ? w.chg5d : null),
+      closed: !!((b&&b.closed)||(w&&w.closed)), asof: (b&&b.asof)||(w&&w.asof)||null,
       rsi9: (b&&b.rsi9!=null)?b.rsi9:((b&&b.rsi14!=null)?b.rsi14:wRsi),
       rsi14: (b&&b.rsi14!=null)?b.rsi14:wRsi,
       macd: { ...((b&&b.macd&&b.macd.dif!=null)?b.macd:{ dif:(wMacd.value!=null)?wMacd.value:null, dea:(wMacd.dea!=null)?wMacd.dea:null, hist:(wMacd.hist!=null)?wMacd.hist:null, signal:(wMacd.signal!=null)?wMacd.signal:null }), histTrend: (wMacd.histTrend!=null)?wMacd.histTrend:null },
@@ -2997,8 +2999,10 @@ function renderHK(data){
     const chgSign = chg5d >= 0 ? '+' : '';
     // 港股 session（Futu snapshot 之後 HK 市場狀態）：港股交易時段 09:30-16:00（HKT）
     let hkSession='收市';
+    let hkTodayStr='';
     try{
       const hkNow=new Date(Date.now()+8*3600e3);
+      hkTodayStr=hkNow.toISOString().slice(0,10);
       const day=hkNow.getUTCDay(), hm=hkNow.getUTCHours()*60+hkNow.getUTCMinutes();
       if(day>=1&&day<=5&&hm>=570&&hm<=960){ hkSession='盤中'; }
       else if(day>=1&&day<=5&&hm>960&&hm<=1010){ hkSession='盤後'; }
@@ -3006,6 +3010,8 @@ function renderHK(data){
     // 日變% 用 1 日變動（chg1d），另附 5 日
     const chg1d=(idx.chg1d!=null)?idx.chg1d:null;
     const c1Col=(chg1d==null)?'#64748b':(chg1d>=0?'#16a34a':'#dc2626');
+    // 2026-09-03: 收市錨定後誠實標示——「今日收市」／「收市 MM-DD」（周末/過夜睇上周收市）
+    const c1Lbl=(idx.closed&&idx.asof)?((idx.asof===hkTodayStr)?'今日收市':('收市 '+idx.asof.slice(5))):'今日';
     const row = function(lbl,val,col,note,detail){
       return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px dashed #e2e8f0">'+
         '<span style="font-size:11px;color:#64748b;min-width:74px"><b>'+lbl+'</b>'+(detail?' <span style="font-size:9.5px;color:#94a3b8">'+detail+'</span>':'')+'</span>'+
@@ -3017,7 +3023,7 @@ function renderHK(data){
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
         '<span style="font-size:13px;font-weight:800">' + name + ' '+liveBadge(hkSession)+'</span>'+
         '<span style="text-align:right"><span data-striplive="'+key+'" style="font-size:18px;font-weight:800">' + (idx.price>=1000?Math.round(idx.price).toLocaleString():idx.price) + '</span>'+
-        (chg1d!=null?'<div style="font-size:11px;font-weight:700;color:'+c1Col+'">'+(chg1d>=0?'+':'')+chg1d.toFixed(2)+'% 今日</div>':'')+
+        (chg1d!=null?'<div style="font-size:11px;font-weight:700;color:'+c1Col+'">'+(chg1d>=0?'+':'')+chg1d.toFixed(2)+'% '+c1Lbl+'</div>':'')+
         '<div style="font-size:10px;color:'+chgColor+'">' + chgSign + chg5d.toFixed(2) + '% 5日</div></span>'+
       '</div>' +
       row('RSI', (rsi9!==null?Math.round(rsi9):'—')+' '+rsiLabel, rsiColor, '', '(9)') +
@@ -3031,7 +3037,8 @@ function renderHK(data){
   const hkStrip = document.getElementById('hkIndexStrip');
   if (hkStrip) hkStrip.innerHTML = stripHtml || '<div style="color:#94a3b8;font-size:12px">暫無即市報價（港股 09:30 開市後自動更新）</div>';
 
-  const hkTs=document.getElementById('hkRegimeTs'); if(hkTs)hkTs.textContent=new Date().toLocaleString('zh-HK')+(hkMarketOpen()?'':' · 已收市（開市先自動更新）');
+  const hkAsofDisp=(hk&&hk.asof)||((hk&&hk.indices&&hk.indices['3033.HK']&&hk.indices['3033.HK'].asof)||null);
+  const hkTs=document.getElementById('hkRegimeTs'); if(hkTs)hkTs.textContent=new Date().toLocaleString('zh-HK')+(hkMarketOpen()?'':(hkAsofDisp?' · 收市數據日 '+hkAsofDisp+'（官方收市價）':' · 已收市（開市先自動更新）'));
 
   // ② 指數技術分析
   if(hk.indices){
