@@ -3112,7 +3112,7 @@ function setMethod(m){
   const sub=$('appbarSub');
   if(sub){
     sub.innerHTML=m==='h6040'
-      ?'Hybrid 60/40 · 60% 單股 + 40% XSP Put · <strong>回測 +39.3%/年 · 回撤 −10.0%</strong>（08-27 Path A：XSP 腿 caps 0.90/0.90＋每倉≤2張；OOS 2025+ 月均 17.1k · worst 月 −12.1k）'
+      ?'Hybrid 60/40 · 60% 單股 + 40% XSP Put · <strong>回測 +'+H6040_BT.ann+'%/年 · 回撤 '+H6040_BT.dd+'%</strong>（09-04 合併口徑：XSP 腿 caps 0.90/0.90＋每倉≤2張；OOS 2025+ 月均 17.1k · worst 月 −12.1k＝08-27 163 池口徑）'
       :'v4_balanced · 沽 Put 輪動 · <strong>2026 回測 +151.7%</strong> · 紙上 · Futu 實時';
   }
   // ⭐ 08-24 v4：h6040 模式 — 候選名單 title 換 mom score 口徑；「勝率排名」card 收起（v4 winrank 概念）
