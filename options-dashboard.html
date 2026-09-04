@@ -2769,13 +2769,14 @@ function renderMethodH6040(){
     '<p style="margin-top:8px"><b>月度收入分佈（56 個月）：</b>≥$15K 有 '+B.n_ge15k+' 個月 · ≥$10K 有 '+B.n_ge10k+' 個月 · 負數 '+B.n_neg+' 個月 · 零收入 '+B.n_zero+' 個月。</p>'+
     '<div class="small muted" style="margin-top:4px">平均 $'+fmt(B.mean_mo)+' vs 中位數 $'+fmt(B.median_mo)+' —— 分佈右偏（靠幾個好月拉高）。預算請用中位數。</div>';
 
-  // alert section: h6040 has no telegram engine
+  // alert section: ⭐ 09-04 更新——TG §7b 雙腿候選推播其實存在（之前寫「暫無」係過時）
   $('methodAlert').innerHTML=
     '<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">'+
-    '<b>Hybrid 60/40 暫無 Telegram／engine 警報。</b>呢個模式係回測驗證嘅策略，實時信號經儀表板本地顯示。'+
-    '紙上倉記錄喺瀏覽器（與 v4 engine 分開）。要接入 v4 engine 自動警報／執行，需要另外建 60/40 實時引擎。<br>'+
+    '<b>警報通道：Telegram ✓ ＋ 儀表板 ✓；自動落盤 ✗（設計如此）。</b>options_monitor 引擎每個 cycle（~2 分鐘）檢查持倉，'+
+    '每日 pre-open 經 TG 推 Hybrid 60/40 雙腿候選（XSP 腿＋單股腿，dedup 認 expiry|strike）；掃描過期／breadth 不足亦有 TG 警告；儀表板每 60 秒刷新。'+
+    'h6040 候選係<b>通知-only</b>——唔會自動落盤（08-25 拍板：監察倉退役，代執行越權）；「今日最佳」紙上倉存喺瀏覽器（與 v4 engine 分開）。<br>'+
     '而家你可以：<br>'+
-    '· 睇實時閘門（VIX≥20 / XSP>200DMA）決定今日開唔開倉<br>'+
+    '· 收 TG pre-open 候選 push；對照實時閘門（VIX 20–32／XSP>200DMA／單股 breadth≥50%）決定今日開唔開倉<br>'+
     '· 喺「今日最佳」手動記錄本地紙上倉（執行／平倉都存喺瀏覽器）<br>'+
     '· 對照回測績效檢視自己執行有冇貼近</div>';
 
@@ -2783,8 +2784,8 @@ function renderMethodH6040(){
   $('methodRisk').innerHTML=
     '<div class="warn-note">'+
     '<b>誠實話（好重要）：</b><br>'+
-    '· 呢個回測用 <b>合成期權定價</b>（由歷史波動率推），唔係真實歷史報價。所有回報係上限估計。<br>'+
-    '· 2025 年 +$352,495 係強年景，唔好錨定。中位數月收入只係 $'+fmt(B.median_mo)+'，有 '+B.n_neg+' 個月蝕錢。<br>'+
+    '· 呢個回測用 <b>合成期權定價</b>（由歷史波動率推），唔係真實歷史報價。定價冇計市價波幅嘅風險溢價（對賣方傾向<b>低估</b>收入），但成交假設理想（訊號同 bar 收市成交、指派用到期日收市價唔係隔日開市）又<b>偏樂觀</b>——兩力相反，數字當粗略量級，唔好當精確預測。<br>'+
+    '· 2025 年 +$352,495 係強年景，唔好錨定。中位數月收入只係 $'+fmt(B.median_mo)+'，有 '+B.n_neg+' 個月蝕錢。（口徑：08-27 accepted 回測＝XSP 腿＋當時 163 單股池；h6040_174 單股腿 09-04 另測：TOTAL +602,871／2025 +244,683。）<br>'+
     '· 賣 Put 最大虧損 =（行使價−權利金）×100×張數。單股腿靠「不接貨」消除股票下行風險，但被指派即時平倉喺大跌時仍會蝕。<br>'+
     '· 兩個入場閘門係回撤控制核心；閘門失靈（如 VIX 假訊號）會令策略喺錯嘅時間開倉。<br>'+
     '· 而家係回測模式，實時部分只記錄本地。落盤前要：(1) 用真實期權鏈數據校準定價 (2) 建 60/40 實時引擎 (3) 紙上跟至少一季。</div>';
