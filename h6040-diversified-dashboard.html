@@ -1269,18 +1269,21 @@ function renderCandidates(){
   // ⭐ 分數高 → 低（engine 已 sort+dedup，這裡再兜底排一次，防止舊 rec）
   const cands=(rec.candidates||[]).filter(c=>!c.vetoed).sort((a,b)=>(b.score||0)-(a.score||0));
   const meta=$('candMeta');
-  if(meta)meta.textContent=cands.length+' 個候選 · '+rec.veto_count+' 隻被 veto · '+(rec.model_profile||'v4_balanced')+' · Δ0.25–0.30 / 10–14DTE / $10–$200';
+  if(meta)meta.textContent=cands.length+' 個候選 · '+rec.veto_count+' 隻被 veto · '+(rec.model_profile||'v4_balanced')+' · Δ0.25–0.30 / 10–14DTE / $10–$200 · ⚠＝權利金非即市（model 估值／舊 chain，掃描快照；落盤前入詳情頁用 live chain 重揀 K）';
   let h=gw+'<div class="table-scroll"><table class="utable"><thead><tr><th></th><th>股票</th><th class="r">現價</th><th class="r">行使價'+tip('strike')+'</th><th>到期</th><th class="r">權利金/張'+tip('premium')+'</th><th class="r">張數'+tip('contracts')+'</th><th class="r">按金'+tip('margin')+'</th><th class="r">接貨現金'+tip('collateral')+'</th><th class="c">ITM / OTM'+tip('itm')+'</th><th class="r">週回報</th><th class="r">分數'+tip('score')+'</th><th></th></tr></thead><tbody>';
   cands.slice(0,12).forEach(c=>{
     const una=!!c.unaffordable;                    // 單名按金超 30% equity 上限 → 禁執行
     const yp=(c.yield_pct!=null?Number(c.yield_pct).toFixed(2):'—');   // 周回報 2dp
+    // ⭐ 09-04 誠實標示：權利金唔係即市（model 估值／舊 chain）→ 琥珀 ⚠（09-04 事故：BKNG 表上 $262·Δ−0.27，live 實 $445·Δ−0.46）
+    const _ps=(c.premium_source||'live'), _sd=c.stale_days||0;
+    const _sb=(_ps!=='live'||_sd>2)?' <span style="color:#d97706;font-weight:700;cursor:help" title="⚠ 權利金非即市：'+(_ps==='model'?'model 估值':'舊報價')+'＋chain 資料舊 '+_sd+' 日——落盤前一定入詳情頁睇 live chain 重揀 K">⚠</span>':'';
     h+='<tr class="clickable" onclick="showDetail(\''+c.ticker+'\')">';
     h+='<td><button class="btn btn-go" '+(una?'style="opacity:.4;pointer-events:none" title="單名按金超 30% equity 上限"':'')+' onclick="event.stopPropagation();execCandidate(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+','+(c.contracts||1)+')">'+(una?'超上限':'執行')+'</button></td>';
     h+='<td><span class="co">'+c.ticker+'</span><br><span class="tk">'+esc(c.name||c.ticker)+'</span></td>';
     h+='<td class="r">$'+liveSpot(c.ticker,c.spot)+'</td>';
     h+='<td class="r">$'+px2(c.strike)+'</td>';
     h+='<td>'+c.expiry+'<br><span class="muted small">'+(c.dte!=null?c.dte:'—')+'D</span></td>';
-    h+='<td class="r">$'+(c.premium!=null?c.premium:'—')+'<br><span class="muted small">≈HKD '+(c.premium_hkd!=null?c.premium_hkd:'—')+'</span></td>';
+    h+='<td class="r">$'+(c.premium!=null?c.premium:'—')+(_sb)+'<br><span class="muted small">≈HKD '+(c.premium_hkd!=null?c.premium_hkd:'—')+'</span></td>';
     h+='<td class="r">'+(una?'—':(c.contracts||1))+'</td>';
     h+='<td class="r">$'+fmt(c.margin_total||(c.margin1?(c.margin1*(c.contracts||1)):0))+'<br><span class="muted small">$'+fmt(c.margin1||0)+'/張</span></td>';
     h+='<td class="r">$'+Number(c.collateral_total||0).toLocaleString()+'</td>';
