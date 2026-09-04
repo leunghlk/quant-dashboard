@@ -3017,7 +3017,7 @@ function renderH6040Best(){
   if(!b)return;
   h6040AutoXspChain();
   let h='';
-  h+='<div class="small muted" style="margin-bottom:8px">Hybrid 60/40 實時信號 —— <b>回測規則</b>＋<b>實時閘門</b>。單股腿候選＝<b>v5 回測池</b>（h6040_scan 每日 06:10 掃 ~190 隻宇宙＋CFG_SINGLE 過濾，同回測同源），只在 VIX 20–32 開放；XSP 腿只在 XSP>200DMA 開放。</div>';
+  h+='<div class="small muted" style="margin-bottom:8px">Hybrid 60/40 實時信號 —— <b>回測規則</b>＋<b>實時閘門</b>。單股腿候選＝<b>v5 回測池</b>（h6040_scan 每日 06:10 掃 174 隻宇宙＋CFG_SINGLE 過濾，同回測同源（09-04 起 167→174）），只在 VIX 20–32 開放；XSP 腿只在 XSP>200DMA 開放。</div>';
   h+=h6040GateBanner();
   const g=h6040Gates;
   // XSP leg card
@@ -3134,7 +3134,9 @@ let METHOD='h6040';   // ⭐ 08-24 user 欽定：一開即 Hybrid 60/40（唔讀
 try{localStorage.removeItem('h6040_book');localStorage.removeItem('h6040_ledger');localStorage.removeItem('optdash_queued');localStorage.removeItem('optdash_skips');}catch(e){}
 const H6040_BT = {
   /* ⭐ 08-27 Path A（XSP 腿 caps 0.90/0.90＋每倉≤2張 guardrail）guardrailed FULL 回測——
-     old-caps regression＋OOS 逐分核對過；iv095 實際＝IV×0.86 */
+     old-caps regression＋OOS 逐分核對過；iv095 實際＝IV×0.86。
+     ⭐ 09-04 universe 已轉 174（方法論 tab 有溯源）；呢組係 08-27 accepted 163 口徑歷史紀錄，
+     legs.single n:174＝成交宗數，同宇宙 174 純屬撞數唔好搞亂。 */
   capital:320000, ann:39.3, total_return:364.5, dd:-10.0, sharpe:2.49,
   final_hkd:1486548, mean_mo:18693, median_mo:15199, n_months:56,
   n_neg:8, n_zero:6, n_ge10k:34, n_ge15k:30, worst:-24180, best:113471,

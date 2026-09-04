@@ -2596,7 +2596,7 @@ function renderMethodH6040(){
   $('methodBest').innerHTML=
     '<p><b>兩腿互補：</b>單股腿賺「波動溢價」，XSP 腿賺「平靜月份嘅指數保險費」。</p>'+
     '<ol style="margin:8px 0 0 18px;line-height:2">'+
-    '<li><b>單股腿</b>（60% 資本）：VIX≥20 時，喺動量宇宙（163 隻，含插濕名）揀分數最高嘅候選，賣 Δ0.25–0.30、10–14 DTE 嘅 Put。</li>'+
+    '<li><b>單股腿</b>（60% 資本）：VIX≥20 時，喺動量宇宙（174 隻，含插濕名）揀分數最高嘅候選，賣 Δ0.25–0.30、10–14 DTE 嘅 Put。</li>'+
     '<li><b>XSP 腿</b>（40% 資本）：XSP 企穩 200DMA 之上就賣 Δ0.25–0.30、DTE≥7 最接近 12 日嘅 XSP Put —— 無單股尾部風險。</li>'+
     '<li><b>兩腿都關</b>（低波 + 熊市）= 全場休息，閒置現金食利息（2022 熊市都賺到 +$89,644）。</li></ol>'+
     '<div class="small muted" style="margin-top:6px">「今日最佳」分頁嘅單股候選＝v5 回測池每日掃描（h6040_scan 06:10，同回測同宇宙同過濾），只在 VIX 20–32 時顯示；Telegram 由 options_monitor §7b 同步推送。</div>';
@@ -2906,7 +2906,7 @@ function renderH6040Best(){
   if(!b)return;
   h6040AutoXspChain();
   let h='';
-  h+='<div class="small muted" style="margin-bottom:8px">Hybrid 60/40 實時信號 —— <b>回測規則</b>＋<b>實時閘門</b>。單股腿候選＝<b>v5 回測池</b>（h6040_scan 每日 06:10 掃 ~190 隻宇宙＋CFG_SINGLE 過濾，同回測同源），只在 VIX 20–32 開放；XSP 腿只在 XSP>200DMA 開放。</div>';
+  h+='<div class="small muted" style="margin-bottom:8px">Hybrid 60/40 實時信號 —— <b>回測規則</b>＋<b>實時閘門</b>。單股腿候選＝<b>v5 回測池</b>（h6040_scan 每日 06:10 掃 174 隻宇宙＋CFG_SINGLE 過濾，同回測同源（09-04 起 167→174）），只在 VIX 20–32 開放；XSP 腿只在 XSP>200DMA 開放。</div>';
   h+=h6040GateBanner();
   const g=h6040Gates;
   // XSP leg card
