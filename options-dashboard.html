@@ -2575,6 +2575,9 @@ document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',
 
 /* ═══════════　方法論（v4_balanced / h6040） ════════════ */
 let _v4MethodHTML=null,_v4SpecHTML=null,_v4PerfHTML=null;
+// ⭐ 09-04 單股腿宇宙全名單 — 同步自 ~/quant_model/fetch_data_v5.py UNIVERSE（167 隻硬編碼，survivorship-hardened）。
+// ⚠️ 改宇宙要兩邊同步：fetch_data_v5.py 同下面呢個 array（h6040_scan 06:10 用前者，呢個頁面用後者）。
+const H6040_UNIVERSE=['AAL','AAPL','ABBV','ABNB','ABT','ADBE','ADI','AFRM','ALAB','AMAT','AMD','AMKR','AMZN','ANET','ARM','ASML','AVGO','AXP','BA','BAC','BE','BILL','BKNG','BLK','BMY','BNTX','BYND','C','CAT','CCL','CIEN','CMG','COF','COHR','COIN','COP','COST','CRDO','CRM','CRWD','CVX','DAL','DDOG','DE','DFS','DKNG','DOCU','DPZ','DUK','EBAY','EMR','ENPH','ESTC','ETN','ETSY','F','FDX','FSLR','FTCH','FTNT','GE','GFS','GILD','GLW','GM','GOOG','GS','HD','HON','HOOD','INTC','ITW','JNJ','JPM','KLAC','LCID','LI','LLY','LOW','LRCX','LSCC','LULU','LUV','MA','MAR','MCD','MCHP','MDB','MELI','META','MPWR','MRK','MRNA','MRVL','MS','MSFT','MU','NEE','NET','NFLX','NIO','NKE','NOW','NVDA','NVTS','NXPI','OKTA','ON','ORCL','OXY','PANW','PFE','PH','PINS','PLTR','PNC','PSTG','PTON','PWR','PYPL','QCOM','QRVO','RCL','RIVN','ROK','ROKU','RUN','SBUX','SCHW','SE','SEDG','SHOP','SLB','SNAP','SNOW','SOFI','SPLK','SPOT','SQ','SWKS','TEAM','TER','TGT','TMO','TSLA','TSM','TWLO','TXN','U','UAL','UNH','UPS','UPST','USB','V','VRT','W','WDAY','WFC','WKHS','WMT','XOM','XPEV','YUM','Z','ZM','ZS'];
 function renderMethod(){
   if(METHOD==='h6040'){renderMethodH6040();return;}
   // restore v4 originals if we switched back from h6040
@@ -2683,10 +2686,13 @@ function renderMethodH6040(){
   $('methodBest').innerHTML=
     '<p><b>兩腿互補：</b>單股腿賺「波動溢價」，XSP 腿賺「平靜月份嘅指數保險費」。</p>'+
     '<ol style="margin:8px 0 0 18px;line-height:2">'+
-    '<li><b>單股腿</b>（60% 資本）：VIX≥20 時，喺動量宇宙（163 隻，含插濕名）揀分數最高嘅候選，賣 Δ0.25–0.30、10–14 DTE 嘅 Put。</li>'+
+    '<li><b>單股腿</b>（60% 資本）：VIX≥20 時，喺動量宇宙（<b>167 隻</b>硬編碼名單，含插濕名防生還者偏差'+((h6040Rec&&h6040Rec.scan&&h6040Rec.scan.universe_n!=null)?('；最近掃描 '+esc((h6040Rec.scan.scan_date||'').slice(5))+' 有 <b>'+h6040Rec.scan.universe_n+' 隻</b>過 ≥200 交易日數據門'+(h6040Rec.scan.n_passed!=null?('、<b>'+h6040Rec.scan.n_passed+' 隻</b>過 CFG_SINGLE 過濾'):'')):'')+'）揀分數最高嘅候選，賣 Δ0.25–0.30、10–14 DTE 嘅 Put。</li>'+
     '<li><b>XSP 腿</b>（40% 資本）：XSP 企穩 200DMA 之上就賣 Δ0.25–0.30、DTE≥7 最接近 12 日嘅 XSP Put —— 無單股尾部風險。</li>'+
     '<li><b>兩腿都關</b>（低波 + 熊市）= 全場休息，閒置現金食利息（2022 熊市都賺到 +$89,644）。</li></ol>'+
-    '<div class="small muted" style="margin-top:6px">「今日最佳」分頁嘅單股候選＝v5 回測池每日掃描（h6040_scan 06:10，同回測同宇宙同過濾），只在 VIX 20–32 時顯示；Telegram 由 options_monitor §7b 同步推送。</div>';
+    '<div class="small muted" style="margin-top:6px">「今日最佳」分頁嘅單股候選＝v5 回測池每日掃描（h6040_scan 06:10，同回測同宇宙同過濾），只在 VIX 20–32 時顯示；Telegram 由 options_monitor §7b 同步推送。</div>'+
+    '<details style="margin-top:8px"><summary style="cursor:pointer;color:#1a73e8;font-size:12px;font-weight:600">📋 單股腿宇宙全名單（167 隻 · fetch_data_v5.UNIVERSE）— 點開睇晒</summary>'+
+    '<div style="margin-top:8px;line-height:2">'+H6040_UNIVERSE.map(t=>'<span style="display:inline-block;margin:1px 2px;padding:1px 7px;border-radius:9px;background:#eef2f7;color:#334155;font-size:11px;font-weight:600">'+t+'</span>').join('')+'</div>'+
+    '<div class="small muted" style="margin-top:6px">⭐ 167＝<code>fetch_data_v5.py UNIVERSE</code> 硬編碼（survivorship-hardened，即插返啲已退市／已沽清嘅名防生還者偏差），每日 06:10 h6040_scan 掃佢 → 過 ≥200 交易日數據門 → 過 CFG_SINGLE（訊號／IV／RSI／5日波動）→ 分數排序。⚠️ 改名單要兩邊同步：fetch_data_v5.py ＋ 呢頁 H6040_UNIVERSE。</div></details>';
 
   $('methodIV').innerHTML=
     '<p><b>同 v4 嘅三層 IV 來源</b>（Yahoo 真 IV → sanity cap → 歷史波動率兜底），期權鏈用 Futu 實時報價反推。</p>'+
