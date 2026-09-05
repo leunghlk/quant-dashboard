@@ -788,12 +788,19 @@ function renderUnified(){
     const intPct = (intUsd!=null && prinUsd>0)? intUsd/prinUsd*100 : null;
     const iSgn   = v => (v>=0?'+':'−');
     const iCol   = (intUsd!=null && intUsd<0)? '#dc2626' : '#15803d';
+    // ⭐ 09-05：淨投入−現值大缺口＝贖回已離開現金寶但 cashflow 未落結算（基金贖回 settlement lag）
+    //   貨基唔會負息 1%+；gap 大過 1% 本金即 flag「唔係虧損，係攞咗走嘅本金」，結算落場自動消失。
+    const gapUsd  = (intUsd!=null && navUsd!=null)? Math.max(0, prinUsd-navUsd) : 0;
+    const gapWarn = (intUsd!=null && gapUsd>prinUsd*0.01)
+      ? '<div style="margin-top:4px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:5px 8px;font-size:12px;color:#92400e"><b>⚠ 缺口 US$'+fmt(gapUsd)+'</b>：好可能有大額贖回已離開現金寶，但結算記錄未落 cashflow（基金贖回 settlement lag）——<b>呢個負數唔係虧損，係攞咗走嘅本金</b>；貨基真實累計收益＝利息口徑（微正數），贖回流水落場後本卡自動校正。</div>'
+      : '';
     const intBox = (intUsd==null)
       ? '<div class="small muted" style="margin-top:4px">淨投入 US$'+fmt(prinUsd,2)+'（現值匯率未到，累計收益稍後補上）</div>'
       : '<div style="margin-top:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:7px 10px;font-size:12.5px">'
         + '<b style="color:'+iCol+'">💰 累計收益（08-24 起息）'+uMask(' '+iSgn(intUsd)+'US$'+fmt(Math.abs(intUsd),2)+' ≈ '+iSgn(intHkd)+'HKD '+fmt(Math.abs(intHkd),0)+'（'+iSgn(intPct)+Math.abs(intPct).toFixed(3)+'% 本金）')+'</b>'
         + '<div class="small muted" style="margin-top:3px">淨投入 US$'+fmt(prinUsd,2)+' → 現值 ≈ US$'+fmt(navUsd,2)+'（USD/HKD '+fhFx.toFixed(4)+(usdHkdFx!=null?' · ECB 即市':' · 戶口隱含')+'）＝ 現金寶 '+uMoney(faHkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div>'
-        + '<div class="small muted" style="margin-top:2px">收益＝現值−淨投入（含 CUAM 08-31 贖回已實現息 US$3.32）；peg band 內匯率折算可令單日浮動 ±US$2–7，睇趨勢唔好睇單日跳動。</div></div>';
+        + '<div class="small muted" style="margin-top:2px">收益＝現值−淨投入（含 CUAM 08-31 贖回已實現息 US$3.32）；peg band 內匯率折算可令單日浮動 ±US$2–7，睇趨勢唔好睇單日跳動。</div>'
+        + gapWarn + '</div>';
     h += '<div style="margin-top:10px"><div style="font-weight:700;font-size:13px">現金寶持倉明細<span class="muted" style="font-weight:400;font-size:11px"> · 現金流推導（Σ申購−Σ贖回，30 日窗）· 總額以 Futu accinfo 為準</span></div>'
       + '<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>基金</th><th class="r">淨投入(USD)</th><th class="r">≈市值(HKD)</th><th class="r">最近流水</th></tr></thead><tbody>'+frows+fsum+'</tbody></table></div>'
       + intBox + '</div>';

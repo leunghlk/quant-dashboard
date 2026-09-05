@@ -760,7 +760,10 @@ function renderUnified(){
     const fsum=fArr.length? '<tr style="border-top:2px solid #64748b;font-weight:700;background:#f8fafc"><td>Σ '+fArr.length+' 隻'+(fArr.some(f=>f.fully_redeemed)?'（含已全贖）':'')+'</td><td class="r">US$'+fmt(fSU)+'</td><td class="r">'+uMask(uMoney(fSH))+'</td><td></td></tr>' : '';
     h += '<div style="margin-top:10px"><div style="font-weight:700;font-size:13px">現金寶持倉明細<span class="muted" style="font-weight:400;font-size:11px"> · 現金流推導（Σ申購−Σ贖回，30 日窗）· 總額以 Futu accinfo 為準</span></div>'
       + '<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>基金</th><th class="r">淨投入(USD)</th><th class="r">≈市值(HKD)</th><th class="r">最近流水</th></tr></thead><tbody>'+frows+fsum+'</tbody></table></div>'
-      + '<div class="small muted" style="margin-top:4px">Σ淨投入 US$'+fmt(fundHoldings.known_usd)+' ×'+fundHoldings.fx+' ＋ 累計收益／匯差 ≈ '+uMoney(fundHoldings.residual_hkd)+' ＝ 現金寶 '+uMoney(fundHoldings.fund_assets_hkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div></div>';
+      + '<div class="small muted" style="margin-top:4px">Σ淨投入 US$'+fmt(fundHoldings.known_usd)+' ×'+fundHoldings.fx+' ＋ 累計收益／匯差 ≈ '+uMoney(fundHoldings.residual_hkd)+' ＝ 現金寶 '+uMoney(fundHoldings.fund_assets_hkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')
+      + ((fundHoldings.residual_hkd||0) < -(fundHoldings.known_usd||0)*fundHoldings.fx*0.01
+        ? ' · <span style="color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;padding:1px 6px;font-size:11px">⚠ 缺口 '+uMoney(Math.abs(fundHoldings.residual_hkd))+'＝贖回未落結算記錄（cashflow lag），唔係虧損</span>' : '')
+      + '</div></div>';
   }
   // 持倉細項（正股＋期權）
   const all = (realPos||[]).slice().sort((a,b)=> (b.mkt_val_hkd||0)-(a.mkt_val_hkd||0));
