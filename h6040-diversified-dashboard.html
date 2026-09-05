@@ -762,7 +762,7 @@ function renderUnified(){
       + '<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>基金</th><th class="r">淨投入(USD)</th><th class="r">≈市值(HKD)</th><th class="r">最近流水</th></tr></thead><tbody>'+frows+fsum+'</tbody></table></div>'
       + '<div class="small muted" style="margin-top:4px">Σ淨投入 US$'+fmt(fundHoldings.known_usd)+' ×'+fundHoldings.fx+' ＋ 累計收益／匯差 ≈ '+uMoney(fundHoldings.residual_hkd)+' ＝ 現金寶 '+uMoney(fundHoldings.fund_assets_hkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')
       + ((fundHoldings.residual_hkd||0) < -(fundHoldings.known_usd||0)*fundHoldings.fx*0.01
-        ? ' · <span style="color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;padding:1px 6px;font-size:11px">⚠ 缺口 '+uMoney(Math.abs(fundHoldings.residual_hkd))+'＝贖回未落結算記錄（cashflow lag），唔係虧損</span>' : '')
+        ? ' · <span style="color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;padding:1px 6px;font-size:11px">⚠ 缺口 '+uMoney(Math.abs(fundHoldings.residual_hkd))+'＝贖回未落結算記錄（cashflow lag），唔係虧損'+((function(){var _rp=fundHoldings.nav_prev_hkd,_rr=fundHoldings.reds_since_prev_usd||0,_fa=fundHoldings.fund_assets_hkd||0;if(_rp==null||_fa<=0)return '';var _pd=Math.max(0,Math.max(0,_rp-_fa)/fundHoldings.fx-_rr);if(_pd<=0.5)return '';var _tu=_fa/fundHoldings.fx-fundHoldings.known_usd+_pd;return ' · ✅ 真實累計（利息口徑·還原贖回）≈ '+( _tu>=0?'+':'−')+'US$'+fmt(Math.abs(_tu),2);})())+'</span>' : '')
       + '</div></div>';
   }
   // 持倉細項（正股＋期權）

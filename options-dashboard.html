@@ -790,9 +790,18 @@ function renderUnified(){
     const iCol   = (intUsd!=null && intUsd<0)? '#dc2626' : '#15803d';
     // ⭐ 09-05：淨投入−現值大缺口＝贖回已離開現金寶但 cashflow 未落結算（基金贖回 settlement lag）
     //   貨基唔會負息 1%+；gap 大過 1% 本金即 flag「唔係虧損，係攞咗走嘅本金」，結算落場自動消失。
+    // ⭐ 09-06：仲要答「咁實際賺幾多」——bridge NAV 日快照（nav_prev_hkd）跌幅 − 已記錄贖回＝未結算
+    //   贖回估計；真實累計＝intUsd＋未結算贖回（利息口徑；用 ECB 匯率，±US$2–7 peg 噪音）。
     const gapUsd  = (intUsd!=null && navUsd!=null)? Math.max(0, prinUsd-navUsd) : 0;
+    const _pnav=fundHoldings.nav_prev_hkd, _pdt=fundHoldings.nav_prev_date||'', _prs=fundHoldings.reds_since_prev_usd||0;
+    const pendUsd=(_pnav!=null&&faHkd>0)? Math.max(0, Math.max(0,_pnav-faHkd)/fhFx-_prs) : 0;
+    const trueUsd=(intUsd!=null)? intUsd+pendUsd : null;
     const gapWarn = (intUsd!=null && gapUsd>prinUsd*0.01)
-      ? '<div style="margin-top:4px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:5px 8px;font-size:12px;color:#92400e"><b>⚠ 缺口 US$'+fmt(gapUsd)+'</b>：好可能有大額贖回已離開現金寶，但結算記錄未落 cashflow（基金贖回 settlement lag）——<b>呢個負數唔係虧損，係攞咗走嘅本金</b>；貨基真實累計收益＝利息口徑（微正數），贖回流水落場後本卡自動校正。</div>'
+      ? '<div style="margin-top:4px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:5px 8px;font-size:12px;color:#92400e"><b>⚠ 缺口 US$'+fmt(gapUsd)+'</b>：好可能有大額贖回已離開現金寶，但結算記錄未落 cashflow（基金贖回 settlement lag）——<b>呢個負數唔係虧損，係攞咗走嘅本金</b>。'
+        + (trueUsd!=null&&pendUsd>0.5
+           ? '<div style="margin-top:3px;color:#166534;font-weight:700">✅ 真實累計收益（利息口徑，已還原未結算贖回）≈ '+iSgn(trueUsd)+'US$'+fmt(Math.abs(trueUsd),2)+'</div><div style="margin-top:1px;font-weight:400;font-size:11px">（用 '+_pdt+' NAV 快照對比折算，含 ±US$2–7 匯率噪音；贖回流水落場後自動轉返正式口徑）</div>'
+           : '<div style="margin-top:1px;font-weight:400">貨基真實累計收益＝利息口徑（微正數），贖回流水落場後本卡自動校正。</div>')
+        + '</div>'
       : '';
     const intBox = (intUsd==null)
       ? '<div class="small muted" style="margin-top:4px">淨投入 US$'+fmt(prinUsd,2)+'（現值匯率未到，累計收益稍後補上）</div>'
