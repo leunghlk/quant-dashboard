@@ -816,8 +816,16 @@ function applyLiveData(map){
     const s=map[tk];if(!s)return;
     const price=(s.live_price!=null)?s.live_price:s.price;if(price==null)return;
     const disp=(price>=1000)?Math.round(price).toLocaleString():price;
-    const chg=(s.change_pct!=null)?((s.change_pct>=0?'+':'')+s.change_pct+'%'):'';
-    const chgCol=(s.change_pct==null)?'#64748b':(s.change_pct>=0?'#16a34a':'#dc2626');
+    // bridge 快照有時冇帶 change_pct（收市後 Yahoo 源常見 null）→ 用 /api techAnalysis/hk.indices prevClose 兜底計
+    let chgV=(s.change_pct!=null)?s.change_pct:null;
+    if(chgV==null){
+      const refKey=(tk==='HSTECH')?'3033.HK':tk;
+      const ld=lastData||{};
+      const ref=((ld.techAnalysis||{})[tk]||{}).prevClose||((((ld.hk||{}).indices)||{})[refKey]||{}).prevClose;
+      if(ref>0)chgV=Math.round((price/ref-1)*1000)/10;
+    }
+    const chg=(chgV!=null)?((chgV>=0?'+':'')+chgV+'%'):'';
+    const chgCol=(chgV==null)?'#64748b':(chgV>=0?'#16a34a':'#dc2626');
     // 過時檢查：收市=綠、stale=紅、acceptable=琥珀
     const timestamp = s.last_updated || Date.now();
     const market = (tk.startsWith('HK.') || tk.startsWith('^HSI')) ? 'hk' : 'us';
@@ -1558,7 +1566,9 @@ function renderRegime(data){
     const lq=q[key];
     const t=ta[key];
     let price=null,chg=null,session='';
-    if(lq){ price=(lq.live_price!=null)?lq.live_price:lq.price; chg=lq.change_pct; session=lq.session||''; }
+    if(lq){ price=(lq.live_price!=null)?lq.live_price:lq.price; chg=lq.change_pct; session=lq.session||'';
+      // bridge 快照有時冇帶 change_pct（收市後 Yahoo 源常見 null）→ 用 techAnalysis prevClose 兜底計
+      if(chg==null&&price!=null&&t&&t.prevClose>0){ chg=Math.round((price/t.prevClose-1)*1000)/10; } }
     else if(t&&t.price){
       price=(t.live&&t.live>0)?t.live:t.price;
       // 用 Yahoo live price 對比上一日收市計變動%
