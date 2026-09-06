@@ -942,6 +942,17 @@ async function loadData(forceHK){
     // 完全冇舊數據（首次載入）→ 照 render（好過空白）但唔寫入 qfull-v5。
     var _apiHealthy=function(x){return !!(x&&Array.isArray(x.watchlist)&&x.watchlist.length>=40&&x.techAnalysis&&Object.keys(x.techAnalysis).length>=5&&Array.isArray(x.waveCounts)&&x.waveCounts.length>=5&&x.waveCounts.every(function(w){return w&&w.calibrated!==false;}));};
     if(!_apiHealthy(d)){
+      // ⭐ 2026-09-06: 殘稿升級 — primary 來源殘稿時試另一條 host 鏈（bridge 殘→CF→Vercel；CF 殘→Vercel spare）。
+      // Vercel 喺 HK 網絡 SNI-block（無 /etc/hosts pinning 嘅設備）→ fetchTimeout 靜默失敗，照行下面 banner 路徑。
+      try{
+        var _r2=activeBridge?await fetchApiFallback(12000):await fetchTimeout(API_SPARE,10000);
+        if(_r2&&_r2.ok){
+          var _j2=await _r2.json().catch(function(){return null;});
+          if(_j2&&!_j2.error&&_apiHealthy(_j2))d=_j2;
+        }
+      }catch(e){}
+    }
+    if(!_apiHealthy(d)){
       var _okWaves=((d.waveCounts||[]).filter(function(w){return w&&w.calibrated!==false;}).length);
       if(lastData){
         if(document.getElementById('lastUpdate'))document.getElementById('lastUpdate').textContent='⚠️ 數據源暫時不完整（美股'+((d.watchlist||[]).length)+' · 波浪'+_okWaves+'/5）— 保留上次完整數據';
