@@ -799,7 +799,7 @@ function renderUnified(){
     const gapWarn = (intUsd!=null && gapUsd>prinUsd*0.01)
       ? '<div style="margin-top:4px;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:5px 8px;font-size:12px;color:#92400e"><b>⚠ 缺口 US$'+fmt(gapUsd)+'</b>：好可能有大額贖回已離開現金寶，但結算記錄未落 cashflow（基金贖回 settlement lag）——<b>呢個負數唔係虧損，係攞咗走嘅本金</b>。'
         + (trueUsd!=null&&pendUsd>0.5
-           ? '<div style="margin-top:3px;color:#166534;font-weight:700">✅ 真實累計收益（利息口徑，已還原未結算贖回）≈ '+iSgn(trueUsd)+'US$'+fmt(Math.abs(trueUsd),2)+'</div><div style="margin-top:1px;font-weight:400;font-size:11px">（用 '+_pdt+' NAV 快照對比折算，含 ±US$2–7 匯率噪音；贖回流水落場後自動轉返正式口徑）</div>'
+           ? '<div style="margin-top:3px;color:#166534;font-weight:700">✅ 真實累計收益（利息口徑，已還原未結算贖回）≈ '+iSgn(trueUsd)+'US$'+fmt(Math.abs(trueUsd),2)+'（≈ HK$'+fmt(Math.round(trueUsd*fhFx))+'）</div>'
            : '<div style="margin-top:1px;font-weight:400">貨基真實累計收益＝利息口徑（微正數），贖回流水落場後本卡自動校正。</div>')
         + '</div>'
       : '';

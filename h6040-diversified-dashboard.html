@@ -530,6 +530,7 @@ async function loadRec(force){
   loadLive();
   if(activeTk)loadChain(activeTk);   // ⭐ 刷新實時：期權鏈一起 refresh
   loadReal();   // ⭐ 2026-08-23：統一證券組合（正股＋現金寶）由 Futu 真戶口拉
+  loadFx();     // ⭐ 09-06：ECB 即市 USD/HKD — 真實累計收益 Σ 行用（同 options 總覽卡同源；fail-soft 唔擋主鏈）
   if(btn)btn.classList.remove('loading');
 }
 function manualRefresh(){
@@ -567,6 +568,23 @@ let realPos = [];                   // [{ticker,shares,avg_cost,price,mkt_val_hk
 let realFunds = null;               // {power_hkd,total_hkd,cash_hkd,us_cash,withdraw_hkd,init_margin_hkd,maint_margin_hkd,market_val_hkd,ts}
 let fundHoldings = null;            // ⭐ 09-03：現金寶持倉明細（bridge /fund_holdings 現金流推導：每基金 Σ申購−Σ贖回）
 let realFx = 7.8536;                // ⭐ 08-23：bridge 反推嘅 USD→HKD 匯率（live 價 override 用）
+/* ⭐⭐ 09-06 統一匯率口徑：真實累計收益＝NAV快照/fx−淨投入，對 fx 極敏感（0.04 匯差＝±US$186）。
+ *   bridge /fund_holdings 嘅 fx 永遠 hardcoded 7.8 → 本頁同 options 總覽卡曾一頁 ECB 一頁 7.8，差成 9 倍。
+ *   依家兩頁同源同 fallback 鏈：ECB 即市（frankfurter.dev，12h throttle）→ realFx → 7.84。 */
+let usdHkdFx = null;                // 即市 USD/HKD（ECB 日價）；null=未到
+let __fxTs = 0;                     // 上次攞匯率時間（12h throttle — ECB 一日一價）
+async function loadFx(){
+  if(usdHkdFx!=null && Date.now()-__fxTs < 12*3600*1000) return usdHkdFx;
+  try{
+    const r = await fetchTimeout('https://api.frankfurter.dev/v1/latest?base=USD&symbols=HKD',8000);
+    if(r && r.ok){
+      const j = await r.json();
+      const v = j&&j.rates? Number(j.rates.HKD) : NaN;
+      if(v>6 && v<10){ usdHkdFx = v; __fxTs = Date.now(); renderUnified(); }   // 匯率到 → Σ 行即刻重繪
+    }
+  }catch(e){}
+  return usdHkdFx;
+}
 const EQUITY_TICKERS = ['LITE','DLLL'];
 /* ⭐ 09-03 honest no-data：bridge 重啟窗口／OpenD 未連到時，loadReal 三 fetch 全 fail → 舊 code 照樣
  *   用 fallback 算式畫「總資產 HKD 0／回報 −100%」假數。加三個 state 位分辨「未載入」vs「真係咁」：
@@ -762,7 +780,7 @@ function renderUnified(){
       + '<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>基金</th><th class="r">淨投入(USD)</th><th class="r">≈市值(HKD)</th><th class="r">最近流水</th></tr></thead><tbody>'+frows+fsum+'</tbody></table></div>'
       + '<div class="small muted" style="margin-top:4px">Σ淨投入 US$'+fmt(fundHoldings.known_usd)+' ×'+fundHoldings.fx+' ＋ 累計收益／匯差 ≈ '+uMoney(fundHoldings.residual_hkd)+' ＝ 現金寶 '+uMoney(fundHoldings.fund_assets_hkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')
       + ((fundHoldings.residual_hkd||0) < -(fundHoldings.known_usd||0)*fundHoldings.fx*0.01
-        ? ' · <span style="color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;padding:1px 6px;font-size:11px">⚠ 缺口 '+uMoney(Math.abs(fundHoldings.residual_hkd))+'＝贖回未落結算記錄（cashflow lag），唔係虧損'+((function(){var _rp=fundHoldings.nav_prev_hkd,_rr=fundHoldings.reds_since_prev_usd||0,_fa=fundHoldings.fund_assets_hkd||0;if(_rp==null||_fa<=0)return '';var _pd=Math.max(0,Math.max(0,_rp-_fa)/fundHoldings.fx-_rr);if(_pd<=0.5)return '';var _tu=_fa/fundHoldings.fx-fundHoldings.known_usd+_pd;return ' · ✅ 真實累計（利息口徑·還原贖回）≈ '+( _tu>=0?'+':'−')+'US$'+fmt(Math.abs(_tu),2);})())+'</span>' : '')
+        ? ' · <span style="color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;padding:1px 6px;font-size:11px">⚠ 缺口 '+uMoney(Math.abs(fundHoldings.residual_hkd))+'＝贖回未落結算記錄（cashflow lag），唔係虧損'+((function(){var _rp=fundHoldings.nav_prev_hkd,_rr=fundHoldings.reds_since_prev_usd||0,_fa=fundHoldings.fund_assets_hkd||0;var _fx=(usdHkdFx!=null)?usdHkdFx:((realFx>6&&realFx<10)?realFx:7.84);if(_rp==null||_fa<=0)return '';var _pd=Math.max(0,Math.max(0,_rp-_fa)/_fx-_rr);if(_pd<=0.5)return '';var _tu=_fa/_fx-fundHoldings.known_usd+_pd;return ' · ✅ 真實累計收益（利息口徑，已還原未結算贖回）≈ '+( _tu>=0?'+':'−')+'US$'+fmt(Math.abs(_tu),2)+'（≈ HK$'+fmt(Math.round(_tu*_fx))+'）';})())+'</span>' : '')
       + '</div></div>';
   }
   // 持倉細項（正股＋期權）
