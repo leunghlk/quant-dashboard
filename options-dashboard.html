@@ -161,6 +161,8 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
     <div class="status-bar"><span class="live-dot"></span><span id="liveBadge">Hybrid 60/40 · 連線中...</span></div>
   </div>
 </div></div>
+<!-- mkt-holiday-banner v1 -->
+<div id="mktHolidayBanner" class="warn-note" style="display:none;margin:0 0 10px"></div>
 <div class="tabs">
   <button data-pane="overview">📊 總覽</button>
   <span class="tab-group">期權</span>
@@ -429,6 +431,38 @@ async function detectBridge(){
   }
   return false;
 }
+
+/* ═══ ⭐ 2026-09-08: 美股假期／週末／半日市 banner（/api/market-status · 開頁＋每30分鐘重查 · 出錯全靜音唔影響頁面） ═══ */
+var MKT_STATUS_HOSTS=['https://quant-api.leunghlk.workers.dev/api/market-status','https://quant-api-beta.vercel.app/api/market-status'];
+async function fetchMktStatusJson(){
+  for(var i=0;i<MKT_STATUS_HOSTS.length;i++){
+    try{
+      var r=await fetchTimeout(MKT_STATUS_HOSTS[i],8000);
+      if(r&&r.ok){var j=await r.json().catch(function(){return null;});if(j&&j.tonight)return j;}
+    }catch(e){}
+  }
+  return null;
+}
+function renderMktHolidayBanner(j){
+  try{
+    var el=document.getElementById('mktHolidayBanner');
+    if(!el)return;
+    var t=(j&&j.tonight)||null;
+    var lines=[];
+    if(t){
+      if(!t.is_trading_day&&t.holiday_name)lines.push('🇺🇸 美股今日休市：'+t.holiday_name+' — 全日無交易，數據為上一交易日收市');
+      else if(!t.is_trading_day&&t.weekend)lines.push('🇺🇸 美股週末休市 — 數據為上一交易日收市');
+      if(t.half_day)lines.push('⏰ 美股今日提早收市（13:00 ET／香港時間深夜 01:00）');
+    }
+    if(lines.length){el.textContent=lines.join('；');el.style.display='';}
+    else{el.style.display='none';}
+  }catch(e){}
+}
+function loadMktHolidayBanner(){
+  fetchMktStatusJson().then(renderMktHolidayBanner).catch(function(){});
+}
+loadMktHolidayBanner();
+setInterval(loadMktHolidayBanner,30*60*1000);
 
 /* ════════════ gauge / 表格 helper ════════════ */
 function gauge(itm,otm){
