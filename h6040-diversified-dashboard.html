@@ -2647,7 +2647,7 @@ function renderMethodH6040(){
   if(_v4SpecHTML==null){_v4SpecHTML=$('methodSpecBody').innerHTML;_v4PerfHTML=$('methodPerfBody').innerHTML;}
   const B=H6040_BT;
   $('methodSpecTitle').textContent='⭐ Hybrid 60/40 模型規格';
-  $('methodSpecMeta').textContent='2022-01 → 2026-08 全期驗證 · 09-04 合併口徑（XSP PT50＋h6040_174）· stress/WF/MC 三組仍 08-27 舊口徑 · 09-08 加金 sleeve（GOLD_BT 獨立口徑，見下節）';
+  $('methodSpecMeta').textContent='2022-01 → 2026-08 全期驗證 · 09-04 合併口徑（XSP PT50＋h6040_174）· stress/MC 09-08 三腿口徑引擎級重跑（pass 線 年化≥30% 且 月DD≥−12%）· WF 仍 08-27 legacy 淨參考 · 09-08 加金 sleeve（GOLD_BT 獨立口徑，見下節）';
   $('methodSpecBody').innerHTML=
     '<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e;margin-bottom:10px">'+
     '<b>呢個係回測驗證嘅策略，唔係實時引擎。</b>所有績效數字來自 2022–2026 合成定價回測（已通過壓力測試）。'+
@@ -2733,15 +2733,16 @@ function renderMethodH6040(){
 
   // stats = stress tests
   $('methodStats').innerHTML=
-    '<p><b>壓力測試（基準行＝09-04 合併口徑；⚠️ IV打折／成本加倍／WF／MC 四組 09-04 未重跑，仍係 08-27 legacy 163 口徑舊檢驗紀錄）：</b></p>'+
+    '<p><b>壓力測試（基準行＝09-04 合併口徑；IV打折／成本加倍／雙重／MC 四行＝09-08 三腿口徑引擎級重跑，pass 線 年化≥30% 且 月DD≥−12%；WF 兩行仍 08-27 legacy 163 口徑，淨參考）：</b></p>'+
     '<div class="table-scroll"><table class="utable">'+
     '<thead><tr><th>壓力情境</th><th class="r">年化</th><th class="r">最大回撤</th><th>結論</th></tr></thead><tbody>'+
     '<tr><td>基準（09-04 口徑）</td><td class="r">+'+B.ann+'%</td><td class="r">'+B.dd+'%</td><td class="muted">—</td></tr>'+
-    '<tr><td>IV 溢價打 86 折（真實報價保守）</td><td class="r">+'+B.stress.iv095.ann+'%</td><td class="r">'+B.stress.iv095.dd+'%</td><td class="up">通過</td></tr>'+
+    '<tr><td>IV 溢價打 86 折（真實報價保守）</td><td class="r">+'+B.stress.iv086.ann+'%</td><td class="r">'+B.stress.iv086.dd+'%</td><td class="up">通過</td></tr>'+
     '<tr><td>成本加倍（滑價 3% + 費用 $2.20）</td><td class="r">+'+B.stress.costs2x.ann+'%</td><td class="r">'+B.stress.costs2x.dd+'%</td><td class="up">通過</td></tr>'+
-    '<tr><td>Walk-forward 樣本內 2022–24</td><td class="r">+'+B.wf.is.ann+'%</td><td class="r">'+B.wf.is.dd+'%</td><td class="muted">—</td></tr>'+
-    '<tr><td>Walk-forward 樣本外 2025–26（凍結參數）</td><td class="r">+'+B.wf.oos.ann+'%</td><td class="r">'+B.wf.oos.dd+'%</td><td class="up">通過</td></tr>'+
-    '<tr><td>Monte Carlo 20,000 條路徑（最差 5%）</td><td class="r">—</td><td class="r">'+B.mc.dd_p5+'%</td><td class="up">通過</td></tr>'+
+    '<tr><td>雙重 stress（86 折＋成本×2）</td><td class="r">+'+B.stress.double.ann+'%</td><td class="r">'+B.stress.double.dd+'%</td><td class="dn">不通過（月DD 線）</td></tr>'+
+    '<tr><td>Walk-forward 樣本內 2022–24（08-27 legacy 口徑）</td><td class="r">+'+B.wf.is.ann+'%</td><td class="r">'+B.wf.is.dd+'%</td><td class="muted">—</td></tr>'+
+    '<tr><td>Walk-forward 樣本外 2025–26（凍結參數 · 08-27 legacy 口徑）</td><td class="r">+'+B.wf.oos.ann+'%</td><td class="r">'+B.wf.oos.dd+'%</td><td class="muted">legacy</td></tr>'+
+    '<tr><td>Monte Carlo 20,000 條路徑（三腿 · block=3 月 · 最差 5%）</td><td class="r">—</td><td class="r">'+B.mc.dd_p5+'%</td><td class="up">通過</td></tr>'+
     '</tbody></table></div>'+
     '<p style="margin-top:8px"><b>月度收入分佈（56 個月）：</b>≥$15K 有 '+B.n_ge15k+' 個月 · ≥$10K 有 '+B.n_ge10k+' 個月 · 負數 '+B.n_neg+' 個月 · 零收入 '+B.n_zero+' 個月。</p>'+
     '<div class="small muted" style="margin-top:4px">平均 $'+fmt(B.mean_mo)+' vs 中位數 $'+fmt(B.median_mo)+' —— 分佈右偏（靠幾個好月拉高）。預算請用中位數。</div>';
@@ -3206,7 +3207,8 @@ const H6040_BT = {
   /* ⭐ 09-04 合併口徑（replaces 08-27 accepted 163 口徑）：單股腿＝h6040_174 univ CSP（leg total +602,871／
      ann 38.5）＋XSP 腿 PT50 完全不變（+542,316／ann 45.2／195 trades 逐分重現）；outer-join 合併、
      rf carry 已含喺各自 curve、56 個月 2022-01→2026-08。
-     ⚠️ stress/WF/MC 三組 09-04 冇重跑——下面嗰組仍係 08-27 legacy 163 口徑數字。
+     ⚠️ stress/MC 已 09-08 三腿口徑引擎級重跑（真源 rebuild_3leg/stress_engine＋run_mc_stress.py）；
+     WF 仍係 08-27 legacy 163 口徑數字（09-08 拍板保持，淨參考）。
      legs.single n:188＝成交宗數，同宇宙 174 無關。 */
   capital:320000, ann:41.18, total_return:393.69, dd:-9.89, sharpe:2.41,
   final_hkd:1579807, mean_mo:20450, median_mo:15199, n_months:56,
@@ -3214,16 +3216,20 @@ const H6040_BT = {
   yearly:{'2022':89990,'2023':119198,'2024':241491,'2025':407426,'2026':287083},
   legs:{single:{ann:38.5,dd:-13.4,wr:91,n:188,cap:192000},
         spy:{ann:45.2,dd:-13.6,wr:92.8,n:195,cap:128000}},
-  stress:{iv095:{ann:37.1,dd:-10.4},costs2x:{ann:36.2,dd:-11.5}},
+  /* 09-08 三腿口徑引擎級重跑（rebuild_3leg，pass 線 ann≥30%／月DD≥−12%）：iv086 34.62/−8.54 ·
+     costs2x 40.19/−4.64 · 雙重 32.41/−13.04（唯一不通過＝月DD 線）。mc＝三腿配對 block bootstrap
+     20k paths（block=3 月 seed 20260908）dd_p5 −6.84。⚠️ 舊 iv095 key 名係歷史誤導（實際 IV×0.86）已改名。 */
+  stress:{iv086:{ann:34.62,dd:-8.54},costs2x:{ann:40.19,dd:-4.64},double:{ann:32.41,dd:-13.04}},
   wf:{is:{ann:36.6,dd:-10.0},oos:{ann:60.0,dd:-4.5}},
-  mc:{dd_p5:-8.7,dd_p50:-4.0,p_below:0.0},
+  mc:{dd_p5:-6.84,dd_p50:-3.46,p_below:0.0},
   n_trades:383, n_assign:22,
   monthly:[["2022-01",-15926],["2022-02",0],["2022-03",4573],["2022-04",11873],["2022-05",0],["2022-06",0],["2022-07",29296],["2022-08",12743],["2022-09",-4545],["2022-10",0],["2022-11",74779],["2022-12",-22803],["2023-01",42346],["2023-02",-10351],["2023-03",17028],["2023-04",6005],["2023-05",6474],["2023-06",12450],["2023-07",17879],["2023-08",1255],["2023-09",-5340],["2023-10",0],["2023-11",12890],["2023-12",18562],["2024-01",21604],["2024-02",17606],["2024-03",17808],["2024-04",-6265],["2024-05",15328],["2024-06",18451],["2024-07",8169],["2024-08",4539],["2024-09",8735],["2024-10",69776],["2024-11",50695],["2024-12",15044],["2025-01",18542],["2025-02",15226],["2025-03",-24180],["2025-04",0],["2025-05",120915],["2025-06",71018],["2025-07",23738],["2025-08",40798],["2025-09",25257],["2025-10",106230],["2025-11",-10179],["2025-12",20062],["2026-01",43384],["2026-02",91636],["2026-03",2812],["2026-04",56176],["2026-05",30889],["2026-06",15173],["2026-07",22256],["2026-08",24758]]
 };
 /* ⭐ 09-08：金 sleeve（IAU CSP）回測＋規則 const —— ⚠️ H6040_BT 本體唔郁（佢 monthly/yearly/stress
    係 hybrid-only，改 ann 會內部不一致）；金腿字幕／方法論／卡全部由呢度 runtime 砌串，字幕級 hardcode 禁。
    數字 09-08 核實：sleeve 本體 US$10k CAGR 9.55／maxDD −18.14／WR 95.9；合成 ann 41.76／日度 maxDD −7.83
-   （trough 唔變 2022-12-22；最壞相位界 −10.67）；corr −0.008；淨貢獻誠實區間 0～+0.6pp（雙重 stress 可 −0.21pp）。 */
+   （trough 唔變 2022-12-22；最壞相位界 −10.67）；corr −0.008；淨貢獻誠實區間 −0.58～+0.72pp
+   （雙重 stress −0.58＝09-08 engine 版；同日舊值 −0.21 重現唔到已修正；+0.72＝production gate30 版）。 */
 const GOLD_BT={
   ticker:'IAU',name:'iShares Gold Trust',
   dte_lo:10,dte_hi:14,delta:0.275,pt_pct:50,rv20_max:30,max_contracts:1,
@@ -3232,7 +3238,7 @@ const GOLD_BT={
   sleeve:{cagr:9.55,dd:-18.14,wr:95.9,capital_usd:10000,pnl_usd:5421,years:4.7,mo_usd:96},
   synth:{ann:41.76,dd:-7.83,ann_delta:0.58,sharpe_base:2.11,sharpe:2.17,corr:-0.008,
          worst_phase_dd:-10.67,trough:'2022-12-22'},
-  net_contrib_lo:0,net_contrib_hi:0.6,stress2x:-0.21,
+  net_contrib_lo:-0.58,net_contrib_hi:0.72,stress2x:-0.58,
   rules:'10–14 DTE · |Δ|≈0.275 · PT50% · RV20>30% 唔開新倉（照管理現倉） · 上限 1 張（試倉）'
 };
 let h6040Gates={vix:null,spy:null,spyMa200:null,spyAbove:null,vixOk:null,loaded:false};
