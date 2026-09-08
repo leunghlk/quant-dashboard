@@ -224,6 +224,8 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
     <button class="btn btn-primary" id="refresh" onclick="loadData(true)">🔄 更新</button>
   </div>
 </div></div>
+<!-- mkt-holiday-banner v1 -->
+<div id="mktHolidayBanner" class="work-banner" style="display:none"></div>
 
 <nav class="mega" role="navigation" aria-label="primary">
   <ul class="mega-l1">
@@ -891,6 +893,37 @@ async function fetchTimeout(url, ms){
   try{return await fetch(url,{cache:'no-store',signal:ctrl.signal});}
   finally{clearTimeout(t);}
 }
+/* ═══ ⭐ 2026-09-08: 美股假期／週末／半日市 banner（/api/market-status · 開頁＋每30分鐘重查 · 出錯全靜音唔影響頁面） ═══ */
+var MKT_STATUS_HOSTS=['https://quant-api.leunghlk.workers.dev/api/market-status','https://quant-api-beta.vercel.app/api/market-status'];
+async function fetchMktStatusJson(){
+  for(var i=0;i<MKT_STATUS_HOSTS.length;i++){
+    try{
+      var r=await fetchTimeout(MKT_STATUS_HOSTS[i],8000);
+      if(r&&r.ok){var j=await r.json().catch(function(){return null;});if(j&&j.tonight)return j;}
+    }catch(e){}
+  }
+  return null;
+}
+function renderMktHolidayBanner(j){
+  try{
+    var el=document.getElementById('mktHolidayBanner');
+    if(!el)return;
+    var t=(j&&j.tonight)||null;
+    var lines=[];
+    if(t){
+      if(!t.is_trading_day&&t.holiday_name)lines.push('🇺🇸 美股今日休市：'+t.holiday_name+' — 全日無交易，數據為上一交易日收市');
+      else if(!t.is_trading_day&&t.weekend)lines.push('🇺🇸 美股週末休市 — 數據為上一交易日收市');
+      if(t.half_day)lines.push('⏰ 美股今日提早收市（13:00 ET／香港時間深夜 01:00）');
+    }
+    if(lines.length){el.textContent=lines.join('；');el.style.display='';}
+    else{el.style.display='none';}
+  }catch(e){}
+}
+function loadMktHolidayBanner(){
+  fetchMktStatusJson().then(renderMktHolidayBanner).catch(function(){});
+}
+loadMktHolidayBanner();
+setInterval(loadMktHolidayBanner,30*60*1000);
 // 港股/全日數據本地緩存：收市後（16:10-09:00 HKT）即刻有數據睇，唔使等 refresh
 function hkToday(){ return new Date(Date.now()+8*3600e3).toISOString().slice(0,10); }
 function hkCacheSave(){
