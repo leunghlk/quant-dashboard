@@ -839,6 +839,11 @@ function renderUnified(){
     const intUsd = (navUsd!=null)? navUsd - prinUsd : null;               // 累計收益 USD（含 CUAM 08-31 已實現息 3.32）
     const intHkd = (intUsd!=null)? faHkd - prinUsd*fhFx : null;
     const intPct = (intUsd!=null && prinUsd>0)? intUsd/prinUsd*100 : null;
+    // ⭐⭐ 09-09 拍板 C+A（3-agent 核數）：正向殘差＝未歸因基金資產（USD 閒錢自動 sweep 入美元貨基、
+    //   cashflow 無申購紀錄）— 唔准當「累計收益」出。>1% NAV 即轉琥珀「總值＝已歸因＋未歸因」盒；
+    //   未歸因期連 inGap/trueLine 都唔出（trueUsd 一樣被殘差污染）。T+1/T+2 sweep 紀錄落場自動返正常口徑。
+    const unattrUsd = (intUsd!=null && intUsd>0)? intUsd : null;
+    const unattrBig = (unattrUsd!=null && navUsd>0 && unattrUsd > navUsd*0.01);
     const iSgn   = v => (v>=0?'+':'−');
     const iCol   = (intUsd!=null && intUsd<0)? '#dc2626' : '#15803d';
     // ⭐ 09-05：淨投入−現值大缺口＝贖回已離開現金寶但 cashflow 未落結算（基金贖回 settlement lag）
@@ -852,17 +857,20 @@ function renderUnified(){
     /* ⭐⭐ 09-06 用戶拍板（兩次）：贖回未結算期間（缺口>1% 本金）張卡淨係出 ✅ 真實累計一行 —
      *   幻象負數 headline、缺口警告、淨投入→現值明細、peg band 註解全部唔准出（「呢啲唔寫得」）。
      *   結算落場（缺口歸零）自動返正式口徑；peg band 註解任何狀態都剷。 */
-    const inGap = (intUsd!=null && gapUsd>prinUsd*0.01);
+    const inGap = (intUsd!=null && !unattrBig && gapUsd>prinUsd*0.01);
     const trueLine = (trueUsd!=null&&pendUsd>0.5)
       ? '<div style="margin-top:3px;color:#166534;font-weight:700">✅ 真實累計收益（利息口徑，已還原未結算贖回）≈ '+iSgn(trueUsd)+'US$'+fmt(Math.abs(trueUsd),2)+'（≈ HK$'+fmt(Math.round(trueUsd*fhFx))+'）</div>'
       : (inGap? '<div class="small muted" style="margin-top:2px">（有大額贖回未落結算，真實累計稍後自動補上）</div>' : '');
     const intBox = (intUsd==null)
       ? '<div class="small muted" style="margin-top:4px">淨投入 US$'+fmt(prinUsd,2)+'（現值匯率未到，累計收益稍後補上）</div>'
-      : '<div style="margin-top:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:7px 10px;font-size:12.5px">'
-        + (inGap
-           ? '<b style="color:#166534">💰 累計收益（08-24 起息）</b>'+trueLine
-           : '<b style="color:'+iCol+'">💰 累計收益（08-24 起息）'+uMask(' '+iSgn(intUsd)+'US$'+fmt(Math.abs(intUsd),2)+' ≈ '+iSgn(intHkd)+'HKD '+fmt(Math.abs(intHkd),0)+'（'+iSgn(intPct)+Math.abs(intPct).toFixed(3)+'% 本金）')+'</b>'
-             + '<div class="small muted" style="margin-top:3px">淨投入 US$'+fmt(prinUsd,2)+' → 現值 ≈ US$'+fmt(navUsd,2)+'（USD/HKD '+fhFx.toFixed(4)+(usdHkdFx!=null?' · ECB 即市':' · 戶口隱含')+'）＝ 現金寶 '+uMoney(faHkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div>')
+      : '<div style="margin-top:6px;background:'+(unattrBig?'#fefce8':'#f0fdf4')+';border:1px solid '+(unattrBig?'#fde68a':'#bbf7d0')+';border-radius:8px;padding:7px 10px;font-size:12.5px">'
+        + (unattrBig
+           ? '<b style="color:#92400e">💰 現金寶總值 ≈ US$'+fmt(navUsd,2)+' ＝ 已歸因淨投入 US$'+fmt(prinUsd,2)+' ＋ 未歸因 ≈US$'+fmt(unattrUsd,2)+'</b>'
+             + '<div class="small muted" style="margin-top:3px">未歸因＝fund_assets − 30 日窗已記錄淨投入（自動 sweep 本金、窗外申購、未結算都會入呢格，等現金流紀錄歸因後先出收益口徑）＝ 現金寶 '+uMoney(faHkd)+(usdHkdFx!=null?' · USD/HKD '+fhFx.toFixed(4)+' · ECB 即市':' · 戶口隱含')+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div>'
+           : (inGap
+              ? '<b style="color:#166534">💰 累計收益（08-24 起息）</b>'+trueLine
+              : '<b style="color:'+iCol+'">💰 累計收益（08-24 起息）'+uMask(' '+iSgn(intUsd)+'US$'+fmt(Math.abs(intUsd),2)+' ≈ '+iSgn(intHkd)+'HKD '+fmt(Math.abs(intHkd),0)+'（'+iSgn(intPct)+Math.abs(intPct).toFixed(3)+'% 本金）')+'</b>'
+                + '<div class="small muted" style="margin-top:3px">淨投入 US$'+fmt(prinUsd,2)+' → 現值 ≈ US$'+fmt(navUsd,2)+'（USD/HKD '+fhFx.toFixed(4)+(usdHkdFx!=null?' · ECB 即市':' · 戶口隱含')+'）＝ 現金寶 '+uMoney(faHkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div>'))
         + '</div>';
     h += '<div style="margin-top:10px"><div style="font-weight:700;font-size:13px">現金寶持倉明細<span class="muted" style="font-weight:400;font-size:11px"> · 現金流推導（Σ申購−Σ贖回，30 日窗）· 總額以 Futu accinfo 為準</span></div>'
       + '<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>基金</th><th class="r">淨投入(USD)</th><th class="r">≈市值(HKD)</th><th class="r">最近流水</th></tr></thead><tbody>'+frows+fsum+'</tbody></table></div>'

@@ -813,10 +813,26 @@ function renderUnified(){
     h += '<div style="margin-top:10px"><div style="font-weight:700;font-size:13px">現金寶持倉明細<span class="muted" style="font-weight:400;font-size:11px"> · 現金流推導（Σ申購−Σ贖回，30 日窗）· 總額以 Futu accinfo 為準</span></div>'
       + '<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>基金</th><th class="r">淨投入(USD)</th><th class="r">≈市值(HKD)</th><th class="r">最近流水</th></tr></thead><tbody>'+frows+fsum+'</tbody></table></div>'
       + '<div class="small muted" style="margin-top:4px">'
-      + ((fundHoldings.residual_hkd||0) < -(fundHoldings.known_usd||0)*fundHoldings.fx*0.01
-        ? 'Σ淨投入 US$'+fmt(fundHoldings.known_usd)+' ＝ 現金寶 '+uMoney(fundHoldings.fund_assets_hkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')   /* ⭐09-06 拍板：gap 期唔出 residual 同 ⚠，淨係 ✅ 真實累計 */
-          + ((function(){var _rp=fundHoldings.nav_prev_hkd,_rr=fundHoldings.reds_since_prev_usd||0,_fa=fundHoldings.fund_assets_hkd||0;var _fx=(usdHkdFx!=null)?usdHkdFx:((realFx>6&&realFx<10)?realFx:7.84);if(_rp==null||_fa<=0)return ' · <span class="muted">（有大額贖回未落結算，真實累計稍後自動補上）</span>';var _pd=Math.max(0,Math.max(0,_rp-_fa)/_fx-_rr);var _tu=_fa/_fx-fundHoldings.known_usd+_pd;return ' · ✅ 真實累計收益（利息口徑，已還原未結算贖回）≈ '+(_tu>=0?'+':'−')+'US$'+fmt(Math.abs(_tu),2)+'（≈ HK$'+fmt(Math.round(_tu*_fx))+'）';})())
-        : 'Σ淨投入 US$'+fmt(fundHoldings.known_usd)+' ×'+fundHoldings.fx+' ＋ 累計收益／匯差 ≈ '+uMoney(fundHoldings.residual_hkd)+' ＝ 現金寶 '+uMoney(fundHoldings.fund_assets_hkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':''))
+      + ((function(){
+          /* ⭐09-09 拍板 C+A 同步 options 頁：正向殘差>1% NAV＝未歸因基金資產（USD 閒錢自動 sweep、
+             無申購紀錄）— 唔准當「收益／匯差」出，轉誠實「總值＝已歸因＋未歸因」一行（同 options 琥珀盒同口徑 ECB fx）。 */
+          var _fa=fundHoldings.fund_assets_hkd||0,_kn=fundHoldings.known_usd||0;
+          var _fx=(usdHkdFx!=null)?usdHkdFx:((realFx>6&&realFx<10)?realFx:7.84);
+          var _st=fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'';
+          var _iu=_fa/_fx-_kn;
+          if(_iu>0 && _fa>0 && _iu>_fa/_fx*0.01)
+            return '<span style="color:#92400e;font-weight:700">現金寶總值 ≈US$'+fmt(_fa/_fx,2)+' ＝ 已歸因淨投入 US$'+fmt(_kn,2)+' ＋ 未歸因 ≈US$'+fmt(_iu,2)+'</span>（sweep 本金、窗外申購、未結算都會入呢格，等現金流紀錄歸因後先出收益口徑）＝ 現金寶 '+uMoney(_fa)+_st;
+          /* 09-06 拍板：贖回 settlement gap 期唔出 residual 同 ⚠，淨係 ✅ 真實累計 */
+          if(_iu < -_kn*_fx*0.01){
+            var _s='Σ淨投入 US$'+fmt(_kn)+' ＝ 現金寶 '+uMoney(_fa)+_st;
+            var _rp=fundHoldings.nav_prev_hkd,_rr=fundHoldings.reds_since_prev_usd||0;
+            if(_rp==null||_fa<=0) return _s+' · <span class="muted">（有大額贖回未落結算，真實累計稍後自動補上）</span>';
+            var _pd=Math.max(0,Math.max(0,_rp-_fa)/_fx-_rr),_tu=_fa/_fx-_kn+_pd;
+            return _s+' · ✅ 真實累計收益（利息口徑，已還原未結算贖回）≈ '+(_tu>=0?'+':'−')+'US$'+fmt(Math.abs(_tu),2)+'（≈ HK$'+fmt(Math.round(_tu*_fx))+'）';
+          }
+          /* 正常：累計收益 ECB 口徑（09-09 統一，剷 v1 ×7.8 殘差字） */
+          return '累計收益 ≈ '+(_iu>=0?'+':'−')+'US$'+fmt(Math.abs(_iu),2)+'（≈ '+(_iu>=0?'+':'−')+'HK$'+fmt(Math.round(_iu*_fx))+'）＝ 現金寶 '+uMoney(_fa)+_st;
+        })())
       + '</div></div>';
   }
   // 持倉細項（正股＋期權）
