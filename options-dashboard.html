@@ -221,25 +221,8 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
   <div class="pane active" id="pane-best">
     <div class="card"><div class="card-h"><span class="t">🎯 今日最佳交易</span><span class="meta">點「執行」下單（紙上）· 點行開個股詳情</span></div>
       <div class="card-b" id="bestCard"></div></div>
-    <div class="card"><div class="card-h"><span class="t">🎯 當周掃描榜 · h6040_174（09-11 到期 CSP）</span><span class="meta">09-08 ET 收市快照 · 按值博率（按金年化）高至低 · 收入線 HK$2,000/張 · 全部 for reference（gate 唔開照列，非 system 推倉）</span></div>
-      <div class="card-b">
-        <div class="table-scroll"><table class="utable">
-          <thead><tr><th>股票</th><th class="r">現價</th><th class="r">MOM(5d)</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th>業績</th><th class="r">建議K</th><th class="r">DTE</th><th>到期</th><th class="r">Δ</th><th class="r">收入/張 US$</th><th class="r">按金/張 US$</th><th class="r">年化</th></tr></thead>
-          <tbody>
-            <tr><td><b>LITE</b></td><td class="r">978.53</td><td class="r">+7.0%</td><td>動能延續</td><td class="r">70%</td><td class="r">59.3</td><td>8月已報✓</td><td class="r"><b>920P</b></td><td class="r">3</td><td>09-11</td><td class="r">−0.198</td><td class="r"><b>830</b></td><td class="r">14,572</td><td class="r"><b>76%</b></td></tr>
-            <tr><td><b>STX</b></td><td class="r">904.38</td><td class="r">+9.2%</td><td>動能延續</td><td class="r">73%</td><td class="r">57.1</td><td>7/29 已報✓</td><td class="r"><b>847.5P</b></td><td class="r">3</td><td>09-11</td><td class="r">−0.194</td><td class="r"><b>760</b></td><td class="r">13,205</td><td class="r"><b>75%</b></td></tr>
-            <tr><td><b>SNDK</b></td><td class="r">1,737.99</td><td class="r">+10.9%</td><td>動能強（NAND）</td><td class="r">69%</td><td class="r">61.1</td><td>8月已報✓</td><td class="r"><b>1635P</b></td><td class="r">3</td><td>09-11</td><td class="r">−0.197</td><td class="r"><b>1,440</b></td><td class="r">25,956</td><td class="r"><b>74%</b></td></tr>
-            <tr><td><b>WDC</b></td><td class="r">477.30</td><td class="r">+5.9%</td><td>溫和向上</td><td class="r">71%</td><td class="r">50.5</td><td>10月尾（過期後）✓</td><td class="r"><b>447.5P</b></td><td class="r">3</td><td>09-11</td><td class="r">−0.190</td><td class="r"><b>350</b></td><td class="r">6,963</td><td class="r"><b>66%</b></td></tr>
-            <tr><td><b>DELL</b></td><td class="r">533.88</td><td class="r">+17.1%</td><td>垂直衝⚠️回調風險</td><td class="r">62%</td><td class="r">65.1</td><td>8/28 已報✓</td><td class="r"><b>505P</b></td><td class="r">3</td><td>09-11</td><td class="r">−0.194</td><td class="r"><b>385</b></td><td class="r">8,190</td><td class="r"><b>64%</b></td></tr>
-          </tbody>
-        </table></div>
-        <div class="small muted" style="margin-top:6px">
-          口徑：收入＝bid×100（可實收價）；按金＝max(0.2×S−(S−K), 0.1×S)+premium（OTM 減免修正版，Futu 實凍通常更低）；年化＝(bid/K)×252/DTE 只供橫比；POP 全部 78–79%；HK$ ≈ US$×7.8（LITE $830≈HK$6,474 · SNDK $1,440≈HK$11,232）。<br>
-          後備：MU 952.5P bid 6.75 → $675（HK$5,265）、按金 $15,919、POP 78.4%、年化 60%（動能最溫和 +4.3%/RSI 58）。<br>
-          剔走：ORCL／ADBE（9/10 報業績，09-11 到期食 gap，premium 係賭波錢）；NBIS 225P $222／BE 255P $229／AMAT $250／COHR／ALAB／TER（收入低過 HK$2,000 線）；MELI（band 內冇 strike）。<br>
-          ⚠️ 靜態快照（09-08 ET 收市 Futu 實價 chain），唔係 live 報價——落單前以個股詳情頁實時鏈為準。
-        </div>
-      </div></div>
+    <div class="card"><div class="card-h"><span class="t">🎯 當周掃描榜 · h6040_174（09-11 到期 CSP）</span><span class="meta" id="wscanMeta">real-time 載入中…</span></div>
+      <div class="card-b" id="wscanBody"><div class="muted">載入中（bridge /weekly_scan）…</div></div></div>
     <div class="card"><div class="card-h"><span class="t" id="candTitle">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
       <div class="card-b" id="candBody"></div></div>
     <div class="card" id="winrankCard"><div class="card-h"><span class="t">⚡ 賣 Put 勝率排名（入場掃描）</span><span class="meta">按總評分排（最值得做排第一）· 7–21 DTE · Δ0.20–0.35 闊窗（純參考）· 正式建議（10–14 DTE · Δ0.25–0.30）以「今日最佳＋候選名單」為準 · 金額欄全部 US$（≈HK$ 見候選名單）</span></div>
@@ -832,7 +815,13 @@ function renderUnified(){
     // ⭐⭐ 09-03 晚（三 agent 核數終版）：真·累計收益 ＝ 現值(fund_assets÷即市匯率) − 淨投入。
     //   舊 residual_hkd 用固定 7.8 計：1,623 HKD 入面 92–94% 係匯率假象、真息只有 ~12–17 USD — 唔再展示。
     //   fund_assets 用 realFunds（60s cache）優先，fundHoldings（900s）兜底；匯率 ECB 即市 → 戶口隱含 → 7.84。
-    const faHkd  = (fundsOk && realFunds.fund_assets_hkd!=null)? realFunds.fund_assets_hkd : (fundHoldings.fund_assets_hkd||0);
+    const faHkd0 = (fundsOk && realFunds.fund_assets_hkd!=null)? realFunds.fund_assets_hkd : (fundHoldings.fund_assets_hkd||0);
+    // ⭐⭐ 09-09：fund_assets re-mark 過渡期虛增、Futu 用負 pending_asset 鏡像對沖（total 恆等式含
+    //   pending 先吻合）→ 卡食已結算淨額（淨計負 pending；正 pending 未到账唔准入現金寶）。
+    const _pendH = (fundsOk && realFunds.pending_asset_hkd!=null)? realFunds.pending_asset_hkd
+                 : (fundHoldings.pending_asset_hkd!=null? fundHoldings.pending_asset_hkd : 0);
+    const faHkd  = faHkd0 + Math.min(0, _pendH);
+    const pendNote = (_pendH<-1000)? ' · <span style="color:#b45309">未結算 re-mark −HK$'+fmt(Math.abs(_pendH),0)+'（Futu 基金確認批進行中，等結算自動消失）</span>' : '';
     const fhFx   = (usdHkdFx!=null)? usdHkdFx : ((realFx>6&&realFx<10)? realFx : 7.84);
     const prinUsd= fundHoldings.known_usd || 0;
     const navUsd = (prinUsd>0 && faHkd>0)? faHkd/fhFx : null;
@@ -866,13 +855,13 @@ function renderUnified(){
       : '<div style="margin-top:6px;background:'+(unattrBig?'#fefce8':'#f0fdf4')+';border:1px solid '+(unattrBig?'#fde68a':'#bbf7d0')+';border-radius:8px;padding:7px 10px;font-size:12.5px">'
         + (unattrBig
            ? '<b style="color:#92400e">💰 現金寶總值 ≈ US$'+fmt(navUsd,2)+' ＝ 已歸因淨投入 US$'+fmt(prinUsd,2)+' ＋ 未歸因 ≈US$'+fmt(unattrUsd,2)+'</b>'
-             + '<div class="small muted" style="margin-top:3px">未歸因＝fund_assets − 30 日窗已記錄淨投入（自動 sweep 本金、窗外申購、未結算都會入呢格，等現金流紀錄歸因後先出收益口徑）＝ 現金寶 '+uMoney(faHkd)+(usdHkdFx!=null?' · USD/HKD '+fhFx.toFixed(4)+' · ECB 即市':' · 戶口隱含')+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div>'
+             + '<div class="small muted" style="margin-top:3px">未歸因＝fund_assets（已結算淨額）− 累計已記錄淨投入（自動 sweep 本金、未出紀錄嘅申購贖回、未結算都會入呢格，等現金流紀錄歸因後先出收益口徑）＝ 現金寶 '+uMoney(faHkd)+(usdHkdFx!=null?' · USD/HKD '+fhFx.toFixed(4)+' · ECB 即市':' · 戶口隱含')+pendNote+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div>'
            : (inGap
               ? '<b style="color:#166534">💰 累計收益（08-24 起息）</b>'+trueLine
               : '<b style="color:'+iCol+'">💰 累計收益（08-24 起息）'+uMask(' '+iSgn(intUsd)+'US$'+fmt(Math.abs(intUsd),2)+' ≈ '+iSgn(intHkd)+'HKD '+fmt(Math.abs(intHkd),0)+'（'+iSgn(intPct)+Math.abs(intPct).toFixed(3)+'% 本金）')+'</b>'
-                + '<div class="small muted" style="margin-top:3px">淨投入 US$'+fmt(prinUsd,2)+' → 現值 ≈ US$'+fmt(navUsd,2)+'（USD/HKD '+fhFx.toFixed(4)+(usdHkdFx!=null?' · ECB 即市':' · 戶口隱含')+'）＝ 現金寶 '+uMoney(faHkd)+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div>'))
+                + '<div class="small muted" style="margin-top:3px">淨投入 US$'+fmt(prinUsd,2)+' → 現值 ≈ US$'+fmt(navUsd,2)+'（USD/HKD '+fhFx.toFixed(4)+(usdHkdFx!=null?' · ECB 即市':' · 戶口隱含')+'）＝ 現金寶 '+uMoney(faHkd)+pendNote+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div>'))
         + '</div>';
-    h += '<div style="margin-top:10px"><div style="font-weight:700;font-size:13px">現金寶持倉明細<span class="muted" style="font-weight:400;font-size:11px"> · 現金流推導（Σ申購−Σ贖回，30 日窗）· 總額以 Futu accinfo 為準</span></div>'
+    h += '<div style="margin-top:10px"><div style="font-weight:700;font-size:13px">現金寶持倉明細<span class="muted" style="font-weight:400;font-size:11px"> · 現金流推導（Σ申購−Σ贖回，累計全史）· 總額以 Futu accinfo 為準</span></div>'
       + '<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>基金</th><th class="r">淨投入(USD)</th><th class="r">≈市值(HKD)</th><th class="r">最近流水</th></tr></thead><tbody>'+frows+fsum+'</tbody></table></div>'
       + intBox + '</div>';
   }
@@ -2906,6 +2895,92 @@ function renderMethodH6040(){
    今日最佳交易（gate open 嘅）」。背景：現金寶唔係期權按金抵押品 → 落單俾 Futu 拒
    「購買力不足」都唔知要赎幾多。數字係 Futu 實時 short_required_im 對 headroom。60s refresh。*/
 let h6040Margin=null,h6040MarginSingle=null;
+/* ════════════ 🎯 當周掃描榜（h6040_174 週選 CSP，real-time）════════════
+   ⭐ 2026-09-09：09-08 全宇宙 fan-out 掃描（174隻→2637 strikes）終版 Top5，
+   收入線 HK$2,000/張（bid×100≥US$256）。strikes＝掃描建議K（靜態 config）；
+   現價/bid/IV/Δ/POP/按金/年化全部 real-time（bridge /weekly_scan：spot=yahoo 一價、
+   option bid/ask=Futu snapshot 直 snap 期權 code 慳 chain quota、greeks=BS 反推、
+   按金=OTM 減免修正式 max(0.2S−(S−K),0.1S)+mid）。業績欄＝靜態標註（五隻 09-11 窗口零 event）。
+   for reference：gate 唔開照列，非 system 推倉。下輪掃描換 WSCAN_ITEMS/WSCAN_EXPIRY 就得。 */
+const WSCAN_ITEMS='LITE:920,STX:847.5,SNDK:1635,WDC:447.5,DELL:505';
+const WSCAN_EXPIRY='2026-09-11';
+const WSCAN_EARN={LITE:'8月已報✓',STX:'7/29 已報✓',SNDK:'8月已報✓',WDC:'10月尾（過期後）✓',DELL:'8/28 已報✓'};
+let wscanLast=null, wscanErr=null, wscanTs=0;
+
+async function loadWeeklyScan(){
+  if(!activeBridge){await detectBridge();}
+  if(!activeBridge){renderWeeklyScan();return;}
+  try{
+    const r=await fetchTimeout(activeBridge+'/weekly_scan?items='+encodeURIComponent(WSCAN_ITEMS)+'&expiry='+WSCAN_EXPIRY+'&secret='+encodeURIComponent(BRIDGE_SECRET),30000);
+    const j=r&&r.ok?await r.json().catch(()=>null):null;
+    if(j&&j.ok&&j.rows&&j.rows.length){wscanLast=j;wscanTs=Date.now();wscanErr=null;}
+    else wscanErr=(j&&j.error)||('HTTP '+(r?r.status:'—'));
+  }catch(e){wscanErr=(e&&e.message)||String(e);}
+  renderWeeklyScan();
+}
+
+function wscanSig(r){
+  const m=r.mom5d, s=r.rsi14;
+  if(m==null&&s==null)return '—';
+  if((m!=null&&m>=12)||(s!=null&&s>=65))return '垂直衝⚠️';
+  if((m||0)>=6)return '動能延續';
+  if((m||0)>=0)return '溫和向上';
+  return '轉弱⚠️';
+}
+
+function renderWeeklyScan(){
+  const el=$('wscanBody'), meta=$('wscanMeta'); if(!el)return;
+  const st=wscanLast?Math.round((Date.now()-wscanTs)/1000):null;
+  if(meta){
+    let m='real-time（60s）· 按值博率（年化回報）高至低 · for reference（gate 唔開照列，非 system 推倉）';
+    if(wscanLast)m+=' · '+new Date(wscanTs).toLocaleTimeString('en-GB',{hour12:false})+(st>90?' <span style="color:#b45309">⚠️stale '+Math.round(st/60)+'分鐘</span>':'');
+    else if(wscanErr)m='攞唔到（'+wscanErr+'）· 60s 後重試';
+    meta.innerHTML=m;
+  }
+  if(!wscanLast){
+    el.innerHTML='<div class="small muted">暫時攞唔到 live 數（'+esc(wscanErr||'載入中')+'）</div>'
+      +'<div class="small muted" style="margin-top:4px">口徑：收入＝bid×100；按金＝max(0.2×S−(S−K),0.1×S)+mid（OTM 減免修正版）；年化＝(bid/K)×252/DTE</div>';
+    return;
+  }
+  const dte=wscanLast.dte;
+  if(dte!=null&&dte<=0){
+    el.innerHTML='<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">本週 '+esc(wscanLast.expiry||'')+' 已到期 — 等下輪掃描更新 WSCAN_ITEMS／WSCAN_EXPIRY</div>';
+    return;
+  }
+  const rows=wscanLast.rows.slice().sort(function(a,b){
+    const ab=(a.income_usd&&a.strike)?(a.income_usd/100)/a.strike:0;
+    const bb=(b.income_usd&&b.strike)?(b.income_usd/100)/b.strike:0;
+    return bb-ab;   // 值博率＝bid/K（DTE 全行相同＝等價年化排序）
+  });
+  let h='<div class="table-scroll"><table class="utable"><thead><tr>'
+    +'<th>股票</th><th class="r">現價</th><th class="r">MOM</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th>業績</th>'
+    +'<th class="r">建議K</th><th class="r">DTE</th><th>到期</th><th class="r">Δ</th>'
+    +'<th class="r">收入/張 US$</th><th class="r">按金/張 US$</th><th class="r">年化</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    const noChain=!r.chain_ok||!(r.bid>0);
+    h+='<tr'+(noChain?' style="opacity:.55"':'')+'><td><b>'+esc(r.ticker)+'</b></td>'
+      +'<td class="r">'+px2(r.spot)+(r.chg1d_pct!=null?' <span style="font-size:11px;color:'+(r.chg1d_pct>=0?'#16a34a':'#dc2626')+'">'+(r.chg1d_pct>=0?'+':'')+r.chg1d_pct.toFixed(1)+'%</span>':'')+'</td>'
+      +'<td class="r">'+(r.mom5d!=null?((r.mom5d>0?'+':'')+r.mom5d.toFixed(1)+'%'):'—')+'</td>'
+      +'<td>'+wscanSig(r)+'</td>'
+      +'<td class="r">'+(r.iv!=null?(r.iv*100).toFixed(0)+'%':'—')+'</td>'
+      +'<td class="r">'+(r.rsi14!=null?r.rsi14.toFixed(1):'—')+'</td>'
+      +'<td>'+(WSCAN_EARN[r.ticker]||'—')+'</td>'
+      +'<td class="r"><b>'+r.strike+'P</b></td>'
+      +'<td class="r">'+(dte!=null?dte:'—')+'</td>'
+      +'<td>'+esc((wscanLast.expiry||'').slice(5))+'</td>'
+      +'<td class="r">'+(r.delta!=null?r.delta.toFixed(3):'—')+'</td>'
+      +'<td class="r">'+(noChain?'<span title="Futu snapshot 冇呢個 strike 報價（可能未開鏈）">—⚠️</span>':'<b>'+fmt(r.income_usd,0)+'</b>')+'</td>'
+      +'<td class="r">'+(r.margin_usd!=null?fmt(r.margin_usd,0):'—')+'</td>'
+      +'<td class="r"><b>'+(r.ann_pct!=null?r.ann_pct.toFixed(0)+'%':'—')+'</b></td></tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div class="small muted" style="margin-top:6px">'
+    +'口徑：收入＝bid×100（可實收價）；按金＝max(0.2×S−(S−K),0.1×S)+mid（OTM 減免修正版，Futu 實凍通常更低）；年化＝(bid/K)×252/DTE（愈近到期個數愈誇，只供橫比）；IV/Δ＝BS 由實時 mid 反推；POP 短 put 值博率＝N(d2)。'
+    +'後備：MU 952.5P（09-08 scan $675/年化60%）。剔走：ORCL／ADBE（9/10 業績賭波錢）、NBIS/BE/AMAT/COHR/ALAB/TER（收入低過 HK$2,000 線）、MELI（band 內冇 strike）。'
+    +'</div>';
+  el.innerHTML=h;
+}
+
 async function loadH6040Margin(){
   if(!activeBridge){await detectBridge();}
   if(!activeBridge)return h6040Margin;
@@ -3483,6 +3558,8 @@ setInterval(loadRec,60000);
 setInterval(function(){if(METHOD==='h6040')loadH6040Gates().then(renderAll);},60000);
 setInterval(loadH6040Rec,60000);   // ⭐ 08-24：v5 回測池（monitor :8799）每 60s 對時
 setInterval(loadH6040Margin,60000);   // ⭐ 09-02：按金試算（bridge /margin_gap — 按金/空間實時變）
+setInterval(loadWeeklyScan,60000);   // ⭐ 09-09：當周掃描榜 real-time（bridge /weekly_scan）
+loadWeeklyScan();
 setInterval(function(){loadQuant(true);},15*60000);   // ⭐ 08-23：正股 quant model（策略交易台＋業績日曆）每 15 分鐘重拎（/api ~1MB，唔跟 60s 週期）
 loadQuant();   // boot 即刻拎（990KB；到手自動重繪 執倉建議／策略交易台／業績日曆 三個 tab）
 loadRec();
