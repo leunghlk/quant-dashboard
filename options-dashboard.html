@@ -221,6 +221,25 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
   <div class="pane active" id="pane-best">
     <div class="card"><div class="card-h"><span class="t">🎯 今日最佳交易</span><span class="meta">點「執行」下單（紙上）· 點行開個股詳情</span></div>
       <div class="card-b" id="bestCard"></div></div>
+    <div class="card"><div class="card-h"><span class="t">🎯 當周掃描榜 · h6040_174（09-11 到期 CSP）</span><span class="meta">09-08 ET 收市快照 · 按值博率（按金年化）高至低 · 收入線 HK$2,000/張 · 全部 for reference（gate 唔開照列，非 system 推倉）</span></div>
+      <div class="card-b">
+        <div class="table-scroll"><table class="utable">
+          <thead><tr><th>股票</th><th class="r">現價</th><th class="r">MOM(5d)</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th>業績</th><th class="r">建議K</th><th class="r">DTE</th><th>到期</th><th class="r">Δ</th><th class="r">收入/張 US$</th><th class="r">按金/張 US$</th><th class="r">年化</th></tr></thead>
+          <tbody>
+            <tr><td><b>LITE</b></td><td class="r">978.53</td><td class="r">+7.0%</td><td>動能延續</td><td class="r">70%</td><td class="r">59.3</td><td>8月已報✓</td><td class="r"><b>920P</b></td><td class="r">3</td><td>09-11</td><td class="r">−0.198</td><td class="r"><b>830</b></td><td class="r">14,572</td><td class="r"><b>76%</b></td></tr>
+            <tr><td><b>STX</b></td><td class="r">904.38</td><td class="r">+9.2%</td><td>動能延續</td><td class="r">73%</td><td class="r">57.1</td><td>7/29 已報✓</td><td class="r"><b>847.5P</b></td><td class="r">3</td><td>09-11</td><td class="r">−0.194</td><td class="r"><b>760</b></td><td class="r">13,205</td><td class="r"><b>75%</b></td></tr>
+            <tr><td><b>SNDK</b></td><td class="r">1,737.99</td><td class="r">+10.9%</td><td>動能強（NAND）</td><td class="r">69%</td><td class="r">61.1</td><td>8月已報✓</td><td class="r"><b>1635P</b></td><td class="r">3</td><td>09-11</td><td class="r">−0.197</td><td class="r"><b>1,440</b></td><td class="r">25,956</td><td class="r"><b>74%</b></td></tr>
+            <tr><td><b>WDC</b></td><td class="r">477.30</td><td class="r">+5.9%</td><td>溫和向上</td><td class="r">71%</td><td class="r">50.5</td><td>10月尾（過期後）✓</td><td class="r"><b>447.5P</b></td><td class="r">3</td><td>09-11</td><td class="r">−0.190</td><td class="r"><b>350</b></td><td class="r">6,963</td><td class="r"><b>66%</b></td></tr>
+            <tr><td><b>DELL</b></td><td class="r">533.88</td><td class="r">+17.1%</td><td>垂直衝⚠️回調風險</td><td class="r">62%</td><td class="r">65.1</td><td>8/28 已報✓</td><td class="r"><b>505P</b></td><td class="r">3</td><td>09-11</td><td class="r">−0.194</td><td class="r"><b>385</b></td><td class="r">8,190</td><td class="r"><b>64%</b></td></tr>
+          </tbody>
+        </table></div>
+        <div class="small muted" style="margin-top:6px">
+          口徑：收入＝bid×100（可實收價）；按金＝max(0.2×S−(S−K), 0.1×S)+premium（OTM 減免修正版，Futu 實凍通常更低）；年化＝(bid/K)×252/DTE 只供橫比；POP 全部 78–79%；HK$ ≈ US$×7.8（LITE $830≈HK$6,474 · SNDK $1,440≈HK$11,232）。<br>
+          後備：MU 952.5P bid 6.75 → $675（HK$5,265）、按金 $15,919、POP 78.4%、年化 60%（動能最溫和 +4.3%/RSI 58）。<br>
+          剔走：ORCL／ADBE（9/10 報業績，09-11 到期食 gap，premium 係賭波錢）；NBIS 225P $222／BE 255P $229／AMAT $250／COHR／ALAB／TER（收入低過 HK$2,000 線）；MELI（band 內冇 strike）。<br>
+          ⚠️ 靜態快照（09-08 ET 收市 Futu 實價 chain），唔係 live 報價——落單前以個股詳情頁實時鏈為準。
+        </div>
+      </div></div>
     <div class="card"><div class="card-h"><span class="t" id="candTitle">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
       <div class="card-b" id="candBody"></div></div>
     <div class="card" id="winrankCard"><div class="card-h"><span class="t">⚡ 賣 Put 勝率排名（入場掃描）</span><span class="meta">按總評分排（最值得做排第一）· 7–21 DTE · Δ0.20–0.35 闊窗（純參考）· 正式建議（10–14 DTE · Δ0.25–0.30）以「今日最佳＋候選名單」為準 · 金額欄全部 US$（≈HK$ 見候選名單）</span></div>
