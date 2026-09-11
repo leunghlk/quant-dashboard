@@ -223,6 +223,19 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
       <div class="card-b" id="bestCard"></div></div>
     <div class="card"><div class="card-h"><span class="t" id="wscanTitle">🎯 當周掃描榜</span><span class="meta" id="wscanMeta">real-time 載入中…</span></div>
       <div class="card-b" id="wscanBody"><div class="muted">載入中（bridge /weekly_scan）…</div></div></div>
+    <div class="card"><div class="card-h"><span class="t">🛂 P7 Pre-flight 六問卡</span><span class="meta" id="pfMeta">落單前 30 秒——bridge /preflight 一次過問六問（跟榜→接貨→σ距→Event→按金→市寬）</span></div>
+      <div class="card-b" id="pfBody">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+          <input id="pfTicker" list="pfTickerList" placeholder="TICKER（如 XSP）" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:120px">
+          <datalist id="pfTickerList"></datalist>
+          <input id="pfStrike" type="number" step="any" placeholder="Strike（如 764）" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:110px">
+          <input id="pfExpiry" placeholder="YYYY-MM-DD" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:110px">
+          <select id="pfQty" style="padding:5px 4px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px"><option value="1">×1</option><option value="2">×2</option><option value="3">×3</option><option value="4">×4</option><option value="5">×5</option></select>
+          <select id="pfSide" style="padding:5px 4px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px"><option value="P">PUT</option><option value="C">CALL</option></select>
+          <button class="btn btn-go" onclick="runPreflight()">🛂 跑六問</button>
+        </div>
+        <div id="pfResult" style="margin-top:8px"><div class="small muted">填 ticker＋strike（expiry 空＝下一個周五）→ 跑六問。❓＝該項數據攞唔到，唔好當 pass。</div></div>
+      </div></div>
     <div class="card"><div class="card-h"><span class="t" id="candTitle">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
       <div class="card-b" id="candBody"></div></div>
     <div class="card" id="winrankCard"><div class="card-h"><span class="t">⚡ 賣 Put 勝率排名（入場掃描）</span><span class="meta">按總評分排（最值得做排第一）· 7–21 DTE · Δ0.20–0.35 闊窗（純參考）· 正式建議（10–14 DTE · Δ0.25–0.30）以「今日最佳＋候選名單」為準 · 金額欄全部 US$（≈HK$ 見候選名單）</span></div>
@@ -3175,6 +3188,74 @@ function renderWeeklyScanH60(){
     +'</div>';
   el.innerHTML=h;
 }
+
+/* ════════════ 🛂 P7 Pre-flight 六問卡（09-12 force-semantics 拆分拍板規格 B）════════════
+   bridge /preflight?ticker=&strike=&expiry=&side=&qty= — server 一次過算六問（跟榜/接貨/σ距/Event/按金/市寬），
+   全用現成資料路（yahoo spot 45s cache＋Futu snapshot＋options_rec.json＋real_funds 10min cache），
+   回應 120s cache；個別檢查攞唔到數據＝❓（unknown），唔會成個 500。 */
+function pfIcon(st){return st==='pass'?'✅':(st==='warn'?'⚠️':(st==='fail'?'❌':'❓'));}
+function pfColor(st){return st==='pass'?'#16a34a':(st==='warn'?'#b45309':(st==='fail'?'#dc2626':'#64748b'));}
+function pfSyncDatalist(){
+  const dl=$('pfTickerList'); if(!dl)return;
+  const seen={},out=[];
+  try{(wscanLast&&wscanLast.rows||[]).forEach(function(r){const t=r.ticker;if(t&&!seen[t]){seen[t]=1;out.push(t);}});}catch(e){}
+  try{((rec&&rec.candidates)||[]).forEach(function(c){const t=c.ticker;if(t&&!seen[t]){seen[t]=1;out.push(t);}});}catch(e){}
+  dl.innerHTML=out.map(function(t){return '<option value="'+esc(t)+'">';}).join('');
+}
+async function runPreflight(){
+  const tkEl=$('pfTicker'), stEl=$('pfStrike');
+  const box=$('pfResult'), meta=$('pfMeta');
+  if(!box)return;
+  const tk=(tkEl&&tkEl.value||'').trim().toUpperCase(), st=(stEl&&stEl.value||'').trim();
+  if(!tk||!st){box.innerHTML='<div class="small" style="color:#b45309">填 ticker＋strike 先跑。</div>';return;}
+  const exp=($('pfExpiry')||{}).value||'', qty=($('pfQty')||{}).value||'1', side=($('pfSide')||{}).value||'P';
+  if(!activeBridge){await detectBridge();}
+  if(!activeBridge){box.innerHTML='<div class="small" style="color:#dc2626">bridge 未連接。</div>';return;}
+  if(meta)meta.textContent='六問計算中…（'+esc(tk)+' '+esc(st)+'）';
+  box.innerHTML='<div class="small muted">🛂 問緊六問（首次 ~2-6s；之後 120s cache 即時）…</div>';
+  let d=null;
+  try{
+    const r=await fetchTimeout(activeBridge+'/preflight?ticker='+encodeURIComponent(tk)+'&strike='+encodeURIComponent(st)
+      +'&expiry='+encodeURIComponent(exp)+'&side='+encodeURIComponent(side)+'&qty='+encodeURIComponent(qty)
+      +'&secret='+encodeURIComponent(BRIDGE_SECRET),25000);
+    d=r&&r.ok?await r.json():null;
+  }catch(e){d=null;}
+  if(!d||!d.ok){
+    box.innerHTML='<div class="small" style="color:#dc2626">❌ /preflight 失敗：'+esc((d&&d.error)||'timeout／bridge 未連')+'</div>';
+    if(meta)meta.textContent='六問失敗';
+    return;
+  }
+  pfSyncDatalist();
+  const nFail=(d.checks||[]).filter(function(c){return c.status==='fail';}).length;
+  let h='';
+  if(!d.all_pass){
+    h+='<div style="border:1px solid '+(nFail?'#fecaca':'#fde68a')+';background:'+(nFail?'#fef2f2':'#fffbeb')+';color:'+(nFail?'#991b1b':'#92400e')+';border-radius:8px;padding:8px 10px;margin-bottom:8px;font-weight:700">'
+      +(nFail?'🚫 過唔到六問——逆 model 開倉要 override＋理由留底':'⚠️ 六問有黃牌——諗清楚先落')
+      +'（今月 override '+(d.override_count_month!=null?d.override_count_month:0)+' 次）</div>';
+  }else{
+    h+='<div style="border:1px solid #bbf7d0;background:#f0fdf4;color:#166534;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-weight:700">✅ 六問全過——按正常程序落單</div>';
+  }
+  h+='<div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:#475569;margin-bottom:6px">'
+    +'<span><b>'+esc(d.ticker)+'</b> '+(d.strike!=null?d.strike:'')+(d.side==='C'?'C':'P')+'</span>'
+    +(d.spot!=null?'<span>spot '+d.spot+'</span>':'')
+    +(d.iv!=null?'<span>IV '+(d.iv*100).toFixed(0)+'%</span>':'')
+    +(d.mid!=null?'<span>mid '+d.mid+'</span>':'')
+    +(d.dte!=null?'<span>dte '+d.dte+'</span>':'')
+    +'<span>expiry '+esc(d.expiry||'—')+'</span>'
+    +(d.cached?'<span style="color:#94a3b8">（120s cache）</span>':'')+'</div>';
+  (d.checks||[]).forEach(function(c){
+    h+='<div style="display:flex;gap:8px;align-items:baseline;padding:5px 2px;border-top:1px solid #f1f5f9;font-size:13px">'
+      +'<span style="width:20px;text-align:center">'+pfIcon(c.status)+'</span>'
+      +'<span style="min-width:78px;font-weight:700;color:'+pfColor(c.status)+'">'+esc(c.label)+'</span>'
+      +'<span style="flex:1;color:'+pfColor(c.status)+'">'+esc(c.detail||'')+'</span></div>';
+  });
+  h+='<div class="small muted" style="margin-top:6px">跟榜＝engine 今日候選榜；接貨＝K×100×張 vs 戶口 equity（接唔起＝即日 margin call）；σ距＝(S−K)/S÷(IV×√(DTE/252))，<0.7 紅／<1.0 黃；Event＝FOMC/CPI/PPI 撞到期或持有期；按金＝model 按金×1.255 vs USD 購買力；市寬＝engine universe breadth（<50%＝閘關）。❓＝該項數據攞唔到（唔好當 pass）。</div>';
+  box.innerHTML=h;
+  if(meta)meta.textContent='· '+esc(d.ticker)+' '+(d.strike!=null?d.strike:'')+' '+esc(d.expiry||'')+' · '+(d.all_pass?'全過':(nFail+' 紅'));
+  try{if(nFail>0&&typeof toast==='function')toast('🛂 P7 六問 '+nFail+' 紅燈（'+esc(d.ticker)+' '+d.strike+'）——真倉落單前諗清楚；逆 model 開倉要 override＋reason 留底');}catch(e){}
+}
+(function(){try{var pe=$('pfExpiry');if(pe&&!pe.value&&typeof WSCAN_H60_EXPIRY!=='undefined'&&WSCAN_H60_EXPIRY)pe.value=WSCAN_H60_EXPIRY;}catch(e){}})();
+pfSyncDatalist();
 
 async function loadH6040Margin(){
   if(!activeBridge){await detectBridge();}
