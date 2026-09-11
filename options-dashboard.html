@@ -2190,15 +2190,42 @@ async function confirmExec(tk,exp,K,n,premium){
   // ⭐ 2026-08-23：v4_balanced 同 Hybrid 60/40 同一條執行路徑 —— 經 v4 engine 記賬＋即時推 Telegram。
   //   h6040 只追蹤真倉（你已在 Futu 落 / 想落嘅單）→ real:true，落盤後 engine 出「已成交（記賬）」TG。
   //   任何操作（開/平/改張/轉真倉）都經 engine → send_fill_notification，唔會靜悄悄。
+  //   ⭐ 09-12 P7 閘（h6040 only）：POST 前打 bridge /preflight 六問——有 ❌ 要 override+reason
+  //   先開得（engine is_override 路徑＝TG「⚠️ Override 通告」＋state.overrides 月度計數；
+  //   real 旗標照帶，override 語義唔受影響）。❓/⚠️ 唔 block；六問攞唔到數據＝fail-soft 照純記帳。
+  //   v4 紙上腿（isH6040=false）完全唔過呢個閘，行為同以前一樣。
   const isH6040=(METHOD==='h6040');
   const c=window._lastExecCtx||null;
   const side=(window._lastExecSide==='CALL')?'CALL':'CSP';   // ⭐ 2026-08-14: 帶 side 給 engine 開對方向（賣 Call=短 call）
-  recordDecision('queued',tk,exp,K,{contracts:Number(n),premium:Number(premium),side:side,real:isH6040});
-  const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{
-    action:'open',ticker:tk,expiry:exp,strike:Number(K),contracts:Number(n),premium:Number(premium),
+  let ovFlag=false,ovReason='';
+  if(isH6040){
+    let pf=null;
+    try{
+      if(!activeBridge)await detectBridge();
+      if(activeBridge){
+        const r=await fetchTimeout(activeBridge+'/preflight?ticker='+encodeURIComponent(tk)+'&strike='+encodeURIComponent(K)
+          +'&expiry='+encodeURIComponent(exp)+'&side='+encodeURIComponent(side==='CALL'?'C':'P')+'&qty='+encodeURIComponent(String(n))
+          +'&secret='+encodeURIComponent(BRIDGE_SECRET),15000);
+        pf=(r&&r.ok)?await r.json():null;
+      }
+    }catch(e){pf=null;}
+    if(pf){
+      const fails=(pf.checks||[]).filter(function(x){return x.status==='fail';});
+      if(fails.length){
+        const why=prompt('🛂 P7 六問有 '+fails.length+' 個 ❌，逆 model 開倉要 override＋理由留底：\n\n'
+          +fails.map(function(x){return '❌ '+x.label+'：'+(x.detail||'');}).join('\n')
+          +'\n\n輸入 override 理由（取消／空白＝唔開）：');
+        if(!why||!why.trim()){toast('🛂 已取消——P7 紅燈要 override+reason 先開得');return;}
+        ovFlag=true;ovReason=why.trim();
+      }
+    }else toast('⚠️ 六問攞唔到數據，照純記帳');
+  }
+  recordDecision('queued',tk,exp,K,{contracts:Number(n),premium:Number(premium),side:side,real:isH6040});   // ⭐ 移到閘之後：取消＝唔入 queued（唔鎖資本）
+  const payload={action:'open',ticker:tk,expiry:exp,strike:Number(K),contracts:Number(n),premium:Number(premium),
     delta:(c&&c.delta!=null)?c.delta:((findCandidate(tk)||{}).delta),iv:(c&&c.iv!=null)?c.iv:((findCandidate(tk)||{}).iv),
-    side:side, real:isH6040
-  });
+    side:side, real:isH6040};
+  if(ovFlag){payload.override=true;payload.reason=ovReason;}
+  const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),payload);
   closeExec();
   if(r&&r.ok){toast((isH6040?'✅ [Hybrid 60/40] 已排隊執行真倉 ':'✅ 已排隊執行 ')+tk+' ×'+n+'（engine 下個週期確認，price 到先記賬；Telegram 已通知）');setTimeout(function(){loadRec();},4000);}
   else toast('❌ 執行失敗：'+(r&&r.error||'bridge 未連接'));
@@ -2731,7 +2758,7 @@ function renderMethod(){
     '· 2026 +151.7% 是強牛市（SOX +75%）＋70% 按金槓桿的產物；同一參數在 2025 年只有 +24.3%。計劃應以 2025 情境為底。<br>'+
     '· 賣 put 最大虧損 =（行使價−權利金）×100×張數'+tip('maxloss')+'；接貨後股票下行風險仲計入組合（按金利息 7%/年已計入回測）。<br>'+
     '· 槓桿放大兩邊：max_price ≤$200＋單名按金 ≤30% 就是防「一隻股清空賬戶」的硬欄杆。<br>'+
-    '· 現在全部是<b>紙上模式</b>，嚴格按照規則驗證 2–4 星期才可以考慮真錢（--live）。</div>';  $('methodStats').innerHTML=
+    '· <b>真倉口徑（09-12 起）：</b>真倉 XSP／單股／IAU 金 sleeve 已入 engine＋monitor 防線（50% 止賺自動平倉、break-glass 真趨勢穿自動止蝕、輸側／執行窗警報）——唔再係「全部紙上模式」；純 v4 紙上候選推播仍係<b>通知-only</b>，唔會自動落盤。</div>';  $('methodStats').innerHTML=
     '<p><b>賣出 put 之後的四種結局（85 筆 SELL_PUT）——被指派（接貨）機會率只有 2/85 ＝ 2.4%：</b></p>'+
     '<div class="table-scroll"><table class="utable">'+
     '<thead><tr><th>結局</th><th>筆數</th><th>佔比</th><th>平均盈虧</th><th>說明</th></tr></thead><tbody>'+
