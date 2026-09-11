@@ -2936,7 +2936,25 @@ let wscanLast=null, wscanErr=null, wscanTs=0, wscanWaitN=0;
 /* ── h6040_174 靜態名單（09-08 ET 收市終版全榜；收入線 HK$2,000/張=US$256 過線嘅 11 隻，
    唔止 Top5 — ⭐按金分檔後要留足夠候選湊「正選5」）── */
 const WSCAN_H60_ITEMS='LITE:920,STX:847.5,SNDK:1635,WDC:447.5,DELL:505,MU:952.5,ASML:1700,GEV:935,LLY:1095,GS:1007.5,AMD:482.5';
-const WSCAN_H60_EXPIRY='2026-09-11';
+/* ⭐ 09-11（user 拍板）：到期日唔再 hardcode——ET 週五／當周最後交易日，當日週選就係 0 DTE 廢榜，
+   自動跳下週五（7 DTE）；假日週五（聖誕/元旦/受難節，該週週選提前周四）倒退一日；
+   倒退完撞返「今日」一樣再跳下週。 */
+const WSCAN_H60_EXPIRY=(function(){
+  const HOL={'2026-12-25':1,'2027-01-01':1,'2027-03-26':1};   // 假日週五（該週週選提前周四）
+  const iso=function(d){const p=function(n){return String(n).padStart(2,'0');};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());};
+  let et;
+  try{et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));}
+  catch(e){et=new Date();}   // 老 browser 無 tz 支援 → 用本機日曆頂住
+  et.setHours(0,0,0,0);
+  const f=new Date(et);
+  f.setDate(f.getDate()+((5-f.getDay()+7)%7));   // snap 本週五（含今日）
+  for(let i=0;i<5;i++){
+    if(iso(f)===iso(et))f.setDate(f.getDate()+7);   // 到期日＝今日（週五 0 DTE／假日倒退撞返今日）→ 跳下週
+    while(HOL[iso(f)])f.setDate(f.getDate()-1);     // 假日週五 → 該週真到期日（周四）
+    if(iso(f)!==iso(et))break;
+  }
+  return iso(f);
+})();
 const WSCAN_H60_EARN={LITE:'8月已報✓',STX:'7/29 已報✓',SNDK:'8月已報✓',WDC:'10月尾（過期後）✓',DELL:'8/28 已報✓',MU:'已報✓',ASML:'已報✓',GEV:'已報✓',LLY:'已報✓',GS:'已報✓',AMD:'已報✓'};
 
 async function loadWeeklyScan(){
