@@ -266,6 +266,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
             <tr><td>板塊按金上限</td><td><b>40%</b> 按金預算</td><td class="muted">半導體同漲同跌，要硬性分散</td></tr>
             <tr><td>利潤平倉 PT</td><td><b>50%</b> 權利金</td><td class="muted">收一半就離場，省回 tail risk 並提高輪替</td></tr>
             <tr><td>熔斷</td><td><b>−15%</b> → 停 10 交易日</td><td class="muted">one-shot；回修到 −8% 之上才 re-arm</td></tr>
+            <tr><td>輸側防線（09-11/12）</td><td><b>2× 警報＋執行窗三警報＋break-glass 自動止蝕</b></td><td class="muted">mark≥2× 只警報（自動止蝕殺錯 29% 假跌穿）；MA50 真趨勢穿先自動平倉（回測 4 槍零殺錯）</td></tr>
             <tr><td>大盤寬度閘門</td><td><b>≥50%</b> 股價&gt;MA50</td><td class="muted">宇宙寬度不足 = 全場休息（2026-08 就是這樣暫停）</td></tr>
             <tr><td>Covered Call（接貨後）</td><td><b>Δ 0.22–0.30 · 10–14 DTE · PT 50%</b></td><td class="muted">The Wheel 第二腿</td></tr>
           </tbody>
@@ -356,7 +357,7 @@ const GLOSS={
   'util':'<b>按金利用率</b>：已用按金 ÷（equity×70%）。<br>70% 上限是回測凍結參數 —— 超出上限 = 不跟規則 = 結果無從比較。',
   'breadth':'<b>大盤寬度 Breadth</b>：宇宙中股價位於自己 MA50 之上的比例。<br>&lt;50% = 大盤弱 → 引擎不開新倉（2026 年 8 月上半月就是這樣停止）。這個閘門避免了很多次跌市接貨。',
   'breaker':'<b>熔斷 Circuit Breaker</b>：帳戶回撤到 −15% → 停止開新倉 10 個交易日，回修到 −8% 之上才 re-arm。<br>one-shot 設計：觸發一次即停，不會每日重複觸發無限循環。',
-  'cut':'<b>Cut-before-assignment（止損離場）</b>：行使價失守 <b>而且</b> 股價 &lt; 0.95×MA50（趨勢轉壞）<b>而且</b> DTE≥5 → 立即買回平倉，不等接貨。<br>v4 回測顯示此規則是避免大跌市越溝越深的關鍵。',
+  'cut':'<b>Break-glass／Cut-before-assignment（真趨勢穿自動止蝕）</b>：行使價失守 <b>而且</b> 股價 &lt; 0.95×MA50（趨勢轉壞）<b>而且</b> DTE≥5 → 真倉即市自動 buy-to-close（ask 側保證走、未成交下個 cycle 重掛）。<br>⭐ 4.6 年回測此規則 4 槍全部真跌穿、零殺錯（MA50 趨勢濾網功勞）——09-12 拍板做全策略唯一 mark 類自動平倉；其他 mark 止蝕（1.5×/2×/3×）實測殺錯 20-46% 假跌穿，一律只做警報。',
   'csp':'<b>Cash-Secured Put（賣出認沽）</b>：你收取款項並「送出」一個買入權給對手方。股價不跌穿行使價 → 到期歸零，你全收權利金；跌穿 → 你按行使價接貨（如果本來就想買這隻股票，即是折價買入）。',
   'delta':'<b>Delta</b>：股價升 $1，期權價變多少（賣 put 的 delta 是負數，≈-0.25 即被指派機率近似 25%）。<br>公式：N(d₁)−1（put）。我們用它來選行使價。',
   'gamma':'<b>Gamma</b>：Delta 的變化率 —— 股價越近行使價，gamma 越大，short option 的風險變化越快。<br>公式：N′(d₁)/(S·σ√T)。到期最後幾日 gamma 會急升（所以不做太短年期）。',
@@ -2702,14 +2703,14 @@ function renderMethod(){
     '<p class="small muted" style="margin-top:6px">個股詳情頁的期權鏈用 Futu 實時 bid/ask 反推 IV（BS bisection），與 App 顯示一致。</p>';
   $('methodSize').innerHTML=
     '<p><b>配倉（按金制，不是現金制）</b>：每張鎖按金 = Reg-T '+tip('margin')+'；建議張數 = min(（70% 預算−已用）÷每張按金，30% equity÷每張按金，板塊 40% 預算，10)'+tip('contracts')+'；最多 6 個 put 倉、每日新開 ≤2。</p>'+
-    '<p style="margin-top:8px"><b>出場規則（5 條，回測凍結）：</b></p>'+
+    '<p style="margin-top:8px"><b>出場規則（真倉全自動，09-12 口徑）：</b></p>'+
     '<ol style="margin:4px 0 0 18px;line-height:1.9">'+
-    '<li>權利金收到 <b>50%</b> → buy-to-close 鎖利'+tip('close50')+'</li>'+
-    '<li><b>Cut-before-assignment</b>：行使價失守＋股價 &lt; 0.95×MA50＋DTE≥5 → 立即止損離場'+tip('cut')+'</li>'+
-    '<li>業績日在持有期內 → 必平（避 IV crush / 跳空）'+tip('earnings')+'</li>'+
-    '<li>put delta 侵虧損到 −0.50 → roll down+out 或準備接貨</li>'+
-    '<li>到期價內 → 被指派接貨 → 賣 Covered Call（Δ0.22–0.30 · 10–14 DTE · PT 50%）＝ The Wheel'+tip('cc')+'</li></ol>'+
-    '<p class="small muted" style="margin-top:6px">帳戶層面：回撤 −15% → 熔斷停開新倉 10 交易日'+tip('breaker')+'。</p>';
+    '<li>權利金收到 <b>50%</b> → 真倉自動 buy-to-close 鎖利（DAY limit，3 次重試）'+tip('close50')+'</li>'+
+    '<li><b>Break-glass 真趨勢穿自動止蝕</b>：行使價失守＋股價 &lt; 0.95×MA50＋DTE≥5 → 即市 ask 側自動平倉（回測 4 槍零殺錯）'+tip('cut')+'</li>'+
+    '<li>業績日在持有期內 → 必平（避 IV crush / 跳空；ETF 豁免）'+tip('earnings')+'</li>'+
+    '<li>到期 OTM → 全收權利金；ITM 被指派 → 賣 Covered Call（Δ0.22–0.30 · 10–14 DTE · PT 50%）＝ The Wheel'+tip('cc')+'</li>'+
+    '<li>put delta 侵蝕到 −0.50 → 只出 roll 建議，唔自動平倉</li></ol>'+
+    '<p class="small muted" style="margin-top:6px">輸側警報（唔自動平倉）：mark≥2× 或 Δ≤−0.50 → 🔴 三路對決；執行窗警報：mark 較觸發位 −30% → 🎯 掛 mid 等反彈（中位 4-7 個交易日再平 30%+）、5 交易日未處理 → ⏱、MA50 穿/dte&lt;5 → 🚨 唔好等。帳戶層面：回撤 −15% → 熔斷停開新倉 10 交易日'+tip('breaker')+'。</p>';
   $('methodRisk').innerHTML=
     '<div class="warn-note">'+
     '<b>誠實話（好重要）：</b><br>'+
@@ -2768,8 +2769,8 @@ function renderMethodH6040(){
   $('methodSpecMeta').textContent='2022-01 → 2026-08 全期驗證 · 09-04 合併口徑（XSP PT50＋h6040_174）· stress/MC 09-08 三腿口徑引擎級重跑（pass 線 年化≥30% 且 月DD≥−12%）· WF 仍 08-27 legacy 淨參考 · 09-08 加金 sleeve（GOLD_BT 獨立口徑，見下節）';
   $('methodSpecBody').innerHTML=
     '<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e;margin-bottom:10px">'+
-    '<b>呢個係回測驗證嘅策略，唔係實時引擎。</b>所有績效數字來自 2022–2026 合成定價回測（已通過壓力測試）。'+
-    '實時部分（閘門／候選／紙上賬）經儀表板本地執行，未接入 v4 engine／Telegram。'+
+    '<b>績效數字來自 2022–2026 合成定價回測（已通過壓力測試）——但真倉已經行同一套防線。</b>'+
+    '⭐ 09-11/12 起，真倉（XSP／單股／IAU）全部納入 options_income engine＋options_monitor 防線：落單前閘門（接貨／σ-距離／event）、輸側警報（2×／Δ0.50／執行窗三警報）、break-glass 真趨勢穿自動止蝕、PT50 自動 buy-to-close——真倉同回測行同一本出場規則書；只有「hybrid 紙上候選推播」仍係通知-only。'+
     '</div>'+
     '<div class="table-scroll"><table class="utable">'+
     '<thead><tr><th>參數</th><th>值</th><th>為什麼</th></tr></thead><tbody>'+
@@ -2780,9 +2781,10 @@ function renderMethodH6040(){
     '<tr><td>DTE</td><td><b>10–14 日</b></td><td class="muted">同 v4</td></tr>'+
     '<tr><td>單股腿倉數 / 單名上限</td><td><b>≤8 倉 · 單名 ≤25% equity</b>（util 70%）</td><td class="muted">分散 + 防單股爆雷</td></tr>'+
     '<tr><td>XSP 腿倉數 / 單倉上限</td><td><b>≤2 倉 · 每倉 ≤2 張 · 單倉 ≤90% equity</b>（util 90%）</td><td class="muted">⭐ 08-27 Path A：128k 腿喺 XSP 600+ 一張倉按金 89–116k 撞舊 45%/60% 雙牆開唔到倉 → 0.90/0.90 解鎖；XSP 係現金結算歐式指數（1/10 SPX）無接貨無 gap，tail 有界；每倉≤2張斬 pyramiding</td></tr>'+
-    '<tr><td>利潤平倉 PT</td><td><b>50%</b> 權利金</td><td class="muted">收一半就走</td></tr>'+
+    '<tr><td>利潤平倉 PT</td><td><b>50%</b> 權利金（真倉自動 buy-to-close）</td><td class="muted">收一半就走；engine executor 落 DAY limit，3 次重試</td></tr>'+
     '<tr><td>接貨處理</td><td><b>不接貨 — 被指派即時平倉（no wheel）</b></td><td class="muted">研發發現「接貨持股」腿係 2022-26 最大虧損來源（−$84K）；即場平倉消除股票下行風險</td></tr>'+
-    '<tr><td>利潤平倉 / 止損</td><td>PT 50% · 無硬止損（靠閘門 + 分散）</td><td class="muted">短倉期權止損實測有害（最差價位執行）</td></tr>'+
+    '<tr><td>利潤平倉 / 止損</td><td><b>PT 50% 自動 · break-glass 自動（MA50 真趨勢穿）· 其餘 mark 止蝕只警報</b></td><td class="muted">09-11 反事實研究（4.6 年 A2 引擎回測＋B2 宇宙 163 事件）修正舊「無硬止損」：機械 mark 止蝕（1.5×/2×/3×）殺錯 20-46% 假跌穿（中途穿 K、到期照 OTM 收滿），EV 中位反差 $22/張；唯一有數據 blessing 嘅自動止蝕＝S&lt;K＋S&lt;0.95×MA50＋dte≥5（4 槍全真跌穿、零殺錯）。止蝕執行質素：掛 mid 等反彈——觸發後 4-7 個交易日 44% 再平 30%+，中位慳 72-158% premium</td></tr>'+
+    '<tr><td>輸側防線（09-11/12 加）</td><td><b>🔴 2×/Δ0.50 警報 · 🎯執行窗/⏱5日/🚨break-glass 三警報 · 落單前閘（接貨/σ距/event）</b></td><td class="muted">mark≥2× 只 alert 唔自動（殺錯 20-29%）；9 月 5 單 model 舉牌 5 次、4 次被 force 繞過，兩張輸單全部係 force 單——09-12 起 override 要寫理由＋TG 通告＋月度計數（P7 六問卡：跟榜/接貨/σ距/event/按金/市寬）</td></tr>'+
     '</tbody></table></div>'+
     '<div class="small muted" style="margin-top:8px">成本假設（回測已計）：期權 $1.10/腿/單向 · 滑價 1.5% · 時變無風險利率（2022 0.05% → 2023-24 5.4% → 2026 3.8%）· 閒置現金按 82% T-bill 息計（k=0.8247 校準）。按金公式（Reg-T）：max(20%×現價＋權利金−OTM, 10%×行使價＋權利金)×100。</div>'+
     /* ⭐ 09-08：金 sleeve（IAU CSP）—— 數字全部讀 GOLD_BT／H6040_BT runtime 砌串，唔好喺度 hardcode */
@@ -2815,13 +2817,14 @@ function renderMethodH6040(){
   $('methodSize').innerHTML=
     '<p><b>配倉（兩腿獨立）：</b>每腿獨立嘅按金預算（單股 70%、XSP 90%——08-27 Path A）。XSP 腿單倉大（≤90%、每倉≤2張）因為指數無單股風險＋現金結算 tail 有界。</p>'+
     '<p style="margin-top:8px"><b>金 sleeve（09-08 加）：</b>按金預算 <b>US$'+fmt(GOLD_BT.budget_usd)+'</b>（US$10k sleeve × 30% · 上限 '+GOLD_BT.max_contracts+' 張試倉）· <b>RV20&gt;'+GOLD_BT.rv20_max+'% 唔開新倉</b>（現有倉照管理）。IAU 真倉經 options_income engine 記賬，出場跟引擎 PT50%／到期規則；IAU 價差闊，落單 limit 貼 bid。</p>'+
-    '<p style="margin-top:8px"><b>出場規則：</b></p>'+
+    '<p style="margin-top:8px"><b>出場規則（真倉全自動，09-12 口徑）：</b></p>'+
     '<ol style="margin:4px 0 0 18px;line-height:1.9">'+
-    '<li>權利金收到 <b>50%</b> → 平倉鎖利（兩腿相同）</li>'+
-    '<li>單股腿趨勢轉壞（跌穿行使價 + 跌穿 0.95×MA50 + DTE≥5）→ cut 平倉</li>'+
-    '<li><b>被指派 = 即時平倉，不接貨</b>（同 v4 接貨轉 Covered Call 嘅 wheel 相反）</li>'+
-    '<li>到期價外 → 全收權利金</li></ol>'+
-    '<p class="small muted" style="margin-top:6px">無熔斷設計 —— 回撤控制靠兩個入場閘門 + 分散。</p>';
+    '<li>權利金收到 <b>50%</b> → 真倉自動 buy-to-close 鎖利（DAY limit，3 次重試；回測 141/153 PT 倉原本會 OTM——但資金循環＋12 次救接貨令 PT 仍然 net 好）</li>'+
+    '<li><b>Break-glass 真趨勢穿自動止蝕</b>：S&lt;K ＋ S&lt;0.95×MA50 ＋ dte≥5 → 即市 ask 側自動平倉、未成交下個 cycle 重掛。4.6 年回測 4 槍全真跌穿、零殺錯——全策略唯一 mark 類自動平倉'+tip('cut')+'</li>'+
+    '<li>業績日在持有期內 → 必平（engine 自動；ETF 豁免）</li>'+
+    '<li><b>被指派 = 即時平倉，不接貨</b>（回測口徑，同 v4 wheel 相反）；真倉落單前接貨閘：strike×100×n ≤ equity 唔過＝拒單（按金制下全宇宙 assignment 都超 equity 2-5 倍，根本接唔起）</li>'+
+    '<li>到期 OTM → 全收權利金；put delta 侵蝕到 |Δ|≥0.50 → 只出 roll 建議，唔自動</li></ol>'+
+    '<p class="small muted" style="margin-top:6px"><b>輸側警報層（唔自動平倉，09-11 P4/P4b）：</b>mark≥2× entry 或 Δ≤−0.50 → 🔴 立即三路對決；之後 watch：mark 較觸發位 −30% → 🎯 執行窗（掛 mid 等反彈——中位 4-7 個交易日再平 30%+、中位慳 72% premium）、5 個交易日未處理 → ⏱、MA50 穿/dte&lt;5 → 🚨 唔好等。mark 回 1.5× entry 以下 watch 自動拆。<br>hybrid 回測本身「無熔斷」——v4 engine 真倉層有 −15% 熔斷：停開新倉 10 個交易日'+tip('breaker')+'。</p>';
 
   // performance
   $('methodPerfTitle').textContent='📊 Hybrid 60/40 回測績效';
@@ -2877,7 +2880,15 @@ function renderMethodH6040(){
     '而家你可以：<br>'+
     '· 收 TG pre-open 候選 push；對照實時閘門（VIX 20–32／XSP>200DMA／單股 breadth≥50%）決定今日開唔開倉<br>'+
     '· 喺「今日最佳」手動記錄本地紙上倉（執行／平倉都存喺瀏覽器）<br>'+
-    '· 對照回測績效檢視自己執行有冇貼近</div>';
+    '· 對照回測績效檢視自己執行有冇貼近</div>'+
+    '<div class="table-scroll" style="margin-top:8px"><table class="utable">'+
+    '<thead><tr><th>輸側防線（真倉 · 09-11/12 起）</th><th>觸發</th><th>動作</th></tr></thead><tbody>'+
+    '<tr><td>🔴 輸側警報（P4）</td><td class="muted">mark≥2× entry 或 |Δ|≥0.50</td><td class="muted">TG＋儀表板，三路對決（唔自動平倉）</td></tr>'+
+    '<tr><td>🎯 執行窗（P4b）</td><td class="muted">mark 較觸發位 −30%（0.85× re-arm 防震盪）</td><td class="muted">TG：掛 mid 等反彈（中位 4-7 個交易日再平 30%+）</td></tr>'+
+    '<tr><td>⏱ 5 日 nudge（P4b）</td><td class="muted">輸側觸發 5 個 US 交易日未處理</td><td class="muted">TG 提醒 check break-glass 條件</td></tr>'+
+    '<tr><td>🚨 break-glass 警報＋<b>自動</b></td><td class="muted">S&lt;K ＋ S&lt;0.95×MA50 ＋ dte≥5</td><td class="muted">TG 🚨＋engine 即市 ask 側自動平倉（唯一自動止蝕）</td></tr>'+
+    '<tr><td>✅ 危機解除</td><td class="muted">mark 回 &lt;1.5× entry 或倉已平</td><td class="muted">watch 自動拆，警報 re-arm</td></tr>'+
+    '</tbody></table></div>';
 
   // risk
   $('methodRisk').innerHTML=
@@ -2887,7 +2898,9 @@ function renderMethodH6040(){
     '· 2025 年 +$'+fmt(B.yearly['2025'])+' 係強年景，唔好錨定。中位數月收入只係 $'+fmt(B.median_mo)+'，有 '+B.n_neg+' 個月蝕錢。（口徑：09-04 合併＝XSP 腿 PT50＋h6040_174 單股池；08-27 舊 163 池口徑月均 $18,693／2025 +$352,495 留作對照。宇宙組成噪音 ±20–30%，兩口徑月均差額唔好當精確。）<br>'+
     '· 賣 Put 最大虧損 =（行使價−權利金）×100×張數。單股腿靠「不接貨」消除股票下行風險，但被指派即時平倉喺大跌時仍會蝕。<br>'+
     '· 兩個入場閘門係回撤控制核心；閘門失靈（如 VIX 假訊號）會令策略喺錯嘅時間開倉。<br>'+
-    '· 而家係回測模式，實時部分只記錄本地。落盤前要：(1) 用真實期權鏈數據校準定價 (2) 建 60/40 實時引擎 (3) 紙上跟至少一季。</div>';
+    '· <b>09-11 真倉教訓（WDC/XSP 雙爆倉 post-mortem）</b>：兩張都係 sub-1σ strike 被正常波動打爆，唔係黑天鵝——「POP≥78%」過濾器設計上就接受 20-28% 爆倉率；<b>POP 唔係安全指標，σ-距離（OTM%÷(IV×√(dte/252))）先係</b>，高 IV 週貴 premium 同大 tail 係同一銅板兩面；接貨閘全宇宙都唔過關（按金制下 assignment＝equity 2-5 倍）而 pipeline 以前只驗 option margin。連勝 re-entry＝hot hand（WDC 同週三口 450→447.5→470 越追越高）。<br>'+
+    '· <b>9 月 force 鐵證</b>：5 次開倉 model 舉牌 5 次全部反對、4 次被 force 繞過，兩張輸單（XSP 764P／WDC 470P）全部係 force 喺——09-12 起 override 要寫理由＋TG 通告＋月度計數，P7 六問卡（跟榜／接貨／σ距／event／按金／市寬）落單前必過。<br>'+
+    '· 而家真倉已入 engine＋monitor 防線（見上「輸側防線」表）；紙上候選仍通知-only。定價仍用真實期權鏈再校準中——回測合成定價數字當量級參考。</div>';
 }
 
 /* ════════════ Hybrid 60/40 renders ════════════ */
