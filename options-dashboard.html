@@ -1272,16 +1272,23 @@ function updateMonthlyProgress(){
   }
 }
 
+function ledPnlU(t){   // ⭐09-13：pnl=費後口徑（同 pnl_hkd 一致）；台賬倉淨有 pnl_usd，缺就 fallback
+  return Number(t.pnl!=null?t.pnl:t.pnl_usd)||0;
+}
 function ledTable(led){
+  // ⭐09-13（user 拍板）：兩幣都由首張真單 NBIS 220P 開始計——paper-test 台賬倉（close_reason 'paper-test 倉…'，
+  //   DRAM/GLW 08-23）唔入表唔入 Σ（同「唔計入每月進度」08-28 規則同一口徑）
+  const rows=led.filter(function(t){return !/^paper-test 倉/.test(t.close_reason||'');});
+  if(!rows.length)return '<div class="muted">只有 paper-test 台賬倉（09-13 起唔計入 P&amp;L 表）。</div>';
   let h='<table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>張數</th><th>原因</th><th class="r">P&amp;L (USD)</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
-  led.forEach(t=>{
-    h+='<tr><td><b>'+esc(t.ticker)+'</b></td><td class="r">$'+t.strike+'</td><td class="r">'+(t.contracts||1)+'</td><td>'+esc(t.close_reason)+'</td><td class="r">'+money(t.pnl)+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
+  rows.forEach(t=>{
+    h+='<tr><td><b>'+esc(t.ticker)+'</b></td><td class="r">$'+t.strike+'</td><td class="r">'+(t.contracts||1)+'</td><td>'+esc(t.close_reason)+'</td><td class="r">'+money(ledPnlU(t))+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
   });
   // ⭐ 09-03：Σ row —— 張數＋P&L 兩幣加總（行使價/原因冇 sum 意義留空）；call site 有 led.length guard
-  const sC=led.reduce((s,t)=>s+(Number(t.contracts)||1),0);
-  const sU=led.reduce((s,t)=>s+(Number(t.pnl)||0),0);
-  const sH=led.reduce((s,t)=>s+(Number(t.pnl_hkd)||0),0);
-  h+='<tr style="border-top:2px solid var(--line);font-weight:700;background:#f8fafc"><td>Σ '+led.length+' 筆</td><td></td><td class="r">'+sC+'</td><td></td><td class="r">'+money(sU)+'</td><td class="r">'+money(sH)+'</td></tr>';
+  const sC=rows.reduce((s,t)=>s+(Number(t.contracts)||1),0);
+  const sU=rows.reduce((s,t)=>s+ledPnlU(t),0);
+  const sH=rows.reduce((s,t)=>s+(Number(t.pnl_hkd)||0),0);
+  h+='<tr style="border-top:2px solid var(--line);font-weight:700;background:#f8fafc"><td>Σ '+rows.length+' 筆</td><td></td><td class="r">'+sC+'</td><td></td><td class="r">'+money(sU)+'</td><td class="r">'+money(sH)+'</td></tr>';
   return h+'</tbody></table>';
 }
 
