@@ -2955,12 +2955,16 @@ function renderMethodH6040(){
    今日最佳交易（gate open 嘅）」。背景：現金寶唔係期權按金抵押品 → 落單俾 Futu 拒
    「購買力不足」都唔知要赎幾多。數字係 Futu 實時 short_required_im 對 headroom。60s refresh。*/
 let h6040Margin=null,h6040MarginSingle=null;
-/* ════════════ 🎯 當周掃描榜（real-time，⭐09-13 晚三拍板：分返 method 兩榜）════════════
-   晚二合一（16b51c9）試行一日 → user 翻案：「分返method啦，V4_balanced一個，h6040一個（包XSP）」。
+/* ════════════ 🎯 當周掃描榜（real-time，⭐09-14 拍板「A級平衡王」：board≡engine）════════════
+   晚三兩榜結構（分返 method）保留；候選池統一改 engine winrank——09-14 引擎 config 換做
+   回測 d2025_mu20 臂（5-7 DTE × Δ0.20-0.25 × 按金 mu0.20＋硬閘 $12,726 × spot≤$374 接得起
+   × 無收入線；/tmp/real_acct_grid/ 18-config grid＋stress＋審查，user 拍板）。舊 h6040
+   靜態 11（高價股＋收入線揀出、未回測過）退役——user 明令唔要未回測策略，board≡engine。
    · 兩榜共用同一套五層排序引擎（晚二 user 欽定「以最值得做排名」照用），淨換候選池：
-     METHOD='v4_balanced' → engine winrank 前 12；METHOD='h6040' → h6040_174 終版靜態 11
-     ∪ XSP 現金結算腿（spot×0.945/0.96/0.975 自動 strike；XSP 腿只掛 h6040 榜）。
-     去重後全部釘死同一個當周到期日（WSCAN_H60_EXPIRY 動態 7DTE 週五）一次過報價。
+     METHOD='v4_balanced' → engine winrank 前 12；METHOD='h6040' → 同一 winrank ∪ XSP
+     現金結算腿（spot×0.945/0.96/0.975 自動 strike；XSP 腿只掛 h6040 榜）。
+     到期日＝winrank 行多數派 expiry（5-7 DTE 帶 Mon/Wed/Fri 週選唔一定同週五；
+     engine rec 冇 expiry 先 fallback WSCAN_H60_EXPIRY 7DTE 週五）——榜/engine 同一到期日。
    · 排序＝五層閘級聯（09-13 user 欽定）：L1 接貨閘（K×100>equity＝❌沉底；XSP 現金
      結算豁免——無實物接貨，最壞=現金差價）→ L2 按金 ×1.255≤USD 購買力（超＝❌次底）
      → L4 POP 降序（N(d2)，null 最尾唔入正選）＋年化副排序 → L5 收入只做橫比；
@@ -2971,9 +2975,8 @@ let h6040Margin=null,h6040MarginSingle=null;
    直 snap 期權 code 慳 chain quota、greeks=BS 反推、按金=OTM 減免修正式）。
    for reference：gate 唔開照列，非 system 推倉。 */
 let wscanLast=null, wscanErr=null, wscanTs=0, wscanWaitN=0;
-/* ── h6040_174 靜態名單（09-08 ET 收市終版全榜；收入線 HK$2,000/張=US$256 過線嘅 11 隻，
-   唔止 Top5 — ⭐按金分檔後要留足夠候選湊「正選5」）── */
-const WSCAN_H60_ITEMS='LITE:920,STX:847.5,SNDK:1635,WDC:447.5,DELL:505,MU:952.5,ASML:1700,GEV:935,LLY:1095,GS:1007.5,AMD:482.5';
+/* ⭐ 09-14：舊 WSCAN_H60_ITEMS 靜態 11（LITE/STX/SNDK/WDC/DELL/MU/ASML/GEV/LLY/GS/AMD 高價股）
+   已退役——A級 config 下引擎 winrank 恒出「接得起」名單，榜直讀 winrank 唔再維護第二份名單。 */
 /* ⭐ 09-11（user 拍板）：到期日唔再 hardcode——ET 週五／當周最後交易日，當日週選就係 0 DTE 廢榜，
    自動跳下週五（7 DTE）；假日週五（聖誕/元旦/受難節，該週週選提前周四）倒退一日；
    倒退完撞返「今日」一樣再跳下週。 */
@@ -2993,26 +2996,33 @@ const WSCAN_H60_EXPIRY=(function(){
   }
   return iso(f);
 })();
-const WSCAN_H60_EARN={LITE:'8月已報✓',STX:'7/29 已報✓',SNDK:'8月已報✓',WDC:'10月尾（過期後）✓',DELL:'8/28 已報✓',MU:'已報✓',ASML:'已報✓',GEV:'已報✓',LLY:'已報✓',GS:'已報✓',AMD:'已報✓'};
+/* ⭐ 09-14：WSCAN_H60_EARN 靜態業績備註 map 已隨靜態 11 退役——earn 一律跟 winrank 行（__earn）。 */
 
 async function loadWeeklyScan(){
   if(!activeBridge){await detectBridge();}
   if(!activeBridge){renderWeeklyScan();return;}
   await fetchWscanUsd();   // 分檔預算＝Futu 實際 USD 購買力；接貨閘分母＝equity
   const wr=(rec&&rec.winrank)||[];
-  const isH60=(METHOD==='h6040');   // ⭐09-13 晚三：分返 method 兩榜——v4_balanced（winrank 前 12）／h6040_174（終版 11 ∪ XSP 腿）
-  if(!isH60&&!wr.length){   // 淨 v4 榜要 winrank（短 retry，60s interval 兜底）；h6040 榜靠靜態名單唔使等 engine
+  const isH60=(METHOD==='h6040');   // ⭐09-13 晚三：分返 method 兩榜；09-14 兩榜候選池統一＝winrank（h6040 多 XSP 腿）
+  if(!wr.length){   // ⭐09-14 兩榜都要 winrank（board≡engine；短 retry，60s interval 兜底）
     if(wscanWaitN++<10){wscanErr='等 engine rec（winrank）…';renderWeeklyScan();setTimeout(loadWeeklyScan,6000);return;}
     wscanErr='engine rec 冇 winrank';renderWeeklyScan();return;
   }
-  if(!isH60)wscanWaitN=0;
-  /* 候選池（⭐09-13 晚二合一）：winrank 前 12（正選5＋後備＋樣本）∪ h6040_174 終版 11
-     ∪ XSP 現金結算腿（spot×0.945/0.96/0.975 自動 strike，去重）。XSP/^VIX spot 行
+  wscanWaitN=0;
+  /* 候選池（⭐09-14 A級）：winrank 行按 expiry 分組揀多數派（5-7 DTE 帶 Mon/Wed/Fri 週選
+     唔一定同週五——榜要同 engine 同一個到期日，行 expiry 唔同嘅唔入榜），前 12（正選5＋後備＋樣本）
+     ∪ XSP 現金結算腿（spot×0.945/0.96/0.975 自動 strike，去重，只掛 h6040）。XSP/^VIX spot 行
      bridge /kline（收市=最後 close，同 engine/monitor 口徑一源）；XSP 攞唔到＝腿缺席。 */
   const seen={}, items=[];
   const add=function(tk,k){const key=tk+':'+k;if(!seen[key]){seen[key]=1;items.push(tk+':'+k);}};
-  if(isH60)WSCAN_H60_ITEMS.split(',').forEach(function(s){const p=s.split(':');add(p[0],parseFloat(p[1]));});
-  else wr.slice(0,12).forEach(function(x){if(x&&x.ticker&&x.strike)add(x.ticker,x.strike);});
+  const byExp={}, expDte={};
+  wr.forEach(function(x){if(x&&x.ticker&&x.strike&&x.expiry){byExp[x.expiry]=(byExp[x.expiry]||0)+1;expDte[x.expiry]=x.dte;}});
+  let wscanExp=null,wscanExpN=0;
+  Object.keys(byExp).forEach(function(e){
+    if(byExp[e]>wscanExpN||(byExp[e]===wscanExpN&&wscanExp!=null&&(expDte[e]||99)<(expDte[wscanExp]||99))){wscanExp=e;wscanExpN=byExp[e];}
+  });
+  wr.filter(function(x){return x&&x.ticker&&x.strike&&((x.expiry&&wscanExp)?x.expiry===wscanExp:true);})
+    .slice(0,12).forEach(function(x){add(x.ticker,x.strike);});
   wscanVix=null; wscanXspN=0;
   if(isH60)try{   // ⭐XSP 現金結算腿只掛 h6040 榜（09-13 晚三欽定）；spot 攞唔到＝腿缺席唔炸板
     const kr=await fetchTimeout(activeBridge+'/kline?code=%5EXSP&type=DAY&count=2&secret='+encodeURIComponent(BRIDGE_SECRET),12000);
@@ -3031,7 +3041,7 @@ async function loadWeeklyScan(){
     const vc=vb.length?parseFloat((vb[vb.length-1]||{}).c):null;
     if(vc>0)wscanVix=vc;
   }catch(e){}
-  let merged=[], errs=[], exp0=WSCAN_H60_EXPIRY, dte0=null;
+  let merged=[], errs=[], exp0=wscanExp||WSCAN_H60_EXPIRY, dte0=null;   // ⭐09-14 多數派 expiry 優先，engine rec 冇 expiry 先用 7DTE 週五
   try{
     const r=await fetchTimeout(activeBridge+'/weekly_scan?items='+encodeURIComponent(items.join(','))+'&expiry='+WSCAN_H60_EXPIRY+'&secret='+encodeURIComponent(BRIDGE_SECRET),30000);
     const j=r&&r.ok?await r.json().catch(function(){return null;}):null;
@@ -3170,7 +3180,7 @@ function renderWeeklyScan(){
   const el=$('wscanBody'), meta=$('wscanMeta'); if(!el)return;
   const tt=$('wscanTitle');
   const pool=(wscanLast&&wscanLast.pool)||((METHOD==='h6040')?'h6040':'v4');   // 晚三：榜跟 pool 走（wscanLast 帶定，null 時跟 METHOD）
-  if(tt)tt.textContent=(pool==='h6040'?'🎯 當周掃描榜 · h6040_174（終版 11 ∪ XSP 現金結算腿）':'🎯 當周掃描榜 · v4_balanced（engine winrank 前 12）')+' · 最值得做排序';
+  if(tt)tt.textContent=(pool==='h6040'?'🎯 當周掃描榜 · h6040（A級平衡王 winrank ∪ XSP 現金結算腿）':'🎯 當周掃描榜 · v4_balanced（A級平衡王 winrank 前 12）')+' · 最值得做排序';
   const st=wscanLast?Math.round((Date.now()-wscanTs)/1000):null;
   const budget=wscanUsd;   // Futu 實際 USD 購買力（真 order gate），唔係 engine 70% 策略線
   if(meta){
@@ -3181,7 +3191,7 @@ function renderWeeklyScan(){
   }
   if(!wscanLast){
     el.innerHTML='<div class="small muted">暫時攞唔到 live 數（'+esc(wscanErr||'載入中')+'）</div>'
-      +'<div class="small muted" style="margin-top:4px">候選池＝'+(pool==='h6040'?'h6040_174 終版 11 ∪ XSP 現金結算腿':'engine winrank 前 12')+'；按金預算＝Futu 實際 USD 購買力（/real_funds）</div>';
+      +'<div class="small muted" style="margin-top:4px">候選池＝'+(pool==='h6040'?'engine winrank（A級平衡王）∪ XSP 現金結算腿':'engine winrank 前 12（A級平衡王：5-7DTE×Δ0.20-0.25×接得起）')+'；按金預算＝Futu 實際 USD 購買力（/real_funds）</div>';
     return;
   }
   const dte0=wscanLast.dte;
@@ -3201,7 +3211,7 @@ function renderWeeklyScan(){
   const dbl=(wscanVix!=null&&br!=null&&(wscanVix<20||wscanVix>32)&&br<0.5);
   const hasEvt=rows.some(function(r){return !!r.event;});   /* ⭐F1：④ 撞 event 講法跟真數，唔好硬編日期（09-17 後 FOMC 過窗） */
   const earnCell=function(r){
-    const e=r.__earn||WSCAN_H60_EARN[r.ticker];
+    const e=r.__earn;   /* ⭐09-14 一律跟 winrank 行（靜態 EARN map 已退役） */
     if(!e)return '—';
     if(!/^\d{4}-/.test(e))return esc(e);   /* ⭐非日期字串（例「8月已報✓」）原樣出，唔好 slice 爛 */
     const risky=e<=(r.expiry||'');
@@ -3212,7 +3222,7 @@ function renderWeeklyScan(){
     +(zeroN?'<div class="warn-note" style="border-color:#fecaca;background:#fef2f2;color:#991b1b">🔴 <b>本週零合格</b> — 按金×接貨雙閘全榜唔過關（或全榜冇 POP 唔入正選；購買力 US$'+fmt(wscanUsd,0)+'／equity US$'+fmt(wscanEquity,0)+'）：正選 0 隻，唔好 force 開倉。</div>':'')
     +'<div class="table-scroll"><table class="utable"><thead><tr>'
     +'<th>檔</th><th>股票</th><th class="r">現價</th><th class="r">MOM</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th>業績</th>'
-    +'<th class="r">建議K</th><th class="r">DTE</th><th>到期</th><th class="r" title="|Δ|＝BS 由實時 mid 反推——strike 到期價內機率近似＝接貨風險。⚠️越細越安全（premium 同埋越細）：上游揀 strike 釘 0.25-0.30 帶，09-13 六臂回測 sweet spot 0.15-0.20；|Δ|≥0.50 有警示">Δ</th><th class="r" title="POP＝N(d2)≈P(到期價≥K)＝唔被接貨、收齊 premium 機率——越大越好；過關組內主排序由高至低，null 唔入正選；收入線門檻 POP≥78%">POP</th><th class="r" title="σ距＝(S−K)/S ÷ (IV×√(DTE/252))——strike 離現價幾多個標準差（波動調整距離）。越大越安全；色階同 preflight：≥1σ 綠／0.7-1σ 琥珀／<0.7σ 紅；回測年化隨 σ距單調衰減——加大＝買安全冇免費午餐">σ距</th>'
+    +'<th class="r">建議K</th><th class="r">DTE</th><th>到期</th><th class="r" title="|Δ|＝BS 由實時 mid 反推——strike 到期價內機率近似＝接貨風險。⚠️越細越安全（premium 同埋越細）：09-14 A級平衡王拍板上游揀 strike 釘 0.20-0.25 帶（回測 d2025_mu20 臂）；|Δ|≥0.50 有警示">Δ</th><th class="r" title="POP＝N(d2)≈P(到期價≥K)＝唔被接貨、收齊 premium 機率——越大越好；過關組內主排序由高至低，null 唔入正選（A級 config 冇收入線，POP 只係排序唔係門檻）">POP</th><th class="r" title="σ距＝(S−K)/S ÷ (IV×√(DTE/252))——strike 離現價幾多個標準差（波動調整距離）。越大越安全；色階同 preflight：≥1σ 綠／0.7-1σ 琥珀／<0.7σ 紅；回測年化隨 σ距單調衰減——加大＝買安全冇免費午餐">σ距</th>'
     +'<th class="r">收入/張 US$</th><th class="r">按金/張 US$</th><th class="r" title="K×100 vs 戶口淨資產（equity）——接唔接得起（🟦XSP 現金結算豁免）">接貨</th><th class="r">年化</th></tr></thead><tbody>';
   rows.forEach(function(r){
     const noChain=!r.chain_ok||!(r.bid>0);
@@ -3238,7 +3248,7 @@ function renderWeeklyScan(){
   });
   h+='</tbody></table></div>';
   h+='<div class="small muted" style="margin-top:6px">'
-    +'⭐09-13 晚三拍板：分返 method 兩榜——'+(pool==='h6040'?'本榜＝h6040_174 終版 11 ∪ XSP 現金結算腿'+(wscanXspN?'（今輪 XSP '+wscanXspN+' 隻）':'（XSP spot 攞唔到，本輪腿缺席）'):'本榜＝engine winrank 前 12')+'，五層排序照用（晚二 user：「以最值得做排名」），去重後全部釘死 '+esc(wscanLast.expiry||'')+' 到期一次過報價。'
+    +'⭐09-14 拍板 A級平衡王：board≡engine——'+(pool==='h6040'?'本榜＝engine winrank ∪ XSP 現金結算腿'+(wscanXspN?'（今輪 XSP '+wscanXspN+' 隻）':'（XSP spot 攞唔到，本輪腿缺席）'):'本榜＝engine winrank 前 12')+'（5-7DTE×Δ0.20-0.25×按金硬閘 $12,726×spot≤$374，回測 d2025_mu20 臂 +16.4%/−6.7%），五層排序照用（晚二 user：「以最值得做排名」），去重後全部釘死 '+esc(wscanLast.expiry||'')+' 到期一次過報價。'
     +'五層排序：L1 接貨閘（K×100＞equity＝❌沉底；🟦XSP 現金結算豁免——無實物接貨）→ L2 按金（×1.255＞購買力＝❌次底）→ POP 降序（null 唔入正選）→ 年化副序 → 收入只做橫比。正選5＝過 L1+L2 嘅 POP 序頭 5 逐隻扣減購買力；唔夠按金可貨幣兌換 T+0 補。'
     +'口徑：收入＝bid×100；按金＝max(bridge live, winrank margin1)×1.255（09-09 實測 1.2554 倍，XSP 實凍遠細過估計、以 Futu app 為準）；年化＝(bid/K)×252/DTE（近到期偏誇，只供橫比）；IV/Δ＝BS 由實時 mid 反推；σ距色階同 /preflight（≥1σ 綠、0.7-1σ 琥珀、<0.7σ 紅）。'
     +'到期 ⚠️badge＝持有期內（今日→到期）撞正 FOMC/CPI/PPI（橋 EVENT_DATES_2026 全期掃描）；A′/B′ 全閘參考板已退役（統一榜＋五層排序取代，考古 git c1a798f）。'
