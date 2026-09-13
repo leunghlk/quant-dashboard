@@ -3212,7 +3212,7 @@ function renderWeeklyScan(){
     +(zeroN?'<div class="warn-note" style="border-color:#fecaca;background:#fef2f2;color:#991b1b">🔴 <b>本週零合格</b> — 按金×接貨雙閘全榜唔過關（或全榜冇 POP 唔入正選；購買力 US$'+fmt(wscanUsd,0)+'／equity US$'+fmt(wscanEquity,0)+'）：正選 0 隻，唔好 force 開倉。</div>':'')
     +'<div class="table-scroll"><table class="utable"><thead><tr>'
     +'<th>檔</th><th>股票</th><th class="r">現價</th><th class="r">MOM</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th>業績</th>'
-    +'<th class="r">建議K</th><th class="r">DTE</th><th>到期</th><th class="r">Δ</th><th class="r" title="POP＝N(d2)＝P(到期價≥K)，唔被接貨機率——過關組內主排序由高至低，null 唔入正選">POP</th><th class="r" title="(S−K)/S ÷ (IV×√(DTE/252))——波動調整距離；<1σ＝貼線，<0.7σ＝危">σ距</th>'
+    +'<th class="r">建議K</th><th class="r">DTE</th><th>到期</th><th class="r" title="|Δ|＝BS 由實時 mid 反推——strike 到期價內機率近似＝接貨風險。⚠️越細越安全（premium 同埋越細）：上游揀 strike 釘 0.25-0.30 帶，09-13 六臂回測 sweet spot 0.15-0.20；|Δ|≥0.50 有警示">Δ</th><th class="r" title="POP＝N(d2)≈P(到期價≥K)＝唔被接貨、收齊 premium 機率——越大越好；過關組內主排序由高至低，null 唔入正選；收入線門檻 POP≥78%">POP</th><th class="r" title="σ距＝(S−K)/S ÷ (IV×√(DTE/252))——strike 離現價幾多個標準差（波動調整距離）。越大越安全；色階同 preflight：≥1σ 綠／0.7-1σ 琥珀／<0.7σ 紅；回測年化隨 σ距單調衰減——加大＝買安全冇免費午餐">σ距</th>'
     +'<th class="r">收入/張 US$</th><th class="r">按金/張 US$</th><th class="r" title="K×100 vs 戶口淨資產（equity）——接唔接得起（🟦XSP 現金結算豁免）">接貨</th><th class="r">年化</th></tr></thead><tbody>';
   rows.forEach(function(r){
     const noChain=!r.chain_ok||!(r.bid>0);
