@@ -2955,17 +2955,17 @@ function renderMethodH6040(){
    今日最佳交易（gate open 嘅）」。背景：現金寶唔係期權按金抵押品 → 落單俾 Futu 拒
    「購買力不足」都唔知要赎幾多。數字係 Futu 實時 short_required_im 對 headroom。60s refresh。*/
 let h6040Margin=null,h6040MarginSingle=null;
-/* ════════════ 🎯 當周掃描榜（real-time，跟 METHOD 分流）════════════
-   ⭐ 2026-09-09（user 拍板）：同一張卡唔好兩個 mode 都出同一樣嘢 —
-   · METHOD='v4_balanced'：候選食 engine v4_balanced model 嘅 winrank 排名
-     （rec.winrank，engine 每 cycle 更新）；混合到期日按 expiry 分組逐批叫；
-     ⭐按金分檔：engine margin_status.remaining_usd 做預算，POP 順序貪火
-     分配 — 過到關嘅計入「正選5」，唔夠按金嘅照列但標「按金唔夠」唔計入 5。
-     ⭐09-12 拍板：接貨閘都入檔——接唔起（K×100>equity）＝❌唔入正選、唔食按金預算；
-     正選 0 隻＝標「本週零合格」。⭐09-13 拍板：排序改 POP 降序（N(d2)，null 最尾唔入正選）、
-     年化副排序——收入行先轉「接唔接得起」行先。
-   · METHOD='h6040'：照舊 h6040_174 fan-out 靜態名單（09-08 終版 Top5，
-     下輪掃描換 WSCAN_H60_ITEMS／WSCAN_H60_EXPIRY）。
+/* ════════════ 🎯 當周掃描榜（real-time，⭐09-13 晚二拍板：兩板合一）════════════
+   user：「我唔要咁多表（又當周榜，又A′、B′），我只要一個表，以最值得做排名」—
+   · 一個表、唔分 METHOD：候選池＝engine winrank 前 12 ∪ h6040_174 終版靜態名單
+     ∪ XSP 現金結算腿（spot×0.945/0.96/0.975 自動 strike），去重後全部釘死同一個
+     當周到期日（WSCAN_H60_EXPIRY 動態 7DTE 週五）一次過報價。
+   · 排序＝五層閘級聯（09-13 user 欽定）：L1 接貨閘（K×100>equity＝❌沉底；XSP 現金
+     結算豁免——無實物接貨，最壞=現金差價）→ L2 按金 ×1.255≤USD 購買力（超＝❌次底）
+     → L4 POP 降序（N(d2)，null 最尾唔入正選）＋年化副排序 → L5 收入只做橫比；
+     L3（event/市寬/regime）係全行共通狀態 → 頂橫額一次過講，唔逐行格。
+   · 正選5＝過 L1+L2 嘅 POP 序頭 5 隻逐隻扣減購買力；0 隻＝「本週零合格」。
+   · A′/B′ 全閘參考板卡退役（static 快照＋兩個序對 user 冇資訊量）。
    live 報價照舊 bridge /weekly_scan（spot=yahoo 一價、bid/ask=Futu snapshot
    直 snap 期權 code 慳 chain quota、greeks=BS 反推、按金=OTM 減免修正式）。
    for reference：gate 唔開照列，非 system 推倉。 */
@@ -2997,51 +2997,56 @@ const WSCAN_H60_EARN={LITE:'8月已報✓',STX:'7/29 已報✓',SNDK:'8月已報
 async function loadWeeklyScan(){
   if(!activeBridge){await detectBridge();}
   if(!activeBridge){renderWeeklyScan();return;}
-  if(METHOD==='h6040')return loadWeeklyScanH60();
-  if(wscanLast&&wscanLast.mode!=='v4_balanced')wscanLast=null;   // 防兩 mode 共用殘留（切 mode 即重拉）
-  await fetchWscanUsd();   // ⭐ 09-09：分檔預算＝Futu 實際 USD 購買力（唔係 engine 70% 策略線）
+  await fetchWscanUsd();   // 分檔預算＝Futu 實際 USD 購買力；接貨閘分母＝equity
   const wr=(rec&&rec.winrank)||[];
   if(!wr.length){   // rec 未到／engine 未寫 winrank — 短 retry（60s interval 兜底）
-    if(wscanWaitN++<10){wscanErr='等 engine rec（v4_balanced winrank）…';renderWeeklyScan();setTimeout(loadWeeklyScan,6000);return;}
+    if(wscanWaitN++<10){wscanErr='等 engine rec（winrank）…';renderWeeklyScan();setTimeout(loadWeeklyScan,6000);return;}
     wscanErr='engine rec 冇 winrank';renderWeeklyScan();return;
   }
   wscanWaitN=0;
-  const top=wr.slice(0,12);   // winrank 前 12：正選5＋後備＋按金唔夠樣本
-  const groups={}, byKey={};
-  top.forEach(function(x,i){x.__rank=i+1;byKey[x.ticker+':'+x.strike]=x;
-    (groups[x.expiry]=groups[x.expiry]||[]).push(x.ticker+':'+x.strike);});
-  let merged=[], errs=[];
-  await Promise.all(Object.keys(groups).map(function(exp){
-    return fetchTimeout(activeBridge+'/weekly_scan?items='+encodeURIComponent(groups[exp].join(','))+'&expiry='+exp+'&secret='+encodeURIComponent(BRIDGE_SECRET),30000)
-      .then(function(r){return r&&r.ok?r.json().catch(function(){return null;}):null;})
-      .then(function(j){
-        if(j&&j.ok&&j.rows&&j.rows.length){
-          j.rows.forEach(function(row){
-            const w=byKey[row.ticker+':'+row.strike];
-            if(w){row.__rank=w.__rank;row.__margin1=w.margin1;row.__earn=w.earnings;row.__prem=w.premium;}
-            merged.push(row);
-          });
-        } else errs.push(exp+':'+((j&&j.error)||('HTTP ?')));
-      })
-      .catch(function(e){errs.push(exp+':'+(e&&e.message||e));});
-  }));
-  if(merged.length){wscanLast={rows:merged,mode:'v4_balanced'};wscanTs=Date.now();wscanErr=errs.length?errs.join(' · '):null;}
-  else wscanErr=errs.join(' · ')||'冇 rows';
-  renderWeeklyScan();
-}
-
-async function loadWeeklyScanH60(){
-  if(wscanLast&&wscanLast.mode!=='h6040')wscanLast=null;   // 防兩 mode 共用殘留
-  await fetchWscanUsd();   // ⭐ 09-09：分檔預算＝Futu 實際 USD 購買力
+  /* 候選池（⭐09-13 晚二合一）：winrank 前 12（正選5＋後備＋樣本）∪ h6040_174 終版 11
+     ∪ XSP 現金結算腿（spot×0.945/0.96/0.975 自動 strike，去重）。XSP/^VIX spot 行
+     bridge /kline（收市=最後 close，同 engine/monitor 口徑一源）；XSP 攞唔到＝腿缺席。 */
+  const seen={}, items=[];
+  const add=function(tk,k){const key=tk+':'+k;if(!seen[key]){seen[key]=1;items.push(tk+':'+k);}};
+  wr.slice(0,12).forEach(function(x){if(x&&x.ticker&&x.strike)add(x.ticker,x.strike);});
+  WSCAN_H60_ITEMS.split(',').forEach(function(s){const p=s.split(':');add(p[0],parseFloat(p[1]));});
+  wscanVix=null; wscanXspN=0;
   try{
-    const r=await fetchTimeout(activeBridge+'/weekly_scan?items='+encodeURIComponent(WSCAN_H60_ITEMS)+'&expiry='+WSCAN_H60_EXPIRY+'&secret='+encodeURIComponent(BRIDGE_SECRET),30000);
-    const j=r&&r.ok?await r.json().catch(()=>null):null;
+    const kr=await fetchTimeout(activeBridge+'/kline?code=%5EXSP&type=DAY&count=2&secret='+encodeURIComponent(BRIDGE_SECRET),12000);
+    const kj=kr&&kr.ok?await kr.json().catch(function(){return null;}):null;
+    const kb=(kj&&kj.bars)||(Array.isArray(kj)?kj:[])||[];
+    const kc=kb.length?parseFloat((kb[kb.length-1]||{}).c):null;
+    if(kc>0)[0.945,0.96,0.975].forEach(function(f){
+      const k=Math.round(kc*f/5)*5;
+      if(k>0){add('XSP',k);wscanXspN++;}
+    });
+  }catch(e){}
+  try{
+    const vr=await fetchTimeout(activeBridge+'/kline?code=%5EVIX&type=DAY&count=2&secret='+encodeURIComponent(BRIDGE_SECRET),12000);
+    const vj=vr&&vr.ok?await vr.json().catch(function(){return null;}):null;
+    const vb=(vj&&vj.bars)||(Array.isArray(vj)?vj:[])||[];
+    const vc=vb.length?parseFloat((vb[vb.length-1]||{}).c):null;
+    if(vc>0)wscanVix=vc;
+  }catch(e){}
+  let merged=[], errs=[], exp0=WSCAN_H60_EXPIRY, dte0=null;
+  try{
+    const r=await fetchTimeout(activeBridge+'/weekly_scan?items='+encodeURIComponent(items.join(','))+'&expiry='+WSCAN_H60_EXPIRY+'&secret='+encodeURIComponent(BRIDGE_SECRET),30000);
+    const j=r&&r.ok?await r.json().catch(function(){return null;}):null;
     if(j&&j.ok&&j.rows&&j.rows.length){
-      j.rows.forEach(function(row){row.expiry=j.expiry;row.dte=j.dte;});   // 統一 per-row 形狀
-      wscanLast={rows:j.rows,expiry:j.expiry,dte:j.dte,mode:'h6040'};wscanTs=Date.now();wscanErr=null;
-    }
-    else wscanErr=(j&&j.error)||('HTTP '+(r?r.status:'—'));
-  }catch(e){wscanErr=(e&&e.message)||String(e);}
+      exp0=j.expiry||WSCAN_H60_EXPIRY; dte0=j.dte;
+      const wrBy={};
+      wr.forEach(function(x,i){if(x&&x.ticker)wrBy[x.ticker+':'+x.strike]={r:i+1,m:x.margin1,e:x.earnings,p:x.premium};});
+      j.rows.forEach(function(row){
+        row.expiry=exp0; row.dte=(row.dte!=null)?row.dte:dte0;   // 統一 per-row 形狀
+        const w=wrBy[row.ticker+':'+row.strike];
+        if(w){row.__rank=w.r;row.__margin1=w.m;row.__earn=w.e;row.__prem=w.p;}
+        merged.push(row);
+      });
+    } else errs.push((j&&j.error)||('HTTP '+(r?r.status:'—')));
+  }catch(e){errs.push((e&&e.message)||String(e));}
+  if(merged.length){wscanLast={rows:merged,expiry:exp0,dte:dte0};wscanTs=Date.now();wscanErr=errs.length?errs.join(' · '):null;}
+  else wscanErr=errs.join(' · ')||'冇 rows';
   renderWeeklyScan();
 }
 
@@ -3059,6 +3064,7 @@ function wscanSig(r){
    （usd_net_cash_power；09-04 實證 order gate：17,093<IM 18,300 拒單、兌 HK$40k 後成交）。 */
 let wscanUsd=null;   // Futu 實際 USD 購買力（每輪 loadWeeklyScan 刷新；/real_funds server 端 600s cache）
 let wscanEquity=null;   // ⭐ 09-11 接貨閘分母：戶口淨資產 equity_usd（/real_funds；買得起≠接得起）
+let wscanVix=null, wscanXspN=0;   // ⭐ 09-13 統一榜：^VIX close（⑦ regime 雙 OFF 橫額）＋XSP 腿 strike 數
 async function fetchWscanUsd(){
   try{
     const r=await fetchTimeout(activeBridge+'/real_funds?secret='+encodeURIComponent(BRIDGE_SECRET),12000);
@@ -3072,26 +3078,32 @@ function wscanImEst(r){   // Futu 實凍估計＝model 公式按金 ×1.255（09
   if(!ms.length)return null;
   return Math.round(Math.max.apply(null,ms)*1.255);
 }
-function wscanTierize(rows){   // 貪火分配 USD power：先過接貨閘（接唔起＝❌唔入正選唔食預算）、再過按金閘（✓正選#1-5 逐隻扣減、5 滿＝後備、唔夠＝❌照列唔計入）；⭐09-13 null pop＝冇得安全排名，照列但唔入正選
+function wscanCashSettled(r){return r.ticker==='XSP';}   // ⭐09-13 現金結算指數——無實物接貨（最壞=現金差價 (settle−K)×100），L1 接貨閘豁免
+function wscanTierize(rows){   // ⭐09-13 晚二五層排序收口：入場序已係 POP 降序（loader/render 排好）—
+  // L1 接貨閘死＝noassign 沉底、L2 按金死＝cant 次底、過關組（pick/bench）照 POP 序貪火正選5、冇鏈＝nochain 最尾
   let left=wscanUsd, picked=0;
   rows.forEach(function(r){
     r.__m=wscanImEst(r); r.__tier=''; r.__pick=0;
-    if(wscanEquity!=null){   // ⭐09-12 拍板：接貨閘入檔——按金過到關唔代表接得起（WDC 470P），接唔起根本唔可以開
+    if(!r.chain_ok||!(r.bid>0)){r.__tier='nochain';return;}   // strike 喺呢個 expiry 冇鏈——沉最底
+    if(!wscanCashSettled(r)&&wscanEquity!=null){   // ⭐09-12 接貨閘入檔（WDC 470P）；⭐09-13 XSP 現金結算豁免
       const a=(r.assign_usd!=null)?r.assign_usd:(r.strike!=null?Math.round(r.strike*100):null);
       if(a!=null&&a>wscanEquity){r.__tier='noassign';return;}
     }
     if(wscanUsd==null||r.__m==null)return;
     if(r.__m<=left){
-      if(picked<5&&r.pop!=null){picked++;r.__tier='pick';r.__pick=picked;left-=r.__m;}   // ⭐09-13：null pop（chain 冇報價冇得排名）唔入正選，跌落 bench 照列
+      if(picked<5&&r.pop!=null){picked++;r.__tier='pick';r.__pick=picked;left-=r.__m;}   // ⭐09-13：null pop 冇得安全排名，跌 bench 照列
       else r.__tier='bench';
     }else r.__tier='cant';
   });
+  const rk=function(t){return (t==='pick'||t==='bench')?0:(t==='cant'?1:(t==='noassign'?2:3));};
+  rows.sort(function(a,b){return rk(a.__tier)-rk(b.__tier);});   // ES2019 stable：同組保持 POP 序
 }
 function wscanTierCell(r){
   if(r.__tier==='pick')return '<b style="color:#15803d">✓正選#'+r.__pick+'</b>';
   if(r.__tier==='bench')return '<span style="color:#64748b">後備</span>';
   if(r.__tier==='noassign')return '<span style="color:#dc2626;font-weight:700">❌接唔起<span class="small muted">'+((r.assign_usd!=null||r.strike!=null)?'（需$'+(((r.assign_usd!=null?r.assign_usd:Math.round(r.strike*100)))/1000).toFixed(1)+'k）':'')+'</span></span>';
   if(r.__tier==='cant')return '<span style="color:#dc2626">❌按金唔夠'+(r.__m!=null?'<span class="small muted">（需'+fmt(r.__m,0)+'）</span>':'')+'</span>';
+  if(r.__tier==='nochain')return '<span class="small muted">冇鏈⚠️</span>';
   return '<span class="small muted">—</span>';
 }
 /* ⭐ 09-11 安全閘三件套（WDC 470P/XSP 764P post-mortem）——兩 mode 共用：
@@ -3110,6 +3122,7 @@ function wscanSigmaCell(r){   // ⭐09-13 色階同 /preflight 口徑：≥1σ �
   return '<span style="color:#dc2626;font-weight:700">'+txt+'</span>';
 }
 function wscanAssignCell(r){
+  if(wscanCashSettled(r))return '<span style="color:#64748b" title="現金結算指數——無實物接貨、無 margin-call 死法；名義 $'+fmt(Math.round(r.strike*100),0)+' 唔會發生，真約束係按金">🟦現金結算</span>';
   const a=(r.assign_usd!=null)?r.assign_usd:(r.strike!=null?Math.round(r.strike*100):null);
   if(a==null)return '<span class="small muted">—</span>';
   if(wscanEquity==null)return '<span class="small muted" title="戶口淨資產（/real_funds equity_usd）未到">$'+fmt(a,0)+' / —</span>';
@@ -3141,107 +3154,65 @@ function wscanPopCell(r){   // POP 欄＝N(d2)%；null＝chain 冇報價出 —
   if(r.pop==null)return '<span class="small muted">—</span>';
   return '<b>'+(r.pop*100).toFixed(1)+'%</b>';
 }
-/* ⭐ 09-13 拍板③：全閘掃描參考板（Board A′/B′）——static embed，數據直出
-   /tmp/scan_gated_0913/step5_boards.json（09-11 收市快照；ref_n=13，剔走 Δ帶外 OKTA/ZS/ASX 3 隻）。
-   13 隻＝過晒 閘6/IV帶/真格Δ帶/接貨/按金/業績，只欠 σ距≥1.0 閘——所以成板 σ距 都係 <0.7σ 紅。
-   ⚠reference-only：雙 OFF（VIX 15.84／市寬 45%）＋09-16 FOMC，唔係開倉許可。 */
-const GATED_REF={
-  asof:'2026-09-11 收市',expiry:'2026-09-18',vix:15.84,breadth:45,event:'09-16 FOMC',
-  funnel:'174→47 過閘6→28 IV帶→24 Δ帶→16 接貨→按金零陣亡→0 σ閘；13 隻只欠 σ閘',
-  rows:[
-    {ticker:'NBIS',K:210,bid:3.35,ask:3.45,income_usd:335.0,ann_pct:80.4,sigma_dist:0.52,pop:0.7282},
-    {ticker:'NET',K:295,bid:3.85,ask:4.7,income_usd:385.0,ann_pct:65.8,sigma_dist:0.42,pop:0.6865},
-    {ticker:'SNOW',K:317.5,bid:3.25,ask:3.65,income_usd:325.0,ann_pct:51.6,sigma_dist:0.44,pop:0.6991},
-    {ticker:'W',K:94,bid:0.94,ask:1.32,income_usd:94.0,ann_pct:50.4,sigma_dist:0.51,pop:0.7274},
-    {ticker:'ANET',K:192.5,bid:1.9,ask:2.43,income_usd:190.0,ann_pct:49.7,sigma_dist:0.45,pop:0.7032},
-    {ticker:'CRWD',K:197.5,bid:1.88,ask:2.03,income_usd:188.0,ann_pct:48.0,sigma_dist:0.55,pop:0.7417},
-    {ticker:'ADI',K:370,bid:3.0,ask:4.3,income_usd:300.0,ann_pct:40.9,sigma_dist:0.37,pop:0.6719},
-    {ticker:'NVDA',K:212.5,bid:1.5,ask:1.53,income_usd:150.0,ann_pct:35.6,sigma_dist:0.5,pop:0.7277},
-    {ticker:'TWLO',K:217.5,bid:1.45,ask:2.7,income_usd:145.0,ann_pct:33.6,sigma_dist:0.47,pop:0.7138},
-    {ticker:'AMZN',K:250,bid:1.37,ask:1.42,income_usd:137.0,ann_pct:27.6,sigma_dist:0.56,pop:0.7524},
-    {ticker:'MRK',K:140,bid:0.74,ask:1.15,income_usd:74.0,ann_pct:26.6,sigma_dist:0.53,pop:0.7388},
-    {ticker:'AAPL',K:325,bid:1.68,ask:1.77,income_usd:168.0,ann_pct:26.1,sigma_dist:0.54,pop:0.7439},
-    {ticker:'IGV',K:99.5,bid:0.51,ask:1.05,income_usd:51.0,ann_pct:25.8,sigma_dist:0.39,pop:0.6827}
-  ]
-};
-function wscanGatedRefHtml(){   // A′＝年化降序、B′＝POP 降序——同一組 13 行淨係排序唔同；<details> 預設收埋
-  const mkRow=function(r){
-    const sprd=(r.ask>0)?Math.round((r.ask-r.bid)/r.ask*100):null;
-    return '<tr><td><b>'+esc(r.ticker)+'</b></td>'
-      +'<td class="r">'+r.K+'P</td>'
-      +'<td class="r">'+r.bid.toFixed(2)+(sprd!=null&&sprd>35?' <span style="color:#b45309;font-weight:700" title="價差=(ask−bid)/ask">⚠價差'+sprd+'%</span>':'')+'</td>'
-      +'<td class="r">'+fmt(r.income_usd,0)+(r.income_usd>=256?' ⭐':'')+'</td>'
-      +'<td class="r">'+r.ann_pct.toFixed(1)+'%</td>'
-      +'<td class="r">'+wscanSigmaCell(r)+'</td>'
-      +'<td class="r">'+wscanPopCell(r)+'</td></tr>';
-  };
-  const mkTable=function(title,sorted){
-    return '<div class="small" style="font-weight:700;margin:10px 0 4px">'+title+'</div>'
-      +'<div class="table-scroll"><table class="utable"><thead><tr>'
-      +'<th>股票</th><th class="r">K</th><th class="r">bid</th><th class="r">收入/張 US$</th><th class="r">年化</th><th class="r">σ距</th><th class="r">POP</th>'
-      +'</tr></thead><tbody>'+sorted.map(mkRow).join('')+'</tbody></table></div>';
-  };
-  const A=GATED_REF.rows.slice().sort(function(a,b){return b.ann_pct-a.ann_pct;});
-  const B=GATED_REF.rows.slice().sort(function(a,b){return b.pop-a.pop;});
-  return '<details style="margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:8px 12px">'
-    +'<summary class="small" style="cursor:pointer;font-weight:700">📋 全閘掃描參考板（174 宇宙 · '+GATED_REF.expiry+' 到期 · 資料 as-of '+GATED_REF.asof+'）— 13 隻只欠 σ距閘（點開＝A′ 收益序／B′ POP 序）</summary>'
-    +'<div class="warn-note" style="border-color:#fecaca;background:#fef2f2;color:#991b1b;margin-top:8px">🚨 reference-only——雙 OFF（VIX '+GATED_REF.vix+'／市寬 '+GATED_REF.breadth+'%）＋'+GATED_REF.event+'，唔係開倉許可；σ距閘未過（13/13 σ距<0.7σ）。</div>'
-    +'<div class="small muted" style="margin-top:6px">funnel：'+GATED_REF.funnel+'。⭐＝過 US$256/張收入線；⚠價差＝(ask−bid)/ask>35%。</div>'
-    +mkTable('Board A′ 收益序（年化降序）',A)
-    +mkTable('Board B′ POP 序（POP 降序）',B)
-    +'<div class="small muted" style="margin-top:6px">static 快照唔會自動更新，下次全閘掃描先重錄（源：/tmp/scan_gated_0913/step5_boards.json）。</div>'
-    +'</details>';
-}
+/* ⭐09-13 晚二拍板（user：「唔要咁多表…唔應該用全閘掃描參考板啦」）：Board A′/B′ 退役——
+   static 快照＋兩個序對 user 冇資訊量；統一榜（候選池∪XSP 腿＋五層排序）已取代佢講晒
+   「邊張最值得做」。考古留 git history（c1a798f 有成個 const＋wscanGatedRefHtml）。 */
 
 function renderWeeklyScan(){
   const el=$('wscanBody'), meta=$('wscanMeta'); if(!el)return;
   const tt=$('wscanTitle');
-  if(tt)tt.textContent=METHOD==='h6040'?'🎯 當周掃描榜 · h6040_174（'+WSCAN_H60_EXPIRY+' 到期 CSP，正選5＝接得起＋夠按金，POP 排序）':'🎯 當周掃描榜 · v4_balanced winrank（正選5＝接得起＋夠按金，POP 排序）';
-  if(METHOD==='h6040')return renderWeeklyScanH60();
+  if(tt)tt.textContent='🎯 當周掃描榜 · 最值得做排序（winrank ∪ h6040_174 ∪ XSP 腿）';
   const st=wscanLast?Math.round((Date.now()-wscanTs)/1000):null;
-  const budget=wscanUsd;   // ⭐ 09-09：Futu 實際 USD 購買力（真 order gate），唔係 engine 70% 策略線
+  const budget=wscanUsd;   // Futu 實際 USD 購買力（真 order gate），唔係 engine 70% 策略線
   if(meta){
-    let m='real-time（60s）· POP 順序（N(d2)，候選仍＝winrank 入池）· 正選5＝夠按金＋接得起先計 · 實際可用 USD 購買力 '+(budget!=null?'US$'+fmt(budget,0):'—')+'（Futu /real_funds）· for reference（gate 唔開照列，非 system 推倉）';
+    let m='real-time（60s）· 五層排序：①接貨閘（XSP 豁免）→ ②按金×1.255≤購買力 → POP 降序→年化 · 購買力 '+(budget!=null?'US$'+fmt(budget,0):'—')+'（Futu /real_funds）· for reference（gate 唔開照列，非 system 推倉）';
     if(wscanLast)m+=' · '+new Date(wscanTs).toLocaleTimeString('en-GB',{hour12:false})+(st>90?' <span style="color:#b45309">⚠️stale '+Math.round(st/60)+'分鐘</span>':'');
     else if(wscanErr)m='攞唔到（'+esc(wscanErr)+'）· 60s 後重試';
     meta.innerHTML=m;
   }
   if(!wscanLast){
     el.innerHTML='<div class="small muted">暫時攞唔到 live 數（'+esc(wscanErr||'載入中')+'）</div>'
-      +'<div class="small muted" style="margin-top:4px">候選＝engine v4_balanced winrank；按金預算＝Futu 實際 USD 購買力（/real_funds us_cash_power_usd）</div>';
+      +'<div class="small muted" style="margin-top:4px">候選池＝engine winrank 前12 ∪ h6040_174 終版 ∪ XSP 現金結算腿；按金預算＝Futu 實際 USD 購買力（/real_funds）</div>';
     return;
   }
-  const rows=wscanSortPop(wscanLast.rows.filter(function(r){return r.dte==null||r.dte>0;}));   // ⭐09-13 POP 主排序（null 最尾、年化副排序）
+  const dte0=wscanLast.dte;
+  if(dte0!=null&&dte0<=0){
+    el.innerHTML='<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">本週 '+esc(wscanLast.expiry||'')+' 已到期 — 等 engine 下個 cycle／下輪掃描更新</div>';
+    return;
+  }
+  const rows=wscanSortPop(wscanLast.rows.filter(function(r){return r.dte==null||r.dte>0;}));   // POP 降序（null 最尾）→ tierize 再做五層分組
   if(!rows.length){
-    el.innerHTML='<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">winrank 候選全部已到期 — 等 engine 下個 cycle 更新</div>';
+    el.innerHTML='<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">候選全部已到期 — 等 engine 下個 cycle 更新</div>';
     return;
   }
-  /* 按金分檔（09-09 R3）：POP 順序貪火分配 Futu 實際 USD 購買力 — 過到關＝正選（計入5）、
-     過到但5隻滿咗＝後備、唔夠按金＝照列但唔計入5。按金＝max(bridge live, winrank margin1)
-     ×1.255（Futu 實凍 09-09 實測係 model 公式 1.255 倍，保守取高）。
-     ⭐09-12 拍板：接貨閘先過（接唔起＝❌唔入正選）＋0 正選＝「本週零合格」橫額。
-     ⭐09-13 拍板：顯示＋正選都跟 POP 降序（winrank __rank 重排退役）。 */
-  wscanTierize(rows);
+  wscanTierize(rows);   // 五層排序收口：過關組（pick/bench，POP 序）→ cant → noassign → nochain
   const zeroN=(wscanUsd!=null&&wscanEquity!=null&&!rows.some(function(r){return r.__tier==='pick';}));
-  const tierCell=wscanTierCell;
+  /* L3（event/市寬/regime）係全行共通狀態 → 頂橫額一次過講，唔逐行格（⭐09-13 晚二） */
+  const br=(rec&&rec.breadth!=null)?Number(rec.breadth):null;
+  const dbl=(wscanVix!=null&&br!=null&&(wscanVix<20||wscanVix>32)&&br<0.5);
+  const hasEvt=rows.some(function(r){return !!r.event;});   /* ⭐F1：④ 撞 event 講法跟真數，唔好硬編日期（09-17 後 FOMC 過窗） */
   const earnCell=function(r){
-    const e=r.__earn;
+    const e=r.__earn||WSCAN_H60_EARN[r.ticker];
     if(!e)return '—';
+    if(!/^\d{4}-/.test(e))return esc(e);   /* ⭐非日期字串（例「8月已報✓」）原樣出，唔好 slice 爛 */
     const risky=e<=(r.expiry||'');
     return (risky?'<span style="color:#dc2626">⚠️'+e.slice(5)+'窗內</span>':e.slice(5)+'後✓');
   };
-  let h=(zeroN?'<div class="warn-note" style="border-color:#fecaca;background:#fef2f2;color:#991b1b">🔴 <b>本週零合格</b> — 按金×接貨雙閘全榜唔過關（購買力 US$'+fmt(wscanUsd,0)+'／戶口 equity US$'+fmt(wscanEquity,0)+'）：正選 0 隻，唔好 force 開倉。</div>':'')
+  let h=(dbl?'<div class="warn-note" style="border-color:#fecaca;background:#fef2f2;color:#991b1b">🚨 <b>⑦ regime 雙 OFF</b>（VIX '+wscanVix.toFixed(1)+'／市寬 '+(br*100).toFixed(0)+'%）'+(hasEvt?'＋④ 持有期撞 event（見到期欄 ⚠️）':'')+'— 單名股腿 override 開新倉要二次確認，本週正選多數只剩 XSP 現金結算腿。</div>'
+      :(br!=null&&br<0.5?'<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">⚠️ ⑥ 市寬 '+(br*100).toFixed(0)+'% ＜50% — model 開倉閘關閉（gate_closed），榜只供 reference。</div>':''))
+    +(zeroN?'<div class="warn-note" style="border-color:#fecaca;background:#fef2f2;color:#991b1b">🔴 <b>本週零合格</b> — 按金×接貨雙閘全榜唔過關（或全榜冇 POP 唔入正選；購買力 US$'+fmt(wscanUsd,0)+'／equity US$'+fmt(wscanEquity,0)+'）：正選 0 隻，唔好 force 開倉。</div>':'')
     +'<div class="table-scroll"><table class="utable"><thead><tr>'
     +'<th>檔</th><th>股票</th><th class="r">現價</th><th class="r">MOM</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th>業績</th>'
-    +'<th class="r">建議K</th><th class="r">DTE</th><th>到期</th><th class="r">Δ</th><th class="r" title="POP＝N(d2)＝P(到期價≥K)，唔被接貨機率——主排序由高至低，null 唔入正選">POP</th><th class="r" title="(S−K)/S ÷ (IV×√(DTE/252))——波動調整距離；<1σ＝貼線，<0.7σ＝危">σ距</th>'
-    +'<th class="r">收入/張 US$</th><th class="r">按金/張 US$</th><th class="r" title="K×100 vs 戶口淨資產（equity）——接唔接得起">接貨</th><th class="r">年化</th></tr></thead><tbody>';
+    +'<th class="r">建議K</th><th class="r">DTE</th><th>到期</th><th class="r">Δ</th><th class="r" title="POP＝N(d2)＝P(到期價≥K)，唔被接貨機率——過關組內主排序由高至低，null 唔入正選">POP</th><th class="r" title="(S−K)/S ÷ (IV×√(DTE/252))——波動調整距離；<1σ＝貼線，<0.7σ＝危">σ距</th>'
+    +'<th class="r">收入/張 US$</th><th class="r">按金/張 US$</th><th class="r" title="K×100 vs 戶口淨資產（equity）——接唔接得起（🟦XSP 現金結算豁免）">接貨</th><th class="r">年化</th></tr></thead><tbody>';
   rows.forEach(function(r){
     const noChain=!r.chain_ok||!(r.bid>0);
-    const pickBg=r.__tier==='pick'?' style="background:#f0fdf4"':((r.__tier==='cant'||r.__tier==='noassign')?' style="opacity:.55"':'');
-    h+='<tr'+pickBg+'><td>'+tierCell(r)+'</td><td><b>'+esc(r.ticker)+'</b></td>'
+    const xsp=wscanCashSettled(r);
+    const pickBg=r.__tier==='pick'?' style="background:#f0fdf4"':((r.__tier==='cant'||r.__tier==='noassign'||noChain||r.__tier==='')?' style="opacity:.55"':'');
+    h+='<tr'+pickBg+'><td>'+wscanTierCell(r)+'</td><td><b>'+esc(r.ticker)+'</b>'+(xsp?' <span class="small muted" title="現金結算指數——無實物接貨，最壞=現金差價 (settle−K)×100">🟦現金結算</span>':'')+'</td>'
       +'<td class="r">'+px2(r.spot)+(r.chg1d_pct!=null?' <span style="font-size:11px;color:'+(r.chg1d_pct>=0?'#16a34a':'#dc2626')+'">'+(r.chg1d_pct>=0?'+':'')+r.chg1d_pct.toFixed(1)+'%</span>':'')+'</td>'
       +'<td class="r">'+(r.mom5d!=null?((r.mom5d>0?'+':'')+r.mom5d.toFixed(1)+'%'):'—')+'</td>'
-      +'<td>'+wscanSig(r)+'</td>'
+      +'<td>'+(xsp?'—':wscanSig(r))+'</td>'
       +'<td class="r">'+(r.iv!=null?(r.iv*100).toFixed(0)+'%':'—')+'</td>'
       +'<td class="r">'+(r.rsi14!=null?r.rsi14.toFixed(1):'—')+'</td>'
       +'<td>'+earnCell(r)+'</td>'
@@ -3258,75 +3229,11 @@ function renderWeeklyScan(){
   });
   h+='</tbody></table></div>';
   h+='<div class="small muted" style="margin-top:6px">'
-    +'候選＝engine v4_balanced winrank（每 cycle 更新，非 h6040_174 掃描）；正選＝POP 順序頭 5 隻按金＋接貨都過到關（預算＝Futu 實際 USD 購買力，正選逐隻扣減；⭐09-12 拍板接唔起＝❌唔入正選唔食預算，0 隻＝本週零合格；⭐09-13 null pop 排最尾兼唔入正選）；唔夠按金照列但唔計入 5（不夠可貨幣兌換 T+0 補）。'
-    +'口徑：收入＝bid×100（可實收價）；按金＝max(bridge live, winrank margin1)×1.255（Futu 實凍估計，09-09 實測 1.2554 倍）；年化＝(bid/K)×252/DTE（愈近到期個數愈誇，只供橫比）；IV/Δ＝BS 由實時 mid 反推。engine 策略預算（70% 線）另見風控欄，唔係呢個分檔口徑。'
-    +'⭐安全閘（09-11 post-mortem）：σ距＝(S−K)/S÷(IV×√(DTE/252))，<0.7σ＝紅（POP 高都貼線）；接貨＝K×100 vs 戶口淨資產（/real_funds equity_usd）——❌接唔起＝按金過關都唔好開（WDC 470P 教訓：按金過到關、接貨 $47k 爆 equity）；到期 badge ⚠️FOMC/CPI/PPI＝持有期內（今日→到期）撞正宏觀事件（橋 EVENT_DATES_2026，09-12 由 exact-match 改全期掃描）。'
-    +'⭐09-13 拍板：排序＝POP 降序、年化副排序；POP=N(d2)＝唔被接貨機率（高＝安全），null pop 排最尾兼唔入正選；σ距色階同 /preflight（≥1σ 綠、0.7-1σ 琥珀、<0.7σ 紅）。'
+    +'⭐09-13 晚二拍板（user：「我只要一個表，以最值得做排名」）：候選池＝engine winrank 前 12 ∪ h6040_174 終版 11 ∪ XSP 現金結算腿（spot×0.945/0.96/0.975 自動 strike；'+(wscanXspN?'今輪 '+wscanXspN+' 隻':'XSP spot 攞唔到，本輪缺席')+'），去重後全部釘死 '+esc(wscanLast.expiry||'')+' 到期一次過報價。'
+    +'五層排序：L1 接貨閘（K×100＞equity＝❌沉底；🟦XSP 現金結算豁免——無實物接貨）→ L2 按金（×1.255＞購買力＝❌次底）→ POP 降序（null 唔入正選）→ 年化副序 → 收入只做橫比。正選5＝過 L1+L2 嘅 POP 序頭 5 逐隻扣減購買力；唔夠按金可貨幣兌換 T+0 補。'
+    +'口徑：收入＝bid×100；按金＝max(bridge live, winrank margin1)×1.255（09-09 實測 1.2554 倍，XSP 實凍遠細過估計、以 Futu app 為準）；年化＝(bid/K)×252/DTE（近到期偏誇，只供橫比）；IV/Δ＝BS 由實時 mid 反推；σ距色階同 /preflight（≥1σ 綠、0.7-1σ 琥珀、<0.7σ 紅）。'
+    +'到期 ⚠️badge＝持有期內（今日→到期）撞正 FOMC/CPI/PPI（橋 EVENT_DATES_2026 全期掃描）；A′/B′ 全閘參考板已退役（統一榜＋五層排序取代，考古 git c1a798f）。'
     +'</div>';
-  h+=wscanGatedRefHtml();   // ⭐09-13③ 全閘掃描參考板（static embed，<details> 預設收埋）
-  el.innerHTML=h;
-}
-
-/* ── h6040 mode render：h6040_174 終版榜（⭐09-13 POP 排序、靜態業績標註）── */
-function renderWeeklyScanH60(){
-  const el=$('wscanBody'), meta=$('wscanMeta'); if(!el)return;
-  const st=wscanLast?Math.round((Date.now()-wscanTs)/1000):null;
-  if(meta){
-    let m='real-time（60s）· 按 POP（N(d2) 唔被接貨機率）高至低 · 實際可用 USD 購買力 '+(wscanUsd!=null?'US$'+fmt(wscanUsd,0):'—')+'（Futu /real_funds）· 正選5＝夠按金先計 · for reference（gate 唔開照列，非 system 推倉）';
-    if(wscanLast)m+=' · '+new Date(wscanTs).toLocaleTimeString('en-GB',{hour12:false})+(st>90?' <span style="color:#b45309">⚠️stale '+Math.round(st/60)+'分鐘</span>':'');
-    else if(wscanErr)m='攞唔到（'+esc(wscanErr)+'）· 60s 後重試';
-    meta.innerHTML=m;
-  }
-  if(!wscanLast){
-    el.innerHTML='<div class="small muted">暫時攞唔到 live 數（'+esc(wscanErr||'載入中')+'）</div>'
-      +'<div class="small muted" style="margin-top:4px">口徑：收入＝bid×100；按金＝max(0.2×S−(S−K),0.1×S)+mid（OTM 減免修正版）；年化＝(bid/K)×252/DTE</div>';
-    return;
-  }
-  const dte=wscanLast.dte;
-  if(dte!=null&&dte<=0){
-    el.innerHTML='<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">本週 '+esc(wscanLast.expiry||'')+' 已到期 — 等下輪掃描更新 WSCAN_H60_ITEMS／WSCAN_H60_EXPIRY</div>';
-    return;
-  }
-  const rows=wscanSortPop(wscanLast.rows);   // ⭐09-13 拍板：POP 主排序（null 最尾、年化副排序）——舊 bid/K 值博率排序退役
-  /* ⭐ 09-09 R4：同一套按金分檔（正選5＝夠按金先計、唔夠照列唔計入）— 預算＝Futu 實際 USD 購買力
-     ⭐09-12 拍板：接貨閘先過＋0 正選＝「本週零合格」橫額 */
-  wscanTierize(rows);
-  const zeroN60=(wscanUsd!=null&&wscanEquity!=null&&!rows.some(function(r){return r.__tier==='pick';}));
-  let h=(zeroN60?'<div class="warn-note" style="border-color:#fecaca;background:#fef2f2;color:#991b1b">🔴 <b>本週零合格</b> — 按金×接貨雙閘全榜唔過關（購買力 US$'+fmt(wscanUsd,0)+'／戶口 equity US$'+fmt(wscanEquity,0)+'）：正選 0 隻，唔好 force 開倉。</div>':'')
-    +'<div class="table-scroll"><table class="utable"><thead><tr>'
-    +'<th>檔</th><th>股票</th><th class="r">現價</th><th class="r">MOM</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th>業績</th>'
-    +'<th class="r">建議K</th><th class="r">DTE</th><th>到期</th><th class="r">Δ</th><th class="r" title="POP＝N(d2)＝P(到期價≥K)，唔被接貨機率——主排序由高至低，null 唔入正選">POP</th><th class="r" title="(S−K)/S ÷ (IV×√(DTE/252))——波動調整距離；<1σ＝貼線，<0.7σ＝危">σ距</th>'
-    +'<th class="r">收入/張 US$</th><th class="r">按金/張 US$</th><th class="r" title="K×100 vs 戶口淨資產（equity）——接唔接得起">接貨</th><th class="r">年化</th></tr></thead><tbody>';
-  rows.forEach(function(r){
-    const noChain=!r.chain_ok||!(r.bid>0);
-    const pickBg=r.__tier==='pick'?' style="background:#f0fdf4"':((r.__tier==='cant'||r.__tier==='noassign'||noChain)?' style="opacity:.55"':'');
-    h+='<tr'+pickBg+'><td>'+wscanTierCell(r)+'</td><td><b>'+esc(r.ticker)+'</b></td>'
-      +'<td class="r">'+px2(r.spot)+(r.chg1d_pct!=null?' <span style="font-size:11px;color:'+(r.chg1d_pct>=0?'#16a34a':'#dc2626')+'">'+(r.chg1d_pct>=0?'+':'')+r.chg1d_pct.toFixed(1)+'%</span>':'')+'</td>'
-      +'<td class="r">'+(r.mom5d!=null?((r.mom5d>0?'+':'')+r.mom5d.toFixed(1)+'%'):'—')+'</td>'
-      +'<td>'+wscanSig(r)+'</td>'
-      +'<td class="r">'+(r.iv!=null?(r.iv*100).toFixed(0)+'%':'—')+'</td>'
-      +'<td class="r">'+(r.rsi14!=null?r.rsi14.toFixed(1):'—')+'</td>'
-      +'<td>'+(WSCAN_H60_EARN[r.ticker]||'—')+'</td>'
-      +'<td class="r"><b>'+r.strike+'P</b></td>'
-      +'<td class="r">'+(dte!=null?dte:'—')+'</td>'
-      +'<td>'+esc((r.expiry||wscanLast.expiry||'').slice(5))+wscanEventBadge(r)+'</td>'
-      +'<td class="r">'+(r.delta!=null?r.delta.toFixed(3):'—')+'</td>'
-      +'<td class="r">'+wscanPopCell(r)+'</td>'
-      +'<td class="r">'+wscanSigmaCell(r)+'</td>'
-      +'<td class="r">'+(noChain?'<span title="Futu snapshot 冇呢個 strike 報價（可能未開鏈）">—⚠️</span>':'<b>'+fmt(r.income_usd,0)+'</b>')+'</td>'
-      +'<td class="r">'+(r.__m!=null?fmt(r.__m,0):'—')+'</td>'
-      +'<td class="r">'+wscanAssignCell(r)+'</td>'
-      +'<td class="r"><b>'+(r.ann_pct!=null?r.ann_pct.toFixed(0)+'%':'—')+'</b></td></tr>';
-  });
-  h+='</tbody></table></div>';
-  h+='<div class="small muted" style="margin-top:6px">'
-    +'口徑：收入＝bid×100（可實收價）；按金＝max(0.2×S−(S−K),0.1×S)+mid（OTM 減免修正版）×1.255＝Futu 實凍估計（09-09 實測 1.2554 倍）；年化＝(bid/K)×252/DTE（愈近到期個數愈誇，只供橫比）；IV/Δ＝BS 由實時 mid 反推；POP 短 put 值博率＝N(d2)。'
-    +'正選5＝POP 順序頭 5 隻按金＋接貨都過到關（預算＝Futu 實際 USD 購買力，正選逐隻扣減；⭐09-12 拍板接唔起＝❌唔入正選唔食預算，0 隻＝本週零合格；⭐09-13 null pop 排最尾兼唔入正選）；唔夠按金照列但唔計入 5（不夠可貨幣兌換 T+0 補）。'
-    +'⭐安全閘（09-11 post-mortem）：σ距＝(S−K)/S÷(IV×√(DTE/252))，<0.7σ＝紅（POP 高都貼線）；接貨＝K×100 vs 戶口淨資產（/real_funds equity_usd）——❌接唔起＝按金過關都唔好開（WDC 470P 教訓）；到期 ⚠️badge＝持有期內（今日→到期）撞正 FOMC 決議/CPI/PPI 發布（橋 EVENT_DATES_2026，09-12 由 exact-match 改全期掃描；09-11 係 CPI、09-16 係 FOMC）。'
-    +'後備：MU 952.5P（09-08 scan $675/年化60%）。剔走：ORCL／ADBE（9/10 業績賭波錢）、NBIS/BE/AMAT/COHR/ALAB/TER（收入低過 HK$2,000 線）、MELI（band 內冇 strike）。'
-    +'⭐09-13 拍板：排序＝POP 降序、年化副排序；POP=N(d2)＝唔被接貨機率（高＝安全），null pop 排最尾兼唔入正選；σ距色階同 /preflight（≥1σ 綠、0.7-1σ 琥珀、<0.7σ 紅）。'
-    +'</div>';
-  h+=wscanGatedRefHtml();   // ⭐09-13③ 全閘掃描參考板（static embed，<details> 預設收埋）
   el.innerHTML=h;
 }
 
