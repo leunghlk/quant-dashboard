@@ -2955,11 +2955,12 @@ function renderMethodH6040(){
    今日最佳交易（gate open 嘅）」。背景：現金寶唔係期權按金抵押品 → 落單俾 Futu 拒
    「購買力不足」都唔知要赎幾多。數字係 Futu 實時 short_required_im 對 headroom。60s refresh。*/
 let h6040Margin=null,h6040MarginSingle=null;
-/* ════════════ 🎯 當周掃描榜（real-time，⭐09-13 晚二拍板：兩板合一）════════════
-   user：「我唔要咁多表（又當周榜，又A′、B′），我只要一個表，以最值得做排名」—
-   · 一個表、唔分 METHOD：候選池＝engine winrank 前 12 ∪ h6040_174 終版靜態名單
-     ∪ XSP 現金結算腿（spot×0.945/0.96/0.975 自動 strike），去重後全部釘死同一個
-     當周到期日（WSCAN_H60_EXPIRY 動態 7DTE 週五）一次過報價。
+/* ════════════ 🎯 當周掃描榜（real-time，⭐09-13 晚三拍板：分返 method 兩榜）════════════
+   晚二合一（16b51c9）試行一日 → user 翻案：「分返method啦，V4_balanced一個，h6040一個（包XSP）」。
+   · 兩榜共用同一套五層排序引擎（晚二 user 欽定「以最值得做排名」照用），淨換候選池：
+     METHOD='v4_balanced' → engine winrank 前 12；METHOD='h6040' → h6040_174 終版靜態 11
+     ∪ XSP 現金結算腿（spot×0.945/0.96/0.975 自動 strike；XSP 腿只掛 h6040 榜）。
+     去重後全部釘死同一個當周到期日（WSCAN_H60_EXPIRY 動態 7DTE 週五）一次過報價。
    · 排序＝五層閘級聯（09-13 user 欽定）：L1 接貨閘（K×100>equity＝❌沉底；XSP 現金
      結算豁免——無實物接貨，最壞=現金差價）→ L2 按金 ×1.255≤USD 購買力（超＝❌次底）
      → L4 POP 降序（N(d2)，null 最尾唔入正選）＋年化副排序 → L5 收入只做橫比；
@@ -2999,20 +3000,21 @@ async function loadWeeklyScan(){
   if(!activeBridge){renderWeeklyScan();return;}
   await fetchWscanUsd();   // 分檔預算＝Futu 實際 USD 購買力；接貨閘分母＝equity
   const wr=(rec&&rec.winrank)||[];
-  if(!wr.length){   // rec 未到／engine 未寫 winrank — 短 retry（60s interval 兜底）
+  const isH60=(METHOD==='h6040');   // ⭐09-13 晚三：分返 method 兩榜——v4_balanced（winrank 前 12）／h6040_174（終版 11 ∪ XSP 腿）
+  if(!isH60&&!wr.length){   // 淨 v4 榜要 winrank（短 retry，60s interval 兜底）；h6040 榜靠靜態名單唔使等 engine
     if(wscanWaitN++<10){wscanErr='等 engine rec（winrank）…';renderWeeklyScan();setTimeout(loadWeeklyScan,6000);return;}
     wscanErr='engine rec 冇 winrank';renderWeeklyScan();return;
   }
-  wscanWaitN=0;
+  if(!isH60)wscanWaitN=0;
   /* 候選池（⭐09-13 晚二合一）：winrank 前 12（正選5＋後備＋樣本）∪ h6040_174 終版 11
      ∪ XSP 現金結算腿（spot×0.945/0.96/0.975 自動 strike，去重）。XSP/^VIX spot 行
      bridge /kline（收市=最後 close，同 engine/monitor 口徑一源）；XSP 攞唔到＝腿缺席。 */
   const seen={}, items=[];
   const add=function(tk,k){const key=tk+':'+k;if(!seen[key]){seen[key]=1;items.push(tk+':'+k);}};
-  wr.slice(0,12).forEach(function(x){if(x&&x.ticker&&x.strike)add(x.ticker,x.strike);});
-  WSCAN_H60_ITEMS.split(',').forEach(function(s){const p=s.split(':');add(p[0],parseFloat(p[1]));});
+  if(isH60)WSCAN_H60_ITEMS.split(',').forEach(function(s){const p=s.split(':');add(p[0],parseFloat(p[1]));});
+  else wr.slice(0,12).forEach(function(x){if(x&&x.ticker&&x.strike)add(x.ticker,x.strike);});
   wscanVix=null; wscanXspN=0;
-  try{
+  if(isH60)try{   // ⭐XSP 現金結算腿只掛 h6040 榜（09-13 晚三欽定）；spot 攞唔到＝腿缺席唔炸板
     const kr=await fetchTimeout(activeBridge+'/kline?code=%5EXSP&type=DAY&count=2&secret='+encodeURIComponent(BRIDGE_SECRET),12000);
     const kj=kr&&kr.ok?await kr.json().catch(function(){return null;}):null;
     const kb=(kj&&kj.bars)||(Array.isArray(kj)?kj:[])||[];
@@ -3045,7 +3047,7 @@ async function loadWeeklyScan(){
       });
     } else errs.push((j&&j.error)||('HTTP '+(r?r.status:'—')));
   }catch(e){errs.push((e&&e.message)||String(e));}
-  if(merged.length){wscanLast={rows:merged,expiry:exp0,dte:dte0};wscanTs=Date.now();wscanErr=errs.length?errs.join(' · '):null;}
+  if(merged.length){wscanLast={rows:merged,expiry:exp0,dte:dte0,pool:isH60?'h6040':'v4'};wscanTs=Date.now();wscanErr=errs.length?errs.join(' · '):null;}
   else wscanErr=errs.join(' · ')||'冇 rows';
   renderWeeklyScan();
 }
@@ -3155,13 +3157,14 @@ function wscanPopCell(r){   // POP 欄＝N(d2)%；null＝chain 冇報價出 —
   return '<b>'+(r.pop*100).toFixed(1)+'%</b>';
 }
 /* ⭐09-13 晚二拍板（user：「唔要咁多表…唔應該用全閘掃描參考板啦」）：Board A′/B′ 退役——
-   static 快照＋兩個序對 user 冇資訊量；統一榜（候選池∪XSP 腿＋五層排序）已取代佢講晒
+   static 快照＋兩個序對 user 冇資訊量；五層排序當周榜（晚三：method 兩榜共用呢套排序）已取代佢講晒
    「邊張最值得做」。考古留 git history（c1a798f 有成個 const＋wscanGatedRefHtml）。 */
 
 function renderWeeklyScan(){
   const el=$('wscanBody'), meta=$('wscanMeta'); if(!el)return;
   const tt=$('wscanTitle');
-  if(tt)tt.textContent='🎯 當周掃描榜 · 最值得做排序（winrank ∪ h6040_174 ∪ XSP 腿）';
+  const pool=(wscanLast&&wscanLast.pool)||((METHOD==='h6040')?'h6040':'v4');   // 晚三：榜跟 pool 走（wscanLast 帶定，null 時跟 METHOD）
+  if(tt)tt.textContent=(pool==='h6040'?'🎯 當周掃描榜 · h6040_174（終版 11 ∪ XSP 現金結算腿）':'🎯 當周掃描榜 · v4_balanced（engine winrank 前 12）')+' · 最值得做排序';
   const st=wscanLast?Math.round((Date.now()-wscanTs)/1000):null;
   const budget=wscanUsd;   // Futu 實際 USD 購買力（真 order gate），唔係 engine 70% 策略線
   if(meta){
@@ -3172,7 +3175,7 @@ function renderWeeklyScan(){
   }
   if(!wscanLast){
     el.innerHTML='<div class="small muted">暫時攞唔到 live 數（'+esc(wscanErr||'載入中')+'）</div>'
-      +'<div class="small muted" style="margin-top:4px">候選池＝engine winrank 前12 ∪ h6040_174 終版 ∪ XSP 現金結算腿；按金預算＝Futu 實際 USD 購買力（/real_funds）</div>';
+      +'<div class="small muted" style="margin-top:4px">候選池＝'+(pool==='h6040'?'h6040_174 終版 11 ∪ XSP 現金結算腿':'engine winrank 前 12')+'；按金預算＝Futu 實際 USD 購買力（/real_funds）</div>';
     return;
   }
   const dte0=wscanLast.dte;
@@ -3229,7 +3232,7 @@ function renderWeeklyScan(){
   });
   h+='</tbody></table></div>';
   h+='<div class="small muted" style="margin-top:6px">'
-    +'⭐09-13 晚二拍板（user：「我只要一個表，以最值得做排名」）：候選池＝engine winrank 前 12 ∪ h6040_174 終版 11 ∪ XSP 現金結算腿（spot×0.945/0.96/0.975 自動 strike；'+(wscanXspN?'今輪 '+wscanXspN+' 隻':'XSP spot 攞唔到，本輪缺席')+'），去重後全部釘死 '+esc(wscanLast.expiry||'')+' 到期一次過報價。'
+    +'⭐09-13 晚三拍板：分返 method 兩榜——'+(pool==='h6040'?'本榜＝h6040_174 終版 11 ∪ XSP 現金結算腿'+(wscanXspN?'（今輪 XSP '+wscanXspN+' 隻）':'（XSP spot 攞唔到，本輪腿缺席）'):'本榜＝engine winrank 前 12')+'，五層排序照用（晚二 user：「以最值得做排名」），去重後全部釘死 '+esc(wscanLast.expiry||'')+' 到期一次過報價。'
     +'五層排序：L1 接貨閘（K×100＞equity＝❌沉底；🟦XSP 現金結算豁免——無實物接貨）→ L2 按金（×1.255＞購買力＝❌次底）→ POP 降序（null 唔入正選）→ 年化副序 → 收入只做橫比。正選5＝過 L1+L2 嘅 POP 序頭 5 逐隻扣減購買力；唔夠按金可貨幣兌換 T+0 補。'
     +'口徑：收入＝bid×100；按金＝max(bridge live, winrank margin1)×1.255（09-09 實測 1.2554 倍，XSP 實凍遠細過估計、以 Futu app 為準）；年化＝(bid/K)×252/DTE（近到期偏誇，只供橫比）；IV/Δ＝BS 由實時 mid 反推；σ距色階同 /preflight（≥1σ 綠、0.7-1σ 琥珀、<0.7σ 紅）。'
     +'到期 ⚠️badge＝持有期內（今日→到期）撞正 FOMC/CPI/PPI（橋 EVENT_DATES_2026 全期掃描）；A′/B′ 全閘參考板已退役（統一榜＋五層排序取代，考古 git c1a798f）。'
