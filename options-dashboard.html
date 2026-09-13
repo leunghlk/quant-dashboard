@@ -3039,12 +3039,18 @@ async function loadWeeklyScan(){
       exp0=j.expiry||WSCAN_H60_EXPIRY; dte0=j.dte;
       const wrBy={};
       wr.forEach(function(x,i){if(x&&x.ticker)wrBy[x.ticker+':'+x.strike]={r:i+1,m:x.margin1,e:x.earnings,p:x.premium};});
-      j.rows.forEach(function(row){
+      const seenRs={};   // ⭐09-13 晚三 snap 防撞：正身 request 先收，snap 行撞相同 ticker:strike 就犧牲
+      const pushRow=function(row){
         row.expiry=exp0; row.dte=(row.dte!=null)?row.dte:dte0;   // 統一 per-row 形狀
-        const w=wrBy[row.ticker+':'+row.strike];
+        const key=row.ticker+':'+row.strike;
+        if(seenRs[key])return;
+        seenRs[key]=1;
+        const w=wrBy[key]||(row.snapped_from?wrBy[row.ticker+':'+row.snapped_from]:null);   // ⭐snap 行用原 strike 搵返 winrank meta（earn/rank 唔好走失）
         if(w){row.__rank=w.r;row.__margin1=w.m;row.__earn=w.e;row.__prem=w.p;}
         merged.push(row);
-      });
+      };
+      j.rows.forEach(function(row){if(!row.snapped_from)pushRow(row);});
+      j.rows.forEach(function(row){if(row.snapped_from)pushRow(row);});
     } else errs.push((j&&j.error)||('HTTP '+(r?r.status:'—')));
   }catch(e){errs.push((e&&e.message)||String(e));}
   if(merged.length){wscanLast={rows:merged,expiry:exp0,dte:dte0,pool:isH60?'h6040':'v4'};wscanTs=Date.now();wscanErr=errs.length?errs.join(' · '):null;}
@@ -3219,7 +3225,7 @@ function renderWeeklyScan(){
       +'<td class="r">'+(r.iv!=null?(r.iv*100).toFixed(0)+'%':'—')+'</td>'
       +'<td class="r">'+(r.rsi14!=null?r.rsi14.toFixed(1):'—')+'</td>'
       +'<td>'+earnCell(r)+'</td>'
-      +'<td class="r"><b>'+r.strike+'P</b></td>'
+      +'<td class="r"><b>'+r.strike+'P</b>'+(r.snapped_from?' <span class="small muted" title="原 strike '+r.snapped_from+' 喺當周 chain 冇價——bridge 自動 snap 至最近有價 strike">snap←'+r.snapped_from+'</span>':'')+'</td>'
       +'<td class="r">'+(r.dte!=null?r.dte:'—')+'</td>'
       +'<td>'+esc((r.expiry||'').slice(5))+wscanEventBadge(r)+'</td>'
       +'<td class="r">'+(r.delta!=null?r.delta.toFixed(3):'—')+'</td>'
