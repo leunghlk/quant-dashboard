@@ -2930,7 +2930,7 @@ function renderMethodH6040(){
     '<tr><td>A級腿 own 雙重 stress（86 折＋成本×2 · 單腿口徑 · mom 排序年代）</td><td class="r">+'+ALEG.stress_double.ann+'%</td><td class="r">'+ALEG.stress_double.dd+'%</td><td class="muted">仍正（~US$'+ALEG.stress_double.mo_usd+'/月 · PF '+ALEG.stress_double.pf+'）</td></tr>'+
     '<tr><td>當周腿 wr 排序雙重 stress（hardcap · 單腿口徑）</td><td class="r">+22.12%</td><td class="r">−5.36%</td><td class="up">零蝕月，仍贏 mom 臂 +13.28%/−7.01%</td></tr>'+
     '</tbody></table></div>'+
-    '<div class="small muted" style="margin-top:4px">⚠️ 排序 stress 反轉（09-14 矩陣）：長 tenor 腿 double stress 下 L_mom 月DD −22.59%（三臂最深）vs L_wr_mom −17.86% 最淺——「長腿 mom 較安全」只係 base 口徑（−13.35 vs −16.41）嘅結論，stress 下唔 robust；拍板照留 mom（回測 edge＋執行帶唔變），此發現記錄在案。'+ALEG.stress_rev.split('：')[1]+'</div>'+
+    '<div class="small muted" style="margin-top:4px">⚠️ 排序 stress 反轉（09-14 矩陣）：長 tenor 腿 double stress（cost×2＋IV×0.86）下 L_mom 月DD −22.59%（三臂最深、ann 最低 +24.84%）vs L_wr_mom −17.86% 最淺＋ann 最高 +32.02%——「長腿 mom 較安全」只係 base 口徑（−13.35 vs −16.41）嘅結論，stress 下唔 robust；拍板照留 mom（回測 edge＋執行帶唔變），此發現記錄在案、日後重檢 long-leg 排序時優先睇 wr_mom。</div>'+
     '<p style="margin-top:8px"><b>月度收入分佈（56 個月）：</b>≥$15K 有 '+B.n_ge15k+' 個月 · ≥$10K 有 '+B.n_ge10k+' 個月 · 負數 '+B.n_neg+' 個月 · 零收入 '+B.n_zero+' 個月。</p>'+
     '<div class="small muted" style="margin-top:4px">平均 $'+fmt(B.mean_mo)+' vs 中位數 $'+fmt(B.median_mo)+' —— 分佈右偏（靠幾個好月拉高）。預算請用中位數。</div>';
 
@@ -3446,7 +3446,7 @@ function renderH6040Overview(){
     const usedPct=Math.min(100,Math.round(used/CAP*100));
     const _rvG=h6040GoldRv20();   // ⭐ 09-08：金腿 RV20 閘狀態（client 端 kline 計，未載入=數據未到）
     const capTips={
-      stk:'<b>單股腿（60%）目標配置</b><br>HKD 192,000（320k × 60%）<br>⭐09-14 A級：util 0.20＋硬閘 US$12,726 · ≤8 倉 · 單名 ≤25%<br>閘門：VIX 20–32 先開（'+(h6040Gates?(h6040Gates.vix==null?'⚪ 數據未到':h6040Gates.vixOk?'🟢 而家開':'🔴 而家閂'):'⚪ 數據未到')+'）',
+      stk:'<b>單股腿（60%）目標配置</b><br>HKD 192,000（320k × 60%）<br>⭐09-14 A級 L_mom×W_wr：util 0.20＋硬閘 US$12,726 · ≤8 倉 · 單名 ≤25% · 當周帶排序＝wr（mom 只做閘）<br>閘門：VIX 20–32 先開（'+(h6040Gates?(h6040Gates.vix==null?'⚪ 數據未到':h6040Gates.vixOk?'🟢 而家開':'🔴 而家閂'):'⚪ 數據未到')+'）',
       spy:'<b>XSP 腿（40%）目標配置</b><br>HKD 128,000（320k × 40%）<br>util 90% · ≤2 倉 · 每倉 ≤2 張（Path A）<br>閘門：XSP＞200DMA 先開（'+(h6040Gates?(h6040Gates.spyAbove==null?'⚪ 數據未到':h6040Gates.spyAbove?'🟢 而家開':'🔴 而家閂'):'⚪ 數據未到')+'）',
       gold:'<b>金 sleeve（09-08 加）</b><br>US$10,000（≈HKD 78k 由閒置現金撥出）<br>按金預算 US$'+fmt(GOLD_BT.budget_usd)+' · 上限 '+GOLD_BT.max_contracts+' 張<br>閘門：IAU RV20≤'+GOLD_BT.rv20_max+'%'+(_rvG!=null?' · 現在 '+_rvG.toFixed(1)+'%':'')+'（'+(_rvG!=null?(_rvG<=GOLD_BT.rv20_max?'🟢 而家開':'🔴 而家閂'):'⚪ 數據未到')+'）'
     };
@@ -3646,7 +3646,7 @@ function renderH6040Best(){
   h6040AutoXspChain();
   h6040AutoGoldChain();   // ⭐ 09-08：金 sleeve（IAU）鏈＋日線 RV20 同款 60s 節流
   let h='';
-  h+='<div class="small muted" style="margin-bottom:8px">Hybrid 60/40 實時信號 —— <b>回測規則</b>＋<b>實時閘門</b>。單股腿候選＝<b>h6040_scan 每日 06:10 掃描快照</b>（⭐09-14 起＝A級平衡王帶 Δ0.20–0.25 × 5–7DTE × ≤$374，同 engine 同源），只在 VIX 20–32＋breadth≥50% 開放；XSP 腿只在 XSP>200DMA 開放；金腿（IAU CSP）只在 RV20≤'+GOLD_BT.rv20_max+'% 開放。⚠️ 池表係掃描快照（詳情頁 live chain 重揀 K）；<b>執行以「當周掃描榜」為準</b>（board≡engine，落單前過 P7 六問卡）。</div>';
+  h+='<div class="small muted" style="margin-bottom:8px">Hybrid 60/40 實時信號 —— <b>回測規則</b>＋<b>實時閘門</b>。單股腿候選＝<b>h6040_scan 每日 06:10 掃描快照</b>（⭐09-14 起＝A級平衡王帶 Δ0.20–0.25 × 5–7DTE × ≤$374 · <b>wr 排序</b>（年化收入×(0.5+IV_rank/100)，mom 只做閘——L_mom×W_wr），同 engine 同源），只在 VIX 20–32＋breadth≥50% 開放；XSP 腿只在 XSP>200DMA 開放；金腿（IAU CSP）只在 RV20≤'+GOLD_BT.rv20_max+'% 開放。⚠️ 池表係掃描快照（詳情頁 live chain 重揀 K）；<b>執行以「當周掃描榜」為準</b>（board≡engine，落單前過 P7 六問卡）。</div>';
   h+=h6040GateBanner();
   const g=h6040Gates;
   // XSP leg card
