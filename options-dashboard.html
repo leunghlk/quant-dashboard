@@ -1439,6 +1439,15 @@ const V4_UNIVERSE=('AMAT KLAC LRCX INTC AMD MRVL CRDO BE GLW WDAY DDOG ADBE NOW 
  +'ARM GEV VRT AVGO SPCX SKHY HPE AAOI LYTE CIEN ANET HPQ ASX QCOM ON GFS SNOW '
  +'PWR CAT NBIS RDW RKLB LUNR WDC STX DRAM WOLF TSEM STM TXN NVTS IGV CRM CRWD PLTR IBM AXTI').split(' ');
 const V4_SET=new Set(V4_UNIVERSE);
+/* ⭐09-14 宇宙對照：engine 廣池＝69 tech base＋100 sector ETF holdings（08-27，11 SPDR＋IGV top-10
+   扣重複）＋IAU（09-08 金）＝170 隻——兩個 tab 嘅當周掃描榜／單腿股表真源（engine rec.winrank/merged_board）。
+   h6040_174（H6040_UNIVERSE，下 2793 行）係回測池，唔係榜嘅池。同步點見 _uniMapHTML() 披露。 */
+const ENGINE_SECTOR_100=('META GOOGL T VZ EA TMUS CMCSA TTWO DIS TSLA HD MCD TJX BKNG SBUX LOW MAR ROST '
+ +'WMT COST KO PG PM CL MDLZ MNST PEP MO XOM CVX COP MPC PSX VLO EOG SLB KMI WMB JPM BRK-B V MA BAC GS WFC '
+ +'MS C AXP LLY JNJ ABBV UNH MRK TMO AMGN ABT GILD PFE GE RTX UNP BA ETN DE UBER PH LIN NEM FCX SHW ECL APD '
+ +'CTVA NUE VMC CRH WELL PLD EQIX AMT SPG DLR PSA VTR O CBRE NEE SO DUK CEG AEP D SRE ETR XEL VST CSCO ORCL '
+ +'FTNT APP').split(' ');
+const ENGINE_UNIVERSE=V4_UNIVERSE.concat(ENGINE_SECTOR_100,['IAU']);   /* 170 隻（69+100+1；code header 寫 171 係舊數） */
 
 /* ⭐ 2026-09-14: 單腿股表（合併兩帶）——渲染 rec.merged_board（engine build_merged_board）：
    當周帶 5-7D×Δ0.20-0.25（＝engine 執行帶）＋ 長帶 10-14D×Δ0.25-0.30（僅參考）。
@@ -1473,6 +1482,25 @@ function _wrSortBy(k){
   renderWinRank();
 }
 function _wrSortSet(k,dir){window._wrSort=(k&&dir)?{k:k,dir:dir}:null;renderWinRank();}
+/* ⭐09-14 user：宇宙對照 block——邊個表用邊份名單＋全名單（static，cache 一次） */
+function _uniMapHTML(){
+  if(window._uniMapHTML)return window._uniMapHTML;
+  const grp=a=>'<div style="line-height:1.9;word-spacing:3px;font-size:12px">'+a.map(t=>'<span style="display:inline-block;padding:0 3px">'+esc(t)+'</span>').join('')+'</div>';
+  const ov=ENGINE_UNIVERSE.filter(t=>H6040_UNIVERSE.indexOf(t)>=0).length;
+  const s='<details style="margin:2px 0 6px"><summary style="cursor:pointer;color:#1a73e8;font-size:12px;font-weight:600">🗂 宇宙對照——邊個表用邊份名單？有咩股？（撳開）</summary>'
+   +'<div class="table-scroll"><table class="utable" style="margin-top:6px"><thead><tr><th>表／卡</th><th class="c">universe</th><th class="c">池</th></tr></thead><tbody>'
+   +'<tr><td>🎯 當周掃描榜（v4 tab）</td><td class="c">engine 池 → 顯示濾 tech base</td><td class="c">170 → 69</td></tr>'
+   +'<tr><td>🎯 當周掃描榜（h6040 tab）</td><td class="c">engine 池 ∪ XSP（現金結算指數）</td><td class="c">170＋XSP</td></tr>'
+   +'<tr><td>📋 單腿股表（v4 tab）</td><td class="c">同榜——engine 池濾 tech base</td><td class="c">170 → 69</td></tr>'
+   +'<tr><td>📋 單腿股表（h6040 tab）</td><td class="c">engine 全池（merged_board 兩帶）</td><td class="c">170</td></tr>'
+   +'<tr><td>候選名單卡（已收埋）＋h6040 回測／06:10 v5 掃描</td><td class="c">h6040_174（survivorship-hardened，fetch_data_v5）</td><td class="c">174</td></tr>'
+   +'</tbody></table></div>'
+   +'<div class="small muted" style="margin-top:4px">血緣：engine 170 ∩ h6040_174＝'+ov+'；engine 獨有 '+(ENGINE_UNIVERSE.length-ov)+'（08-27 sector 批：T/VZ/KO/RTX…）／174 獨有 '+(H6040_UNIVERSE.length-ov)+'（回測選樣，包 F/GM/BA 等生還者偏差防線死名）。⚠️ 同步點：改 engine 池＝齊改 <code>options_income.py UNIVERSE</code> ↔ 呢頁 V4_UNIVERSE／ENGINE_SECTOR_100；改回測池＝齊改 <code>fetch_data_v5.py</code> ↔ 呢頁 H6040_UNIVERSE。</div>'
+   +'<details style="margin-top:6px"><summary style="cursor:pointer;color:#1a73e8;font-size:12px">📜 engine 池 '+ENGINE_UNIVERSE.length+' 隻全名單（69 tech base＝v4 tab 顯示池 · +100 sector ETF holdings 08-27 · +IAU 09-08）</summary>'+grp(ENGINE_UNIVERSE)+'</details>'
+   +'<details style="margin-top:4px"><summary style="cursor:pointer;color:#1a73e8;font-size:12px">📜 h6040_174 全名單（fetch_data_v5.UNIVERSE · 回測／v5 掃描同源）</summary>'+grp(H6040_UNIVERSE)+'</details>'
+   +'</details>';
+  window._uniMapHTML=s;return s;
+}
 function renderWinRank(){
   const gw=(rec&&rec.gate_closed)?gateWarnHTML():'';
   const el=$('winrankBody');if(!el)return;
@@ -1497,7 +1525,7 @@ function renderWinRank(){
     +chip(!!(c&&c.k==='mom'&&c.dir==='desc'),'長腿視圖 · MOM ↓','mom','desc')
     +chip(!c,'engine 預設 · P(OTM) ↓',null,null)
     +'<span class="small muted">（或撳任何欄位標題）</span></div>';
-  let h=gw+chips+'<div class="table-scroll"><table class="utable"><thead><tr>'
+  let h=gw+chips+_uniMapHTML()+'<div class="table-scroll"><table class="utable"><thead><tr>'
    +'<th class="c">#</th><th>標的</th><th class="c">帶</th>'
    +thS('wr','r','wr＝年化收入×(0.5+IV_rank/100)——09-14 L_mom×W_wr 當周腿排序 key（A/B wr hardcap +27.11%/−5.12% vs mom +16.42%/−6.70%）','wr')
    +thS('mom','c','MOM＝worker 動量-質素分（qscore 0-1；回測長腿 mom_score 同方向唔同源，僅排序參考——長 tenor 腿拍板留 mom）','MOM')
@@ -1552,7 +1580,7 @@ function renderWinRank(){
   h+=(legacy
    ?'<div class="muted" style="font-size:11px;margin-top:4px">（fallback——engine 未出合併單腿股表，顯示 rec.winrank 5-7D 帶；今晚 21:00 run_once 後自動轉合併兩帶）排序掣：撳欄位標題＝倒序↓／再撳＝順序↑／第三下＝返預設（winrank 預設＝總評分高至低）。<b>贏錢</b>＝P(到期 &gt; 盈虧平衡 K−保費)；勝率 P(OTM)＝守住行使價。沽 Call 唔會出現——接貨後先喺「持倉管理」以 Covered Call 沽 Call。</div>'
    :'<div class="small muted" style="margin-top:4px">⭐ 預設排序＝<b>engine 側計好</b>（P(OTM) 降序，差距 &lt;2pp cluster 內按年化收入）；排序掣只改顯示、唔影響 engine。⭐09-14 <b>L_mom×W_wr</b>：<b>當周 5-7D×Δ0.20-0.25＝W_wr 腿</b>（排序 key＝wr＝年化收入×(0.5+IV_rank/100)，mom 只做入場閘；A/B wr hardcap +27.11%/eqDD −5.12%/WR 98.71% vs mom +16.42%/−6.70%——撳「當周腿視圖」睇 wr 序）；<b>長帶 10-14D×Δ0.25-0.30＝L_mom 腿僅參考</b>（回測排序＝mom；表內 MOM 欄＝worker 動量-質素分 qscore 0-1，同回測 v5 mom_score 同方向唔同源）。<b>執行＝「當周掃描榜」過 P7 六問卡</b>，此卡唔設執行掣；DLLL 槓桿 ETF＝「唔入正式候選」顯示-only。wr／總評分＝client 同式補計（總評分＝score×質素×動量減速，同 engine _win_total）；σ距＝(S−K)/S÷(IV×√(DTE/252)) 色階同 preflight；⚠＝單名按金超上限。點擊資料列 → 個股詳情（實時期權鏈＋情境分析）。</div>');
-  h+=(METHOD!=='h6040'?'<div class="small muted" style="margin-top:4px">🏷 宇宙＝<b>v4_balanced 原本 tech 池 '+V4_UNIVERSE.length+' 隻</b>（09-14 user 拍板還原）——engine 全池嘅 +100 sector ETF／IAU 行（h6040 tab 先見）喺此卡過濾唔顯示；engine 執行池唔變。</div>':'');
+  h+=(METHOD!=='h6040'?'<div class="small muted" style="margin-top:4px">🏷 宇宙＝<b>v4_balanced 原本 tech 池 '+V4_UNIVERSE.length+' 隻</b>（09-14 user 拍板還原）——engine 全池嘅 +100 sector ETF／IAU 行（h6040 tab 先見）喺此卡過濾唔顯示；engine 執行池唔變（明細撳頂端「🗂 宇宙對照」）。</div>':'');
   el.innerHTML=h;
 }
 
