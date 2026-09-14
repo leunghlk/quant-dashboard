@@ -236,9 +236,9 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
         </div>
         <div id="pfResult" style="margin-top:8px"><div class="small muted">填 ticker＋strike（expiry 空＝下一個周五）→ 跑六問。❓＝該項數據攞唔到，唔好當 pass。</div></div>
       </div></div>
-    <div class="card"><div class="card-h"><span class="t" id="candTitle">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
+    <div class="card" id="candCard"><div class="card-h"><span class="t" id="candTitle">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
       <div class="card-b" id="candBody"></div></div>
-    <div class="card" id="winrankCard"><div class="card-h"><span class="t">🎯 單腿股表（合併兩帶）</span><span class="meta">兩帶（當周 5-7D×Δ0.20-0.25 ／ 長帶 10-14D×Δ0.25-0.30）· 排名＝<b>P(OTM) 降序</b>（差距 &lt;2pp 內按年化收入）· 長帶僅參考，執行仍以「當周掃描榜」過 P7 六問卡 · 金額欄 US$</span></div>
+    <div class="card" id="winrankCard"><div class="card-h"><span class="t">🎯 單腿股表（合併兩帶）</span><span class="meta">兩帶（當周 5-7D×Δ0.20-0.25＝<b>W_wr</b> ／ 長帶 10-14D×Δ0.25-0.30＝<b>L_mom</b> 僅參考）· 預設排名＝P(OTM) 降序（&lt;2pp 內按年化）· ⭐<b>撳欄位標題即排序</b>（倒序↓↔順序↑↔預設）· 執行仍以「當周掃描榜」過 P7 六問卡 · 金額欄 US$</span></div>
       <div class="card-b" id="winrankBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">你的選擇、排隊中訂單、以及「今日不做」</span></div>
       <div class="card-b" id="decBody"></div></div>
@@ -1437,27 +1437,80 @@ function renderCandidates(){
    DLLL（CSP_EXCLUDE）照出表＋「唔入正式候選」pill（顯示-only，正式候選恒排除）。
    Fallback：engine 未出 merged_board → 照渲染舊 rec.winrank（向後兼容）。
    行 click → 個股詳情（合成 ctx：期權鏈＋情境分析照用）。沽 Call 唔會出現（只出 PUT 行）。 */
+/* ⭐ 09-14 排序掣：撳欄位標題＝倒序(desc)→再撳＝順序(asc)→第三下＝返 engine 預設；_wrSortSet＝快速 chips */
+function _wrSigma(x){   /* σ距＝(S−K)/S ÷ (IV×√(DTE/252))——同 wscan／P7 preflight 口徑 */
+  if(!(x.spot>0)||!(x.strike>0)||!(x.iv>0)||!(x.dte>0))return null;
+  return ((x.spot-x.strike)/x.spot)/(x.iv*Math.sqrt(x.dte/252));
+}
+function _wrTotal(x){   /* 總評分＝score×質素(0.7-1.3)×動量減速因子——同 engine _win_total 同式（client 補計） */
+  const qs=x.qscore;const qf=(typeof qs==='number')?(0.7+qs*0.6):1.0;
+  const d=x.decel;let df=1.0;
+  if(typeof d==='number'){if(d<=-3)df=0.85;else if(d<=-2)df=0.92;}
+  return (x.score||0)*qf*df;
+}
+function _wrWr(x){return (x.yield_ann||0)*(0.5+(x.iv_rank!=null?x.iv_rank:50)/100.0);}   /* ⭐ A/B 口徑 wr＝09-14 L_mom×W_wr 當周腿排序 key */
+const WR_SORTS={
+  wr:{f:_wrWr},mom:{f:function(x){return x.qscore!=null?x.qscore:-1;}},potm:{f:function(x){return x.prob_otm||0;}},
+  win:{f:function(x){return x.pop!=null?x.pop:-1;}},delta:{f:function(x){return Math.abs(x.delta||0);}},
+  sigma:{f:function(x){var v=_wrSigma(x);return v!=null?v:-1;}},strike:{f:function(x){return x.strike||0;}},
+  prem:{f:function(x){return x.premium||0;}},m1:{f:function(x){return x.margin1||Math.round(0.22*(x.collateral||1));}},
+  yann:{f:function(x){return x.yield_ann||0;}},total:{f:_wrTotal},dte:{f:function(x){return x.dte||0;}},iv:{f:function(x){return x.iv||0;}}
+};
+function _wrSortBy(k){
+  const c=window._wrSort;
+  if(!c||c.k!==k)window._wrSort={k:k,dir:'desc'};
+  else if(c.dir==='desc')window._wrSort={k:k,dir:'asc'};
+  else window._wrSort=null;
+  renderWinRank();
+}
+function _wrSortSet(k,dir){window._wrSort=(k&&dir)?{k:k,dir:dir}:null;renderWinRank();}
 function renderWinRank(){
   const gw=(rec&&rec.gate_closed)?gateWarnHTML():'';
   const el=$('winrankBody');if(!el)return;
   const mb=(rec&&rec.merged_board)||[];
-  const legacy=!mb.length;   // engine 未 deploy merged_board → 舊 winrank fallback
-  const w=legacy?((rec&&rec.winrank)||[]):mb;
+  const legacy=!mb.length;   /* engine 未出 merged_board → 舊 winrank fallback（同一套欄位/render） */
+  const w=(legacy?[...((rec&&rec.winrank)||[])]:[...mb]).map(x=>Object.assign({band:x.band||(legacy?'weekly':undefined)},x));
   if(!w.length){el.innerHTML='<div class="muted">單腿股表：等待盤前全宇宙掃描（每日更新）。</div>';return;}
+  /* ⭐ 09-14 排序：預設＝engine 順序（P(OTM) 降序＋<2pp cluster 年化 tie-break）；撳欄位標題改排序 */
+  const st=window._wrSort;
+  if(st&&WR_SORTS[st.k]){const f=WR_SORTS[st.k].f,sg=(st.dir==='asc')?1:-1;
+    w.sort(function(a,b){const va=f(a),vb=f(b);return sg*((va==null?-1e9:va)-(vb==null?-1e9:vb));});}
+  window._wrRows=w;   /* 執行掣（legacy）用呢個序，避免排序後 index 走位 */
   window._wrDetail=window._wrDetail||{};
-  let h=gw+'<div class="table-scroll"><table class="utable"><thead><tr>'+
-    '<th class="c">#</th><th>標的</th><th>帶</th>'+
-    '<th class="c" title="P(OTM)＝股價到期守住行使價嘅機率（BS N(d2)）——主排名欄；差距 <2pp 內按年化收入排先後">勝率 P(OTM)</th>'+
-    '<th class="r">現價</th><th class="r">行使價</th><th class="r">到期</th><th class="c" title="|Δ|：當周帶 0.20-0.25／長帶 0.25-0.30">Δ</th><th class="r">權利金/張 US$</th><th class="r">按金/張 US$</th><th class="r">年化</th><th class="r">IV</th>'+
-    (legacy?'<th class="r">總評分</th><th class="c" title="P(到期 > 盈虧平衡 K−保費)">贏錢</th><th></th>':'')+
-    '</tr></thead><tbody>';
+  const arrow=k=>{const c=window._wrSort;return (c&&c.k===k)?(c.dir==='desc'?' ▼':' ▲'):'';};
+  const thS=(k,cls,title,label)=>'<th class="'+(cls||'r')+'" style="cursor:pointer;user-select:none" title="'+(title||label)+'（撳一下倒序↓、再撳順序↑、第三下返 engine 預設）" onclick="event.stopPropagation();_wrSortBy(\''+k+'\')">'+label+arrow(k)+'</th>';
+  const chip=(on,label,k,dir)=>'<button class="btn btn-ghost" style="padding:2px 8px;font-size:11px;'+(on?'border-color:#1a73e8;color:#1a73e8;font-weight:700':'')+'" onclick="_wrSortSet('+(k?"'"+k+"'":"null")+','+(dir?"'"+dir+"'":'null')+')">'+label+'</button>';
+  const c=window._wrSort;
+  const chips='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">'
+    +'<span class="small muted">⭐快速排序（09-14 L_mom×W_wr）：</span>'
+    +chip(!!(c&&c.k==='wr'&&c.dir==='desc'),'當周腿視圖 · wr ↓','wr','desc')
+    +chip(!!(c&&c.k==='mom'&&c.dir==='desc'),'長腿視圖 · MOM ↓','mom','desc')
+    +chip(!c,'engine 預設 · P(OTM) ↓',null,null)
+    +'<span class="small muted">（或撳任何欄位標題）</span></div>';
+  let h=gw+chips+'<div class="table-scroll"><table class="utable"><thead><tr>'
+   +'<th class="c">#</th><th>標的</th><th class="c">帶</th>'
+   +thS('wr','r','wr＝年化收入×(0.5+IV_rank/100)——09-14 L_mom×W_wr 當周腿排序 key（A/B wr hardcap +27.11%/−5.12% vs mom +16.42%/−6.70%）','wr')
+   +thS('mom','c','MOM＝worker 動量-質素分（qscore 0-1；回測長腿 mom_score 同方向唔同源，僅排序參考——長 tenor 腿拍板留 mom）','MOM')
+   +thS('potm','c','P(OTM)＝股價到期守住行使價嘅機率（BS N(d2)）＝POP；engine 預設主排名欄','勝率 P(OTM)')
+   +thS('win','c','贏錢＝P(到期 &gt; 盈虧平衡 K−保費)，含保費墊、恒 ≥ P(OTM)','贏錢')
+   +thS('delta','c','|Δ|：當周帶 0.20-0.25／長帶 0.25-0.30','Δ')
+   +thS('sigma','c','σ距＝(S−K)/S ÷ (IV×√(DTE/252))——波動調整距離；≥1σ 綠／0.7-1σ 琥珀／<0.7σ 紅（同 preflight）','σ距')
+   +thS('strike','r','接貨K＝被指派時按此價買入；淨接貨成本＝K−權利金','接貨K')
+   +'<th class="c">到期</th>'
+   +thS('prem','r','權利金收入/張（US$）','收入/張 US$')
+   +thS('m1','r','Reg-T 按金/張（US$）＝max(20%×S＋金−OTM, 10%×K＋金)×100','按金/張 US$')
+   +thS('yann','r','年化＝yield%×365/DTE','年化')
+   +thS('iv','r','IV（r＝IV rank）','IV')
+   +thS('total','r','總評分＝score×質素(qscore→0.7-1.3)×動量減速——同 engine _win_total 同式','總評分')
+   +(legacy?'<th></th>':'')
+   +'</tr></thead><tbody>';
   w.forEach((x,i)=>{
     const una=x.unaffordable?' <span style="color:#dc2626;font-weight:700" title="單名按金超單名上限，無法執行">⚠</span>':'';
-    const bandPill=(x.band==='long')?pill('t','長帶 10-14D'):pill('b','當周 5-7D');
+    const bandPill=(x.band==='long')?pill('t','長帶 10-14D · L_mom 僅參考'):pill('b','當周 5-7D · W_wr');
     const excPill=x.excluded?' '+pill('w','唔入正式候選'):'';
     const m1=x.margin1||Math.round(0.22*(x.collateral||1));
-    // 合成 candidate ctx → 「詳情」視窗齊全 spot/mid/OTM（無隨行日線 → 圖表自動補拉）。
-    // 同一 ticker 兩帶都有行 → _wrDetail 仍以 ticker 為 key（findCandidate 介面不變），當周帶優先。
+    const sv=_wrSigma(x);
+    const sigCell=(sv==null)?'<span class="muted">—</span>':(sv>=1?'<span style="color:#16a34a;font-weight:700">'+sv.toFixed(2)+'σ</span>':(sv>=0.7?'<span style="color:#d97706;font-weight:700">'+sv.toFixed(2)+'σ</span>':'<span style="color:#dc2626;font-weight:700">'+sv.toFixed(2)+'σ</span>'));
     const prev=window._wrDetail[x.ticker];
     if(!prev||((prev.band==='long')&&x.band!=='long')){
       window._wrDetail[x.ticker]={ticker:x.ticker,expiry:x.expiry,dte:x.dte||0,strike:x.strike,spot:x.spot,mid:x.mid,
@@ -1466,24 +1519,29 @@ function renderWinRank(){
         premium:x.premium,premium_total:Math.round(x.premium*1),premium_total_hkd:Math.round(x.premium*HKD_USD),
         collateral:x.collateral,margin1:x.margin1,premium_source:x.premium_source,band:x.band,excluded:!!x.excluded,fromWinRank:true};
     }
-    h+='<tr class="rowlink" onclick="showDetail(\''+x.ticker+'\')">'+
-      '<td class="c" style="color:#94a3b8">'+(i+1)+'</td><td><b>'+esc(x.ticker)+'</b>'+una+'</td>'+
-      '<td class="c" style="white-space:nowrap">'+bandPill+excPill+'</td>'+
-      '<td class="c"><span style="color:#16a34a;font-weight:800">'+Math.round(x.prob_otm||0)+'%</span></td>'+
-      '<td class="r">$'+liveSpot(x.ticker,x.spot)+'</td><td class="r">$'+px2(x.strike)+'</td><td class="r">'+(x.dte||'—')+'日 '+x.expiry.slice(5)+'</td>'+
-      '<td class="c">'+(x.delta!=null?Number(x.delta).toFixed(2):'—')+'</td>'+
-      '<td class="r">$'+x.premium+'</td><td class="r">$'+Number(m1).toLocaleString()+'</td>'+
-      '<td class="r">'+(x.yield_ann!=null?Number(x.yield_ann).toFixed(1)+'%':'—')+'</td>'+
-      '<td class="r">'+(x.iv!=null?Math.round(x.iv*100)+'%':'—')+(x.iv_rank!=null?' <span class="muted" style="font-size:10px">r'+x.iv_rank+'</span>':'')+'</td>'+
-      (legacy?('<td class="r"><b>'+(x.total!=null?Number(x.total).toFixed(2):'—')+'</b></td>'+
-        '<td class="c">'+(x.pop!=null?'<span style="color:#16a34a;font-weight:800" title="贏錢機率 = P(到期 > 盈虧平衡 K−保費)，含保費墊保護，恒 ≥ 賺足保費">'+Math.round(x.pop)+'%</span>':'<span style="color:#94a3b8">—</span>')+'</td>'+
-        '<td><button class="btn btn-go" '+(x.unaffordable?'style="opacity:.4;pointer-events:none" title="單名按金超上限"':'')+' onclick="event.stopPropagation();execWinRank('+i+')">'+(x.unaffordable?'超上限':'執行')+'</button></td>'):'')+
-      '</tr>';
+    h+='<tr class="rowlink" onclick="showDetail(\''+x.ticker+'\')">'
+      +'<td class="c" style="color:#94a3b8">'+(i+1)+'</td><td><b>'+esc(x.ticker)+'</b>'+una+'</td>'
+      +'<td class="c" style="white-space:nowrap">'+bandPill+excPill+'</td>'
+      +'<td class="r"><b style="color:#1a73e8">'+_wrWr(x).toFixed(2)+'</b></td>'
+      +'<td class="c">'+(x.qscore!=null?Number(x.qscore).toFixed(2):'<span class="muted">—</span>')+'</td>'
+      +'<td class="c"><span style="color:#16a34a;font-weight:800">'+Math.round(x.prob_otm||0)+'%</span></td>'
+      +'<td class="c">'+(x.pop!=null?'<span style="color:#16a34a;font-weight:700">'+Math.round(x.pop)+'%</span>':'<span class="muted">—</span>')+'</td>'
+      +'<td class="c">'+(x.delta!=null?Number(x.delta).toFixed(2):'—')+'</td>'
+      +'<td class="c">'+sigCell+'</td>'
+      +'<td class="r">$'+px2(x.strike)+'</td>'
+      +'<td class="c">'+(x.dte||'—')+'日 '+x.expiry.slice(5)+'</td>'
+      +'<td class="r">$'+x.premium+'</td>'
+      +'<td class="r">$'+Number(m1).toLocaleString()+'</td>'
+      +'<td class="r">'+(x.yield_ann!=null?Number(x.yield_ann).toFixed(1)+'%':'—')+'</td>'
+      +'<td class="r">'+(x.iv!=null?Math.round(x.iv*100)+'%':'—')+(x.iv_rank!=null?' <span class="muted" style="font-size:10px">r'+x.iv_rank+'</span>':'')+'</td>'
+      +'<td class="r"><b>'+_wrTotal(x).toFixed(2)+'</b></td>'
+      +(legacy?'<td><button class="btn btn-go" '+(x.unaffordable?'style="opacity:.4;pointer-events:none" title="單名按金超上限"':'')+' onclick="event.stopPropagation();execWinRank('+i+')">'+(x.unaffordable?'超上限':'執行')+'</button></td>':'')
+      +'</tr>';
   });
   h+='</tbody></table></div>';
-  h+=legacy
-   ?('<div class="muted" style="font-size:11px;margin-top:4px">（舊版「勝率排名」fallback——engine 未出合併單腿股表，顯示 rec.winrank 5-7D 帶）⭐ 排序 = 總評分由高到低：總評分 = 年化回報×IV Rank÷(1+風險) × 股票質素 × 動量健康。<b>贏錢</b> = P(到期 > 盈虧平衡 K−保費)；賺足保費 = P(OTM)＝股價守住行使價。⚠ = 單名按金超上限。沽 Call 不會出現在這裡 —— 不裸賣 Call；接貨之後才會在「持倉管理」以 Covered Call 沽 Call。</div>')
-   :('<div class="muted" style="font-size:11px;margin-top:4px">⭐ 排名（engine 側計好，client 唔 re-sort）＝<b>P(OTM) 降序</b>；差距 &lt;2pp 內按年化收入排先後（cluster tie-break）。<b>當周 5-7D×Δ0.20-0.25</b>＝engine 執行帶——<b>執行＝「當周掃描榜」（落單前過 P7 六問卡），此卡唔設執行掣</b>；<b>長帶 10-14D×Δ0.25-0.30</b>＝僅參考，engine 唔會自動交易。<b>唔入正式候選</b>（DLLL 槓桿 ETF）＝顯示-only，正式候選/開倉恒排除。⚠＝單名按金超上限。勝率 P(OTM)＝BS N(d2) 股價守住行使價機率。點擊資料列 → 個股詳情（實時期權鏈＋情境分析；掃描行無日線 → K 線自動經 /kline 補拉）。</div>');
+  h+=(legacy
+   ?'<div class="muted" style="font-size:11px;margin-top:4px">（fallback——engine 未出合併單腿股表，顯示 rec.winrank 5-7D 帶；今晚 21:00 run_once 後自動轉合併兩帶）排序掣：撳欄位標題＝倒序↓／再撳＝順序↑／第三下＝返預設（winrank 預設＝總評分高至低）。<b>贏錢</b>＝P(到期 &gt; 盈虧平衡 K−保費)；勝率 P(OTM)＝守住行使價。沽 Call 唔會出現——接貨後先喺「持倉管理」以 Covered Call 沽 Call。</div>'
+   :'<div class="small muted" style="margin-top:4px">⭐ 預設排序＝<b>engine 側計好</b>（P(OTM) 降序，差距 &lt;2pp cluster 內按年化收入）；排序掣只改顯示、唔影響 engine。⭐09-14 <b>L_mom×W_wr</b>：<b>當周 5-7D×Δ0.20-0.25＝W_wr 腿</b>（排序 key＝wr＝年化收入×(0.5+IV_rank/100)，mom 只做入場閘；A/B wr hardcap +27.11%/eqDD −5.12%/WR 98.71% vs mom +16.42%/−6.70%——撳「當周腿視圖」睇 wr 序）；<b>長帶 10-14D×Δ0.25-0.30＝L_mom 腿僅參考</b>（回測排序＝mom；表內 MOM 欄＝worker 動量-質素分 qscore 0-1，同回測 v5 mom_score 同方向唔同源）。<b>執行＝「當周掃描榜」過 P7 六問卡</b>，此卡唔設執行掣；DLLL 槓桿 ETF＝「唔入正式候選」顯示-only。wr／總評分＝client 同式補計（總評分＝score×質素×動量減速，同 engine _win_total）；σ距＝(S−K)/S÷(IV×√(DTE/252)) 色階同 preflight；⚠＝單名按金超上限。點擊資料列 → 個股詳情（實時期權鏈＋情境分析）。</div>');
   el.innerHTML=h;
 }
 
@@ -1497,7 +1555,7 @@ function winRankContracts(x){
   return Math.max(0,Math.min(10,Math.floor(cap/m1)));   // 唔夠一張 → 0（誠實顯示；詳情/執行側自行 max(1,·)）
 }
 function execWinRank(i){
-  const x=(rec&&rec.winrank||[])[i];if(!x)return;
+  const x=(window._wrRows||(rec&&rec.winrank)||[])[i];if(!x)return;   /* ⭐09-14 排序後 index 對 _wrRows */
   const side=(x.signal==='SELL CALL')?'CALL':'PUT';
   const nExec=Math.max(1,winRankContracts(x));   // ⭐ winRankContracts 而家可以係 0（預算唔夠）→ 執行側夾返 ≥1 由 engine 關卡把關
   // winrank 行不在 book/best/candidates → 合成 candidate context，modal 才齊全 spot/mid/OTM 顯示
@@ -3920,6 +3978,7 @@ function setMethod(m){
   //   兩個方法論都顯示（合併單腿股表＝排名/顯示層，執行仍以當周掃描榜過 P7 為準）
   const ct=$('candTitle'); if(ct)ct.textContent=m==='h6040'?'候選名單（v5 池快照 · wr 排序 · mom 只做閘）':'候選名單（按分數排序）';
   const wc=$('winrankCard'); if(wc)wc.style.display='';
+  const cc=$('candCard'); if(cc)cc.style.display=(m==='h6040')?'none':'';   /* ⭐09-14 user：一個表就夠——h6040 隱藏 v5 池快照卡（TG＋h6040_rec.json 照推照寫） */
   if(m==='h6040'){loadH6040Gates().then(()=>renderAll());loadH6040Margin();}   // ⭐ 09-02 margin_gap 即拉
   else renderAll();
   loadWeeklyScan();   // ⭐ 09-09：掃描榜跟 METHOD 分流（h6040_174 名單 ↔ v4_balanced winrank），切換即重拉
