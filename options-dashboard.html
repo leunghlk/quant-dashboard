@@ -1431,6 +1431,15 @@ function renderCandidates(){
   $('candBody').innerHTML=h;
 }
 
+/* ⭐ 09-14 user 拍板：v4_balanced tab 用返「原本」stock universe——即 engine options_income.py
+   UNIVERSE 嘅 base tech 池 69 隻（08-27 +100 sector ETF holdings／09-08 +IAU 兩批擴充係
+   A級平衡王/h6040 廣池，唔入 v4 tab 顯示）。⚠️ 只係顯示層過濾——engine 執行池一字不改。 */
+const V4_UNIVERSE=('AMAT KLAC LRCX INTC AMD MRVL CRDO BE GLW WDAY DDOG ADBE NOW SNDK MU DELL '
+ +'DLLL PANW MSFT AMZN GOOG AAPL NVDA MAGS LITE COHR ALAB TER AMKR ASML TSM NET '
+ +'ARM GEV VRT AVGO SPCX SKHY HPE AAOI LYTE CIEN ANET HPQ ASX QCOM ON GFS SNOW '
+ +'PWR CAT NBIS RDW RKLB LUNR WDC STX DRAM WOLF TSEM STM TXN NVTS IGV CRM CRWD PLTR IBM AXTI').split(' ');
+const V4_SET=new Set(V4_UNIVERSE);
+
 /* ⭐ 2026-09-14: 單腿股表（合併兩帶）——渲染 rec.merged_board（engine build_merged_board）：
    當周帶 5-7D×Δ0.20-0.25（＝engine 執行帶）＋ 長帶 10-14D×Δ0.25-0.30（僅參考）。
    排名＝engine 側 P(OTM) 降序（差距 <2pp cluster 內按年化收入）——client 唔 re-sort。
@@ -1469,7 +1478,8 @@ function renderWinRank(){
   const el=$('winrankBody');if(!el)return;
   const mb=(rec&&rec.merged_board)||[];
   const legacy=!mb.length;   /* engine 未出 merged_board → 舊 winrank fallback（同一套欄位/render） */
-  const w=(legacy?[...((rec&&rec.winrank)||[])]:[...mb]).map(x=>Object.assign({band:x.band||(legacy?'weekly':undefined)},x));
+  const w=(legacy?[...((rec&&rec.winrank)||[])]:[...mb]).map(x=>Object.assign({band:x.band||(legacy?'weekly':undefined)},x))
+    .filter(x=>(METHOD==='h6040')||V4_SET.has(x.ticker));   /* ⭐09-14 user 拍板：v4 tab＝原本 tech 池 69 隻，廣池行唔顯示（engine 執行池唔變） */
   if(!w.length){el.innerHTML='<div class="muted">單腿股表：等待盤前全宇宙掃描（每日更新）。</div>';return;}
   /* ⭐ 09-14 排序：預設＝engine 順序（P(OTM) 降序＋<2pp cluster 年化 tie-break）；撳欄位標題改排序 */
   const st=window._wrSort;
@@ -1542,6 +1552,7 @@ function renderWinRank(){
   h+=(legacy
    ?'<div class="muted" style="font-size:11px;margin-top:4px">（fallback——engine 未出合併單腿股表，顯示 rec.winrank 5-7D 帶；今晚 21:00 run_once 後自動轉合併兩帶）排序掣：撳欄位標題＝倒序↓／再撳＝順序↑／第三下＝返預設（winrank 預設＝總評分高至低）。<b>贏錢</b>＝P(到期 &gt; 盈虧平衡 K−保費)；勝率 P(OTM)＝守住行使價。沽 Call 唔會出現——接貨後先喺「持倉管理」以 Covered Call 沽 Call。</div>'
    :'<div class="small muted" style="margin-top:4px">⭐ 預設排序＝<b>engine 側計好</b>（P(OTM) 降序，差距 &lt;2pp cluster 內按年化收入）；排序掣只改顯示、唔影響 engine。⭐09-14 <b>L_mom×W_wr</b>：<b>當周 5-7D×Δ0.20-0.25＝W_wr 腿</b>（排序 key＝wr＝年化收入×(0.5+IV_rank/100)，mom 只做入場閘；A/B wr hardcap +27.11%/eqDD −5.12%/WR 98.71% vs mom +16.42%/−6.70%——撳「當周腿視圖」睇 wr 序）；<b>長帶 10-14D×Δ0.25-0.30＝L_mom 腿僅參考</b>（回測排序＝mom；表內 MOM 欄＝worker 動量-質素分 qscore 0-1，同回測 v5 mom_score 同方向唔同源）。<b>執行＝「當周掃描榜」過 P7 六問卡</b>，此卡唔設執行掣；DLLL 槓桿 ETF＝「唔入正式候選」顯示-only。wr／總評分＝client 同式補計（總評分＝score×質素×動量減速，同 engine _win_total）；σ距＝(S−K)/S÷(IV×√(DTE/252)) 色階同 preflight；⚠＝單名按金超上限。點擊資料列 → 個股詳情（實時期權鏈＋情境分析）。</div>');
+  h+=(METHOD!=='h6040'?'<div class="small muted" style="margin-top:4px">🏷 宇宙＝<b>v4_balanced 原本 tech 池 '+V4_UNIVERSE.length+' 隻</b>（09-14 user 拍板還原）——engine 全池嘅 +100 sector ETF／IAU 行（h6040 tab 先見）喺此卡過濾唔顯示；engine 執行池唔變。</div>':'');
   el.innerHTML=h;
 }
 
@@ -2800,7 +2811,7 @@ const H6040_UNIVERSE=['AAOI','AAPL','ABBV','ABNB','ABT','ADBE','ADI','AFRM','ALA
 function renderMethod(){
   if(METHOD==='h6040'){renderMethodH6040();return;}
   // restore v4 originals if we switched back from h6040
-  if(_v4SpecHTML){$('methodSpecBody').innerHTML=_v4SpecHTML;$('methodSpecTitle').textContent='⭐ v4_balanced 模型規格';$('methodSpecMeta').textContent='09-14 起 engine config＝A級平衡王（回測 d2025_mu20 臂）· 舊 v4 參數 2026-08-15 凍結已退役';}
+  if(_v4SpecHTML){$('methodSpecBody').innerHTML=_v4SpecHTML;$('methodSpecTitle').textContent='⭐ v4_balanced 模型規格';$('methodSpecMeta').textContent='09-14 起 engine config＝A級平衡王（回測 d2025_mu20 臂）· 舊 v4 參數 2026-08-15 凍結已退役 · 顯示宇宙＝v4 原本 tech 池 69 隻（09-14 user 拍板還原；engine 全池 +100 sector ETF／IAU 行 h6040 tab 先見）';}
   if(_v4PerfHTML){$('methodPerfBody').innerHTML=_v4PerfHTML;$('methodPerfTitle').textContent='📊 v4_balanced 回測績效（歷史記錄）';$('methodPerfMeta').textContent='2025 全年 + 2026-01-01→08-15 · HKD 200,000 起步 · 舊 v4 config 口徑，非現行 A級';}
   $('methodBest').innerHTML=
     '<p><b>三層：趨勢過濾 → 分數排序 → 按金配倉。</b><b style="color:#1a73e8">09-14 user 拍板「A級平衡王」＋L_mom×W_wr</b>＝戶口尺寸回測 d2025_mu20 臂（18-config grid＋4-stress，U174 ∩ ≤2026-08-20）：mom 排序對照（hardcap 同口徑）<b>+16.42%/年 · eqDD −6.70% · PF 12.68 · 月收 ~US$528</b>；<b>⭐ 排序換 wr（yield×IV rank，mom 只做閘）→ +27.11%/年 · eqDD −5.12% · WR 98.71% · ~US$1,141/月</b>（A/B 只換排序 key，過濾器/strike/sizing 不變；絕對 ann 有雙重 in-sample 膨脹、相對排序穩）。board＝engine＝回測同一策略。</p>'+
@@ -3076,8 +3087,9 @@ async function loadWeeklyScan(){
   if(!activeBridge){await detectBridge();}
   if(!activeBridge){renderWeeklyScan();return;}
   await fetchWscanUsd();   // 分檔預算＝Futu 實際 USD 購買力；接貨閘分母＝equity
-  const wr=(rec&&rec.winrank)||[];
+  let wr=(rec&&rec.winrank)||[];
   const isH60=(METHOD==='h6040');   // ⭐09-13 晚三：分返 method 兩榜；09-14 兩榜候選池統一＝winrank（h6040 多 XSP 腿）
+  if(!isH60)wr=wr.filter(function(x){return x&&x.ticker&&V4_SET.has(x.ticker);});   /* ⭐09-14 user 拍板：v4 榜＝v4_balanced 原本 tech 池 69 隻（engine 執行池唔變） */
   if(!wr.length){   // ⭐09-14 兩榜都要 winrank（board≡engine；短 retry，60s interval 兜底）
     if(wscanWaitN++<10){wscanErr='等 engine rec（winrank）…';renderWeeklyScan();setTimeout(loadWeeklyScan,6000);return;}
     wscanErr='engine rec 冇 winrank';renderWeeklyScan();return;
@@ -3254,7 +3266,7 @@ function renderWeeklyScan(){
   const el=$('wscanBody'), meta=$('wscanMeta'); if(!el)return;
   const tt=$('wscanTitle');
   const pool=(wscanLast&&wscanLast.pool)||((METHOD==='h6040')?'h6040':'v4');   // 晚三：榜跟 pool 走（wscanLast 帶定，null 時跟 METHOD）
-  if(tt)tt.textContent=(pool==='h6040'?'🎯 當周掃描榜 · h6040（A級平衡王 winrank ∪ XSP 現金結算腿）':'🎯 當周掃描榜 · v4_balanced（A級平衡王 winrank 前 12）')+' · 最值得做排序';
+  if(tt)tt.textContent=(pool==='h6040'?'🎯 當周掃描榜 · h6040（A級平衡王 winrank ∪ XSP 現金結算腿）':'🎯 當周掃描榜 · v4_balanced（v4 原本 tech 池 69 隻 · winrank 前 12）')+' · 最值得做排序';
   const st=wscanLast?Math.round((Date.now()-wscanTs)/1000):null;
   const budget=wscanUsd;   // Futu 實際 USD 購買力（真 order gate），唔係 engine 70% 策略線
   if(meta){
@@ -3265,7 +3277,7 @@ function renderWeeklyScan(){
   }
   if(!wscanLast){
     el.innerHTML='<div class="small muted">暫時攞唔到 live 數（'+esc(wscanErr||'載入中')+'）</div>'
-      +'<div class="small muted" style="margin-top:4px">候選池＝'+(pool==='h6040'?'engine winrank（A級平衡王）∪ XSP 現金結算腿':'engine winrank 前 12（A級平衡王：5-7DTE×Δ0.20-0.25×接得起）')+'；按金預算＝Futu 實際 USD 購買力（/real_funds）</div>';
+      +'<div class="small muted" style="margin-top:4px">候選池＝'+(pool==='h6040'?'engine winrank（A級平衡王）∪ XSP 現金結算腿':'engine winrank（v4 原本 tech 池 69 隻過濾）前 12（5-7DTE×Δ0.20-0.25×接得起）')+'；按金預算＝Futu 實際 USD 購買力（/real_funds）</div>';
     return;
   }
   const dte0=wscanLast.dte;
@@ -3322,7 +3334,7 @@ function renderWeeklyScan(){
   });
   h+='</tbody></table></div>';
   h+='<div class="small muted" style="margin-top:6px">'
-    +'⭐09-14 拍板 A級平衡王 L_mom×W_wr：board≡engine——'+(pool==='h6040'?'本榜＝engine winrank ∪ XSP 現金結算腿'+(wscanXspN?'（今輪 XSP '+wscanXspN+' 隻）':'（XSP spot 攞唔到，本輪腿缺席）'):'本榜＝engine winrank 前 12')+'（5-7DTE×Δ0.20-0.25×按金硬閘 $12,726×spot≤$374；engine/winrank 排序＝wr（yield×IV rank），回測 wr hardcap +27.1%/−5.1% vs mom 對照 +16.4%/−6.7%），五層排序照用（晚二 user：「以最值得做排名」），去重後全部釘死 '+esc(wscanLast.expiry||'')+' 到期一次過報價。'
+    +'⭐09-14 拍板 A級平衡王 L_mom×W_wr：board≡engine——'+(pool==='h6040'?'本榜＝engine winrank ∪ XSP 現金結算腿'+(wscanXspN?'（今輪 XSP '+wscanXspN+' 隻）':'（XSP spot 攞唔到，本輪腿缺席）'):'本榜＝engine winrank（v4 原本 tech 池 69 隻過濾）前 12')+'（5-7DTE×Δ0.20-0.25×按金硬閘 $12,726×spot≤$374；engine/winrank 排序＝wr（yield×IV rank），回測 wr hardcap +27.1%/−5.1% vs mom 對照 +16.4%/−6.7%），五層排序照用（晚二 user：「以最值得做排名」），去重後全部釘死 '+esc(wscanLast.expiry||'')+' 到期一次過報價。'
     +'五層排序：L1 接貨閘（K×100＞equity＝❌沉底；🟦XSP 現金結算豁免——無實物接貨）→ L2 按金（×1.255＞購買力＝❌次底）→ POP 降序（null 唔入正選）→ 年化副序 → 收入只做橫比。正選5＝過 L1+L2 嘅 POP 序頭 5 逐隻扣減購買力；唔夠按金可貨幣兌換 T+0 補。'
     +'口徑：收入＝bid×100；按金＝max(bridge live, winrank margin1)×1.255（09-09 實測 1.2554 倍，XSP 實凍遠細過估計、以 Futu app 為準）；年化＝(bid/K)×252/DTE（近到期偏誇，只供橫比）；IV/Δ＝BS 由實時 mid 反推；σ距色階同 /preflight（≥1σ 綠、0.7-1σ 琥珀、<0.7σ 紅）。'
     +'到期 ⚠️badge＝持有期內（今日→到期）撞正 FOMC/CPI/PPI（橋 EVENT_DATES_2026 全期掃描）；A′/B′ 全閘參考板已退役（統一榜＋五層排序取代，考古 git c1a798f）。'
@@ -3976,9 +3988,9 @@ function setMethod(m){
   }
   // ⭐ 08-24 v4：h6040 模式 — 候選名單 title 換合併單腿股表字眼；⭐ 09-14 起「單腿股表」卡
   //   兩個方法論都顯示（合併單腿股表＝排名/顯示層，執行仍以當周掃描榜過 P7 為準）
-  const ct=$('candTitle'); if(ct)ct.textContent=m==='h6040'?'候選名單（v5 池快照 · wr 排序 · mom 只做閘）':'候選名單（按分數排序）';
+  const ct=$('candTitle'); if(ct)ct.textContent='候選名單（h6040 v5 池快照 · wr 排序 · mom 只做閘）';
   const wc=$('winrankCard'); if(wc)wc.style.display='';
-  const cc=$('candCard'); if(cc)cc.style.display=(m==='h6040')?'none':'';   /* ⭐09-14 user：一個表就夠——h6040 隱藏 v5 池快照卡（TG＋h6040_rec.json 照推照寫） */
+  const cc=$('candCard'); if(cc)cc.style.display='none';   /* ⭐09-14 user 拍板：兩個 tab 都收埋——呢張卡＝h6040 v5 池快照（h6040_rec.json），v4 tab 唔應該見到 h6040 宇宙＋「一個表就夠」；TG＋h6040_rec.json 照推照寫不受影響 */
   if(m==='h6040'){loadH6040Gates().then(()=>renderAll());loadH6040Margin();}   // ⭐ 09-02 margin_gap 即拉
   else renderAll();
   loadWeeklyScan();   // ⭐ 09-09：掃描榜跟 METHOD 分流（h6040_174 名單 ↔ v4_balanced winrank），切換即重拉
