@@ -362,12 +362,12 @@ const GLOSS={
   'strike':'<b>行使價 Strike</b>：到期日你若被指派，就是以此價錢買入 100 股。越 OTM 越平但越安全。<br>選法：選 delta≈0.25 的那個行使價（≈25% 機會被指派）。',
   'premium':'<b>權利金 Premium</b>：買家支付給你的款項（你賣出期權立即收到）。公式：mid×100×張數。<br>你的最大利潤就是這筆錢。',
   'collateral':'<b>抵押 Collateral（接貨現金）</b>：如被指派需拿出來的款項 = 行使價×100×張數。v4_balanced 用按金戶口（不用全額鎖定現金），但應知道接貨成本此數。',
-  'margin':'<b>按金 Margin（Reg-T）</b>：券商真正鎖住的款項 = max(20%×現價＋權利金−OTM，10%×行使價＋權利金)×100×張數。<br>v4_balanced 的倉位預算採用此口徑：總按金 ≤ equity×70%。',
-  'realmargin':'<b>按金容量（paper 倉 HKD 200,000）</b>：總按金預算 = equity×70% ≈ HKD 140,000；已用 = Σ 每張按金×張數。<br>剩餘按金 = 仲可以開幾多新倉嘅額度；超額 → engine 拒單＋Telegram 警報。<br>（另有「僅參考」嘅真實 Futu 戶購買力，紙上交易唔受佢限制。）',
+  'margin':'<b>按金 Margin（Reg-T）</b>：券商真正鎖住的款項 = max(20%×現價＋權利金−OTM，10%×行使價＋權利金)×100×張數。<br>倉位預算：v4 口徑 = equity×70%；⭐09-14 起 engine＝A級平衡王 = <b>min(mu0.20×equity, 硬閘 US$12,726)</b>。',
+  'realmargin':'<b>按金容量（v4 paper 制 · 歷史口徑）</b>：總按金預算 = equity×70% ≈ HKD 140,000；已用 = Σ 每張按金×張數。<br>剩餘按金 = 仲可以開幾多新倉嘅額度；超額 → engine 拒單＋Telegram 警報。<br>（另有「僅參考」嘅真實 Futu 戶購買力，紙上交易唔受佢限制；⭐09-14 起 live 預算＝A級 min(mu0.20×equity, 硬閘 US$12,726)。）',
   'capacity':'<b>剩餘按金 ≈ 仲夠開幾多張</b>：剩餘按金 ÷ 每張按金（~$3.4k 粗估，實際每名唔同）。「仲夠 N 張」只計按金預算，未計單名 30% cap、板塊 cap、6 倉上限、每日 ≤2 新倉——engine 開倉時會逐關檢查。',
   'dte':'<b>Tenor / DTE（到期日數）</b>：距離到期嘅日曆日數。v4_balanced 目標區間 7–14 日：太短時間值 decay 快但無時間修復；太長資金鎖得耐、年化回報跌。',
   'monthly':'<b>估算月收入</b>：<br>· v4_balanced 模式＝（活倉權利金 ＋ 未執行建議權利金）× 2.5 週期/月（run-rate 粗估，未扣接貨回吐、止損、費用）。<br>· Hybrid 60/40 模式＝回測 4.6 年月均（另註中位數）。<br>兩個 model 數值唔同，跟上方方法論掣切換。',
-  'util':'<b>按金利用率</b>：已用按金 ÷（equity×70%）。<br>70% 上限是回測凍結參數 —— 超出上限 = 不跟規則 = 結果無從比較。',
+  'util':'<b>按金利用率</b>：已用按金 ÷ 預算。<br>⭐09-14 起 A級：預算 = min(mu0.20×equity, 硬閘 US$12,726)。（v4 歷史口徑：equity×70%，超出上限 = 不跟規則 = 結果無從比較。）',
   'breadth':'<b>大盤寬度 Breadth</b>：宇宙中股價位於自己 MA50 之上的比例。<br>&lt;50% = 大盤弱 → 引擎不開新倉（2026 年 8 月上半月就是這樣停止）。這個閘門避免了很多次跌市接貨。',
   'breaker':'<b>熔斷 Circuit Breaker</b>：帳戶回撤到 −15% → 停止開新倉 10 個交易日，回修到 −8% 之上才 re-arm。<br>one-shot 設計：觸發一次即停，不會每日重複觸發無限循環。',
   'cut':'<b>Break-glass／Cut-before-assignment（真趨勢穿自動止蝕）</b>：行使價失守 <b>而且</b> 股價 &lt; 0.95×MA50（趨勢轉壞）<b>而且</b> DTE≥5 → 真倉即市自動 buy-to-close（ask 側保證走、未成交下個 cycle 重掛）。<br>⭐ 4.6 年回測此規則 4 槍全部真跌穿、零殺錯（MA50 趨勢濾網功勞）——09-12 拍板做全策略唯一 mark 類自動平倉；其他 mark 止蝕（1.5×/2×/3×）實測殺錯 20-46% 假跌穿，一律只做警報。',
@@ -1377,7 +1377,7 @@ function renderBest(){
   h+='<div style="font-size:12px;color:#94a3b8">資本 + 期望</div>';
   h+='<div style="font-size:20px;font-weight:800">HKD '+CAPITAL_HKD.toLocaleString()+'</div>';
   h+='<div class="bar" style="margin-top:8px"><div style="width:'+Math.min(100,(rec.margin_budget?Math.round((rec.used_margin_open||0)/rec.margin_budget*100):0))+'%;background:#3b82f6"></div></div>';
-  h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">按金 $'+fmt(rec.used_margin_open||0)+'/'+fmt(rec.margin_budget||0)+tip('margin')+'（70% 預算 · 6 put 上限 · 每日 ≤2 新倉）</div>';
+  h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">按金 $'+fmt(rec.used_margin_open||0)+'/'+fmt(rec.margin_budget||0)+tip('margin')+'（⭐09-14 A級：min(mu0.20×equity, 硬閘 US$12,726) · 8 put 上限 · 每日 ≤2 新倉）</div>';
   const _lk=lockedHKD(), _av=availHKD();
   h+='<div class="bar" style="margin-top:8px"><div style="width:'+Math.min(100,Math.round(_lk/CAPITAL_HKD*100))+'%;background:#0d9488"></div></div>';
   h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">還可接貨現金 <b style="color:#5eead4">HKD '+fmt(_av)+'</b>'+tip('collateral')+' —— 已鎖 HKD '+fmt(_lk)+' / '+fmt(CAPITAL_HKD)+'（再開短 put 的剩餘抵押額度，含排隊中訂單）</div>';
@@ -1393,7 +1393,7 @@ function renderBest(){
   loadBestFutuMargin(picks);           // ⭐ 09-02：Futu 實收按金＋贖回現金寶（async 注入 data-mgfut 格）
   const bb=el.querySelector('.bar');   // ⭐ hover bar 看按金實數
   if(bb){bb.style.cursor='help';const _bp=rec.margin_budget?Math.round((rec.used_margin_open||0)/rec.margin_budget*100):0;
-    bb.dataset.tip='<b>按金運用（成個組合）</b><br>$'+fmt(rec.used_margin_open||0)+' ／ $'+fmt(rec.margin_budget||0)+'（equity×70%）= <b>'+_bp+'%</b><br>6 put 上限 · 每日 ≤2 新倉 · 單名按金 ≤30% equity';}
+    bb.dataset.tip='<b>按金運用（成個組合）</b><br>$'+fmt(rec.used_margin_open||0)+' ／ $'+fmt(rec.margin_budget||0)+'（min(mu0.20×equity, 硬閘 US$12,726)）= <b>'+_bp+'%</b><br>8 put 上限 · 每日 ≤2 新倉 · 單名按金 ≤25% equity（A級 · 09-14 起）';}
 }
 function liveSpot(tk,fb){const s=live[tk];return px2(s&&s.live_price!=null?s.live_price:fb);}
 
@@ -2862,7 +2862,7 @@ function renderMethodH6040(){
     '已用 VIX 做錨校準（相關 0.73），並且用「溢價打 86 折」壓力測試確認策略仍然通過。真實落盤前要用真實期權鏈數據再校準。</p>';
 
   $('methodSize').innerHTML=
-    '<p><b>配倉（兩腿獨立）：</b>每腿獨立嘅按金預算（單股 70%、XSP 90%——08-27 Path A）。XSP 腿單倉大（≤90%、每倉≤2張）因為指數無單股風險＋現金結算 tail 有界。</p>'+
+    '<p><b>配倉（兩腿獨立）：</b>每腿獨立嘅按金預算（單股 70%、XSP 90%——08-27 Path A 回測口徑；⭐09-14 起 live 單股＝util 0.20＋硬閘 US$12,726，見上規格表）。XSP 腿單倉大（≤90%、每倉≤2張）因為指數無單股風險＋現金結算 tail 有界。</p>'+
     '<p style="margin-top:8px"><b>金 sleeve（09-08 加）：</b>按金預算 <b>US$'+fmt(GOLD_BT.budget_usd)+'</b>（US$10k sleeve × 30% · 上限 '+GOLD_BT.max_contracts+' 張試倉）· <b>RV20&gt;'+GOLD_BT.rv20_max+'% 唔開新倉</b>（現有倉照管理）。IAU 真倉經 options_income engine 記賬，出場跟引擎 PT50%／到期規則；IAU 價差闊，落單 limit 貼 bid。</p>'+
     '<p style="margin-top:8px"><b>出場規則（真倉全自動，09-12 口徑）：</b></p>'+
     '<ol style="margin:4px 0 0 18px;line-height:1.9">'+
@@ -3046,10 +3046,10 @@ async function loadWeeklyScan(){
   }catch(e){}
   let merged=[], errs=[], exp0=wscanExp||WSCAN_H60_EXPIRY, dte0=null;   // ⭐09-14 多數派 expiry 優先，engine rec 冇 expiry 先用 7DTE 週五
   try{
-    const r=await fetchTimeout(activeBridge+'/weekly_scan?items='+encodeURIComponent(items.join(','))+'&expiry='+WSCAN_H60_EXPIRY+'&secret='+encodeURIComponent(BRIDGE_SECRET),30000);
+    const r=await fetchTimeout(activeBridge+'/weekly_scan?items='+encodeURIComponent(items.join(','))+'&expiry='+exp0+'&secret='+encodeURIComponent(BRIDGE_SECRET),30000);   // ⭐09-14 review 修：報價鏈都要跟多數派 expiry（舊碼硬編週五→ET 周一至四用錯鏈報價＋snap 錯位）
     const j=r&&r.ok?await r.json().catch(function(){return null;}):null;
     if(j&&j.ok&&j.rows&&j.rows.length){
-      exp0=j.expiry||WSCAN_H60_EXPIRY; dte0=j.dte;
+      exp0=j.expiry||wscanExp||WSCAN_H60_EXPIRY; dte0=j.dte;
       const wrBy={};
       wr.forEach(function(x,i){if(x&&x.ticker)wrBy[x.ticker+':'+x.strike]={r:i+1,m:x.margin1,e:x.earnings,p:x.premium};});
       const seenRs={};   // ⭐09-13 晚三 snap 防撞：正身 request 先收，snap 行撞相同 ticker:strike 就犧牲
@@ -3433,7 +3433,7 @@ function renderH6040Overview(){
     const usedPct=Math.min(100,Math.round(used/CAP*100));
     const _rvG=h6040GoldRv20();   // ⭐ 09-08：金腿 RV20 閘狀態（client 端 kline 計，未載入=數據未到）
     const capTips={
-      stk:'<b>單股腿（60%）目標配置</b><br>HKD 192,000（320k × 60%）<br>util 70% · ≤8 倉 · 單名 ≤25%<br>閘門：VIX 20–32 先開（'+(h6040Gates?(h6040Gates.vix==null?'⚪ 數據未到':h6040Gates.vixOk?'🟢 而家開':'🔴 而家閂'):'⚪ 數據未到')+'）',
+      stk:'<b>單股腿（60%）目標配置</b><br>HKD 192,000（320k × 60%）<br>⭐09-14 A級：util 0.20＋硬閘 US$12,726 · ≤8 倉 · 單名 ≤25%<br>閘門：VIX 20–32 先開（'+(h6040Gates?(h6040Gates.vix==null?'⚪ 數據未到':h6040Gates.vixOk?'🟢 而家開':'🔴 而家閂'):'⚪ 數據未到')+'）',
       spy:'<b>XSP 腿（40%）目標配置</b><br>HKD 128,000（320k × 40%）<br>util 90% · ≤2 倉 · 每倉 ≤2 張（Path A）<br>閘門：XSP＞200DMA 先開（'+(h6040Gates?(h6040Gates.spyAbove==null?'⚪ 數據未到':h6040Gates.spyAbove?'🟢 而家開':'🔴 而家閂'):'⚪ 數據未到')+'）',
       gold:'<b>金 sleeve（09-08 加）</b><br>US$10,000（≈HKD 78k 由閒置現金撥出）<br>按金預算 US$'+fmt(GOLD_BT.budget_usd)+' · 上限 '+GOLD_BT.max_contracts+' 張<br>閘門：IAU RV20≤'+GOLD_BT.rv20_max+'%'+(_rvG!=null?' · 現在 '+_rvG.toFixed(1)+'%':'')+'（'+(_rvG!=null?(_rvG<=GOLD_BT.rv20_max?'🟢 而家開':'🔴 而家閂'):'⚪ 數據未到')+'）'
     };
@@ -3633,7 +3633,7 @@ function renderH6040Best(){
   h6040AutoXspChain();
   h6040AutoGoldChain();   // ⭐ 09-08：金 sleeve（IAU）鏈＋日線 RV20 同款 60s 節流
   let h='';
-  h+='<div class="small muted" style="margin-bottom:8px">Hybrid 60/40 實時信號 —— <b>回測規則</b>＋<b>實時閘門</b>。單股腿候選＝<b>v5 回測池</b>（h6040_scan 每日 06:10 掃 174 隻宇宙＋CFG_SINGLE 過濾，同回測同源（09-04 起 167→174）），只在 VIX 20–32 開放；XSP 腿只在 XSP>200DMA 開放；金腿（IAU CSP）只在 RV20≤'+GOLD_BT.rv20_max+'% 開放。⚠️ 呢個池表掃描帶＝CFG_SINGLE 回測口徑（Δ0.25–0.30×10–14）；<b>09-14 起 live 單股腿＝A級平衡王 Δ0.20–0.25×5–7 —— 執行以「當周掃描榜」為準</b>（board≡engine）。</div>';
+  h+='<div class="small muted" style="margin-bottom:8px">Hybrid 60/40 實時信號 —— <b>回測規則</b>＋<b>實時閘門</b>。單股腿候選＝<b>h6040_scan 每日 06:10 掃描快照</b>（⭐09-14 起＝A級平衡王帶 Δ0.20–0.25 × 5–7DTE × ≤$374，同 engine 同源），只在 VIX 20–32＋breadth≥50% 開放；XSP 腿只在 XSP>200DMA 開放；金腿（IAU CSP）只在 RV20≤'+GOLD_BT.rv20_max+'% 開放。⚠️ 池表係掃描快照（詳情頁 live chain 重揀 K）；<b>執行以「當周掃描榜」為準</b>（board≡engine，落單前過 P7 六問卡）。</div>';
   h+=h6040GateBanner();
   const g=h6040Gates;
   // XSP leg card
