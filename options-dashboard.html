@@ -3499,7 +3499,7 @@ function h6040GateBanner(){
   if(!g.loaded)return '<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">⏳ 實時閘門讀取中（VIX + XSP 200DMA）… 請確認 bridge 連線。</div>';
   const vixTxt=g.vix!=null?('VIX <b>'+g.vix.toFixed(1)+'</b>'+(g.vixAsOf?' <span class="small muted">（收市 '+g.vixAsOf+'）</span>':'')):'VIX —（數據未到）';
   const vixOk=g.vixOk;
-  const spyTxt=g.spy!=null&&g.spyMa200!=null?('XSP <b>$'+g.spy.toFixed(1)+'</b> vs 200DMA $'+g.spyMa200.toFixed(1)+' → '+(g.spyAbove?'<b style="color:#16a34a">之上 ✓</b>':'<b style="color:#dc2626">之下 ✗</b>')+(g.spyAsOf?' <span class="small muted">（收市 '+g.spyAsOf+'）</span>':'')):'XSP —（數據未到）';
+  const spyTxt=g.spy!=null&&g.spyMa200!=null?('XSP <b>$'+g.spy.toFixed(1)+'</b> vs 200DMA $'+g.spyMa200.toFixed(1)+' → '+(g.spyAbove?'<b style="color:#16a34a">之上 ✓</b>':'<b style="color:#dc2626">之下 ✗</b>')+(g.spyAsOf?' <span class="small muted">（收市 '+g.spyAsOf+(g.spyStaleH?' · bridge 快取 '+g.spyStaleH+'h 前':'')+'）</span>':'')):'XSP —（數據未到）';
   return h6040MarginBlock()+'<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px">'+
     '<div style="flex:1;min-width:220px;background:'+(vixOk?'#ecfdf5':'#f8fafc')+';border:1px solid '+(vixOk?'#99f6e4':'#e2e8f0')+';border-radius:10px;padding:10px 12px">'+
       '<div class="small muted">單股腿閘門：VIX 20–32</div>'+
@@ -3733,7 +3733,8 @@ function h6040GoldCard(){
   const bidLine='<div style="font-size:12px;color:#4ade80;margin-top:3px">bid $'+(g.bid!=null?g.bid.toFixed(2):'—')+' ×100 ≈ $'+fmt(g.premium)+'/張（≈HK$'+fmt(g.premium_total_hkd)+'）· limit 掛 bid（價差 10–30¢＝25–40% premium）</div>';
   const mgOk=(GOLD_BT.futu_margin_hi<=GOLD_BT.budget_usd);
   const mgLine='<div style="font-size:12px;margin-top:3px;color:'+(mgOk?'#4ade80':'#f87171')+'">'+(mgOk?'✅':'⚠️')+' Futu 按金估 $'+fmt(GOLD_BT.futu_margin_lo)+'–'+fmt(GOLD_BT.futu_margin_hi)+'/張（Reg-T 模型 $'+fmt(g.margin1)+' 只係下限；assignment ≈ $'+fmt(GOLD_BT.assign_cost_usd)+'/張 裝得落）'+(mgOk?' ≤':' >')+' sleeve 預算 $'+fmt(GOLD_BT.budget_usd)+'</div>';
-  const rvLine='<div style="font-size:12px;margin-top:3px;color:'+(rvOk?'#4ade80':'#f87171')+'">RV20 '+rv.toFixed(1)+'% '+(rvOk?('≤'+GOLD_BT.rv20_max+'% ✓ 開倉 OK'):('>'+GOLD_BT.rv20_max+'% 🛑 停手（照管理現倉，唔開新倉）'))+'</div>';
+  const rvStale=(h6040GoldKl&&h6040GoldKl.stale)?('<span style="color:#94a3b8">（bridge 快取 '+h6040GoldKl.stale_h+'h 前）</span> '):'';   // ⭐09-14 stale 標記
+  const rvLine='<div style="font-size:12px;margin-top:3px;color:'+(rvOk?'#4ade80':'#f87171')+'">RV20 '+rv.toFixed(1)+'% '+rvStale+(rvOk?('≤'+GOLD_BT.rv20_max+'% ✓ 開倉 OK'):('>'+GOLD_BT.rv20_max+'% 🛑 停手（照管理現倉，唔開新倉）'))+'</div>';
   const exec=execOk
     ?('<div style="margin-top:8px"><button class="btn btn-go" onclick="h6040GoldExec()">✅ 沽 '+GOLD_BT.ticker+' Put ×'+GOLD_BT.max_contracts+'（limit 掛 bid）</button></div>')
     :('<div style="font-size:12px;margin-top:6px;color:#f87171">🛑 執行掣收起：'+(!bidOk?'bid 無報價／$0 —— 唔追價':'RV20 超限 —— 唔開新倉')+'</div>');
@@ -3936,7 +3937,7 @@ const ALEG={
        alt_wr_all:{ann:53.01,sharpe:2.14,worst:-40923,n_neg:9}},
   stress_rev:'長腿 stress 反轉：double（cost×2＋IV×0.86）下 L_mom 月DD −22.59%（三臂最深）vs L_wr_mom −17.86%——「長腿 mom 較安全」唔係 stress-robust；當周腿 wr double +22.12%/−5.36% 仍贏 mom +13.28%/−7.01%'
 };
-let h6040Gates={vix:null,spy:null,spyMa200:null,spyAbove:null,vixOk:null,loaded:false};
+let h6040Gates={vix:null,spy:null,spyMa200:null,spyAbove:null,vixOk:null,spyStaleH:null,vixStaleH:null,loaded:false};
 async function loadH6040Gates(){
   if(!activeBridge){h6040Gates.loaded=false;return;}
   try{
@@ -3949,7 +3950,7 @@ async function loadH6040Gates(){
     //   （同 sector_rot 1日錨定／hk 收市錨定 09-03 修法同一族）。AsOf＝最後非 null bar 日期。
     if(rv&&rv.bars&&rv.bars.length){
       const vb=rv.bars.filter(b=>b.c!=null);
-      if(vb.length){h6040Gates.vix=vb[vb.length-1].c;h6040Gates.vixAsOf=String(vb[vb.length-1].t||'').slice(0,10);}
+      if(vb.length){h6040Gates.vix=vb[vb.length-1].c;h6040Gates.vixAsOf=String(vb[vb.length-1].t||'').slice(0,10);h6040Gates.vixStaleH=rv.stale?rv.stale_h:null;}   // ⭐09-14 stale 標記（bridge ≤48h 存底時顯示）
     }
     if(rs&&rs.bars&&rs.bars.length){
       const sb=rs.bars.filter(b=>b.c!=null);
@@ -3959,6 +3960,7 @@ async function loadH6040Gates(){
         h6040Gates.spyMa200=closes.slice(-200).reduce((a,b)=>a+b,0)/200;
         h6040Gates.spyAbove=h6040Gates.spy>h6040Gates.spyMa200;
         h6040Gates.spyAsOf=String(sb[sb.length-1].t||'').slice(0,10);
+        h6040Gates.spyStaleH=rs.stale?rs.stale_h:null;   // ⭐09-14 同上
       }
     }
     h6040Gates.vixOk=h6040Gates.vix!=null&&h6040Gates.vix>=20&&h6040Gates.vix<=32;   // 引擎 regime：lo 20／hi 32（恐慌關）
