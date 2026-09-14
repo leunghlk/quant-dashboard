@@ -1484,7 +1484,9 @@ function _wrSortBy(k){
 function _wrSortSet(k,dir){window._wrSort=(k&&dir)?{k:k,dir:dir}:null;renderWinRank();}
 /* ⭐09-14 user：宇宙對照 block——邊個表用邊份名單＋全名單（static，cache 一次） */
 function _uniMapHTML(){
-  if(window._uniMapHTML)return window._uniMapHTML;
+  /* ⭐cache 名唔可以同函數同名——window._uniMapHTML 會撞函數自身 binding，第一次 call 就 return 咗個 function object，
+     toString 變 source code 貼晒出嚟（09-14 亂碼事故）。cache 用 _uniMapCache。 */
+  if(window._uniMapCache)return window._uniMapCache;
   const grp=a=>'<div style="line-height:1.9;word-spacing:3px;font-size:12px">'+a.map(t=>'<span style="display:inline-block;padding:0 3px">'+esc(t)+'</span>').join('')+'</div>';
   const ov=ENGINE_UNIVERSE.filter(t=>H6040_UNIVERSE.indexOf(t)>=0).length;
   const s='<details style="margin:2px 0 6px"><summary style="cursor:pointer;color:#1a73e8;font-size:12px;font-weight:600">🗂 宇宙對照——邊個表用邊份名單？有咩股？（撳開）</summary>'
@@ -1499,7 +1501,7 @@ function _uniMapHTML(){
    +'<details style="margin-top:6px"><summary style="cursor:pointer;color:#1a73e8;font-size:12px">📜 engine 池 '+ENGINE_UNIVERSE.length+' 隻全名單（69 tech base＝v4 tab 顯示池 · +100 sector ETF holdings 08-27 · +IAU 09-08）</summary>'+grp(ENGINE_UNIVERSE)+'</details>'
    +'<details style="margin-top:4px"><summary style="cursor:pointer;color:#1a73e8;font-size:12px">📜 h6040_174 全名單（fetch_data_v5.UNIVERSE · 回測／v5 掃描同源）</summary>'+grp(H6040_UNIVERSE)+'</details>'
    +'</details>';
-  window._uniMapHTML=s;return s;
+  window._uniMapCache=s;return s;
 }
 function renderWinRank(){
   const gw=(rec&&rec.gate_closed)?gateWarnHTML():'';
