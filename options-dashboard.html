@@ -1527,7 +1527,11 @@ function renderWinRank(){
     +chip(!!(c&&c.k==='mom'&&c.dir==='desc'),'長腿視圖 · MOM ↓','mom','desc')
     +chip(!c,'engine 預設 · P(OTM) ↓',null,null)
     +'<span class="small muted">（或撳任何欄位標題）</span></div>';
-  let h=gw+chips+_uniMapHTML()+'<div class="table-scroll"><table class="utable"><thead><tr>'
+  /* ⭐09-14 user：落手流程提示（幫記）——此卡揀標的 → 當周掃描榜核對過閘／排名 → P7 六問卡先落手；再穩陣＝XSP。
+     局部 const（唔上 window）——防 window.X 撞函數自身 binding（09-14 _uniMapHTML 亂碼事故教訓） */
+  const wfHTML='<div style="margin:0 0 6px;padding:6px 10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:8px;font-size:12px;line-height:1.8">'
+   +'<b style="color:#1a73e8">🧭 落手流程：</b>單腿股表（<b>P(OTM)↓</b> 或 <b>σ距↓</b>）揀穩陣標的 → 去<b>當周掃描榜</b>核對佢過唔過閘、排第幾 → 過 <b>P7 六問卡</b>先落手。想再穩陣啲就 <b>XSP</b>。</div>';
+  let h=gw+wfHTML+chips+_uniMapHTML()+'<div class="table-scroll"><table class="utable"><thead><tr>'
    +'<th class="c">#</th><th>標的</th><th class="c">帶</th>'
    +thS('wr','r','wr＝年化收入×(0.5+IV_rank/100)——09-14 L_mom×W_wr 當周腿排序 key（A/B wr hardcap +27.11%/−5.12% vs mom +16.42%/−6.70%）','wr')
    +thS('mom','c','MOM＝worker 動量-質素分（qscore 0-1；回測長腿 mom_score 同方向唔同源，僅排序參考——長 tenor 腿拍板留 mom）','MOM')
