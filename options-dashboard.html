@@ -4017,6 +4017,8 @@ function setMethod(m){
   // update tab label
   const mt=document.querySelector('[data-pane="method"]');
   if(mt)mt.textContent=m==='h6040'?'❓ Hybrid 60/40 方法論':'❓ v4_balanced 方法論';
+  if(mt)mt.style.display=m==='h6040'?'':'none';   /* ⭐09-15 user 拍板：收埋 v4_balanced 方法論 tab（舊 engine v4 閘描述）——2×2 gate×pool 驗證後 engine 09-15 起＝VIX[20,32] 硬閘＋Δ best-ay grid（v4.2），舊閘文案已過時；h6040 方法論（勝出閘）照開 */
+  if(m!=='h6040'){const ap=document.querySelector('.pane.active');if(ap&&ap.id==='pane-method')switchPane('best');}   // v4 下 method pane 收咗 → 防孤兒 pane
   // ⭐ 總覽共用卡片標題跟方法論切換
   const rt=$('railsTitle'); if(rt)rt.textContent=m==='h6040'?'🛤️ Hybrid 60/40 執行閘門（即時）':'🛤️ v4_balanced 執行欄位（即時）';
   const cm=$('ovCapMeta'); if(cm)cm.textContent=m==='h6040'?'總資本 HKD 320,000 · 兩腿分配':'HKD 200,000 組合上限';
