@@ -369,7 +369,7 @@ const GLOSS={
   'realmargin':'<b>按金容量（歷史口徑）</b>：總預算 = equity×70% 制（已退役；現行預算見「按金」）。<br>剩餘按金 = 仲可以開幾多新倉嘅額度；超額 → engine 拒單＋Telegram 警報。',
   'capacity':'<b>剩餘按金 ≈ 仲夠開幾多張</b>：剩餘按金 ÷ 每張按金（~$3.4k 粗估，實際每名唔同）。「仲夠 N 張」只計按金預算，未計單名 30% cap、板塊 cap、6 倉上限、每日 ≤2 新倉——engine 開倉時會逐關檢查。',
   'dte':'<b>Tenor / DTE（到期日數）</b>：距離到期嘅日曆日數。當周帶目標區間 5–7 日：太短時間值 decay 快但無時間修復；太長資金鎖得耐、年化回報跌。',
-  'monthly':'<b>估算月收入</b>：<br>· v4_balanced 模式＝（活倉權利金 ＋ 未執行建議權利金）× 2.5 週期/月（run-rate 粗估，未扣接貨回吐、止損、費用）。<br>· Hybrid 60/40 模式＝回測 4.6 年月均（另註中位數）。<br>兩個 model 數值唔同，跟上方方法論掣切換。',
+  'monthly':'<b>估算月收入</b>＝live 驗證錨 +16.4%/yr（d2025_mu20 grid 實測）× US$37,403 腿 ≈ <b>US$511（HK$3,987）/月</b>。<br>· backtest 全家桶回測均月 HK$32,946＝上限參考（equity 滾大＋池 bias），唔作預算。<br>· run-rate 估算（持倉＋建議權利金 ×2.5 週期）係未扣接貨回吐嘅即時參考。',
   'util':'<b>按金利用率</b>：已用按金 ÷ 預算；A級預算 = min(mu0.20×equity, 硬閘 US$12,726)。',
   'breadth':'<b>大盤寬度 Breadth</b>：宇宙中股價位於自己 MA50 之上的比例。<br>&lt;50% = 大盤弱 → 引擎不開新倉（2026 年 8 月上半月就是這樣停止）。這個閘門避免了很多次跌市接貨。',
   'breaker':'<b>熔斷 Circuit Breaker</b>：帳戶回撤到 −15% → 停止開新倉 10 個交易日，回修到 −8% 之上才 re-arm。<br>one-shot 設計：觸發一次即停，不會每日重複觸發無限循環。',
@@ -664,6 +664,7 @@ function uMask(html){return uniHideOn()? UNI_MASK : html;}
 /* ⭐ 08-23：正股 quant model（主 dashboard 策略交易台）數據層 —— worker /api 一次過拎 strategy＋watchlist(業績) */
 const QUANT_API='https://quant-api.leunghlk.workers.dev/api';
 const QUANT_API_SPARE='https://quant-api-beta.vercel.app/api';   // ⭐ 08-27：worker 死時策略台 fallback（zero-data 防線；同 index.html API_SPARE 同源）
+const LIVE_ANCHOR_MO_HKD=3987;   /* ⭐09-15 誠實錨拍板：+16.4%/yr（d2025_mu20 live 驗證 grid）× US$37,403 腿 ≈ US$511/月；backtest 均月（32,946）＝equity 滾大＋池 bias 上限參考，唔作預算 */
 let quant=null, quantTs=0;
 async function loadQuant(force){
   if(quant && !force)return quant;
@@ -1219,16 +1220,9 @@ function updateMonthlyProgress(){
     monthlyTarget = _g.monthly_target_hkd;
     targetDescription = '現實月目標（monitor 口徑 HKD 2,000–4,000/月中位）';
   } else {
-    // fallback（monitor 離線／bridge 未 merge goals）：舊口徑＝累計已實現 ÷ 模型月均目標
-    if(METHOD === 'h6040') {
-      // Hybrid 60/40 模式：⭐ 09-14 起目標＝L_mom×W_wr 全家桶回測月均（含金腿＋carry 320k 口徑）；hybrid 本體 09-04 口徑留底
-      monthlyTarget = ALEG.mix.full.mean_mo;
-      targetDescription = 'L_mom×W_wr 全家桶回測月均 ' + hkd(ALEG.mix.full.mean_mo);
-    } else {
-      // v4_balanced 模式：以預估月收入為目標
-      monthlyTarget = (rec && rec.projected_monthly_hkd && rec.projected_monthly_hkd.hkd) ? rec.projected_monthly_hkd.hkd : 25100;
-      targetDescription = '現實月目標（公平測口徑見方法論）';
-    }
+    // fallback（monitor 離線／bridge 未 merge goals）：⭐ 09-15 起統一錨＝live 驗證規劃線（唔再用 backtest 月均做錨）
+    monthlyTarget = LIVE_ANCHOR_MO_HKD;
+    targetDescription = 'live 驗證規劃線（+16.4%/yr on US$37,403 腿）';
     if(rec && rec.portfolio && rec.portfolio.realized_hkd !== null && rec.portfolio.realized_hkd !== undefined){
       monthlyIncome = rec.portfolio.realized_hkd;
     } else if(rec && rec.realized_hkd !== null && rec.realized_hkd !== undefined){
@@ -1259,7 +1253,7 @@ function updateMonthlyProgress(){
     `本月實現收入：${hkd(monthlyIncome)}<br>` +
     `${targetDescription}：HKD ${monthlyTarget.toLocaleString()}<br>` +
     `進度：${progress}%<br>` +
-    `<small>模型：${METHOD === 'h6040' ? 'L_mom×W_wr 全家桶回測均月（分子＝戶口已實現，未必行金/carry）' : 'v4_balanced (即時運行)'}</small>`
+    `<small>錨＝live 驗證 +16.4%/yr（≈US$511/月）；backtest 全家桶均月 HK$32,946 係上限參考（equity 滾大＋池 bias），唔作預算</small>`
   );
 
   // ⭐ 08-28：每月實際 realized P&L（真倉口徑，paper-test 倉 bridge 已剔）——每月一行實際金額
@@ -3590,9 +3584,9 @@ function renderH6040Overview(){
   const _un=$('ovUnrealized'); if(_un){_un.textContent=hkd(unrealized); _un.className='val '+(unrealized>=0?'up':'dn');}
   const used=posAll.reduce((s,x)=>s+(x.margin_req||0),0);
   $('ovUsed').textContent=uniCcyHKD()? ('$'+fmt(used)+' ≈ '+hkd(used*HKD_USD)) : ('USD '+fmt(used));
-  $('ovMonthly').textContent=hkd(ALEG.mix.full.mean_mo)+'（hybrid 本體中位數 '+hkd(H6040_BT.median_mo)+'）';
-  // ⭐ 08-23：label 寫明口徑（回測月均，唔係 v4 run-rate）；⭐ 09-14 換 L_mom×W_wr 全家桶口徑
-  $('ovMonthlyLbl').innerHTML='估算月收入 <span class="muted" style="font-weight:400;font-size:10px">L_mom×W_wr 全家桶回測月均（含金腿＋carry）</span>'+tip('monthly');
+  $('ovMonthly').textContent=hkd(LIVE_ANCHOR_MO_HKD);
+  // ⭐ 09-15：錨＝live 驗證規劃線；backtest 均月（32,946）降級 tooltip 上限參考
+  $('ovMonthlyLbl').innerHTML='估算月收入 <span class="muted" style="font-weight:400;font-size:10px">live 驗證規劃線 +16.4%/yr（backtest 均月 '+hkd(ALEG.mix.full.mean_mo)+'＝上限參考）</span>'+tip('monthly');
   $('ovUsedLbl').innerHTML='已用按金（Reg-T） <span class="muted" style="font-weight:400;font-size:10px">Hybrid 60/40</span>';
   const rb=$('ovRailsBody');
   if(rb){
