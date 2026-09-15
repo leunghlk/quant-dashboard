@@ -353,7 +353,7 @@ const GLOSS={
   'realmargin':'<b>按金容量（歷史口徑）</b>：總預算 = equity×70% 制（已退役；現行預算見「按金」）。<br>剩餘按金 = 仲可以開幾多新倉嘅額度；超額 → engine 拒單＋Telegram 警報。',
   'capacity':'<b>剩餘按金 ≈ 仲夠開幾多張</b>：剩餘按金 ÷ 每張按金（~$3.4k 粗估，實際每名唔同）。「仲夠 N 張」只計按金預算，未計單名 30% cap、板塊 cap、6 倉上限、每日 ≤2 新倉——engine 開倉時會逐關檢查。',
   'dte':'<b>Tenor / DTE（到期日數）</b>：距離到期嘅日曆日數。當周帶目標區間 5–7 日：太短時間值 decay 快但無時間修復；太長資金鎖得耐、年化回報跌。',
-  'monthly':'<b>估算月收入</b>＝<b>HK$10,000 目標錨</b>（09-15 拍板：mu 0.20→0.25 落地）。<br>· 支持口徑：mu25 誠實 backtest 腿均月 US$1,472≈HK$11,472（in-sample）；live 收數 8-12 週驗證。<br>· backtest 全家桶回測均月 HK$33,287＝上限參考（equity 滾大＋池 bias）。<br>· run-rate 估算（持倉＋建議權利金 ×2.5 週期）係未扣接貨回吐嘅即時參考。',
+  'monthly':'<b>估算月收入</b>＝<b>HK$10,000 目標錨</b>（09-15 拍板：mu 0.20→0.25 落地）。<br>· 支持口徑：mu25 誠實 backtest 腿均月 US$1,472≈HK$11,472（in-sample）；<b>2025 實測窗月化 HK$7,214（72% 目標）</b>——全年僅 4 個活躍月（gate 關閉零落袋），活躍月均 HK$21,641。<br>· 10k 唔會靠 mu 一個 knob：要資金 ~US$75k 或另開收入腿。<br>· backtest 全家桶均月 HK$33,287＝上限參考（equity 滾大＋池 bias）。<br>· run-rate 估算（持倉＋建議權利金 ×2.5 週期）係未扣接貨回吐嘅即時參考。',
   'util':'<b>按金利用率</b>：已用按金 ÷ 預算；A級預算 = min(mu0.20×equity, 硬閘 US$12,726)。',
   'breadth':'<b>大盤寬度 Breadth</b>：宇宙中股價位於自己 MA50 之上的比例。<br>&lt;50% = 大盤弱 → 引擎不開新倉（2026 年 8 月上半月就是這樣停止）。這個閘門避免了很多次跌市接貨。',
   'breaker':'<b>熔斷 Circuit Breaker</b>：帳戶回撤到 −15% → 停止開新倉 10 個交易日，回修到 −8% 之上才 re-arm。<br>one-shot 設計：觸發一次即停，不會每日重複觸發無限循環。',
@@ -1114,7 +1114,7 @@ function updateMonthlyProgress(){
     `本月實現收入：${hkd(monthlyIncome)}<br>` +
     `${targetDescription}：HKD ${monthlyTarget.toLocaleString()}<br>` +
     `進度：${progress}%<br>` +
-    `<small>錨＝HK$10,000 月收入目標（mu 0.25 誠實 backtest 腿均月 US$1,472≈HK$11,472 支持，in-sample）；live 收數 8-12 週 review；backtest 全家桶均月 HK$33,287 係上限參考（equity 滾大＋池 bias）</small>`
+    `<small>錨＝HK$10,000 月收入目標（mu25 backtest 腿均月 ≈HK$11,472 in-sample；2025 實測窗 HK$7,214＝72%，全年僅 4 活躍月，活躍月均 HK$21,641）；live 收數 8-12 週 review；全家桶均月 HK$33,287 係上限參考</small>`
   );
 
   // ⭐ 08-28：每月實際 realized P&L（真倉口徑，paper-test 倉 bridge 已剔）——每月一行實際金額
