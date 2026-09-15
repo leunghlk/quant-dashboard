@@ -153,10 +153,6 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 <div class="appbar"><div class="appbar-in">
   <div><h1>💼 證券交易總覽</h1><div class="sub" id="appbarSub">正股 ＋ 期權 ＋ 現金寶 · 統一持倉（HKD 320,000 基準）· Futu 實時 · <strong>回本目標 HKD 50,000 @ 2026-12-31</strong></div></div>
   <div class="appbar-right">
-    <div class="method-sel" id="methodSel">
-      <button data-method="v4_balanced" onclick="setMethod('v4_balanced')">v4_balanced</button>
-      <button data-method="h6040" class="on" onclick="setMethod('h6040')">Hybrid 60/40</button>
-    </div>
     <button class="btn-primary" id="refreshBtn" onclick="manualRefresh()">🔄 刷新實時</button>
     <div class="status-bar"><span class="live-dot"></span><span id="liveBadge">Hybrid 60/40 · 連線中...</span></div>
   </div>
@@ -169,7 +165,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
   <button data-pane="best" class="active">🎯 今日最佳交易</button>
   <button data-pane="detail">📈 個股詳情</button>
   <button data-pane="positions">📋 持倉管理</button>
-  <button data-pane="method">❓ 方法論</button>
+  <button data-pane="method">❓ Hybrid 60/40 方法論</button>
   <span class="tab-group">正股</span>
   <button data-pane="advice">🎯 執倉建議</button>
   <button data-pane="toppick">⭐ 最優先部署</button>
@@ -182,13 +178,6 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 
   <!-- ═══════════ 總覽 ═══════════ -->
   <div class="pane" id="pane-overview">
-    <div id="pnlModeRow" style="display:flex;gap:8px;align-items:center;margin:2px 0 8px;flex-wrap:wrap">
-      <span style="font-size:12px;color:#64748b;font-weight:700">Portfolio P&amp;L：</span>
-      <button id="pnlBtn-real" onclick="setPnlMode('real')" style="font-size:12px;font-weight:700;border-radius:8px;padding:3px 12px;border:1.5px solid #cbd5e1;background:#f1f5f9;color:#475569;cursor:pointer">🔴 真倉</button>
-      <button id="pnlBtn-paper" onclick="setPnlMode('paper')" style="font-size:12px;font-weight:700;border-radius:8px;padding:3px 12px;border:1.5px solid #cbd5e1;background:#f1f5f9;color:#475569;cursor:pointer">📝 紙上</button>
-      <button id="pnlBtn-both" onclick="setPnlMode('both')" style="font-size:12px;font-weight:700;border-radius:8px;padding:3px 12px;border:1.5px solid #cbd5e1;background:#f1f5f9;color:#475569;cursor:pointer">兩者</button>
-      <span id="pnlModeNote" style="font-size:11px;color:#94a3b8"></span>
-    </div>
     <div class="card" style="border:1.5px solid #1a73e8"><div class="card-h"><span class="t">💼 我的證券組合（統一總覽）</span><span class="meta">正股 ＋ 期權 ＋ 現金寶 · 基準 HKD 320,000</span></div>
       <div class="card-b" id="unifiedBody"><div class="muted">載入中（Futu 真戶口＋期權 engine）…</div></div>
       <div class="card-b" style="border-top:1px dashed #cbd5e1;padding-top:10px">
@@ -209,17 +198,17 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
       </div></div>
     <div class="card"><div class="card-h"><span class="t" id="railsTitle">🛤️ Hybrid 60/40 執行閘門（即時）</span><span class="meta" id="railsMeta">按照下表規則 = 貼近回測結果</span></div>
       <div class="card-b" id="ovRailsBody"><div class="muted">載入中…</div></div></div>
-    <div class="card"><div class="card-h"><span class="t">資本運用</span><span class="meta" id="ovCapMeta">HKD 200,000 組合上限</span></div>
+    <div class="card"><div class="card-h"><span class="t">資本運用</span><span class="meta" id="ovCapMeta">總資本 HKD 320,000 · 兩腿分配</span></div>
       <div class="card-b" id="ovCapBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">開倉位（未實現 mark-to-market）</span><span class="meta" id="ovPosMeta"></span></div>
       <div class="card-b" id="ovPosBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">近期平倉紀錄（已實現）</span><span class="meta" id="ovLedgerMeta">紙上賬</span></div>
+    <div class="card"><div class="card-h"><span class="t">近期平倉紀錄（已實現）</span><span class="meta" id="ovLedgerMeta">真倉（Futu 實單）</span></div>
       <div class="card-b" id="ovLedgerBody"></div></div>
   </div>
 
   <!-- ═══════════ 今日最佳 ═══════════ -->
   <div class="pane active" id="pane-best">
-    <div class="card"><div class="card-h"><span class="t">🎯 今日最佳交易</span><span class="meta">點「執行」下單（紙上）· 點行開個股詳情</span></div>
+    <div class="card"><div class="card-h"><span class="t">🎯 今日最佳交易</span><span class="meta">點「執行」下單（真倉記賬）· 點行開個股詳情</span></div>
       <div class="card-b" id="bestCard"></div></div>
     <div class="card"><div class="card-h"><span class="t" id="wscanTitle">🎯 當周掃描榜</span><span class="meta" id="wscanMeta">real-time 載入中…</span></div>
       <div class="card-b" id="wscanBody"><div class="muted">載入中（bridge /weekly_scan）…</div></div></div>
@@ -236,11 +225,11 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
         </div>
         <div id="pfResult" style="margin-top:8px"><div class="small muted">填 ticker＋strike（expiry 空＝下一個周五）→ 跑六問。❓＝該項數據攞唔到，唔好當 pass。</div></div>
       </div></div>
-    <div class="card" id="candCard"><div class="card-h"><span class="t" id="candTitle">候選名單（按分數排序）</span><span class="meta" id="candMeta"></span></div>
+    <div class="card" id="candCard" style="display:none"><div class="card-h"><span class="t" id="candTitle">候選名單（h6040 v5 池快照 · wr 排序 · mom 只做閘）</span><span class="meta" id="candMeta"></span></div>
       <div class="card-b" id="candBody"></div></div>
     <div class="card" id="winrankCard"><div class="card-h"><span class="t">🎯 單腿股表（合併兩帶）</span><span class="meta">兩帶（當周 5-7D×Δ0.20-0.25＝<b>W_wr</b> ／ 長帶 10-14D×Δ0.25-0.30＝<b>L_mom</b> 僅參考）· 預設排名＝P(OTM) 降序（&lt;2pp 內按年化）· ⭐<b>撳欄位標題即排序</b>（倒序↓↔順序↑↔預設）· 執行仍以「當周掃描榜」過 P7 六問卡 · 金額欄 US$</span></div>
       <div class="card-b" id="winrankBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">你的選擇、排隊中訂單、以及「今日不做」</span></div>
+    <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">真倉持倉一覽 · 以及「今日不做」</span></div>
       <div class="card-b" id="decBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">已排除</span><span class="meta">業績窗口 / signal veto（momentum-only，同回測公式；槓桿 ETF 已按你要求列入單腿股表掃描）</span></div>
       <div class="card-b small muted" id="notesBody"></div></div>
@@ -262,9 +251,9 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
       <div class="card-b" id="ledBody"></div></div>
   </div>
 
-  <!-- ═══════════ 方法論（v4_balanced） ═══════════ -->
+  <!-- ═══════════ 方法論（Hybrid 60/40） ═══════════ -->
   <div class="pane" id="pane-method">
-    <div class="card"><div class="card-h"><span class="t" id="methodSpecTitle">⭐ v4.2 模型規格（09-15 起 live）</span><span class="meta" id="methodSpecMeta">engine v4.2（09-15）：VIX[20,32] 硬閘＋Δ best-ay · 2×2 gate×pool 公平測拍板組合＝engine v4.2×U174 · 規格真源 /tmp/gate_spec_2x2.md</span></div>
+    <div class="card"><div class="card-h"><span class="t" id="methodSpecTitle">⭐ Hybrid 60/40 模型規格</span><span class="meta" id="methodSpecMeta">L_mom×W_wr 全家桶（wr 主臂）· 2022-01 → 2026-08 全期驗證 · 09-08 加金 sleeve · ⭐ JS 起動後全量重寫，此為 pre-JS 後備</span></div>
       <div class="card-b" id="methodSpecBody">
         <div class="table-scroll"><table class="utable">
           <thead><tr><th>層</th><th>規則</th><th>為什麼</th></tr></thead>
@@ -280,31 +269,26 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
             <tr><td>Covered Call（接貨後）</td><td><b>Δ 0.22–0.30 · 10–14 DTE · PT 50%</b></td><td class="muted">The Wheel 第二腿</td></tr>
           </tbody>
         </table></div>
-        <div class="small muted" style="margin-top:8px">規格真源 /tmp/gate_spec_2x2.md；公平測真源 quant_model/gate_pool_2x2_v2_fair2022.py（09-15）。⭐ JS 起動後此卡會按方法論（v4.2／h6040）全量重寫——此靜態版僅 pre-JS 後備。</div>
+        <div class="small muted" style="margin-top:8px">⭐ JS 起動後全量重寫（Hybrid 60/40 全家桶）——此靜態版僅 pre-JS 後備。</div>
       </div>
     </div>
     <div class="card"><div class="card-h"><span class="t">入場：如何選「最佳」</span></div><div class="card-b" id="methodBest"></div></div>
     <div class="card"><div class="card-h"><span class="t">IV 如何得出</span></div><div class="card-b" id="methodIV"></div></div>
     <div class="card"><div class="card-h"><span class="t">配倉（按金制）＋ 出場規則</span></div><div class="card-b" id="methodSize"></div></div>
-    <div class="card"><div class="card-h"><span class="t" id="methodPerfTitle">📊 engine v4.2×U174 公平測（單股腿 cash-secured）</span><span class="meta" id="methodPerfMeta">2022-01-01→2026-09-15 統一公平窗 · US$37,403 起算 · model IV＋BS 定價 · 169 筆</span></div>
+    <div class="card"><div class="card-h"><span class="t" id="methodPerfTitle">📊 Hybrid 60/40 全家桶回測績效</span><span class="meta" id="methodPerfMeta">L_mom×W_wr 全家桶 · 誠實口徑（09-15 拍板）</span></div>
       <div class="card-b" id="methodPerfBody">
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center">
-          <div><div class="small muted">交易數 n</div><div style="font-weight:800">169</div></div>
-          <div><div class="small muted">勝率</div><div style="font-weight:800">90.5%</div></div>
-          <div><div class="small muted">獲利因子 PF</div><div style="font-weight:800">5.13</div></div>
-          <div><div class="small muted">CAGR</div><div style="font-weight:800;color:#16a34a">+5.99%</div></div>
-          <div><div class="small muted">最大回撤</div><div style="font-weight:800;color:#dc2626">3.20%</div></div>
-          <div><div class="small muted">Sharpe（每筆·ddof=0）</div><div style="font-weight:800">0.51</div></div>
-          <div><div class="small muted">Sharpe（月度×√12）</div><div style="font-weight:800">1.63</div></div>
-          <div><div class="small muted">最終權益</div><div style="font-weight:800">US$49,137</div></div>
+          <div><div class="small muted">全家桶年化</div><div style="font-weight:800;color:#16a34a">+51.41%</div></div>
+          <div><div class="small muted">月度最大回撤</div><div style="font-weight:800;color:#dc2626">−4.48%</div></div>
+          <div><div class="small muted">Sharpe</div><div style="font-weight:800">2.35</div></div>
+          <div><div class="small muted">wr 主臂 PF</div><div style="font-weight:800">113.2</div></div>
         </div>
-        <div class="small muted" style="margin-top:8px">公平測口徑：單股腿 cash-secured US$37,403 · model IV＋BS 定價、無 slippage/佣金 · 與 H6040_BT 卡（單股腿+XSP 兩腿合併 HK$320k margin 口徑）唔同尺，不可直接比。⭐ JS 起動後按方法論全量重寫（v4＝engine v4.2×U174 公平測 · h6040＝H6040_BT 三腿＋金＋壓力測試）。</div>
+        <div class="small muted" style="margin-top:8px">wr 腿（W-slot 主臂）誠實口徑：年化 27.52% · 月撤 −6.45% · 161 筆（21 個活躍月——薄樣本，數字當量級）。⭐ JS 起動後全量重寫（全家桶三腿＋金＋壓力測試）。</div>
       </div>
     </div>
-    <div class="card"><div class="card-h"><span class="t">📊 回測統計</span><span class="meta">內容隨方法論切換：v4＝公平測統計速覽 · h6040＝壓力測試／WF／MC</span></div><div class="card-b" id="methodStats"></div></div>
+    <div class="card"><div class="card-h"><span class="t">📊 回測統計</span><span class="meta">壓力測試／WF／MC</span></div><div class="card-b" id="methodStats"></div></div>
     <div class="card"><div class="card-h"><span class="t">🔔 警報系統（Telegram ＋ 儀表板雙通道）</span><span class="meta">引擎每 120 秒檢查持倉 · 儀表板每 60 秒刷新</span></div><div class="card-b" id="methodAlert"></div></div>
     <div class="card"><div class="card-h"><span class="t">風險誠實話</span></div><div class="card-b" id="methodRisk"></div></div>
-    <div class="card"><div class="card-h"><span class="t" id="methodFairTitle">🧪 單股腿公平測</span></div><div class="card-b" id="methodFair"></div></div>
     <div class="card"><div class="card-h"><span class="t">📐 詞彙表（公式詳版）</span><span class="meta">榜卡／tooltip 只留定義，公式集中此卡</span></div>
       <div class="card-b"><div class="small muted" style="line-height:1.9">
         <b>分數／winrank</b>：score = annualized_yield × (0.5+IV_rank/100) ÷ (1+risk)；winrank 主排總評分（= 期權分數 × 股票質素 qscore 0.7–1.3 × 動量健康 decel：≤−2 → ×0.92、≤−3 → ×0.85），tie-break P(OTM)。<br>
@@ -320,7 +304,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 
   <!-- ═══════════ 執倉建議（正股） ═══════════ -->
   <div class="pane" id="pane-advice">
-    <div class="card" style="border:1.5px solid #b45309"><div class="card-h"><span class="t">🎯 執倉建議（正股 + 期權真倉）</span><span class="meta">正股＝quant model 策略交易台 · 期權＝v4_balanced／h6040 出場規則 · 含所有 Futu 真倉</span></div>
+    <div class="card" style="border:1.5px solid #b45309"><div class="card-h"><span class="t">🎯 執倉建議（正股 + 期權真倉）</span><span class="meta">正股＝quant model 策略交易台 · 期權＝Hybrid 60/40 出場規則 · 含所有 Futu 真倉</span></div>
       <div class="card-b" id="adviceBody"><div class="muted">載入中（Futu 真倉＋engine 動量）…</div></div></div>
   </div>
 
@@ -338,7 +322,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 
 </div>
 
-<div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · 證券交易總覽 My Securities Desk — 正股 ＋ 期權 ＋ 現金寶（Futu 真戶口實時）· 期權策略 v4_balanced / Hybrid 60/40 · 數據：Futu 實時＋ Yahoo 兜底 · 期權賣方有 tail risk · 非投資建議</div>
+<div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · 證券交易總覽 My Securities Desk — 正股 ＋ 期權 ＋ 現金寶（Futu 真戶口實時）· 期權策略 Hybrid 60/40 · 數據：Futu 實時＋ Yahoo 兜底 · 期權賣方有 tail risk · 非投資建議</div>
 
 <div id="tipbox"></div>
 <div id="execModal" onclick="if(event.target===this)closeExec()"><div class="box" id="execBox"></div></div>
@@ -364,12 +348,12 @@ const BRIDGE_URLS=(function(){
 const GLOSS={
   'strike':'<b>行使價 Strike</b>：到期日你若被指派，就是以此價錢買入 100 股。越 OTM 越平但越安全。<br>選法：選 delta≈0.25 的那個行使價（≈25% 機會被指派）。',
   'premium':'<b>權利金 Premium</b>：買家支付給你的款項（你賣出期權立即收到）。公式：mid×100×張數。<br>你的最大利潤就是這筆錢。',
-  'collateral':'<b>抵押 Collateral（接貨現金）</b>：如被指派需拿出來的款項 = 行使價×100×張數。v4_balanced 用按金戶口（不用全額鎖定現金），但應知道接貨成本此數。',
+  'collateral':'<b>抵押 Collateral（接貨現金）</b>：如被指派需拿出來的款項 = 行使價×100×張數。期權倉用按金戶口（不用全額鎖定現金），但應知道接貨成本此數。',
   'margin':'<b>按金 Margin（Reg-T）</b>：券商真正鎖住的款項 = max(20%×現價＋權利金−OTM，10%×行使價＋權利金)×100×張數。<br>倉位預算（A級平衡王）= <b>min(mu0.20×equity, 硬閘 US$12,726)</b>。',
   'realmargin':'<b>按金容量（歷史口徑）</b>：總預算 = equity×70% 制（已退役；現行預算見「按金」）。<br>剩餘按金 = 仲可以開幾多新倉嘅額度；超額 → engine 拒單＋Telegram 警報。',
   'capacity':'<b>剩餘按金 ≈ 仲夠開幾多張</b>：剩餘按金 ÷ 每張按金（~$3.4k 粗估，實際每名唔同）。「仲夠 N 張」只計按金預算，未計單名 30% cap、板塊 cap、6 倉上限、每日 ≤2 新倉——engine 開倉時會逐關檢查。',
   'dte':'<b>Tenor / DTE（到期日數）</b>：距離到期嘅日曆日數。當周帶目標區間 5–7 日：太短時間值 decay 快但無時間修復；太長資金鎖得耐、年化回報跌。',
-  'monthly':'<b>估算月收入</b>＝live 驗證錨 +16.4%/yr（d2025_mu20 grid 實測）× US$37,403 腿 ≈ <b>US$511（HK$3,987）/月</b>。<br>· backtest 全家桶回測均月 HK$32,946＝上限參考（equity 滾大＋池 bias），唔作預算。<br>· run-rate 估算（持倉＋建議權利金 ×2.5 週期）係未扣接貨回吐嘅即時參考。',
+  'monthly':'<b>估算月收入</b>＝<b>HK$10,000 目標錨</b>（09-15 拍板：mu 0.20→0.25 落地）。<br>· 支持口徑：mu25 誠實 backtest 腿均月 US$1,472≈HK$11,472（in-sample）；live 收數 8-12 週驗證。<br>· backtest 全家桶回測均月 HK$33,287＝上限參考（equity 滾大＋池 bias）。<br>· run-rate 估算（持倉＋建議權利金 ×2.5 週期）係未扣接貨回吐嘅即時參考。',
   'util':'<b>按金利用率</b>：已用按金 ÷ 預算；A級預算 = min(mu0.20×equity, 硬閘 US$12,726)。',
   'breadth':'<b>大盤寬度 Breadth</b>：宇宙中股價位於自己 MA50 之上的比例。<br>&lt;50% = 大盤弱 → 引擎不開新倉（2026 年 8 月上半月就是這樣停止）。這個閘門避免了很多次跌市接貨。',
   'breaker':'<b>熔斷 Circuit Breaker</b>：帳戶回撤到 −15% → 停止開新倉 10 個交易日，回修到 −8% 之上才 re-arm。<br>one-shot 設計：觸發一次即停，不會每日重複觸發無限循環。',
@@ -397,7 +381,7 @@ const GLOSS={
   'scenario':'<b>情境分析</b>：模擬到期日不同股價下你的盈虧（權利金 − max(0, K−S_T)）×100×張數。綠色=賺、紅色=虧損。',
   'score':'<b>分數（選最佳準則）</b>：年化收入 × IV rank 加權 ÷ (1+風險懲罰)。<br>風險懲罰：闊 spread、IV&gt;90%、細價股、舊報價。分高 = 回報高而風險可控。',
   'contracts':'<b>張數 Contracts</b>：1 張 = 100 股掛鈎。建議張數由按金預算計：min(（70%預算−已用）÷每張按金, 30% equity ÷每張按金, 板塊 40% 預算上限, 10)。',
-  'veto':'<b>Signal Veto</b>：動量評分（12/6/3 個月動能 + MA50 斜率 + 動量減速，與 v4_balanced 回測同一條公式、同一 yfinance 日線）非 BUY / ACCUMULATE 的股票 → 不會建議你賣 put。',
+  'veto':'<b>Signal Veto</b>：動量評分（12/6/3 個月動能 + MA50 斜率 + 動量減速，與回測同一條公式、同一 yfinance 日線）非 BUY / ACCUMULATE 的股票 → 不會建議你賣 put。',
   'expectation':'<b>模型期望值</b>：收取權利金 − BS 模型預期賠償。正數＝賣價相對模型有優勢；負數＝權利金偏薄，長遠期望輸面較大。',
   'premiumsrc':'<b>權利金來源</b>：live = 真實買賣價 mid；live-stale = 報價過期改用模型兜底；model = 無報價時用 BS 模型計算。',
 };
@@ -483,12 +467,6 @@ function loadMktHolidayBanner(){
 loadMktHolidayBanner();
 setInterval(loadMktHolidayBanner,30*60*1000);
 
-/* ════════════ gauge / 表格 helper ════════════ */
-function gauge(itm,otm){
-  const i=Math.max(0,Math.min(100,Math.round(Number(itm)||0)));
-  const o=Math.max(0,100-i);   // OTM = 100 − ITM，兩邊一定加埋 100
-  return '<div class="gauge"><div style="flex:'+o+';background:#16a34a">OTM '+o+'%</div><div style="flex:'+i+';background:#ef4444">ITM '+i+'%</div></div>';
-}
 function pill(k,txt){return '<span class="pill '+k+'">'+txt+'</span>';}
 
 // ===== Price freshness validation system =====
@@ -651,7 +629,7 @@ let __realRetry  = null;
 function uniHideOn(){try{return localStorage.getItem('optdash_uni_hide')==='1';}catch(e){return false;}}
 function toggleUniHide(){try{localStorage.setItem('optdash_uni_hide',uniHideOn()?'0':'1');}catch(e){}renderUnified();}
 function uniCcyHKD(){try{return (localStorage.getItem('optdash_uni_ccy')||'HKD')==='HKD';}catch(e){return true;}}
-function toggleUniCcy(){try{localStorage.setItem('optdash_uni_ccy',uniCcyHKD()?'USD':'HKD');}catch(e){}renderUnified();if(METHOD==='h6040')renderH6040Overview();else renderOverview();}
+function toggleUniCcy(){try{localStorage.setItem('optdash_uni_ccy',uniCcyHKD()?'USD':'HKD');}catch(e){}renderUnified();renderOverview();}
 function uniCCY(){return uniCcyHKD()?'HKD':'USD';}
 // HKD-native 金額 → 按當前貨幣顯示（USD = HKD ÷ 户口隱含匯率 realFx）
 function uMoney(vHKD){return uniCcyHKD()? hkd(vHKD) : 'USD '+fmt((vHKD||0)/realFx);}
@@ -664,7 +642,7 @@ function uMask(html){return uniHideOn()? UNI_MASK : html;}
 /* ⭐ 08-23：正股 quant model（主 dashboard 策略交易台）數據層 —— worker /api 一次過拎 strategy＋watchlist(業績) */
 const QUANT_API='https://quant-api.leunghlk.workers.dev/api';
 const QUANT_API_SPARE='https://quant-api-beta.vercel.app/api';   // ⭐ 08-27：worker 死時策略台 fallback（zero-data 防線；同 index.html API_SPARE 同源）
-const LIVE_ANCHOR_MO_HKD=3987;   /* ⭐09-15 誠實錨拍板：+16.4%/yr（d2025_mu20 live 驗證 grid）× US$37,403 腿 ≈ US$511/月；backtest 均月（32,946）＝equity 滾大＋池 bias 上限參考，唔作預算 */
+const LIVE_ANCHOR_MO_HKD=10000;   /* ⭐09-15 拍板（B+C）：月收入錨＝HK$10,000 目標線。mu 0.20→0.25 落地；支持口徑＝mu25 誠實 backtest 腿均月 US$1,472≈HK$11,472（in-sample 警告）；live 收數 8-12 週 review；backtest 均月（33,287）＝equity 滾大＋池 bias 上限參考 */
 let quant=null, quantTs=0;
 async function loadQuant(force){
   if(quant && !force)return quant;
@@ -918,10 +896,11 @@ function setLive(t){const el=$('liveBadge');if(el)el.textContent=t;}
 
 /* ════════════ render ════════════ */
 function renderAll(){
-  if(METHOD==='h6040'){renderH6040Overview();renderH6040Best();renderWinRank();renderPositions();renderDecisions();renderMethod();renderAlarm();renderAdvice();renderTopPick();renderEarnings();if(activeTk)renderDetail();if(rec)updateMonthlyProgress();return;}   // ⭐ 08-28：h6040 mode 以前冇 call → 每月進度條永遠 0%（renderAll 早退唔經 renderOverview）；⭐ 09-14：+renderWinRank——單腿股表（合併兩帶）兩個方法論都顯示
-  if(!rec)return;   // ⭐ 2026-08-23：boot 時 rec 未到，唔好炸
-  renderUnified();   // ⭐ 2026-08-23：統一證券組合卡（正股＋期權＋現金寶）
-  renderOverview();renderBest();renderCandidates();renderWinRank();renderPositions();renderNotes();renderDecisions();renderMethod();renderAlarm();renderAdvice();renderTopPick();renderEarnings();if(activeTk)renderDetail();}
+  /* ⭐ 09-15 手術：v4_balanced 分岔退役——單一方法論（全家桶 L_mom×W_wr）＝單一 render path。
+     每月進度條照 08-28 修（呢度直接 call，唔經舊 v4 renderOverview）；⭐09-14 +renderWinRank——單腿股表兩帶合併顯示。
+     統一證券組合卡（renderUnified）由 loadReal 鏈負責，唔行呢度。 */
+  renderOverview();renderBest();renderWinRank();renderPositions();renderDecisions();renderMethod();renderAlarm();renderAdvice();renderTopPick();renderEarnings();if(activeTk)renderDetail();if(rec)updateMonthlyProgress();
+}
 /* ⭐ 出場警報：engine actions／熔斷 → 頁面頂部紅 bar + 標題閃 + 提示音（Telegram 已由 engine 即時推送） */
 const BASE_TITLE=document.title;
 let titleFlash=null,lastAlarmSig='';
@@ -964,8 +943,8 @@ function renderAlarm(){
 }
 
 function findCandidate(tk){
-  if(METHOD==='h6040'&&tk==='XSP'){return h6040SpyCandidate();}
-  if(METHOD==='h6040'){const pc=h6040PoolCand(tk);if(pc)return pc;}   // ⭐ 08-24：v5 池掃描行 → 詳情 candidate（修「跳去個股詳情但內容唔轉」——之前呢度只搵 rec/_wrDetail，掃描行永远搵唔到）
+  if(tk==='XSP'){return h6040SpyCandidate();}
+  const pc=h6040PoolCand(tk);if(pc)return pc;   // ⭐ 08-24：v5 池掃描行 → 詳情 candidate（修「跳去個股詳情但內容唔轉」）
   const list=[].concat(rec.book||[],rec.best?[rec.best]:[],rec.candidates||[]);
   return list.find(x=>x&&x.ticker===tk)||((window._wrDetail||{})[tk]||null);
 }
@@ -1070,47 +1049,6 @@ function h6040UsedMargin(leg){
   return src.filter(p=>p.status==='open'&&p.leg===leg).reduce((s,p)=>s+marginPerPut(p.strike,p.entry_prem!=null?p.entry_prem:p.prem,p.spot||p.strike)*p.contracts,0);
 }
 
-function renderRails(){
-  const el=$('ovRailsBody'); if(!el)return;
-  const mu=modeMarginUSD(), mb=Number(rec.margin_budget||0), eq=Number(rec.equity_usd||CAPITAL_HKD/HKD_USD);
-  const br=Number(rec.breadth), bk=rec.breaker||{};
-  const ms=rec.margin_status||null;
-  const mtag=modeTag();
-  const msLine=ms
-    ?('剩餘按金 <b style="color:'+(ms.remaining_usd>0?'#16a34a':'#dc2626')+'">$'+fmt(ms.remaining_usd)+' ≈ HKD '+fmt(ms.remaining_hkd)+'</b> · 大約仲夠開 <b>'+Math.max(0,ms.more_contracts_est||0)+' 張</b>'+tip('capacity')
-      +(ms.real_power_hkd!=null?'<br><span class="muted">（僅參考）真實 Futu 戶購買力 HKD '+fmt(ms.real_power_hkd)+'</span>':''))
-    :'按金容量讀取中…';
-  const pos=modePos();
-  const nputs=pos.filter(x=>x.side!=='CALL').length, ncc=pos.filter(x=>x.side==='CALL').length;
-  const utilPct=mb?Math.round(mu/mb*100):0, utilEq=Math.round(mu/eq*100);
-  const brOk=br>=0.50;
-  let h='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">';
-  h+='<div><div class="small muted">按金預算運用（70% 上限）'+(mtag?'<b style="color:#475569">'+mtag+'</b>':'')+tip('margin')+tip('util')+'</div>'
-    +'<div class="bar" id="railMarginBar" style="margin-top:4px;cursor:help"><div style="width:'+Math.min(100,utilPct)+'%;background:'+(utilPct>90?'#dc2626':utilPct>70?'#d97706':'#1a73e8')+'"></div></div>'
-    +'<div class="small" style="margin-top:3px">$'+fmt(mu)+' / $'+fmt(mb)+' · <b>'+utilPct+'%</b> 預算 · 剩 <b style="color:'+(mb-mu>0?'#16a34a':'#dc2626')+'">$'+fmt(mb-mu)+' ≈ HKD '+fmt((mb-mu)*HKD_USD)+'</b></div></div>';
-  h+='<div><div class="small muted">倉位 / 閘門'+(mtag?'<b style="color:#475569">'+mtag+'</b>':'')+'</div><div class="small" style="margin-top:4px;line-height:1.9">'
-    +'Put 倉 <b>'+nputs+'/8</b>'+(ncc?' · CC 倉 <b>'+ncc+'</b>':'')+' · 每日新倉 ≤2'+tip('contracts')+'<br>'
-    +'大盤寬度 <b style="color:'+(brOk?'#16a34a':'#dc2626')+'">'+(br==null||isNaN(br)?'—':Math.round(br*100)+'%')+'</b>（閘門 '+(rec.gate_closed?('✗ 不開新倉：'+esc(gateReason())):'✓ 開放新倉')+'）'+tip('breadth')+'<br>'
-    +'熔斷 '+(bk.tripped?'<b style="color:#dc2626">🔴 已觸發（'+(bk.trip_dd!=null?bk.trip_dd+'%）':'）')+(bk.paused_until?' · 停至 '+bk.paused_until:'')+'</b>':'<b style="color:#16a34a">🟢 未觸發</b>（−15% 停 10 日）')+tip('breaker')
-    +'<br>按金容量 '+msLine
-    +'</div></div>';
-  h+='</div>';
-  h+='<div class="small muted" style="margin-top:8px">模型：<b>'+esc(rec.model_profile||'v4_balanced')+'</b> · 按照「今日最佳 → 執行（紙上）」＋上表出場規則 = 貼近回測路徑。'+(bk.paused_until?'<br>⚠️ 熔斷期間請勿手動開新倉。':'')+'</div>';
-  const rm=$('railsMeta'); if(rm){const acts=alarmActs();rm.textContent=acts.length?('⚠️ '+acts.length+' 個出場建議 → 去「持倉管理」'):'按照下表規則 = 貼近回測結果';}
-  el.innerHTML=h;
-  const rmb=$('railMarginBar');   // ⭐ innerHTML 之後先 set（hover bar 看實數）
-  if(rmb)rmb.dataset.tip='<b>按金預算運用'+(mtag?mtag+'（paper 倉 equity $'+fmt(eq)+'）':'（paper 倉 equity $'+fmt(eq)+'）')+'</b><br>已用按金 $'+fmt(mu)+' ／ 預算 $'+fmt(mb)+'（equity×70%）<br>= <b>'+utilPct+'%</b>（equity 的 '+utilEq+'%）<br>90% 以上紅 · 70% 以上琥珀<br>剩餘 $'+fmt(mb-mu)+' ≈ HKD '+fmt((mb-mu)*HKD_USD)+(ms&&ms.more_contracts_est!=null?'（大約仲夠 '+ms.more_contracts_est+' 張）':'')+(ms&&ms.real_power_hkd!=null?'<br>——<br><span class="muted">（僅參考）真實 Futu 戶購買力 HKD '+fmt(ms.real_power_hkd)+'：紙上交易唔受佢限制</span>':'');
-}
-let pnlMode=(function(){try{return localStorage.getItem('optdash_pnl_mode')||'both';}catch(e){return 'both';}})();
-function setPnlMode(m){pnlMode=m;try{localStorage.setItem('optdash_pnl_mode',m);}catch(e){}renderOverview();}
-function pnlBtnState(){
-  const colors={real:['#fee2e2','#dc2626'],paper:['#e0e7ff','#4f46e5'],both:['#d1fae5','#059669']};
-  Object.keys(colors).forEach(x=>{
-    const b=$('pnlBtn-'+x);if(!b)return;
-    const on=pnlMode===x,c=colors[x];
-    b.style.background=on?c[0]:'#f1f5f9';b.style.borderColor=on?c[1]:'#cbd5e1';b.style.color=on?'#0f172a':'#475569';
-  });
-}
 /* ⭐ 2026-08-23：KPI hide/unhide（組合權益／已實現／未實現）—— 所有模式通用 */
 const HIDABLE=['ovEquity','ovRealized','ovUnrealized'];
 function kpiHidden(id){try{return localStorage.getItem('optdash_hide_'+id)==='1';}catch(e){return false;}}
@@ -1119,84 +1057,7 @@ function toggleKpi(id){
   try{localStorage.setItem('optdash_hide_'+id,kpiHidden(id)?'0':'1');}catch(e){}
   const btn=document.querySelector('[data-kpitoggle="'+id+'"]');
   if(btn)btn.innerHTML=kpiHidden(id)?EYE_OFF:EYE_ON;
-  if(METHOD==='h6040')renderH6040Overview();else renderOverview();
-}
-function renderPnlKpi(p){   // ⭐ 真倉/紙上/兩者 三段式 P&L（真倉=Futu 實單標記倉）
-  const posAll=(rec.positions||[]).filter(x=>x.status==='open');
-  const rUn=posAll.filter(x=>x.real),pUn=posAll.filter(x=>!x.real);
-  const rU=rUn.reduce((a,x)=>a+(x.pnl_hkd||0),0),pU=pUn.reduce((a,x)=>a+(x.pnl_hkd||0),0);
-  let eqV=null,rlV=null,unV=0,note='';
-  if(pnlMode==='real'){
-    rlV=(p.real_realized_hkd!=null)?p.real_realized_hkd:0;   // ⭐ 2026-08-23 fix：真倉已實現由真倉已平倉計
-    unV=rU;
-    eqV=(p.base_hkd||CAPITAL_HKD)+rlV+unV;
-    note='真倉 '+rUn.length+' 倉（Futu 實單）· 已實現計真倉已平倉';
-  }else if(pnlMode==='paper'){
-    rlV=(p.paper_realized_hkd!=null)?p.paper_realized_hkd:((p.realized_hkd!=null)?p.realized_hkd:0);
-    unV=(p.paper_unrealized_hkd!=null)?p.paper_unrealized_hkd:pU;
-    eqV=(p.base_hkd||CAPITAL_HKD)+rlV+unV;
-    note='紙上 '+pUn.length+' 倉 —— 累計回報 '+money(eqV/CAPITAL_HKD*100-100)+'%';
-  }else{
-    rlV=(p.realized_hkd!=null)?p.realized_hkd:0;
-    unV=(p.unrealized_hkd!=null)?p.unrealized_hkd:(rU+pU);
-    eqV=p.equity_hkd;note='累計回報 '+money(p.return_pct)+'%（真倉 '+rUn.length+' · 紙上 '+pUn.length+'）';
-  }
-  // ⭐ 08-23 sub-row 已裁（只留已用按金＋估算月收入）—— 舊 KPI id 唔再存在，寫入前 guard
-  const _eq=$('ovEquity'); if(_eq){_eq.textContent=(eqV==null)?'—':hkd(eqV); $('ovReturn').textContent=(pnlMode==='real')?'真倉模式':note; $('ovReturn').style.fontSize='11px';}
-  const _rl=$('ovRealized'); if(_rl){_rl.textContent=(rlV==null)?'—':hkd(rlV); _rl.className='val '+((rlV==null||rlV>=0)?'up':'dn');}
-  const _un=$('ovUnrealized'); if(_un){_un.textContent=hkd(unV); _un.className='val '+(unV>=0?'up':'dn');}
-  const nm=$('pnlModeNote');if(nm)nm.textContent=note;
-  applyKpiHide();
-  pnlBtnState();
-}
-function renderOverview(){
-  if(!rec)return;   // ⭐ 2026-08-23：boot 時 rec 未到，唔好炸
-  const p=rec.portfolio||{};
-  renderPnlKpi(p);
-  renderRails();
-  const locked=modeLockedHKD(), avail=CAPITAL_HKD-locked;     // 接貨現金（開倉+排隊）／剩餘 —— 跟 P&L 模式
-  const mu=modeMarginUSD(), mb=Number(rec.margin_budget||0);
-  const mtag=modeTag();
-  $('ovUsed').textContent=uniCcyHKD()? ('$'+fmt(mu)+' ≈ '+hkd(mu*HKD_USD)) : ('USD '+fmt(mu));
-  const pct=Math.min(100,Math.round(locked/CAPITAL_HKD*100));
-  const muPct=mb?Math.round(mu/mb*100):0;
-  const cb=$('ovCapBody');
-  if(cb){
-    cb.innerHTML=
-      '<div class="small muted">① 按金 —— 券商為短倉鎖住的錢'+(mtag?'<b style="color:#475569">'+mtag+'</b>':'')+tip('margin')+tip('util')+'（上限 = equity×70% = $'+fmt(mb)+'）</div>'
-      +'<div class="bar" style="margin:4px 0 10px"><div style="width:'+Math.min(100,muPct)+'%;background:'+(muPct>90?'#dc2626':muPct>70?'#d97706':'#1a73e8')+'"></div></div>'
-      +'<div class="small muted">② 接貨現金 —— 些 Put 全部被指派時要拿出來接貨的總數'+(mtag?'<b style="color:#475569">'+mtag+'</b>':'')+tip('collateral')+(pnlMode==='real'?'（真實戶口按金制，唔受紙上 HKD 200k 上限約束）':'（上限 HKD '+fmt(CAPITAL_HKD)+'）')+'</div>'
-      +(pnlMode==='real'?'':'<div class="bar" style="margin:4px 0 6px"><div style="width:'+pct+'%;background:'+(pct>85?'#dc2626':'#0d9488')+'"></div></div>')
-      +'<div class="small muted">① $'+fmt(mu)+' / $'+fmt(mb)+'（'+muPct+'%）· '+(pnlMode==='real'?'② 接貨 HKD '+fmt(locked):'② HKD '+fmt(locked)+' / '+fmt(CAPITAL_HKD)+'（'+pct+'%，剩可用 HKD '+fmt(avail)+'）')+' · 開倉 '+modePos().length+'/6'+(pnlMode==='real'?'':' · 排隊 '+decLoad('optdash_queued').length)+'</div>';
-    const bars=cb.querySelectorAll('.bar');
-    if(bars[0]){bars[0].style.cursor='help';bars[0].dataset.tip='<b>① 按金（券商鎖住）</b><br>$'+fmt(mu)+' ／ $'+fmt(mb)+'（= equity×70% 預算）<br>運用 <b>'+muPct+'%</b> —— 超過 70% 琥珀、90% 紅（engine 會 reject 新倉）';}
-    if(bars[1]){bars[1].style.cursor='help';bars[1].dataset.tip='<b>② 接貨現金（最壞情況）</b><br>HKD '+fmt(locked)+' ／ '+fmt(CAPITAL_HKD)+'<br>= <b>'+pct+'%</b> —— 些 Put 全部被指派時要拿出來接貨的總數；剩可用 HKD '+fmt(avail);}
-  }
-  $('ovMonthly').textContent=hkd(rec.projected_monthly_hkd&&rec.projected_monthly_hkd.hkd);
-  // ⭐ 08-23：label 寫明邊個 option model 口徑（v4 run-rate vs h6040 回測月均）—— 兩個方法論數值唔同，唔可以撈亂
-  $('ovMonthlyLbl').innerHTML='估算月收入 <span class="muted" style="font-weight:400;font-size:10px">v4_balanced run-rate</span>'+tip('monthly');
-
-  // 每月進度條
-  updateMonthlyProgress();
-  $('ovUsedLbl').innerHTML='已用按金（Reg-T） <span class="muted" style="font-weight:400;font-size:10px">v4_balanced</span>';
-  // 開倉位
-  const pos=(rec.positions||[]).filter(x=>x.status==='open');
-  const rUn=pos.filter(p=>p.real),pUn=pos.filter(p=>!p.real);
-  const rs=rUn.reduce((a,p)=>a+(p.pnl_hkd||0),0),ps=pUn.reduce((a,p)=>a+(p.pnl_hkd||0),0);
-  $('ovPosMeta').innerHTML=pos.length+' 開倉 · <b style="color:#dc2626">真倉 '+rUn.length+'：'+(rs>=0?'+':'')+Math.round(rs).toLocaleString()+'</b> · 紙上 '+pUn.length+'：'+(ps>=0?'+':'')+Math.round(ps).toLocaleString()+' HKD';
-  let h='';
-  if(pos.length){
-    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th>類型</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場/現權利金</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th>訊號</th></tr></thead><tbody>';
-    pos.forEach(p=>{
-      const a=p.pct_max>=50?'<span style="color:#16a34a;font-weight:700">✅ 平倉（≥50%）</span>':(p.close_requested?'<span style="color:#d97706">待平倉</span>':'<span class="muted">持有</span>');
-      h+='<tr><td><b>'+p.ticker+'</b></td><td>'+realBadge(p)+'</td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+px2(p.entry_prem)+' / '+px2(p.cur_prem)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td class="r">'+(p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span></td><td>'+a+'</td></tr>';
-    });
-    h+='</tbody></table></div>';
-  }else{h+='<div class="muted">暫無開倉位 — 請到「今日最佳」選一單執行。</div>';}
-  $('ovPosBody').innerHTML=h;
-  // 平倉紀錄
-  const led=rec.ledger_recent||[];
-  $('ovLedgerBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">尚無任何平倉紀錄。</div>';
+  renderOverview();
 }
 
 // 每月進度更新
@@ -1220,9 +1081,9 @@ function updateMonthlyProgress(){
     monthlyTarget = _g.monthly_target_hkd;
     targetDescription = '現實月目標（monitor 口徑 HKD 2,000–4,000/月中位）';
   } else {
-    // fallback（monitor 離線／bridge 未 merge goals）：⭐ 09-15 起統一錨＝live 驗證規劃線（唔再用 backtest 月均做錨）
+    // fallback（monitor 離線／bridge 未 merge goals）：⭐ 09-15 拍板＝HK$10,000 目標錨（mu 0.25 落地；live 驗證中）
     monthlyTarget = LIVE_ANCHOR_MO_HKD;
-    targetDescription = 'live 驗證規劃線（+16.4%/yr on US$37,403 腿）';
+    targetDescription = 'mu 0.25 目標線（backtest 誠實口徑支持，live 驗證中）';
     if(rec && rec.portfolio && rec.portfolio.realized_hkd !== null && rec.portfolio.realized_hkd !== undefined){
       monthlyIncome = rec.portfolio.realized_hkd;
     } else if(rec && rec.realized_hkd !== null && rec.realized_hkd !== undefined){
@@ -1253,7 +1114,7 @@ function updateMonthlyProgress(){
     `本月實現收入：${hkd(monthlyIncome)}<br>` +
     `${targetDescription}：HKD ${monthlyTarget.toLocaleString()}<br>` +
     `進度：${progress}%<br>` +
-    `<small>錨＝live 驗證 +16.4%/yr（≈US$511/月）；backtest 全家桶均月 HK$32,946 係上限參考（equity 滾大＋池 bias），唔作預算</small>`
+    `<small>錨＝HK$10,000 月收入目標（mu 0.25 誠實 backtest 腿均月 US$1,472≈HK$11,472 支持，in-sample）；live 收數 8-12 週 review；backtest 全家桶均月 HK$33,287 係上限參考（equity 滾大＋池 bias）</small>`
   );
 
   // ⭐ 08-28：每月實際 realized P&L（真倉口徑，paper-test 倉 bridge 已剔）——每月一行實際金額
@@ -1298,136 +1159,12 @@ function gateReason(){   // ⭐ 2026-08-17 v3：閘門關閉嘅「真實原因�
   if(br!=null&&br<0.50)return '市寬 '+Math.round(br*100)+'% ＜ 50%（大盤轉弱）';
   if(bk.paused_until&&rec.date<=bk.paused_until)return '熔斷暫停中（至 '+bk.paused_until+'）';
   if(openedToday>=2)return '今日已開 '+openedToday+' 倉（上限 2/日，每日新倉上限已到）';
-  return 'v4_balanced 規則今日不開新倉';
+  return '閘門規則今日不開新倉';
 }
 function gateWarnHTML(){
   return '<div class="warn-note" style="margin:0 0 10px">🚧 <b>開倉閘門關閉：'+esc(gateReason())+'</b>。以下排名/候選僅供觀察 —— 執行會被 engine 拒絕（Telegram 會收到拒單原因）。</div>';
 }
-/* ⭐ 2026-09-02：best 卡（v4_balanced／h6040 共用）嘅 Futu 實收按金＋贖回試算 —
-   bridge /margin_gap?code=&price=（卡上原本嘅 $ 按金係模型 Reg-T 口徑；呢行係落單口徑：
-   現金寶唔認 → 證券側空間唔夠就要贖）。async 注入 data-mgfut 格，seq 防舊 render 蓋寫。 */
-let _mgFutSeq=0;
-async function loadBestFutuMargin(picks){
-  const seq=++_mgFutSeq;
-  if(!activeBridge){await detectBridge();}
-  if(!activeBridge)return;
-  for(let i=0;i<(picks||[]).length;i++){
-    const b=picks[i];
-    const el=$('bestCard'), slot=el&&el.querySelector('[data-mgfut="'+i+'"]');
-    if(!slot)continue;
-    try{
-      const ed=String(b.expiry||'').replace(/-/g,'');
-      const px=(b.mid!=null&&b.mid>0)?b.mid:null;
-      const code=(b.ticker&&ed.length===8&&b.strike>0&&px)?('US.'+String(b.ticker).toUpperCase()+ed.slice(2)+'P'+Math.round(b.strike*1000)):null;   // ⭐strike×1000 天然位數（49.5→49500，唔好 pad）
-      if(!code){slot.innerHTML='<div style="font-size:11px;color:#94a3b8;margin-top:2px">💰 Futu 實收按金 — 冇齊 code/價，載唔到</div>';continue;}
-      const r=await fetchTimeout(activeBridge+'/margin_gap?code='+encodeURIComponent(code)+'&price='+px+'&secret='+encodeURIComponent(BRIDGE_SECRET),15000);
-      const m=r&&r.ok?await r.json():null;
-      if(seq!==_mgFutSeq)return;   // 卡已重 render — 唔好寫舊格
-      if(!m||!m.ok){slot.innerHTML='<div style="font-size:11px;color:#94a3b8;margin-top:2px">💰 Futu 實收按金 — 暫時攞唔到</div>';continue;}
-      const q=Math.max(1,b.contracts||1), need=m.im_hkd*q, gap=Math.max(0,need-(m.headroom_hkd||0));
-      const hk=function(v){return 'HK$'+fmt(Math.round(v));};
-      slot.innerHTML='<div style="font-size:11px;color:#fcd34d;margin-top:2px">💰 <b>Futu 實收</b>按金 US$'+fmt(Math.round(m.im_usd))+' ≈ '+hk(m.im_hkd)+'/張 ×'+q+' ｜ 證券側空間 '+hk(m.headroom_hkd||0)+' → '+(gap>0?('要贖回現金寶 ≈ <b style="color:#fbbf24">'+hk(gap)+'</b>（現金寶 '+hk(m.fund_assets_hkd)+(m.fund_assets_hkd>=gap?'，夠贖 ✓':'，⚠️ 唔夠')+'）'):'毋須贖回 ✓')+(m.stale?' · ⚠️快取舊數':'')+'</div>';
-    }catch(e){slot.innerHTML='<div style="font-size:11px;color:#94a3b8;margin-top:2px">💰 Futu 實收按金 — 載入失敗</div>';}
-  }
-}
-function bestCardHTML(b,idx,total){   // ⭐ 2026-08-18 v2：兩張最佳卡共用（best/best2，每日上限 2 倉）
-  const ref=!!(b.reference_only||(rec&&rec.gate_closed));
-  const sc=b.scenarios||{};
-  const tag=total>1?' #'+(idx+1):'';
-  let h='';
-  h+='<div style="flex:1.3;min-width:300px;background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:10px;padding:14px;color:#fff'+(ref?';outline:1px solid #b45309':'')+'">';
-  h+='<div style="font-size:12px;color:'+(ref?'#fbbf24':'#4ade80')+'">'+(ref?'🟡 最佳交易（僅參考）':'🟢 最佳交易')+esc(tag)+' · SELL PUT <b>'+b.ticker+'</b> ×'+(b.contracts||1)+tip('csp')+'</div>';
-  h+='<div style="font-size:24px;font-weight:800;margin:6px 0">行使價 $'+b.strike+'<span style="font-size:12px;color:#94a3b8;font-weight:400">（現價 $'+liveSpot(b.ticker,b.spot)+'）</span>'+tip('strike')+'</div>';
-  const _bSt=((b.premium_source&&b.premium_source!=='live')||(b.stale_days||0)>2||b.mid_suspect)?' <span style="color:#fbbf24;font-weight:700;cursor:help" title="⚠ 權利金非即市：'+(b.premium_source==='model'?'model 估值':'舊 chain 報價'+(b.stale_days?' '+b.stale_days+' 日前':''))+(b.mid_suspect?'· mid 同 BS 偏差＞50%':'')+'——執行前入詳情頁用 live chain 核價">⚠</span>':'';
-  h+='<div style="font-size:13px;color:#cbd5e1">權利金 $'+px2(b.mid)+'/股 = <b>$'+(b.premium_total!=null?b.premium_total:'—')+'</b>'+_bSt+' ≈ HKD '+px2(b.premium_total_hkd)+tip('premium')+'</div>';
-  h+='<div style="font-size:11px;color:#94a3b8;margin-top:2px" data-mgfut="'+idx+'">💰 Futu 實收按金／贖回試算載入中…</div>';
-  h+=gauge(b.prob_itm,b.prob_otm);
-  h+='<div style="font-size:10px;color:#94a3b8">OTM = 賺足權利金機率 · ITM = 被指派機率'+tip('otm')+tip('itm')+'</div>';
-  h+='<div style="font-size:11px;color:#cbd5e1;margin-top:6px">到期 '+b.expiry+'（'+(b.dte!=null?b.dte:'—')+'D）· Delta '+(b.delta!=null?b.delta:'—')+tip('delta')+' · IV '+(b.iv!=null?Math.round(b.iv*100)+'%':'—')+'（rank '+(b.iv_rank!=null?b.iv_rank:'—')+'）'+tip('ivrank')+' · 按金 $'+fmt(b.margin_total||b.margin1||0)+tip('margin')+' · 接貨現金 $'+(b.collateral_total!=null?b.collateral_total:'—')+tip('collateral')+'</div>';
-  h+='<div style="font-size:13px;font-weight:700;color:#fbbf24;margin-top:6px">回報 '+(b.yield_pct!=null?Number(b.yield_pct).toFixed(2):'—')+'%/週 ≈ '+(b.yield_ann!=null?b.yield_ann:'—')+'%/年'+tip('ann')+'</div>';
-  if(sc.breakeven){h+='<div style="font-size:11px;color:#94a3b8;margin-top:2px">盈虧平衡 $'+px2(sc.breakeven)+tip('breakeven')+' · 最大虧損（股價→0）$'+px2(sc.max_loss)+' ≈ HKD '+px2(sc.max_loss_hkd)+tip('maxloss')+'</div>';}
-  if(b.earnings){h+='<div style="font-size:11px;color:#f59e0b;margin-top:4px">📅 下一業績日 '+b.earnings+tip('earnings')+'</div>';}
-  h+='<div style="margin-top:10px">'+(ref
-    ?'<span style="font-size:11px;color:#94a3b8">🚧 執行掣暫停（閘門關閉中，engine 會拒單）</span> <button class="btn btn-ghost" onclick="showDetail(\''+b.ticker+'\')">詳情 →</button>'
-    :'<button class="btn btn-go" onclick="execCandidate(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+','+(b.contracts||1)+')">✅ 執行（紙上下單）</button> <button class="btn btn-no" onclick="skipTrade(\''+b.ticker+'\',\''+b.expiry+'\','+b.strike+')">不做</button> <button class="btn btn-ghost" onclick="showDetail(\''+b.ticker+'\')">詳情 →</button>')+'</div>';
-  h+='</div>';
-  return h;
-}
-function renderBest(){
-  const el=$('bestCard');
-  // ⭐ 2026-08-18 v2：每日上限 2 倉 → 出兩張最佳卡（#1/#2，唔同 ticker）；
-  //    閘門關閉／veto 候選照出但標「僅參考」（黃卡+原因），執行掣收起（engine 會拒單）
-  const picks=[rec?rec.best:null,rec?rec.best2:null].filter(Boolean);
-  // ⚠️ v4 fix：vetoed 候選（signal=none/HOLD/REDUCE）一律唔上 best 卡（同回測入場規則）；
-  //    全部被 veto → 明確講原因，唔好靜靜哋空白
-  if(!picks.length){
-    const vc=(rec&&rec.veto_count)||0;
-    el.innerHTML=(rec&&rec.gate_closed?gateWarnHTML():'')+'<div class="muted">今日無符合條件的候選'+(vc?('（'+vc+' 隻全部被 model veto／業績窗口排除；veto 咗嘅票（如上市未夠 60 日冇 momentum signal）唔會上 best 卡）'):'')+'。</div>';
-    return;}
-  let banner='';
-  if(picks.some(b=>!!(b.reference_only||(rec&&rec.gate_closed)))){
-    banner='<div class="warn-note" style="margin:0 0 10px">⚠️ <b>僅參考</b> —— 開倉閘門關閉：'+gateReason()+'。想跟：等閘門重開（通常明日）再執行。</div>';
-  }
-  const b0=picks[0], sc=b0.scenarios||{};
-  let h=banner;
-  h+='<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:stretch">';
-  h+=bestCardHTML(b0,0,picks.length);
-  h+='<div style="flex:1;min-width:240px;background:#1e293b;border-radius:10px;padding:14px;color:#fff">';
-  h+='<div style="font-size:12px;color:#94a3b8">資本 + 期望</div>';
-  h+='<div style="font-size:20px;font-weight:800">HKD '+CAPITAL_HKD.toLocaleString()+'</div>';
-  h+='<div class="bar" style="margin-top:8px"><div style="width:'+Math.min(100,(rec.margin_budget?Math.round((rec.used_margin_open||0)/rec.margin_budget*100):0))+'%;background:#3b82f6"></div></div>';
-  h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">按金 $'+fmt(rec.used_margin_open||0)+'/'+fmt(rec.margin_budget||0)+tip('margin')+'（⭐09-14 A級：min(mu0.20×equity, 硬閘 US$12,726) · 8 put 上限 · 每日 ≤2 新倉）</div>';
-  const _lk=lockedHKD(), _av=availHKD();
-  h+='<div class="bar" style="margin-top:8px"><div style="width:'+Math.min(100,Math.round(_lk/CAPITAL_HKD*100))+'%;background:#0d9488"></div></div>';
-  h+='<div style="font-size:11px;color:#cbd5e1;margin-top:4px">還可接貨現金 <b style="color:#5eead4">HKD '+fmt(_av)+'</b>'+tip('collateral')+' —— 已鎖 HKD '+fmt(_lk)+' / '+fmt(CAPITAL_HKD)+'（再開短 put 的剩餘抵押額度，含排隊中訂單）</div>';
-  if(sc.expectation!=null){const ev=evOf(b0)||{usd:sc.expectation,hkd:sc.expectation_hkd};const up=ev.usd>=0;h+='<div style="font-size:13px;color:'+(up?'#4ade80':'#f87171')+';margin-top:8px">模型期望值 <b>'+(up?'+':'')+money(ev.usd)+' USD</b>（≈HKD '+(up?'+':'')+fmt(ev.hkd)+'）'+tip('expectation')+'</div>';}
-  h+='<div style="font-size:10px;color:#94a3b8;margin-top:4px">'+rec.target_monthly_hkd_note+'</div>';
-  h+='</div></div>';
-  if(picks.length>1){
-    h+='<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;margin-top:12px">';
-    h+=bestCardHTML(picks[1],1,picks.length);
-    h+='</div>';
-  }
-  el.innerHTML=h;
-  loadBestFutuMargin(picks);           // ⭐ 09-02：Futu 實收按金＋贖回現金寶（async 注入 data-mgfut 格）
-  const bb=el.querySelector('.bar');   // ⭐ hover bar 看按金實數
-  if(bb){bb.style.cursor='help';const _bp=rec.margin_budget?Math.round((rec.used_margin_open||0)/rec.margin_budget*100):0;
-    bb.dataset.tip='<b>按金運用（成個組合）</b><br>$'+fmt(rec.used_margin_open||0)+' ／ $'+fmt(rec.margin_budget||0)+'（min(mu0.20×equity, 硬閘 US$12,726)）= <b>'+_bp+'%</b><br>8 put 上限 · 每日 ≤2 新倉 · 單名按金 ≤25% equity';}
-}
 function liveSpot(tk,fb){const s=live[tk];return px2(s&&s.live_price!=null?s.live_price:fb);}
-
-function renderCandidates(){
-  const gw=(rec&&rec.gate_closed)?gateWarnHTML():'';
-  // ⭐ 分數高 → 低（engine 已 sort+dedup，這裡再兜底排一次，防止舊 rec）
-  const cands=(rec.candidates||[]).filter(c=>!c.vetoed).sort((a,b)=>(b.score||0)-(a.score||0));
-  const meta=$('candMeta');
-  if(meta)meta.textContent=cands.length+' 個候選 · '+rec.veto_count+' 隻被 veto · '+(rec.model_profile||'v4_balanced')+' · Δ0.20–0.25 / 5–7DTE / ≤$374（排序＝wr）· ⚠＝權利金非即市（掃描快照；落盤前入詳情頁用 live chain 重揀 K）· 落單揀行＝best-ay＋VIX 硬閘';
-  let h=gw+'<div class="table-scroll"><table class="utable"><thead><tr><th></th><th>股票</th><th class="r">現價</th><th class="r">行使價'+tip('strike')+'</th><th>到期</th><th class="r">權利金/張 US$'+tip('premium')+'</th><th class="r">張數'+tip('contracts')+'</th><th class="r">按金 US$'+tip('margin')+'</th><th class="r">接貨現金 US$'+tip('collateral')+'</th><th class="c">ITM / OTM'+tip('itm')+'</th><th class="r">週回報</th><th class="r">分數'+tip('score')+'</th><th></th></tr></thead><tbody>';
-  cands.slice(0,12).forEach(c=>{
-    const una=!!c.unaffordable;                    // 單名按金超 30% equity 上限 → 禁執行
-    const yp=(c.yield_pct!=null?Number(c.yield_pct).toFixed(2):'—');   // 周回報 2dp
-    // ⭐ 09-04 誠實標示：權利金唔係即市（model 估值／舊 chain）→ 琥珀 ⚠（09-04 事故：BKNG 表上 $262·Δ−0.27，live 實 $445·Δ−0.46）
-    const _ps=(c.premium_source||'live'), _sd=c.stale_days||0;
-    const _sb=(_ps!=='live'||_sd>2)?' <span style="color:#d97706;font-weight:700;cursor:help" title="⚠ 權利金非即市：'+(_ps==='model'?'model 估值':'舊報價')+'＋chain 資料舊 '+_sd+' 日——落盤前一定入詳情頁睇 live chain 重揀 K">⚠</span>':'';
-    h+='<tr class="clickable" onclick="showDetail(\''+c.ticker+'\')">';
-    h+='<td><button class="btn btn-go" '+(una?'style="opacity:.4;pointer-events:none" title="單名按金超 30% equity 上限"':'')+' onclick="event.stopPropagation();execCandidate(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+','+(c.contracts||1)+')">'+(una?'超上限':'執行')+'</button></td>';
-    h+='<td><span class="co">'+c.ticker+'</span><br><span class="tk">'+esc(c.name||c.ticker)+'</span></td>';
-    h+='<td class="r">$'+liveSpot(c.ticker,c.spot)+'</td>';
-    h+='<td class="r">$'+px2(c.strike)+'</td>';
-    h+='<td>'+c.expiry+'<br><span class="muted small">'+(c.dte!=null?c.dte:'—')+'D</span></td>';
-    h+='<td class="r">$'+(c.premium!=null?c.premium:'—')+(_sb)+'<br><span class="muted small">≈HKD '+(c.premium_hkd!=null?c.premium_hkd:'—')+'</span></td>';
-    h+='<td class="r">'+(una?'—':(c.contracts||1))+'</td>';
-    h+='<td class="r">$'+fmt(c.margin_total||(c.margin1?(c.margin1*(c.contracts||1)):0))+'<br><span class="muted small">$'+fmt(c.margin1||0)+'/張</span></td>';
-    h+='<td class="r">$'+Number(c.collateral_total||0).toLocaleString()+'</td>';
-    h+='<td class="c">'+gauge(c.prob_itm,c.prob_otm)+'</td>';
-    h+='<td class="r">'+yp+'%</td>';
-    h+='<td class="r">'+(c.score!=null?c.score.toFixed(2):'—')+'</td>';
-    h+='<td><button class="btn btn-no" onclick="event.stopPropagation();skipTrade(\''+c.ticker+'\',\''+c.expiry+'\','+c.strike+')">不做</button></td>';
-    h+='</tr>';
-  });
-  h+='</tbody></table></div>';
-  $('candBody').innerHTML=h;
-}
 
 /* ⭐ 09-14 user 拍板：v4_balanced tab 用返「原本」stock universe——即 engine options_income.py
    UNIVERSE 嘅 base tech 池 69 隻（08-27 +100 sector ETF holdings／09-08 +IAU 兩批擴充係
@@ -1436,7 +1173,6 @@ const V4_UNIVERSE=('AMAT KLAC LRCX INTC AMD MRVL CRDO BE GLW WDAY DDOG ADBE NOW 
  +'DLLL PANW MSFT AMZN GOOG AAPL NVDA MAGS LITE COHR ALAB TER AMKR ASML TSM NET '
  +'ARM GEV VRT AVGO SPCX SKHY HPE AAOI LYTE CIEN ANET HPQ ASX QCOM ON GFS SNOW '
  +'PWR CAT NBIS RDW RKLB LUNR WDC STX DRAM WOLF TSEM STM TXN NVTS IGV CRM CRWD PLTR IBM AXTI').split(' ');
-const V4_SET=new Set(V4_UNIVERSE);
 /* ⭐09-14 宇宙對照：engine 廣池＝69 tech base＋100 sector ETF holdings（08-27，11 SPDR＋IGV top-10
    扣重複）＋IAU（09-08 金）＝170 隻——兩個 tab 嘅當周掃描榜／單腿股表真源（engine rec.winrank/merged_board）。
    h6040_174（H6040_UNIVERSE，下 2793 行）係回測池，唔係榜嘅池。同步點見 _uniMapHTML() 披露。 */
@@ -1506,8 +1242,7 @@ function renderWinRank(){
   const el=$('winrankBody');if(!el)return;
   const mb=(rec&&rec.merged_board)||[];
   const legacy=!mb.length;   /* engine 未出 merged_board → 舊 winrank fallback（同一套欄位/render） */
-  const w=(legacy?[...((rec&&rec.winrank)||[])]:[...mb]).map(x=>Object.assign({band:x.band||(legacy?'weekly':undefined)},x))
-    .filter(x=>(METHOD==='h6040')||V4_SET.has(x.ticker));   /* ⭐09-14 user 拍板：v4 tab＝原本 tech 池 69 隻，廣池行唔顯示（engine 執行池唔變） */
+  const w=(legacy?[...((rec&&rec.winrank)||[])]:[...mb]).map(x=>Object.assign({band:x.band||(legacy?'weekly':undefined)},x));
   if(!w.length){el.innerHTML='<div class="muted">單腿股表：等待盤前全宇宙掃描（每日更新）。</div>';return;}
   /* ⭐ 09-14 排序：預設＝engine 順序（P(OTM) 降序＋<2pp cluster 年化 tie-break）；撳欄位標題改排序 */
   const st=window._wrSort;
@@ -1587,9 +1322,8 @@ function renderWinRank(){
   h+='</tbody></table></div>';
   h+=(legacy
    ?'<div class="muted" style="font-size:11px;margin-top:4px">（engine 未出合併單腿股表，暫顯示 5-7D 帶 winrank）排序掣：撳欄位標題＝倒序↓／再撳＝順序↑／第三下＝返預設。</div>'
-   :'<div class="small muted" style="margin-top:4px">⭐ 預設排序＝<b>engine 側計好</b>（P(OTM) 降序，&lt;2pp 內按年化收入）；排序掣只改顯示。當周 5-7D×Δ0.20-0.25＝<b>W_wr 腿</b>（排序＝wr）；長帶 10-14D×Δ0.25-0.30＝<b>L_mom 腿僅參考</b>（排序＝mom）。執行＝「當周掃描榜」過 P7 六問卡，此卡唔設執行掣；🟦XSP／DLLL＝顯示-only。σ距色階：≥1σ 綠／0.7-1σ 琥珀／&lt;0.7σ 紅；⚠＝單名按金超上限。點擊資料列 → 個股詳情。榜上建議K＝掃描快照，落單＝best-ay 揀年化最大。公平測 since-2022：h6040 閘 205 筆·PF 4.39·+6.65%／DD 4.65% vs v4.2 閘 169 筆·PF 5.13·+5.99%／3.20%——詳見方法論。</div>')
+   :'<div class="small muted" style="margin-top:4px">⭐ 預設排序＝<b>engine 側計好</b>（P(OTM) 降序，&lt;2pp 內按年化收入）；排序掣只改顯示。當周 5-7D×Δ0.20-0.25＝<b>W_wr 腿</b>（排序＝wr）；長帶 10-14D×Δ0.25-0.30＝<b>L_mom 腿僅參考</b>（排序＝mom）。執行＝「當周掃描榜」過 P7 六問卡，此卡唔設執行掣；🟦XSP／DLLL＝顯示-only。σ距色階：≥1σ 綠／0.7-1σ 琥珀／&lt;0.7σ 紅；⚠＝單名按金超上限。點擊資料列 → 個股詳情。榜上建議K＝掃描快照，落單＝best-ay 揀年化最大。</div>')
    +(!legacy&&rec&&rec.board_asof?'<div class="small muted" style="margin-top:2px">🗓 股表 vintage：'+esc(String(rec.board_asof).replace('T',' ').slice(0,16))+' HKT · <span style="color:#d97706;font-weight:700">⚠</span>＝該行收入唔係即市 live 報價——執行前入詳情頁核價。</div>':'');
-  h+=(METHOD!=='h6040'?'<div class="small muted" style="margin-top:4px">🏷 宇宙＝<b>v4_balanced 原本 tech 池 '+V4_UNIVERSE.length+' 隻</b>——engine 全池嘅 sector ETF／IAU 行（h6040 tab 先見）喺此卡過濾唔顯示；engine 執行池唔變（明細撳頂端「🗂 宇宙對照」）。</div>':'');
   el.innerHTML=h;
 }
 
@@ -1614,34 +1348,6 @@ function execWinRank(i){
   execCandidate(x.ticker,x.expiry,x.strike,ctx.contracts,side,x.mid,ctx);
 }
 
-function renderNotes(){
-  const notes=rec.notes||[];
-  $('notesBody').innerHTML=notes.length?notes.map(n=>'· '+esc(n)).join('<br>'):'<span class="muted">無。</span>';
-}
-
-function renderPositions(){
-  if(METHOD==='h6040'){renderH6040Positions();return;}
-  const acts=(rec&&rec.actions)||[];
-  const ac=$('actCard'), ab=$('actBody');
-  if(ac){ac.style.display=acts.length?'':'none';
-    if(ab)ab.innerHTML=acts.map(a=>'<div style="padding:6px 0;border-bottom:1px dashed #e2e8f0">'+esc(a)+'</div>').join('');}
-  const pos=(rec.positions||[]).filter(x=>x.status==='open');
-  const body=$('posBody');
-  let h='';
-  if(pos.length){
-    h+='<div class="table-scroll"><table class="utable"><thead><tr><th>類型</th><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場權利金</th><th class="r">現權利金</th><th class="r">盈虧平衡</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th>訊號 / 動作</th></tr></thead><tbody>';
-    pos.forEach(p=>{
-      const a=p.pct_max>=50?'<span style="color:#16a34a;font-weight:700">✅ 建議平倉（≥50%）'+tip('close50')+'</span>':(p.close_requested?'<span style="color:#d97706">⏳ 待 engine 確認</span>':'<span class="muted">持有</span>');
-      h+='<tr><td>'+(p.side==='CSP'?'沽 Put':'沽 Call')+'<br>'+realBadge(p)+'</td><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">$'+px2(p.entry_prem)+'</td><td class="r">$'+px2(p.cur_prem)+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td class="r">'+(p.pnl_hkd>=0?'<span style="color:#16a34a;font-weight:700">':'<span style="color:#dc2626;font-weight:700">')+money(p.pnl_hkd)+'</span></td><td>'+a+'<br><button class="btn btn-close" style="margin-top:4px" onclick="closePos(\''+p.id+'\')">平倉</button> <button class="btn btn-ghost" style="margin-top:4px" onclick="toggleReal(\''+p.id+'\','+(!p.real)+')">'+(p.real?'轉紙上':'標真倉')+'</button></td></tr>';
-    });
-    h+='</tbody></table></div>';
-  }else{h+='<div class="muted">暫無開倉位。</div>';}
-  body.innerHTML=h;
-  const led=rec.ledger_recent||[];
-  $('ledMeta').textContent='累計已實現 '+hkd(rec.realized_hkd);
-  $('ledBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">尚無紀錄。</div>';
-}
-
 /* ════════════ 個股詳情 ════════════ */
 function openBestDetail(){if(rec&&rec.best)showDetail(rec.best.ticker);}
 function showDetail(tk){
@@ -1652,7 +1358,7 @@ function showDetail(tk){
 function renderDetail(){
   const c=detailCtx(activeTk);   // ⭐ _klStore 補齊 levels/greeks（winrank 行）
   if(!c){$('dtBody').innerHTML='<div class="muted">這隻股票暫時沒有候選資料。</div>';return;}
-  if(METHOD==='h6040'&&c.spyPlaceholder){
+  if(c.spyPlaceholder){
     $('dtTitle').textContent='📈 XSP 個股詳情';
     $('dtLive').innerHTML='現價 <b>$'+px2(c.spot)+'</b>';
     $('dtBody').innerHTML='<div class="warn-note" style="border-color:#fde68a;background:#fffbeb;color:#92400e">實時期權鏈載入中 / 未攞到 —— 請稍後再試，或去「今日最佳」先撳「揀 XSP 行使價下單」拉一次實時鏈。</div><div class="card"><div class="card-b" id="chainCard"><div class="muted">載入實時期權鏈…</div></div></div>';
@@ -1872,7 +1578,7 @@ function renderScenarios(c){
   s+='<tr><td><b>🟠 止損離場</b>（cut）</td><td class="small">跌穿行使價 <b>兼</b> 跌穿 0.95×MA50（DTE≥5）= 趨勢壞了</td><td class="r small">視乎當時權利金</td><td class="small">🔴 出「cut-before-assignment」→ 立即市價買回止損，<b>不接貨</b>，避免長期套牢</td></tr>';
   s+='<tr><td><b>🔵 到期被指派</b></td><td class="small">到期日收市價 &lt; $'+px2(K)+'</td><td class="r small">接 '+100*n+' 股 · 成本 $'+px2(K-prem)+'/股</td><td class="small">正常步驟不是輸：接貨 → 轉入 <b>Covered Call</b>（之後每 10–14 日沽 Call 收租 = wheel）</td></tr>';
   s+='</tbody></table>';
-  s+='<div class="muted" style="font-size:11px;margin-top:4px">v4_balanced 5 大出場：PT 50% 提早平倉 · Δ−0.50 roll · cut-before-assignment · 業績前平倉 · 指派 → CC。回測中大部分倉位以 PT 50% 離場，不會持有到期。</div>';
+  s+='<div class="muted" style="font-size:11px;margin-top:4px">期權短倉 5 大出場：PT 50% 提早平倉 · Δ−0.50 roll · cut-before-assignment · 業績前平倉 · 指派 → CC。回測中大部分倉位以 PT 50% 離場，不會持有到期。</div>';
   $('scenBody').innerHTML=s;
 }
 function scenStep(d){
@@ -1895,7 +1601,7 @@ async function loadChain(tk){
     // ⭐ 08-24 h6040：詳情仲係掃描 placeholder（BS 模型價）→ 實時鏈到手即升級重繪成鏈價。
     //   ⚠️ stage 由 renderChain→findCandidate（live branch）之後仍會喺度（live branch 唔刪），
     //   呢度刪＋確認真係升級到 live 先重繪 —— 鏈冇可用 PUT 行時唔會無限 re-render loop。
-    if(METHOD==='h6040'&&activeTk===tk&&window._h6040ScanStage&&window._h6040ScanStage[tk]){
+    if(activeTk===tk&&window._h6040ScanStage&&window._h6040ScanStage[tk]){
       delete window._h6040ScanStage[tk];
       const up=h6040PoolCand(tk);
       if(up&&up.premium_source==='live')renderDetail();
@@ -2080,16 +1786,6 @@ function bsGreeksJS(S,K,T,vol,isCall){   // 同 engine bs_greeks（theta=日曆�
   return {delta:Math.round(delta*1000)/1000,gamma:Math.round(gamma*100000)/100000,
           theta:Math.round(theta*10000)/10000,vega:Math.round(vega*1000)/1000};
 }
-function evOf(b){   // 期望值：權利金 − BS 模型賠償（實現波動=85% IV）；同 engine compute_scenarios 新公式
-  if(!b)return null;
-  const S=b.spot,K=b.strike,T=(b.dte||10)/365,mid=b.mid,iv=b.iv,n=Math.max(1,b.contracts||1);
-  if(!(S>0&&K>0&&T>0&&iv>0&&mid>0))return (b.scenarios&&b.scenarios.expectation!=null)?{usd:b.scenarios.expectation,hkd:b.scenarios.expectation_hkd}:null;
-  const v=iv*0.85,sq=v*Math.sqrt(T);
-  const d1=(Math.log(S/K)+(0.04+v*v/2)*T)/sq,d2=d1-sq;
-  const model=K*Math.exp(-0.04*T)*_ncdf(-d2)-S*_ncdf(-d1);
-  const ev=(mid-model)*100*n;
-  return {usd:Math.round(ev),hkd:Math.round(ev*7.8)};
-}
 function levelsFromBars(bars,iv){   // 同 engine compute_stock_levels：20日 H/L/C 經典 pivot；ATR 用 IV（engine 傳 c.iv）→ 冇就日線歷史波動
   if(!bars||bars.length<2)return null;
   bars=bars.filter(b=>b.h!=null&&b.l!=null&&b.c!=null);   // ⭐ 09-05：濾走收市後重寫嘅 null bar，免 pivot/ATR 出 NaN
@@ -2191,27 +1887,6 @@ function drawChart(c){
 /* v4_balanced 按金口徑（同 engine apply_decisions 一致） */
 function marginPerPut(K,prem1,S){return Math.round(Math.max(0.20*S+prem1-Math.max(0,S-K), 0.10*K+prem1)*100,0);}
 function eqUSD(){return (rec&&rec.equity_usd)||CAPITAL_HKD/HKD_USD;}
-function usedMarginUSD(){   // ⭐ 2026-08-17 v2：由 positions 即時計（morning scan 嘅 used_margin_open 係舊數）+ 排隊中（0.22×K×100 近似）
-  let m=(rec&&rec.positions||[]).filter(p=>p.status==='open').reduce((s,p)=>{
-    const n=Number(p.contracts)||1;
-    const m1=Number(p.margin1)||Math.round(0.22*Number(p.collateral||0)/n);   // collateral 係總數 → 每張
-    return s+m1*n;},0);
-  decLoad('optdash_queued').forEach(q=>{m+=Math.round(0.22*Number(q.strike)*100*(Number(q.contracts)||1),0);});
-  return Math.round(m);
-}
-function putCount(){   // 已開 put + 排隊 put（不計 CC）
-  let n=(rec&&rec.positions||[]).filter(p=>p.status==='open'&&p.side!=='CALL').length;
-  decLoad('optdash_queued').forEach(q=>{if(q.side!=='CALL')n++;});
-  return n;
-}
-function gateBlocked(){
-  if(METHOD==='h6040')return false;   // h6040 用實時閘門（VIX/200DMA），唔受 v4 寬度閘門限制
-  if(rec&&rec.gate_closed){
-    toast('🚧 開倉閘門關閉：'+gateReason()+' —— engine 會拒絕新開倉');
-    return true;
-  }
-  return false;
-}
 function priceHint(px,bid,mid,ask){   // 限價 vs 盤口：成交概率提示（書面語）
   if(bid==null)return '';
   if(px<=bid+0.001)return '<span style="color:#16a34a">等於買價：大概率即刻成交</span>';
@@ -2221,7 +1896,6 @@ function priceHint(px,bid,mid,ask){   // 限價 vs 盤口：成交概率提示�
   return '<span style="color:#d97706">等於賣盤價：需要買家主動買入才成交，大概率排隊等待</span>';
 }
 function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
-  if(gateBlocked())return;
   const c=ctx||findCandidate(tk);
   const box=$('execBox');
   let n=contracts||1;
@@ -2231,51 +1905,44 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
   const sideTxt=isCall?'SELL CALL':'SELL PUT';
   const dte=(c&&c.dte!=null)?c.dte:Math.floor((new Date(exp+'T23:59:59')-Date.now())/864e5);   // ⭐ 2026-08-17：tenor 顯示（candidate 有 dte 用佢，否則即場計）
   window._lastExecCtx=c; window._lastExecSide=side;   // ⭐ confirmExec 要知 side + ctx（winrank 合成 candidate）
-  const isH6040=(METHOD==='h6040');
-  const isGold=(isH6040&&tk===GOLD_BT.ticker);   // ⭐ 09-08 金 sleeve（IAU）：sleeve 預算制＋試倉上限鎖死
-  const h6040Leg=isH6040?(tk==='XSP'?'spy':'single'):null;
+  const isGold=(tk===GOLD_BT.ticker);   // ⭐ 09-08 金 sleeve（IAU）：sleeve 預算制＋試倉上限鎖死
+  const h6040Leg=(tk==='XSP'?'spy':'single');
   const renderBox=()=>{
     const coll=K*100*n, prem=sellPx*100*n;
     const maxLoss=(K-sellPx)*100*n, be=isCall?(K+sellPx):(K-sellPx);   // 短 call BE = K + 權利金（升穿才虧損）
     const S=c&&c.spot?c.spot:K;
     const mPer=(c&&c.margin1)?c.margin1:marginPerPut(K,sellPx,S);
     const mTot=mPer*n;
-    // ⭐ 方法論感知按金預算：h6040 兩腿獨立（單股 70%×192k / XSP 90%×128k——⭐ 08-27 Path A：舊 60%/45% 雙牆令 128k 腿喺 XSP 600+ 開唔到一張倉；0.90/0.90 解鎖＋每倉≤2張 guardrail）；v4 用引擎數
+    // ⭐ 按金預算：h6040 兩腿獨立（單股 70%×192k / XSP 90%×128k——⭐ 08-27 Path A：舊 60%/45% 雙牆令 128k 腿喺 XSP 600+ 開唔到一張倉；0.90/0.90 解鎖＋每倉≤2張 guardrail）
     let eq,budget,usedM,openCount,maxPuts,capName;
-    if(isH6040){
-      if(isGold){
-        // ⭐ 09-08 金 sleeve：預算＝GOLD_BT.budget_usd（Futu 按金口徑 US$3k），上限 1 張（試倉期）；
-        //   已用按金按 ticker 計（金腿倉冇獨立 leg key，唔好當 single/spy 腿預算）
-        eq=GOLD_BT.budget_usd;budget=GOLD_BT.budget_usd;maxPuts=GOLD_BT.max_contracts;capName='金腿 sleeve 預算';
-        const _gb=((h6040SrvBook&&h6040SrvBook.open&&h6040SrvBook.open.length)?h6040SrvBook.open:h6040Book()).filter(p=>p.status==='open'&&p.ticker===GOLD_BT.ticker);
-        usedM=_gb.reduce((s,p)=>s+marginPerPut(p.strike,p.entry_prem!=null?p.entry_prem:p.prem,p.spot||p.strike)*p.contracts,0);
-        openCount=_gb.length+1;
-      }
-      else if(h6040Leg==='spy'){eq=128000/HKD_USD;budget=eq*0.90;maxPuts=2;capName='單倉 90%';}
-      else{eq=192000/HKD_USD;budget=eq*0.70;maxPuts=8;capName='單名 25%';}
-      if(!isGold){
-        usedM=h6040UsedMargin(h6040Leg);
-        openCount=((h6040SrvBook&&h6040SrvBook.open&&h6040SrvBook.open.length)?h6040SrvBook.open:h6040Book()).filter(p=>p.status==='open'&&p.leg===h6040Leg).length+1;
-      }
-    }else{
-      eq=eqUSD(); budget=(rec&&rec.margin_budget)||0.70*eq;
-      usedM=usedMarginUSD(); openCount=putCount()+((side!=='CALL')?1:0);
-      maxPuts=6; capName='單名 30%';
+    if(isGold){
+      // ⭐ 09-08 金 sleeve：預算＝GOLD_BT.budget_usd（Futu 按金口徑 US$3k），上限 1 張（試倉期）；
+      //   已用按金按 ticker 計（金腿倉冇獨立 leg key，唔好當 single/spy 腿預算）
+      eq=GOLD_BT.budget_usd;budget=GOLD_BT.budget_usd;maxPuts=GOLD_BT.max_contracts;capName='金腿 sleeve 預算';
+      const _gb=((h6040SrvBook&&h6040SrvBook.open&&h6040SrvBook.open.length)?h6040SrvBook.open:h6040Book()).filter(p=>p.status==='open'&&p.ticker===GOLD_BT.ticker);
+      usedM=_gb.reduce((s,p)=>s+marginPerPut(p.strike,p.entry_prem!=null?p.entry_prem:p.prem,p.spot||p.strike)*p.contracts,0);
+      openCount=_gb.length+1;
+    }
+    else if(h6040Leg==='spy'){eq=128000/HKD_USD;budget=eq*0.90;maxPuts=2;capName='單倉 90%';}
+    else{eq=192000/HKD_USD;budget=eq*0.70;maxPuts=8;capName='單名 25%';}
+    if(!isGold){
+      usedM=h6040UsedMargin(h6040Leg);
+      openCount=((h6040SrvBook&&h6040SrvBook.open&&h6040SrvBook.open.length)?h6040SrvBook.open:h6040Book()).filter(p=>p.status==='open'&&p.leg===h6040Leg).length+1;
     }
     const remAfter=Math.max(0,budget-usedM-mTot), moreAfter=mPer>0?Math.floor(remAfter/mPer):0;
-    const capFrac=isH6040?(isGold?1:(h6040Leg==='spy'?0.90:0.25)):0.30;
-    const overContracts=(isH6040&&h6040Leg==='spy'&&n>2);   // ⭐ 08-27 Path A guardrail：XSP 每倉最多 2 張
-    const overGold=(isH6040&&isGold&&n>GOLD_BT.max_contracts);   // ⭐ 09-08 金腿試倉期：上限 1 張鎖死
-    const overBudget=(usedM+mTot>budget+1), overName=(mTot>eq*capFrac+1), fullPuts=((side!=='CALL'||isH6040)&&openCount>maxPuts);
+    const capFrac=isGold?1:(h6040Leg==='spy'?0.90:0.25);
+    const overContracts=(h6040Leg==='spy'&&n>2);   // ⭐ 08-27 Path A guardrail：XSP 每倉最多 2 張
+    const overGold=(isGold&&n>GOLD_BT.max_contracts);   // ⭐ 09-08 金腿試倉期：上限 1 張鎖死
+    const overBudget=(usedM+mTot>budget+1), overName=(mTot>eq*capFrac+1), fullPuts=((side!=='CALL')&&openCount>maxPuts);
     const insufficient=overBudget||overName||fullPuts||overContracts||overGold;   // 同 engine 硬檢查同款 → 紅警示 + 鎖確認掣
-    const locked=lockedHKD(), avail=availHKD(), need=coll*HKD_USD;
-    const methodLabel=isH6040?(isGold?'Hybrid 60/40 金 sleeve（IAU）':'Hybrid 60/40 '+h6040Leg+' 腿'):'v4_balanced';
+    const need=coll*HKD_USD;
+    const methodLabel=(isGold?'Hybrid 60/40 金 sleeve（IAU）':'Hybrid 60/40 '+h6040Leg+' 腿');
     box.innerHTML=
-      '<h3>✅ 執行：'+sideTxt+' '+tk+' ×'+n+'<span class="method-badge '+(isH6040?'bt':'live')+'">'+methodLabel+'</span><button class="exec-x" onclick="closeExec()" title="關閉">✕ 關閉</button></h3>'+
+      '<h3>✅ 執行：'+sideTxt+' '+tk+' ×'+n+'<span class="method-badge bt">'+methodLabel+'</span><button class="exec-x" onclick="closeExec()" title="關閉">✕ 關閉</button></h3>'+
       '<div class="row"><span class="k">到期 / Tenor'+tip('dte')+'</span><span>'+exp+'（<b>'+(dte!=null?dte+' 日':'—')+'</b> 到期）</span></div>'+
       '<div class="row"><span class="k">行使價</span><span>$'+K+'（現價 $'+liveSpot(tk,c?c.spot:K)+'）</span></div>'+
       '<div class="row"><span class="k">按金 '+methodLabel+tip('margin')+tip('util')+'</span><span>已用 <b>$'+fmt(usedM)+'</b> / $'+fmt(budget)+' · 這一單需 <b>$'+fmt(mTot)+'</b>（$'+fmt(mPer)+'/張）'+(overBudget?'':' · 開倉後剩 <b style="color:#16a34a">$'+fmt(remAfter)+' ≈ HKD '+fmt(remAfter*HKD_USD)+'（仲夠 '+moreAfter+' 張）</b>')+tip('capacity')+'</span></div>'+
-      '<div class="row"><span class="k">接貨現金（供你參考）</span><span>'+hkd(need)+(isH6040?'':' · 已鎖 '+hkd(locked)+' · 剩餘現金 '+hkd(avail))+tip('collateral')+'</span></div>'+
+      '<div class="row"><span class="k">接貨現金（供你參考）</span><span>'+hkd(need)+tip('collateral')+'</span></div>'+
       (insufficient?('<div class="warn-note" style="border-color:#fca5a5;background:#fef2f2;color:#b91c1c">🚫 <b>超過 '+methodLabel+' 欄杆：</b>'+
         (fullPuts?'put 倉已滿 '+maxPuts+'/'+maxPuts+'；':'')+
         (overBudget?'按金會爆預算（$'+fmt(usedM+mTot)+' &gt; $'+fmt(budget)+'）；':'')+
@@ -2311,86 +1978,46 @@ function openExec(tk,exp,K,contracts,mid,bid,ask,side,ctx){
 }
 function closeExec(){$('execModal').style.display='none';}
 async function confirmExec(tk,exp,K,n,premium){
-  // ⭐ 2026-08-23：v4_balanced 同 Hybrid 60/40 同一條執行路徑 —— 經 v4 engine 記賬＋即時推 Telegram。
-  //   h6040 只追蹤真倉（你已在 Futu 落 / 想落嘅單）→ real:true，落盤後 engine 出「已成交（記賬）」TG。
-  //   任何操作（開/平/改張/轉真倉）都經 engine → send_fill_notification，唔會靜悄悄。
-  //   ⭐ 09-12 P7 閘（h6040 only）：POST 前打 bridge /preflight 六問——有 ❌ 要 override+reason
-  //   先開得（engine is_override 路徑＝TG「⚠️ Override 通告」＋state.overrides 月度計數；
-  //   real 旗標照帶，override 語義唔受影響）。❓/⚠️ 唔 block；六問攞唔到數據＝fail-soft 照純記帳。
-  //   v4 紙上腿（isH6040=false）完全唔過呢個閘，行為同以前一樣。
-  const isH6040=(METHOD==='h6040');
+  // ⭐ 09-15 手術：單一方法論（Hybrid 60/40 全家桶）——執行只追蹤真倉（real:true），
+  //   落盤後 engine 出「已成交（記賬）」TG。⭐ P7 六問閘：POST 前打 bridge /preflight——
+  //   有 ❌ 要 override+reason 先開得（❓/⚠️ 唔 block；攞唔到數據＝fail-soft 照純記帳）。
   const c=window._lastExecCtx||null;
   const side=(window._lastExecSide==='CALL')?'CALL':'CSP';   // ⭐ 2026-08-14: 帶 side 給 engine 開對方向（賣 Call=短 call）
   let ovFlag=false,ovReason='';
-  if(isH6040){
-    let pf=null;
-    try{
-      if(!activeBridge)await detectBridge();
-      if(activeBridge){
-        const r=await fetchTimeout(activeBridge+'/preflight?ticker='+encodeURIComponent(tk)+'&strike='+encodeURIComponent(K)
-          +'&expiry='+encodeURIComponent(exp)+'&side='+encodeURIComponent(side==='CALL'?'C':'P')+'&qty='+encodeURIComponent(String(n))
-          +'&secret='+encodeURIComponent(BRIDGE_SECRET),15000);
-        pf=(r&&r.ok)?await r.json():null;
-      }
-    }catch(e){pf=null;}
-    if(pf){
-      const fails=(pf.checks||[]).filter(function(x){return x.status==='fail';});
-      if(fails.length){
-        const why=prompt('🛂 P7 六問有 '+fails.length+' 個 ❌，逆 model 開倉要 override＋理由留底：\n\n'
-          +fails.map(function(x){return '❌ '+x.label+'：'+(x.detail||'');}).join('\n')
-          +'\n\n輸入 override 理由（取消／空白＝唔開）：');
-        if(!why||!why.trim()){toast('🛂 已取消——P7 紅燈要 override+reason 先開得');return;}
-        ovFlag=true;ovReason=why.trim();
-      }
-    }else toast('⚠️ 六問攞唔到數據，照純記帳');
-  }
-  recordDecision('queued',tk,exp,K,{contracts:Number(n),premium:Number(premium),side:side,real:isH6040});   // ⭐ 移到閘之後：取消＝唔入 queued（唔鎖資本）
+  let pf=null;
+  try{
+    if(!activeBridge)await detectBridge();
+    if(activeBridge){
+      const r=await fetchTimeout(activeBridge+'/preflight?ticker='+encodeURIComponent(tk)+'&strike='+encodeURIComponent(K)
+        +'&expiry='+encodeURIComponent(exp)+'&side='+encodeURIComponent(side==='CALL'?'C':'P')+'&qty='+encodeURIComponent(String(n))
+        +'&secret='+encodeURIComponent(BRIDGE_SECRET),15000);
+      pf=(r&&r.ok)?await r.json():null;
+    }
+  }catch(e){pf=null;}
+  if(pf){
+    const fails=(pf.checks||[]).filter(function(x){return x.status==='fail';});
+    if(fails.length){
+      const why=prompt('🛂 P7 六問有 '+fails.length+' 個 ❌，逆 model 開倉要 override＋理由留底：\n\n'
+        +fails.map(function(x){return '❌ '+x.label+'：'+(x.detail||'');}).join('\n')
+        +'\n\n輸入 override 理由（取消／空白＝唔開）：');
+      if(!why||!why.trim()){toast('🛂 已取消——P7 紅燈要 override+reason 先開得');return;}
+      ovFlag=true;ovReason=why.trim();
+    }
+  }else toast('⚠️ 六問攞唔到數據，照純記帳');
+  recordDecision('queued',tk,exp,K,{contracts:Number(n),premium:Number(premium),side:side,real:true});   // ⭐ 移到閘之後：取消＝唔入 queued（唔鎖資本）
   const payload={action:'open',ticker:tk,expiry:exp,strike:Number(K),contracts:Number(n),premium:Number(premium),
     delta:(c&&c.delta!=null)?c.delta:((findCandidate(tk)||{}).delta),iv:(c&&c.iv!=null)?c.iv:((findCandidate(tk)||{}).iv),
-    side:side, real:isH6040};
+    side:side, real:true};
   if(ovFlag){payload.override=true;payload.reason=ovReason;}
   const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),payload);
   closeExec();
-  if(r&&r.ok){toast((isH6040?'✅ [Hybrid 60/40] 已排隊執行真倉 ':'✅ 已排隊執行 ')+tk+' ×'+n+'（engine 下個週期確認，price 到先記賬；Telegram 已通知）');setTimeout(function(){loadRec();},4000);}
+  if(r&&r.ok){toast('✅ [Hybrid 60/40] 已排隊執行真倉 '+tk+' ×'+n+'（engine 下個週期確認，price 到先記賬；Telegram 已通知）');setTimeout(function(){loadRec();},4000);}
   else toast('❌ 執行失敗：'+(r&&r.error||'bridge 未連接'));
 }
 /* ════════════ 決定記錄（localStorage：執行/排隊/今日不做） ════════════ */
 function decLoad(k){try{return JSON.parse(localStorage.getItem(k)||'[]');}catch(e){return [];}}
 function decSave(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 function decKey(tk,exp,K){return tk+'|'+exp+'|'+Number(K).toFixed(2);}
-function lockedHKD(){
-  /* 已鎖定資本（HKD）= 開倉位抵押 + 排隊中訂單抵押（未執行都立即鎖） */
-  let sum=0;
-  (rec&&rec.positions||[]).forEach(p=>{if(p.status==='open')sum+=(p.collateral||0)*HKD_USD;});
-  decLoad('optdash_queued').forEach(q=>{sum+=(Number(q.strike)*100*(Number(q.contracts)||1))*HKD_USD;});
-  return Math.round(sum);
-}
-function availHKD(){return CAPITAL_HKD-lockedHKD();}
-function modePos(){const pos=(rec&&rec.positions||[]).filter(x=>x.status==='open');if(pnlMode==='real')return pos.filter(x=>x.real);if(pnlMode==='paper')return pos.filter(x=>!x.real);return pos;}
-function modeTag(){return pnlMode==='real'?'（真倉）':pnlMode==='paper'?'（紙上）':'';}
-function posMarginUSD(p){
-  if(!p) return 0;
-  const margin = (p.margin1!=null?Number(p.margin1):(p.collateral||0)*0.22)*(p.contracts||1);
-  // Debug: Log individual position margin
-  if(METHOD === 'v4_balanced' && margin === 0 && p.contracts > 0){
-    console.log('Position margin debug - v4_balanced:', p);
-  }
-  return margin;
-}
-function modeMarginUSD(){
-  const positions = modePos();
-  const margin = Math.round(positions.reduce((a,p)=>a+posMarginUSD(p),0));
-  // Debug: Log margin calculation for troubleshooting
-  if(METHOD === 'v4_balanced' && margin === 0){
-    console.log('Margin debug - v4_balanced:', {positions, totalPositions: positions.length});
-  }
-  return margin;
-}
-function modeLockedHKD(){   // 排隊訂單屬紙上 → 真倉 mode 唔計
-  let sum=modePos().reduce((a,p)=>a+(p.collateral||0)*HKD_USD,0);
-  if(pnlMode!=='real')decLoad('optdash_queued').forEach(q=>{sum+=(Number(q.strike)*100*(Number(q.contracts)||1))*HKD_USD;});
-  return Math.round(sum);
-}
 function recordDecision(kind,tk,exp,K,extra){
   const list=decLoad('optdash_'+kind);
   const key=decKey(tk,exp,K);
@@ -2404,73 +2031,15 @@ function recordDecision(kind,tk,exp,K,extra){
 }
 function renderDecisions(){
   const el=$('decBody');if(!el)return;
-  if(METHOD==='h6040'){
-    const posAll=((rec&&rec.positions)||[]).filter(x=>x.status==='open');
-    const realPos=posAll.filter(x=>x.real);
-    let hh='<div class="muted">Hybrid 60/40 視圖只追蹤真倉 —— 所有紙上倉已於 2026-08-23 清除。</div>';
-    if(realPos.length){
-      hh+='<div style="font-weight:700;margin:8px 0 6px">🔴 現有真倉（'+realPos.length+'）</div><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">盈虧平衡</th><th class="r">未實現</th></tr></thead><tbody>';
-      realPos.forEach(p=>{hh+='<tr><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+money(p.pnl_hkd)+'</td></tr>';});
-      hh+='</tbody></table>';
-    }
-    el.innerHTML=hh;
-    return;
+  const posAll=((rec&&rec.positions)||[]).filter(x=>x.status==='open');
+  const realPos=posAll.filter(x=>x.real);
+  let hh='<div class="muted">Hybrid 60/40 視圖只追蹤真倉 —— 所有紙上倉已於 2026-08-23 清除。</div>';
+  if(realPos.length){
+    hh+='<div style="font-weight:700;margin:8px 0 6px">🔴 現有真倉（'+realPos.length+'）</div><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">盈虧平衡</th><th class="r">未實現</th></tr></thead><tbody>';
+    realPos.forEach(p=>{hh+='<tr><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+money(p.pnl_hkd)+'</td></tr>';});
+    hh+='</tbody></table>';
   }
-  const queued=decLoad('optdash_queued'), skips=decLoad('optdash_skips');
-  const pos=rec?rec.positions||[]:[];
-  // ⭐ 2026-08-17：狀態用 OPEN 倉對照（closed 唔算——平咗再重排同款會誤標「已記賬」）；
-  //    張數/權利金優先顯示 live 倉位（engine 改張數後表跟住變，唔會卡舊 snapshot）
-  const openByKey={}; pos.filter(p=>p.status==='open').forEach(p=>{openByKey[decKey(p.ticker,p.expiry,p.strike)]=p;});
-  const dteOf=function(exp){var d=Math.floor((new Date(exp+'T23:59:59')-Date.now())/864e5);return isNaN(d)?null:d;};
-  let h='';
-  if(queued.length){
-    h+='<div style="font-weight:700;margin-bottom:6px">🚀 已執行 / 排隊中（'+(queued.length)+'）</div><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">Tenor</th><th class="r">張數</th><th class="r">每股權利金</th><th>狀態</th><th></th></tr></thead><tbody>';
-    queued.slice().reverse().forEach(q=>{
-      const key=decKey(q.ticker,q.expiry,q.strike);
-      const live=openByKey[key]||null;
-      const n=live?(live.contracts||1):(q.contracts||1);
-      const prem=live&&live.entry_prem!=null?live.entry_prem:null;   // dashboard post 嘅 premium 本身就係每股價；live 有就顯示 live
-      const dte=dteOf(q.expiry);
-      const st=live
-        ?'<span style="color:#16a34a;font-weight:700">✅ 已記賬 · 持倉中</span>'
-        :'<span style="color:#d97706;font-weight:700">⏳ 排隊執行中</span>';
-      h+='<tr><td><b>'+esc(q.ticker)+'</b>'+(q.side==='CALL'||(live&&live.side==='CALL')?' <span style="color:#92400e;font-size:10px;font-weight:700">賣Call</span>':' <span style="color:#1d4ed8;font-size:10px;font-weight:700">賣Put</span>')+'</td><td class="r">$'+px2(q.strike)+'</td><td>'+q.expiry+'</td><td class="r">'+(dte!=null?dte+'日':'—')+'</td><td class="r"><b>'+n+'</b>'+(live&&n!==(q.contracts||1)?' <span class="muted small">(原'+(q.contracts||1)+')</span>':'')+'</td><td class="r">$'+px2(live&&prem!=null?prem:q.premium)+'</td><td>'+st+'</td>'+
-        '<td>'+(live?'':('<button class="btn btn-ghost" onclick="editQueued(\''+q.ticker+'\',\''+q.expiry+'\','+q.strike+',\''+(q.contracts||1)+'\',\''+(q.premium||0)+'\')">改張數</button> <button class="btn btn-close" onclick="cancelQueued(\''+q.ticker+'\',\''+q.expiry+'\','+q.strike+')">取消</button>'))+'</td></tr>';
-    });
-    h+='</tbody></table>';
-  }
-  if(skips.length){
-    h+='<div style="font-weight:700;margin:10px 0 6px">🙅 今日不做（'+skips.length+'）</div>';
-    h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
-    skips.slice().reverse().slice(0,30).forEach(s=>{
-      h+='<span style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:999px;padding:3px 10px;font-size:11px;color:#475569">'+esc(s.ticker)+' $'+s.strike+' <span class="muted">'+s.expiry+'</span></span>';
-    });
-    h+='</div>';
-  }
-  if(!queued.length&&!skips.length)h+='<div class="muted">尚無決定 — 去候選名單選「執行」或「不做」。</div>';
-  el.innerHTML=h;
-}
-function remQueued(tk,exp,K){
-  decSave('optdash_queued',decLoad('optdash_queued').filter(x=>decKey(x.ticker,x.expiry,x.strike)!==decKey(tk,exp,K)));
-}
-async function cancelQueued(tk,exp,K){
-  if(!confirm('取消這張未執行的訂單：'+tk+' $'+K+'？'))return;
-  remQueued(tk,exp,K);
-  renderDecisions();renderOverview();
-  const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'cancel',ticker:tk,expiry:exp,strike:Number(K)});
-  if(r&&r.ok)toast('已取消：'+tk+' $'+K); else toast('❌ 取消失敗');
-  setTimeout(loadRec,3000);
-}
-async function editQueued(tk,exp,K,contracts,premium){
-  const nStr=prompt('改張數（1-5）：',contracts||'1');
-  const n=parseInt(nStr,10);
-  if(isNaN(n)||n<1||n>5)return;
-  remQueued(tk,exp,K);
-  recordDecision('queued',tk,exp,K,{contracts:n,premium:Number(premium)});
-  await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'cancel',ticker:tk,expiry:exp,strike:Number(K)});
-  const r=await postJSON(activeBridge+'/options_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'open',ticker:tk,expiry:exp,strike:Number(K),contracts:n,premium:Number(premium)});
-  toast(r&&r.ok?('已改為 ×'+n+'，重新排隊'):'❌ 修改失敗');
-  setTimeout(loadRec,3000);
+  el.innerHTML=hh;
 }
 async function skipTrade(tk,exp,K){
   recordDecision('skips',tk,exp,K);
@@ -2573,7 +2142,7 @@ function renderAdvice(){
       +'<td style="font-size:11px;font-weight:600;color:'+aCol+'">'+action+'</td></tr>';
   }).join('');
   h+='<table class="utable"><thead><tr><th>股票</th><th class="r">股數/張</th><th class="r">現價</th><th class="r">盈虧(HKD)</th><th class="c">動量減速</th><th>信號</th><th>操作建議</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">📭 無持倉</td></tr>')+'</tbody></table>';
-  h+='<div style="font-size:11px;color:#64748b;margin-top:10px;padding:8px 10px;background:#f8fafc;border-radius:6px">📌 正股行＝<b>quant model（策略交易台）</b>計法：沽出提示 → 觸發退出 → Decel≤−3 強制離場 → 信號轉弱減持 → BUY 加倉（同 quant dashboard 同一把尺；無靜態到價/止蝕）。期權行＝v4_balanced／Hybrid 60/40 短 put 出場規則（PT 50% ／ 止損 1.9×）。</div>';
+  h+='<div style="font-size:11px;color:#64748b;margin-top:10px;padding:8px 10px;background:#f8fafc;border-radius:6px">📌 正股行＝<b>quant model（策略交易台）</b>計法：沽出提示 → 觸發退出 → Decel≤−3 強制離場 → 信號轉弱減持 → BUY 加倉（同 quant dashboard 同一把尺；無靜態到價/止蝕）。期權行＝Hybrid 60/40 短 put 出場規則（PT 50% ／ 止損 1.9×）。</div>';
   el.innerHTML=h;
 }
 
@@ -2802,8 +2371,8 @@ function switchPane(id){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.pane===id));
   document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active',p.id==='pane-'+id));
   if(id==='detail'){if(activeTk){chainScrollPending[activeTk]=true;renderDetail();}else if(rec&&rec.best){activeTk=rec.best.ticker;chainScrollPending[activeTk]=true;renderDetail();}}
-  if(id==='best'){if(METHOD==='h6040')renderH6040Best();else renderBest();}
-  if(id==='overview'){if(METHOD==='h6040')renderH6040Overview();else renderOverview();}
+  if(id==='best')renderBest();
+  if(id==='overview')renderOverview();
   if(id==='positions')renderPositions();
   if(id==='advice')renderAdvice();
   if(id==='toppick')renderTopPick();
@@ -2823,8 +2392,7 @@ document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',
   [300,800,1800,3500].forEach(function(ms){setTimeout(sync,ms);});
 })();
 
-/* ═══════════　方法論（v4_balanced / h6040） ════════════ */
-let _v4MethodHTML=null,_v4SpecHTML=null,_v4PerfHTML=null;
+/* ═══════════　方法論（Hybrid 60/40 · L_mom×W_wr 全家桶） ════════════ */
 // ⭐ 09-04 單股腿宇宙全名單 — 用戶拍板轉用 combined-174（fetch_data_v5.py UNIVERSE=174，同日同步）。
 // 血緣＝v5 scorer-69 ∪ v7-147；三向回測 U174 最優（ann+38.5%/PF4.88，native-only 仍贏）。
 // ⚠️ 改宇宙要兩邊同步：fetch_data_v5.py 同下面呢個 array（h6040_scan 06:10 用前者，呢個頁面用後者）。
@@ -2846,130 +2414,8 @@ const H6040_UNIVERSE=['AAOI','AAPL','ABBV','ABNB','ABT','ADBE','ADI','AFRM','ALA
 'TSEM','TSLA','TSM','TWLO','TXN','U','UAL','UNH','UPS','USB',
 'V','VRT','W','WDAY','WDC','WFC','WMT','WOLF','XOM','XPEV',
 'XYZ','YUM','ZM','ZS'];
-/* ════════════ ⭐ 09-15 單股腿公平測（2×2 gate×pool · 統一 2022-01-01→2026-09-15 公平窗）════════════
-   口徑：單股腿 cash-secured US$37,403 · model IV＋BS 定價、無 slippage/佣金。
-   ⚠️ 與 H6040_BT（單股腿+XSP 兩腿合併 HK$320k margin 口徑）唔同尺，不可直接比。
-   by_year 真源：quant_model/gate_pool_2x2_results_v2.json results[5]（engine_v2×u174）、
-   quant_model/gate_pool_2x2_results.json（h6040×u174 cell）；聚合統計＝fair2022 run stdout（09-15）。 */
-const FAIR_V4={n:169,win:90.5,pf:5.13,cagr:5.99,dd:3.20,sh_t:0.51,sh_m:1.63,
-  final_usd:'US$49,137',mo_avg:'+$206',mo_med:'$0',mo_neg:'3 / 57',mo_worst:'−$353（2022-10）',
-  by_year:[{y:'2022',n:74,pnl:2446},{y:'2023',n:34,pnl:2022},{y:'2024',n:19,pnl:2068},{y:'2025',n:30,pnl:4460},{y:'2026',n:14,pnl:2256,note:'（至 09-15）'}]};
-const FAIR_H={n:205,win:89.8,pf:4.39,cagr:6.65,dd:4.65,sh_t:0.49,sh_m:1.62,
-  final_usd:'US$50,595',mo_avg:'+$231',mo_med:'$0',mo_neg:'4 / 57',mo_worst:'−$564（2022-09）',
-  by_year:[{y:'2022',n:97,pnl:2916},{y:'2023',n:35,pnl:1954},{y:'2024',n:23,pnl:1535},{y:'2025',n:34,pnl:4134},{y:'2026',n:16,pnl:2736,note:'（至 09-15）'}]};
-const FAIR_FOOTNOTE='回測口徑：單股腿 cash-secured US$37,403 · 2022-01-01→2026-09-15 統一公平窗 · model IV＋BS 定價、無 slippage/佣金 · Sharpe(t,ddof=0)＝每筆 mean/std；月度尺＝月pnl/std(ddof=0)×√12 · 真源 quant_model/gate_pool_2x2_v2_fair2022.py（09-15）。⚠️ 與 H6040_BT 卡（單股腿+XSP 兩腿合併 HK$320k margin 口徑）唔同尺，不可直接比。每月收入屬爆發式：VIX∈[20,32] 月份先開工（2023-04→2024-09 幾乎零交易係設計）。⭐ 定案：v4.2 閘 ≈ h6040 閘（性狀唔同——v4.2 守得靚 DD 3.20%／最差月 −$353，h6040 賺多啲 +6.65%／月均 +$231，Sharpe 0.51 vs 0.49 打和）；真正嘅大修補＝VIX 閘（CAGR +6~7pp、PF 0.7→2.3），best-ay 再加 ~2pp；兩套 momentum 閘係兩條公式，故意唔交叉。⭐ 逐年表＝全窗 run（gate_pool_2x2_results_v2.json results[5]／h6040×u174 cell）2022+ 切片，v4.2 臂合計 171 張（含 2 張 2021-12 開倉）；headline n=169 係公平窗重跑（2022-01-01 後先開倉）——差 2 張屬開倉日口徑。⭐ 09-15 誠實口徑重跑（mark/mtm 改當日 IV；窗至 08-20 · Arm H4/G-H · 真源 quant_model/research/pitwr_20260915/）：v4.2 腿 PF 5.47／＋6.34%／DD 4.14 · h6040 閘 PF 6.62／＋8.03%／DD 3.98——誠實 mark 兩臂齊升、閘排序不變；全家桶誠實 ladder＝h6040閘 44.32 ＜ v4.2 43.70 ＜ wr 51.12（wr 留任 W-slot 主臂）。';
-function fairCardHTML(F){
-  let h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center">'+
-    '<div><div class="small muted">交易數 n</div><div style="font-weight:800">'+F.n+'</div></div>'+
-    '<div><div class="small muted">勝率</div><div style="font-weight:800">'+F.win+'%</div></div>'+
-    '<div><div class="small muted">獲利因子 PF</div><div style="font-weight:800">'+F.pf+'</div></div>'+
-    '<div><div class="small muted">CAGR</div><div style="font-weight:800;color:#16a34a">+'+F.cagr+'%</div></div>'+
-    '<div><div class="small muted">最大回撤</div><div style="font-weight:800;color:#dc2626">'+F.dd+'%</div></div>'+
-    '<div><div class="small muted">Sharpe（每筆·ddof=0）</div><div style="font-weight:800">'+F.sh_t+'</div></div>'+
-    '<div><div class="small muted">Sharpe（月度×√12）</div><div style="font-weight:800">'+F.sh_m+'</div></div>'+
-    '<div><div class="small muted">最終權益</div><div style="font-weight:800">'+F.final_usd+'</div></div>'+
-    '<div><div class="small muted">月均收入</div><div style="font-weight:800;color:#16a34a">'+F.mo_avg+'</div></div>'+
-    '<div><div class="small muted">月中位數</div><div style="font-weight:800">'+F.mo_med+'</div></div>'+
-    '<div><div class="small muted">負月份</div><div style="font-weight:800;color:#dc2626">'+F.mo_neg+'</div></div>'+
-    '<div><div class="small muted">最差單月</div><div style="font-weight:800;color:#dc2626">'+F.mo_worst+'</div></div>'+
-  '</div>';
-  h+='<div class="table-scroll" style="margin-top:10px"><table class="utable">'+
-    '<thead><tr><th>年份</th><th class="r">交易數</th><th class="r">盈虧 (US$)</th></tr></thead><tbody>';
-  F.by_year.forEach(r=>{h+='<tr><td><b>'+r.y+(r.note||'')+'</b></td><td class="r">'+r.n+'</td><td class="r up">+'+fmt(r.pnl,0)+'</td></tr>';});
-  h+='</tbody></table></div>'+
-    '<div class="small muted" style="margin-top:8px">'+FAIR_FOOTNOTE+'</div>';
-  return h;
-}
-function renderMethod(){
-  if(METHOD==='h6040'){renderMethodH6040();return;}
-  // ⭐ 09-15：v4 分支全量重寫為 engine v4.2（VIX[20,32] 硬閘＋best-ay 揀Δ）＋單股腿公平測
-  //   （舊「+151.7% 靜態表／A級平衡王文案」退役；同 h6040 分支 idiom——每次 render 全量 innerHTML 覆寫）
-  $('methodSpecTitle').textContent='⭐ v4.2 模型規格（09-15 起 live）';
-  $('methodSpecMeta').textContent='engine v4.2（09-15）：VIX[20,32] 硬閘＋Δ best-ay · 2×2 gate×pool 公平測拍板組合＝engine v4.2×U174 · 規格真源 /tmp/gate_spec_2x2.md';
-  $('methodSpecBody').innerHTML=
-    '<div class="table-scroll"><table class="utable">'+
-    '<thead><tr><th>層</th><th>規則</th><th>為什麼</th></tr></thead><tbody>'+
-    '<tr><td>全局閘（每 cycle）</td><td><b>市寬 ≥50%</b>（fail-open）＋ <b>VIX∈[20,32] 硬閘</b>（fail-closed，09-15 v4.2 新增）＋ 熔斷 −15%/10日 ＋ ≤8 倉／每日新倉 ≤2</td><td class="muted">市寬不足＝全場休息；VIX&lt;20 權利金太平、&gt;32 恐慌唔接刀——閘關門月份零收入係設計</td></tr>'+
-    '<tr><td>宇宙／價格</td><td><b>10 ≤ spot ≤ 374</b>（U174 池）</td><td class="muted">spot ≤$374 ≈ K×100 接得起 US$37,403 equity（cash-secured 口徑，OTM put K&lt;S）；engine 執行池＝U174，v4 tab 股表顯示層＝tech 69（09-14 拍板）——明細＝單腿股表卡「🗂 宇宙對照」</td></tr>'+
-    '<tr><td>趨勢五閘</td><td><b>S&gt;MA50 · MA50 上方 ext ≤15% · m3 ≤60% · RSI 40–70 · 近 5 日無 ±8%</b></td><td class="muted">不追高、不接下跌刀；五閘全過先入圍</td></tr>'+
-    '<tr><td>事件／IV／動量</td><td><b>非業績窗（+2 日 buffer）'+tip('earnings')+' → IV∈[30%,150%] → momentum v3 閘（skip-21＋decel，BUY/ACCUMULATE 先過）'+tip('veto')+'</b></td><td class="muted">避 IV crush；momentum-only 同回測公式</td></tr>'+
-    '<tr><td>⭐ 揀行（09-15 v4.2 best-ay）</td><td><b>目標 Δ{0.20,0.25} · 接受帶 |Δ|∈[0.16,0.31] · prem ≥0.10 · spread ≤35% mid · ay=(prem/K)×365/dte 取最大</b></td><td class="muted">同帶內揀年化收入最高嗰行，唔再係「最近 0.25」；h6040 行 wr=best-ay×(0.5+iv_rank/100) top12——兩套 momentum 閘係兩條公式，勿交叉</td></tr>'+
-    '<tr><td>DTE</td><td><b>5–7 日</b></td><td class="muted">theta 最陡段，當周輪替</td></tr>'+
-    '<tr><td>出場</td><td><b>+50% 止賺（live mid）／cut（S&lt;K 且 S&lt;0.95×MA50 且 dte≥5，break-glass）／到期結算／業績必平</b></td><td class="muted">回測以 PT50 主導；cut 係唯一 mark 類自動止蝕'+tip('cut')+'</td></tr>'+
-    '</tbody></table></div>'+
-    '<div class="small muted" style="margin-top:8px">規格真源 /tmp/gate_spec_2x2.md；公平測真源 quant_model/gate_pool_2x2_v2_fair2022.py（09-15）。定價＝model IV＋BS、無 slippage/佣金（口徑腳註見下「🧪 單股腿公平測」卡）。</div>';
-  $('methodPerfTitle').textContent='📊 engine v4.2×U174 公平測（單股腿 cash-secured）';
-  $('methodPerfMeta').textContent='2022-01-01→2026-09-15 統一公平窗 · US$37,403 起算 · model IV＋BS 定價 · '+FAIR_V4.n+' 筆';
-  $('methodPerfBody').innerHTML=fairCardHTML(FAIR_V4);
-  $('methodBest').innerHTML=
-    '<p><b>全局閘（每 cycle）→ 逐股閘 → ⭐ best-ay 揀行。</b><b style="color:#1a73e8">09-15 v4.2：VIX∈[20,32] 硬閘（fail-closed）＋ best-ay 揀Δ</b>＝2×2 gate×pool 公平測拍板組合（engine v4.2×U174，數字見下「🧪 單股腿公平測」卡）。</p>'+
-    '<ol style="margin:8px 0 0 18px;line-height:2">'+
-    '<li><b>全局閘（每 cycle）</b>：市寬 ≥50%'+tip('breadth')+'（fail-open）＋ <b>VIX∈[20,32] 硬閘</b>（fail-closed，09-15 v4.2 新增）＋ 熔斷 −15%/10 日 ＋ ≤8 倉／每日新倉 ≤2。</li>'+
-    '<li><b>逐股閘</b>：10 ≤ spot ≤ 374 → 趨勢五閘（S&gt;MA50、MA50 上方 ext ≤15%、3 個月動量 ≤60%、RSI 40–70、近 5 日無單日 ±8%）→ 非業績窗（+2 日 buffer）'+tip('earnings')+' → IV∈[30%,150%] → momentum v3 阘（skip-21＋decel，BUY/ACCUMULATE 先過）'+tip('veto')+'。</li>'+
-    '<li><b>⭐ best-ay 揀行（09-15 v4.2）</b>：目標 Δ{0.20,0.25}、接受帶 |Δ|∈[0.16,0.31]、prem ≥0.10、spread ≤35% mid，ay=(prem/K)×365/dte <b>取最大</b> → DTE 5–7。</li>'+
-    '<li><b>出場</b>：+50% 止賺（live mid）／cut（S&lt;K 且 S&lt;0.95×MA50 且 dte≥5，break-glass）／到期結算／業績必平。</li>'+
-    '<li><b>執行流程（落手）</b>：當周掃描榜（board≡engine）核對 → <b>P7 六問卡</b>（跟榜／接貨／σ距／event／按金／市寬）先落手；榜上建議K＝掃描快照，落盤前入個股詳情用 <b>live chain 重揀 K</b>；紙上候選推播＝<b>通知-only</b>，唔會自動落盤。宇宙明細＝單腿股表卡「🗂 宇宙對照」。</li></ol>';
-  $('methodIV').innerHTML=
-    '<p><b>IV 三層來源（由靚到醜）＋ v4_balanced IV 帶 30–150%：</b></p>'+
-    '<ol style="margin:8px 0 0 18px;line-height:1.9">'+
-    '<li><b>Yahoo chain 真 IV</b>：但要踢走「power-of-2 floor」假值（0.5/0.25/0.125/0.0625 成批出現 = Yahoo 無 IV 時的佔位）'+tip('iv')+'。</li>'+
-    '<li><b>Sanity cap</b>：chain IV &gt;150% 或比歷史波動率高好多 → 當垃圾，轉用歷史波動率。</li>'+
-    '<li><b>歷史波動率</b>（stdev(日回報)×√252）：真實價格計算出來，永遠不會失敗'+tip('histvol')+'。delta / probITM/OTM / greeks 全部由這個 effective IV 用 Black-Scholes 計。</li></ol>'+
-    '<p class="small muted" style="margin-top:6px">個股詳情頁的期權鏈用 Futu 實時 bid/ask 反推 IV（BS bisection），與 App 顯示一致。</p>';
-  $('methodSize').innerHTML=
-    '<p><b>配倉（按金制，不是現金制）</b>：每張鎖按金 = Reg-T '+tip('margin')+'；建議張數 = min(（20% 預算−已用）÷每張按金，25% equity÷每張按金，板塊 40% 預算，10)'+tip('contracts')+'；<b>總按金硬閘 US$12,726</b>（=Futu USD 購買力/1.255，唔隨 equity 增長）；最多 8 個 put 倉、每日新開 ≤2。</p>'+
-    '<p style="margin-top:8px"><b>出場規則（真倉全自動，09-12 口徑）：</b></p>'+
-    '<ol style="margin:4px 0 0 18px;line-height:1.9">'+
-    '<li>權利金收到 <b>50%</b> → 真倉自動 buy-to-close 鎖利（DAY limit，3 次重試）'+tip('close50')+'</li>'+
-    '<li><b>Break-glass 真趨勢穿自動止蝕</b>：行使價失守＋股價 &lt; 0.95×MA50＋DTE≥5 → 即市 ask 側自動平倉（回測 4 槍零殺錯）'+tip('cut')+'</li>'+
-    '<li>業績日在持有期內 → 必平（避 IV crush / 跳空；ETF 豁免）'+tip('earnings')+'</li>'+
-    '<li>到期 OTM → 全收權利金；ITM 被指派 → 賣 Covered Call（Δ0.22–0.30 · 10–14 DTE · PT 50%）＝ The Wheel'+tip('cc')+'</li>'+
-    '<li>put delta 侵蝕到 −0.50 → 只出 roll 建議，唔自動平倉</li></ol>'+
-    '<p class="small muted" style="margin-top:6px">輸側警報（唔自動平倉）：mark≥2× 或 Δ≤−0.50 → 🔴 三路對決；執行窗警報：mark 較觸發位 −30% → 🎯 掛 mid 等反彈（中位 4-7 個交易日再平 30%+）、5 交易日未處理 → ⏱、MA50 穿/dte&lt;5 → 🚨 唔好等。帳戶層面：回撤 −15% → 熔斷停開新倉 10 交易日'+tip('breaker')+'。</p>';
-  $('methodRisk').innerHTML=
-    '<div class="warn-note">'+
-    '<b>誠實話（好重要）：</b><br>'+
-    '· 呢個公平測用 <b>model IV＋BS 合成定價、無 slippage／佣金</b>，成交假設理想（訊號同 bar 收市成交）——真實落盤會打折扣；數字當量級，唔好當精確預測。<br>'+
-    '· <b>CAGR +5.99% 係 cash-secured 單腿、無槓桿</b>口徑；同 H6040_BT 卡（單股腿+XSP 兩腿合併 HK$320k margin 口徑）<b>唔同尺，不可直接比</b>。<br>'+
-    '· <b>每月收入爆發式</b>：月均 +$206 但月中位 $0——VIX 出唔到 [20,32] 嘅月份零收入係設計（2023-04→2024-09 幾乎零交易）。呢個策略唔保證月月有糧出。<br>'+
-    '· maxDD 3.20% 細，係「閘門先係策略本身」換返嚟：VIX 硬閘＋市寬＋趨勢五閘關門就唔做；閘門失靈（如 VIX 假訊號）會令策略喺錯嘅時間開倉。<br>'+
-    '· 賣 Put 最大虧損 =（行使價−權利金）×100×張數'+tip('maxloss')+'；最差單月 −$353（2022-10）係回測實現，唔係下限保證。<br>'+
-    '· 真倉防線照舊（09-12 起）：PT50 自動平倉、break-glass 真趨勢穿自動止蝕、輸側／執行窗警報、熔斷 −15%——紙上候選推播仍係<b>通知-only</b>，唔會自動落盤。</div>';
-  $('methodStats').innerHTML=
-    '<p><b>公平測統計速覽（engine v4.2×U174 · '+FAIR_V4.n+' 筆 · 2022-01-01→2026-09-15）：</b>勝率 <b>'+FAIR_V4.win+'%</b> · 獲利因子 <b>'+FAIR_V4.pf+'</b> · Sharpe（每筆，ddof=0）<b>'+FAIR_V4.sh_t+'</b> · Sharpe（月度×√12）<b>'+FAIR_V4.sh_m+'</b>。</p>'+
-    '<ul style="margin:8px 0 0 18px;line-height:1.9">'+
-    '<li><b>收入分佈</b>：月均 +$206 · 月中位數 <b>$0</b> · 負月 '+FAIR_V4.mo_neg+' 個 · 最差單月 '+FAIR_V4.mo_worst+'——右偏＋爆發式，預算請用中位數（即：唔好預每個月有收入）。</li>'+
-    '<li><b>兩個 Sharpe 唔同尺</b>：每筆尺＝每筆 pnl mean/std（ddof=0）；月度尺＝月 pnl/std(ddof=0)×√12——不可互比，亦唔可同 H6040_BT 卡（兩腿合併 HK$320k margin 口徑）嘅 Sharpe 直接比。</li>'+
-    '<li>逐年明細（by_year 真源 quant_model/gate_pool_2x2_results_v2.json results[5]）見上「📊 engine v4.2×U174 公平測」卡。</li>'+
-    '</ul>';
-  $('methodAlert').innerHTML=
-    '<p><b>八種事件同時走雙通道（Telegram 推送 ＋ 儀表板紅色警報條），其餘單通道。</b>引擎每 120 秒檢查一次持倉；儀表板每 60 秒自動刷新。</p>'+
-    '<div class="table-scroll"><table class="utable">'+
-    '<thead><tr><th>雙通道警報</th><th>觸發條件</th></tr></thead><tbody>'+
-    '<tr><td>止損警示（cut）'+tip('cut')+'</td><td class="muted">行使價失守 ＋ 股價 &lt; 0.95×MA50 ＋ DTE≥5 → 立即止損離場</td></tr>'+
-    '<tr><td>Delta 侵蝕（roll 警示）</td><td class="muted">put delta 到 −0.50 → roll down+out 或預留接貨資金</td></tr>'+
-    '<tr><td>到期被指派</td><td class="muted">到期價內 → 以行使價接 100 股，同場附 covered call 建議</td></tr>'+
-    '<tr><td>短 call 價內</td><td class="muted">covered call 到期價內 → 股票被買走（called away），輪迴完結</td></tr>'+
-    '<tr><td>50% 利潤平倉'+tip('close50')+'</td><td class="muted">權利金已收一半 → 建議 buy-to-close 鎖定利潤</td></tr>'+
-    '<tr><td>業績平倉'+tip('earnings')+'</td><td class="muted">業績日落入持有期 → 必須平倉（避開 IV crush / 跳空）</td></tr>'+
-    '<tr><td>手動平倉成交</td><td class="muted">經儀表板執行的平倉回報（成交確認）</td></tr>'+
-    '<tr><td>熔斷'+tip('breaker')+'</td><td class="muted">帳戶回撤 −15% → 停開新倉 10 交易日；回修至 −8% 之上才重啟</td></tr>'+
-    '</tbody></table></div>'+
-    '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:10px">'+
-    '<div><div class="small" style="font-weight:700;margin-bottom:4px">📱 只推 Telegram</div>'+
-    '<ul class="small" style="margin:0 0 0 18px;line-height:1.9"><li>開倉成交回報（股票、strike、DTE、按金、權利金）</li><li>訂單被拒 / 收市後仍有未成交訂單提醒</li><li>接貨後的 covered call 具體建議</li></ul></div>'+
-    '<div><div class="small" style="font-weight:700;margin-bottom:4px">🖥 只在儀表板顯示</div>'+
-    '<ul class="small" style="margin:0 0 0 18px;line-height:1.9"><li>寬度閘門關閉提示（無最佳建議 ＋ 紅色狀態欄）'+tip('breadth')+'</li><li>每日建議卡（strike / DTE / 按金 / 建議張數）</li><li>按金使用率、組合回撤、持倉明細</li></ul></div></div>'+
-    '<p class="small muted" style="margin-top:8px">去重規則：Telegram 以「日期：股票：類型」為鍵，同一事件只推送一次；儀表板警報以紅色橫幅＋瀏覽器標題閃爍＋提示音顯示，警報內容有變化才會再響。</p>';
-  // ⭐ 09-15 單股腿公平測卡（engine v4.2×U174——同一張 #methodFair 節點，兩個模式各自全量重寫）
-  $('methodFairTitle').textContent='🧪 單股腿公平測 — engine v4.2×U174';
-  $('methodFair').innerHTML=fairCardHTML(FAIR_V4);
-
-}
-
 /* ════════════ Hybrid 60/40 方法論 ════════════ */
-function renderMethodH6040(){
-  if(_v4SpecHTML==null){_v4SpecHTML=$('methodSpecBody').innerHTML;_v4PerfHTML=$('methodPerfBody').innerHTML;}
+function renderMethod(){
   const B=H6040_BT;
   $('methodSpecTitle').textContent='⭐ Hybrid 60/40 模型規格';
   $('methodSpecMeta').textContent='2022-01 → 2026-08 全期驗證 · 09-04 合併口徑（XSP PT50＋h6040_174）· stress/MC 09-08 三腿口徑引擎級重跑（pass 線 年化≥30% 且 月DD≥−12%）· WF 仍 08-27 legacy 淨參考 · 09-08 加金 sleeve（GOLD_BT 獨立口徑，見下節）· 09-14 起 live 單股腿＝A級平衡王 mom閘＋wr排序（L_mom×W_wr 拍板，見績效表）';
@@ -3061,7 +2507,7 @@ function renderMethodH6040(){
     '<tr><td><b>全家桶 L_mom×W_wr</b>（09-14 拍板 · 三腿＋金＋carry）</td><td class="r up"><b>+'+ALEG.mix.full.ann+'%</b></td><td class="r dn">'+ALEG.mix.full.mdd+'%（月）</td><td class="r">'+ALEG.mix.full.wr+'%</td><td class="r">'+ALEG.mix.full.n+'</td><td class="r">HKD 320,000</td></tr>'+
     '</tbody></table></div>'+
     '<div class="small muted" style="margin-top:4px">⚠️ 金腿行＝IAU sleeve 本體獨立回測（US$'+fmt(GOLD_BT.sleeve.capital_usd)+' 口徑，唔係 hybrid HKD；交易數冇單獨統計所以出 —）。加金合成影響（年化 '+H6040_BT.ann+'→'+GOLD_BT.synth.ann+' · 日度 maxDD '+H6040_BT.dd+'%→'+GOLD_BT.synth.dd+'%）見上「🥇 金 sleeve」節；淨貢獻誠實區間 '+GOLD_BT.net_contrib_lo+'～+'+GOLD_BT.net_contrib_hi+'pp。</div>'+
-    '<div class="small muted" style="margin-top:4px">⭐⭐ <b>09-14 L_mom×W_wr 拍板</b>（3×3 排序矩陣 mixed_matrix）：當周腿排序換 <b>wr</b>（年化收入×(0.5+IV_rank/100)，mom 只做入場閘；A/B 只換排序 key，過濾器/strike/sizing 不變）→ 誠實口徑（09-15 Arm H：當日 IV mark）<b>+'+ALEG.wr_hc.ann+'%／eqDD '+ALEG.wr_hc.dd+'%／WR '+ALEG.wr_hc.wr+'%／'+ALEG.wr_hc.n+' 筆／~US$'+fmt(ALEG.wr_hc.mo_usd,0)+'/月</b>（mom 對照＝09-14 frozen 口徑冇重跑 +16.42%/−6.70%/WR 94.2%）；<b>長 tenor 腿留 mom</b>（L_wr ann +4.6pp 但 DD 反深 3.1pp＋最差月左尾肥——wr 優勢唔乾淨過渡到長腿）。<b>全家桶 +'+ALEG.mix.full.ann+'%／月DD '+ALEG.mix.full.mdd+'%／Sharpe '+ALEG.mix.full.sharpe+'／均月 HK$'+fmt(ALEG.mix.full.mean_mo,0)+'（US$'+fmt(ALEG.mix.full.mean_mo_usd,0)+'/月）／最差月 HK$'+fmt(ALEG.mix.full.worst,0)+'／蝕月 '+ALEG.mix.full.n_neg+'/56／final HK$'+fmt(ALEG.mix.full.final,0)+'／WR '+ALEG.mix.full.wr+'% n='+ALEG.mix.full.n+'（188+161+195）</b>。對照 L_wr×W_wr（全 wr）：+'+ALEG.mix.alt_wr_all.ann+'% 但 Sharpe '+ALEG.mix.alt_wr_all.sharpe+'、最差月 HK$'+fmt(ALEG.mix.alt_wr_all.worst,0)+'、蝕月 '+ALEG.mix.alt_wr_all.n_neg+'/56——收益極大化風險都大，user 揀風險調整最靚組合。單腿股合計（長+當周 nominal 483,743）：+'+ALEG.mix.subtotal.ann+'%／均月 HK$'+fmt(ALEG.mix.subtotal.mean_mo_hkd,0)+'（US$'+fmt(ALEG.mix.subtotal.mean_mo_usd,0)+'/月）。<b>corr(當周腿,長腿)='+ALEG.corr.vs_single+'＝加碼唔係分散</b>；A級疊加 hardcap 口徑 +'+ALEG.hardcap.ann+'%（mom 排序年代）留底。</div>';
+    '<div class="small muted" style="margin-top:4px">⭐⭐ <b>09-14 L_mom×W_wr 拍板</b>（3×3 排序矩陣 mixed_matrix）：當周腿排序換 <b>wr</b>（年化收入×(0.5+IV_rank/100)，mom 只做入場閘；A/B 只換排序 key，過濾器/strike/sizing 不變）→ 誠實口徑（09-15 Arm H：當日 IV mark）<b>+'+ALEG.wr_hc.ann+'%／eqDD '+ALEG.wr_hc.dd+'%／WR '+ALEG.wr_hc.wr+'%／'+ALEG.wr_hc.n+' 筆／PF '+ALEG.wr_hc.pf+'／~US$'+fmt(ALEG.wr_hc.mo_usd,0)+'/月</b>（mom 對照＝09-14 frozen 口徑冇重跑 +16.42%/−6.70%/WR 94.2%）；<b>長 tenor 腿留 mom</b>（L_wr ann +4.6pp 但 DD 反深 3.1pp＋最差月左尾肥——wr 優勢唔乾淨過渡到長腿）。<b>全家桶 +'+ALEG.mix.full.ann+'%／月DD '+ALEG.mix.full.mdd+'%／Sharpe '+ALEG.mix.full.sharpe+'／均月 HK$'+fmt(ALEG.mix.full.mean_mo,0)+'（US$'+fmt(ALEG.mix.full.mean_mo_usd,0)+'/月）／最差月 HK$'+fmt(ALEG.mix.full.worst,0)+'／蝕月 '+ALEG.mix.full.n_neg+'/56／final HK$'+fmt(ALEG.mix.full.final,0)+'／WR '+ALEG.mix.full.wr+'% n='+ALEG.mix.full.n+'（188+161+195）</b>。對照 L_wr×W_wr（全 wr）：+'+ALEG.mix.alt_wr_all.ann+'% 但 Sharpe '+ALEG.mix.alt_wr_all.sharpe+'、最差月 HK$'+fmt(ALEG.mix.alt_wr_all.worst,0)+'、蝕月 '+ALEG.mix.alt_wr_all.n_neg+'/56——收益極大化風險都大，user 揀風險調整最靚組合。單腿股合計（長+當周 nominal 483,743）：+'+ALEG.mix.subtotal.ann+'%／均月 HK$'+fmt(ALEG.mix.subtotal.mean_mo_hkd,0)+'（US$'+fmt(ALEG.mix.subtotal.mean_mo_usd,0)+'/月）。<b>corr(當周腿,長腿)='+ALEG.corr.vs_single+'＝加碼唔係分散</b>；A級疊加 hardcap 口徑 +'+ALEG.hardcap.ann+'%（mom 排序年代）留底。<b>⭐ 誠實 ladder（09-15 拍板，單股腿 since-2022 公平窗，年化%）：h6040閘 44.32 ＜ v4.2 43.70 ＜ wr 51.12 ＜ wr(L 誠實) 51.41——wr 留任 W-slot 主臂。</b></div>';
   $('methodPerfBody').innerHTML=perf;
 
   // stats = stress tests
@@ -3114,11 +2560,7 @@ function renderMethodH6040(){
     '· <b>9 月 force 鐵證</b>：5 次開倉 model 舉牌 5 次全部反對、4 次被 force 繞過，兩張輸單（XSP 764P／WDC 470P）全部係 force 喺——09-12 起 override 要寫理由＋TG 通告＋月度計數，P7 六問卡（跟榜／接貨／σ距／event／按金／市寬）落單前必過。<br>'+
     '· 而家真倉已入 engine＋monitor 防線（見上「輸側防線」表）；紙上候選仍通知-only。定價仍用真實期權鏈再校準中——回測合成定價數字當量級參考。</div>';
 
-  // ⭐ 09-15 單股腿公平測卡（h6040閘×U174——同一張 #methodFair 節點，兩個模式各自全量重寫）
-  $('methodFairTitle').textContent='🧪 單股腿公平測 — h6040閘×U174';
-  $('methodFair').innerHTML=
-    '<p class="small" style="margin:0 0 8px"><b>閘鏈一行：</b>v5 mom_score（tanh blend）∈{BUY,ACCUM}＋同趨勢五閘＋IV 代理 1.10×(0.6HV30+0.4HV60)×clamp(VIX/19,0.85,1.6)＋solve strike Δ{0.20,0.25} 容差 [0.16,0.31]＋wr=best-ay×(0.5+iv_rank/100) top12＋regime VIX[20,32]∩市寬≥50%（雙 fail-closed）＋DTE{5,7}。</p>'+
-    fairCardHTML(FAIR_H);
+  // ⭐ 09-15：公平測卡退役——誠實 ladder 收進下面績效段（09-14 拍板 note）
 }
 
 /* ════════════ Hybrid 60/40 renders ════════════ */
@@ -3127,13 +2569,12 @@ function renderMethodH6040(){
    「購買力不足」都唔知要赎幾多。數字係 Futu 實時 short_required_im 對 headroom。60s refresh。*/
 let h6040Margin=null,h6040MarginSingle=null;
 /* ════════════ 🎯 當周掃描榜（real-time，⭐09-14 拍板「A級平衡王」：board≡engine）════════════
-   晚三兩榜結構（分返 method）保留；候選池統一改 engine winrank——09-14 引擎 config 換做
+   單一當周榜；候選池＝engine winrank——09-14 引擎 config 換做
    回測 d2025_mu20 臂（5-7 DTE × Δ0.20-0.25 × 按金 mu0.20＋硬閘 $12,726 × spot≤$374 接得起
    × 無收入線；/tmp/real_acct_grid/ 18-config grid＋stress＋審查，user 拍板）。舊 h6040
    靜態 11（高價股＋收入線揀出、未回測過）退役——user 明令唔要未回測策略，board≡engine。
-   · 兩榜共用同一套五層排序引擎（晚二 user 欽定「以最值得做排名」照用），淨換候選池：
-     METHOD='v4_balanced' → engine winrank 前 12；METHOD='h6040' → 同一 winrank ∪ XSP
-     現金結算腿（spot×0.945/0.96/0.975 自動 strike；XSP 腿只掛 h6040 榜）。
+   · 五層排序引擎（晚二 user 欽定「以最值得做排名」照用）：
+     候選池＝engine winrank ∪ XSP 現金結算腿（spot×0.945/0.96/0.975 自動 strike）。
      到期日＝winrank 行多數派 expiry（5-7 DTE 帶 Mon/Wed/Fri 週選唔一定同週五；
      engine rec 冇 expiry 先 fallback WSCAN_H60_EXPIRY 7DTE 週五）——榜/engine 同一到期日。
    · 排序＝五層閘級聯（09-13 user 欽定）：L1 接貨閘（K×100>equity＝❌沉底；XSP 現金
@@ -3174,9 +2615,7 @@ async function loadWeeklyScan(){
   if(!activeBridge){renderWeeklyScan();return;}
   await fetchWscanUsd();   // 分檔預算＝Futu 實際 USD 購買力；接貨閘分母＝equity
   let wr=(rec&&rec.winrank)||[];
-  const isH60=(METHOD==='h6040');   // ⭐09-13 晚三：分返 method 兩榜；09-14 兩榜候選池統一＝winrank（h6040 多 XSP 腿）
-  if(!isH60)wr=wr.filter(function(x){return x&&x.ticker&&V4_SET.has(x.ticker);});   /* ⭐09-14 user 拍板：v4 榜＝v4_balanced 原本 tech 池 69 隻（engine 執行池唔變） */
-  if(!wr.length){   // ⭐09-14 兩榜都要 winrank（board≡engine；短 retry，60s interval 兜底）
+  if(!wr.length){   // ⭐board≡engine：榜要 winrank（短 retry，60s interval 兜底）
     if(wscanWaitN++<10){wscanErr='等 engine rec（winrank）…';renderWeeklyScan();setTimeout(loadWeeklyScan,6000);return;}
     wscanErr='engine rec 冇 winrank';renderWeeklyScan();return;
   }
@@ -3196,7 +2635,7 @@ async function loadWeeklyScan(){
   wr.filter(function(x){return x&&x.ticker&&x.strike&&((x.expiry&&wscanExp)?x.expiry===wscanExp:true);})
     .slice(0,12).forEach(function(x){add(x.ticker,x.strike);});
   wscanVix=null; wscanXspN=0;
-  if(isH60)try{   // ⭐XSP 現金結算腿只掛 h6040 榜（09-13 晚三欽定）；spot 攞唔到＝腿缺席唔炸板
+  try{   // ⭐XSP 現金結算腿（09-13 晚三欽定）；spot 攞唔到＝腿缺席唔炸板
     const kr=await fetchTimeout(activeBridge+'/kline?code=%5EXSP&type=DAY&count=2&secret='+encodeURIComponent(BRIDGE_SECRET),12000);
     const kj=kr&&kr.ok?await kr.json().catch(function(){return null;}):null;
     const kb=(kj&&kj.bars)||(Array.isArray(kj)?kj:[])||[];
@@ -3235,7 +2674,7 @@ async function loadWeeklyScan(){
       j.rows.forEach(function(row){if(row.snapped_from)pushRow(row);});
     } else errs.push((j&&j.error)||('HTTP '+(r?r.status:'—')));
   }catch(e){errs.push((e&&e.message)||String(e));}
-  if(merged.length){wscanLast={rows:merged,expiry:exp0,dte:dte0,pool:isH60?'h6040':'v4'};wscanTs=Date.now();wscanErr=errs.length?errs.join(' · '):null;}
+  if(merged.length){wscanLast={rows:merged,expiry:exp0,dte:dte0,pool:'h6040'};wscanTs=Date.now();wscanErr=errs.length?errs.join(' · '):null;}
   else wscanErr=errs.join(' · ')||'冇 rows';
   renderWeeklyScan();
 }
@@ -3323,7 +2762,7 @@ function wscanEventBadge(r){
   if(!r.event)return '';
   return ' <span style="color:#dc2626;font-weight:700" title="持有期內（今日→到期）撞正宏觀事件">⚠️'+esc(r.event)+'</span>';
 }
-/* ⭐ 09-13 拍板：兩榜改 POP 主排序——收入行先轉「接唔接得起」行先（survival-first）。
+/* ⭐ 09-13 拍板：當周榜改 POP 主排序——收入行先轉「接唔接得起」行先（survival-first）。
    pop＝bridge N(d2)（0-1，P(到期價≥K)＝唔被接貨機率）；null（chain 冇報價／BS 反推唔到）
    排最尾＋唔入正選（冇得安全排名；bench/cant/noassign 照落），null 之間保持原相對順序（stable sort）。
    平手＝年化降序（ann_pct 行有就用，冇就 bid 口徑現場算＝同 bridge (bid/K)×252/DTE）。 */
@@ -3345,14 +2784,13 @@ function wscanPopCell(r){   // POP 欄＝N(d2)%；null＝chain 冇報價出 —
   return '<b>'+(r.pop*100).toFixed(1)+'%</b>';
 }
 /* ⭐09-13 晚二拍板（user：「唔要咁多表…唔應該用全閘掃描參考板啦」）：Board A′/B′ 退役——
-   static 快照＋兩個序對 user 冇資訊量；五層排序當周榜（晚三：method 兩榜共用呢套排序）已取代佢講晒
+   static 快照＋兩個序對 user 冇資訊量；五層排序當周榜已取代佢講晒
    「邊張最值得做」。考古留 git history（c1a798f 有成個 const＋wscanGatedRefHtml）。 */
 
 function renderWeeklyScan(){
   const el=$('wscanBody'), meta=$('wscanMeta'); if(!el)return;
   const tt=$('wscanTitle');
-  const pool=(wscanLast&&wscanLast.pool)||((METHOD==='h6040')?'h6040':'v4');   // 晚三：榜跟 pool 走（wscanLast 帶定，null 時跟 METHOD）
-  if(tt)tt.textContent=(pool==='h6040'?'🎯 當周掃描榜 · h6040（A級平衡王 winrank ∪ XSP 現金結算腿）':'🎯 當周掃描榜 · v4_balanced（v4 原本 tech 池 69 隻 · winrank 前 12）')+' · 最值得做排序';
+  if(tt)tt.textContent='🎯 當周掃描榜 · h6040（A級平衡王 winrank ∪ XSP 現金結算腿） · 最值得做排序';
   const st=wscanLast?Math.round((Date.now()-wscanTs)/1000):null;
   const budget=wscanUsd;   // Futu 實際 USD 購買力（真 order gate），唔係 engine 70% 策略線
   if(meta){
@@ -3363,7 +2801,7 @@ function renderWeeklyScan(){
   }
   if(!wscanLast){
     el.innerHTML='<div class="small muted">暫時攞唔到 live 數（'+esc(wscanErr||'載入中')+'）</div>'
-      +'<div class="small muted" style="margin-top:4px">候選池＝'+(pool==='h6040'?'engine winrank（A級平衡王）∪ XSP 現金結算腿':'engine winrank（v4 原本 tech 池 69 隻過濾）前 12（5-7DTE×Δ0.20-0.25×接得起）')+'；按金預算＝Futu 實際 USD 購買力（/real_funds）</div>';
+      +'<div class="small muted" style="margin-top:4px">候選池＝engine winrank（A級平衡王）∪ XSP 現金結算腿；按金預算＝Futu 實際 USD 購買力（/real_funds）</div>';
     return;
   }
   const dte0=wscanLast.dte;
@@ -3420,7 +2858,7 @@ function renderWeeklyScan(){
   });
   h+='</tbody></table></div>';
   h+='<div class="small muted" style="margin-top:6px">'
-    +'board≡engine——'+(pool==='h6040'?'本榜＝engine winrank ∪ XSP 現金結算腿'+(wscanXspN?'（今輪 XSP '+wscanXspN+' 隻）':'（XSP spot 攞唔到，本輪腿缺席）'):'本榜＝engine winrank（v4 tech 池 69 隻過濾）前 12')+'（5-7DTE×Δ0.20-0.25×按金硬閘 $12,726×spot≤$374；排序＝wr），去重後全部釘死 '+esc(wscanLast.expiry||'')+' 到期一次過報價。'
+    +'board≡engine——本榜＝engine winrank ∪ XSP 現金結算腿'+(wscanXspN?'（今輪 XSP '+wscanXspN+' 隻）':'（XSP spot 攞唔到，本輪腿缺席）')+'（5-7DTE×Δ0.20-0.25×按金硬閘 $12,726×spot≤$374；排序＝wr），去重後全部釘死 '+esc(wscanLast.expiry||'')+' 到期一次過報價。'
     +'排序：①接貨閘（K×100＞equity 沉底；🟦XSP 豁免）→ ②按金 ×1.255＞購買力 次底 → POP 降序 → 年化副序；正選 5＝過①②嘅 POP 頭 5（唔夠按金可貨幣兌換 T+0 補）。'
     +'年化＝(bid/K)×252/DTE（近到期偏誇，只供橫比）；到期 ⚠️＝持有期內撞正 FOMC/CPI/PPI。'
     +'公平測 since-2022：h6040閘×U174 205 筆·PF 4.39·CAGR +6.65%·DD 4.65%（v4.2 閘對照 169 筆·PF 5.13·+5.99%·DD 3.20%——兩閘同級唔同性狀，VIX 閘＝主修）。'
@@ -3503,14 +2941,12 @@ async function loadH6040Margin(){
     const r=await fetchTimeout(activeBridge+'/margin_gap?secret='+encodeURIComponent(BRIDGE_SECRET),15000);
     if(r&&r.ok){h6040Margin=await r.json();}
   }catch(e){console.error('loadH6040Margin',e);}
-  if(METHOD==='h6040'){
-    try{   // ⭐ 09-02：單股腿 gate 開（monitor 有 stock_pick）→ 拉埋單股腿自己嘅按金/贖回數
-      const r2=await fetchTimeout(activeBridge+'/margin_gap?leg=single&secret='+encodeURIComponent(BRIDGE_SECRET),15000);
-      const j2=r2&&r2.ok?await r2.json():null;
-      h6040MarginSingle=(j2&&j2.ok)?j2:null;
-    }catch(e){h6040MarginSingle=null;}
-  }else h6040MarginSingle=null;
-  if(METHOD==='h6040')renderH6040Best();
+  try{   // ⭐ 09-02：單股腿 gate 開（monitor 有 stock_pick）→ 拉埋單股腿自己嘅按金/贖回數
+    const r2=await fetchTimeout(activeBridge+'/margin_gap?leg=single&secret='+encodeURIComponent(BRIDGE_SECRET),15000);
+    const j2=r2&&r2.ok?await r2.json():null;
+    h6040MarginSingle=(j2&&j2.ok)?j2:null;
+  }catch(e){h6040MarginSingle=null;}
+  renderBest();
   return h6040Margin;
 }
 function h6040MarginCard(m){
@@ -3563,14 +2999,7 @@ function h6040GateBanner(){
     '</div>'+
   '</div>';
 }
-function h6040EquityUSD(){
-  const book=(h6040SrvBook&&h6040SrvBook.open&&h6040SrvBook.open.length)?h6040SrvBook.open:h6040Book();   // ⭐ 08-25 server book 權威
-  let used=0;
-  book.filter(p=>p.status==='open').forEach(p=>{used+=marginPerPut(p.strike,p.entry_prem!=null?p.entry_prem:p.prem,p.spot||p.strike)*p.contracts;});
-  const eq=H6040_BT.capital/HKD_USD;
-  return {eq:eq, used:used};
-}
-function renderH6040Overview(){
+function renderOverview(){
   /* ⭐ 2026-08-23：Hybrid 60/40 視圖顯示真倉（所有 paper trade 已清除）＋回測績效參考 */
   const p=(rec&&rec.portfolio)||{};
   const posAll=((rec&&rec.positions)||[]).filter(x=>x.status==='open');
@@ -3585,8 +3014,8 @@ function renderH6040Overview(){
   const used=posAll.reduce((s,x)=>s+(x.margin_req||0),0);
   $('ovUsed').textContent=uniCcyHKD()? ('$'+fmt(used)+' ≈ '+hkd(used*HKD_USD)) : ('USD '+fmt(used));
   $('ovMonthly').textContent=hkd(LIVE_ANCHOR_MO_HKD);
-  // ⭐ 09-15：錨＝live 驗證規劃線；backtest 均月（32,946）降級 tooltip 上限參考
-  $('ovMonthlyLbl').innerHTML='估算月收入 <span class="muted" style="font-weight:400;font-size:10px">live 驗證規劃線 +16.4%/yr（backtest 均月 '+hkd(ALEG.mix.full.mean_mo)+'＝上限參考）</span>'+tip('monthly');
+  // ⭐ 09-15 拍板：錨＝HK$10,000 目標線（mu 0.25 落地）；backtest 均月（33,287）降級 tooltip 上限參考
+  $('ovMonthlyLbl').innerHTML='估算月收入 <span class="muted" style="font-weight:400;font-size:10px">目標線 mu 0.25（backtest 均月 '+hkd(ALEG.mix.full.mean_mo)+'＝上限參考）</span>'+tip('monthly');
   $('ovUsedLbl').innerHTML='已用按金（Reg-T） <span class="muted" style="font-weight:400;font-size:10px">Hybrid 60/40</span>';
   const rb=$('ovRailsBody');
   if(rb){
@@ -3644,14 +3073,7 @@ function renderH6040Overview(){
   $('ovLedgerBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">尚無真倉平倉紀錄。</div>';
   applyKpiHide();
 }
-function h6040LedgerTable(led){
-  let h='<table class="utable"><thead><tr><th>腿</th><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
-  led.forEach(t=>{
-    h+='<tr><td>'+(t.leg==='spy'?'XSP':'單股')+'</td><td><b>'+esc(t.ticker)+'</b></td><td class="r">$'+t.strike+'</td><td>'+t.expiry+'</td><td class="r">'+t.contracts+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
-  });
-  return h+'</tbody></table>';
-}
-function renderH6040Positions(){
+function renderPositions(){
   // ⭐ 2026-08-23：h6040 視圖顯示真倉出場信號（cut/roll/指派 等由 v4 engine 即時推 Telegram）。
   //   actCard 保留顯示，過濾到 real 倉（紙上倉出場唔喺 h6040 彈）。
   // ⭐ 08-25：加「監察倉」段（monitor h6040_book — 候選自動紙上執行 ×1、出場規則同 v4：
@@ -3705,7 +3127,7 @@ function h6040PxCell(tk,scanPx){
    揀法 100% 重用 h6040SpyCandidate（≥7DTE 最近 12 日 · PUT |Δ−0.275| 最近）。 */
 let h6040XspChainAt=0;
 async function h6040AutoXspChain(force){
-  if(METHOD!=='h6040'||!activeBridge)return;
+  if(!activeBridge)return;
   if(!force&&Date.now()-h6040XspChainAt<60000)return;
   const cached=chainCache['XSP'];
   if(!force&&cached&&cached.expiries&&cached.expiries.length)return;
@@ -3713,7 +3135,7 @@ async function h6040AutoXspChain(force){
   try{
     const r=await fetchTimeout(activeBridge+'/options/chain?code=XSP&secret='+encodeURIComponent(BRIDGE_SECRET),25000);
     const j=await r.json().catch(()=>null);
-    if(j&&j.ok&&j.expiries&&j.expiries.length){chainCache['XSP']=j;renderH6040Best();}
+    if(j&&j.ok&&j.expiries&&j.expiries.length){chainCache['XSP']=j;renderBest();}
   }catch(e){}
 }
 /* ⭐ 09-08：金 sleeve（IAU CSP）卡 —— 照 XSP 腿卡同一招：自動拉實時鏈入 chainCache['IAU']（IAU 係
@@ -3722,7 +3144,7 @@ async function h6040AutoXspChain(force){
    （照管理現倉）。鏈／日線拎唔到 → 卡出「數據唔齊」誠實文案，唔出假數。60s 節流（同 XSP 卡同款）。 */
 let h6040GoldChainAt=0,h6040GoldKl=null,h6040GoldKlAt=0;
 async function h6040AutoGoldChain(force){
-  if(METHOD!=='h6040'||!activeBridge)return;
+  if(!activeBridge)return;
   if(!force&&Date.now()-h6040GoldChainAt<60000)return;
   h6040GoldChainAt=Date.now();
   const klFresh=(h6040GoldKl&&h6040GoldKl.bars&&h6040GoldKl.bars.length&&Date.now()-h6040GoldKlAt<60000);
@@ -3734,7 +3156,7 @@ async function h6040AutoGoldChain(force){
     let redraw=false;
     if(parts[0]&&parts[0].ok&&parts[0].expiries&&parts[0].expiries.length){chainCache[GOLD_BT.ticker]=parts[0];redraw=true;}
     if(parts[1]&&parts[1].bars&&parts[1].bars.length){h6040GoldKl=parts[1];h6040GoldKlAt=Date.now();redraw=true;}
-    if(redraw){renderH6040Best();renderH6040Overview();}   // ⭐ overview 金腿閘 chip 都要跟 RV 更新
+    if(redraw){renderBest();renderOverview();}   // ⭐ overview 金腿閘 chip 都要跟 RV 更新
   }catch(e){}
 }
 function h6040GoldRv20(){
@@ -3797,7 +3219,7 @@ function h6040GoldExec(){
   if(!g||!(g.bid>0))return;   // bid=0／冇報價唔入 exec modal
   execCandidate(g.ticker,g.expiry,g.strike,GOLD_BT.max_contracts,'PUT',g.bid,g);
 }
-function renderH6040Best(){
+function renderBest(){
   const b=$('bestCard');
   if(!b)return;
   h6040AutoXspChain();
@@ -3869,7 +3291,7 @@ function renderH6040Best(){
     if(topLine)h+='<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px 14px;margin-top:6px" class="small">📊 今日池 top（僅參考 — 閘門關閉）：'+topLine+'</div>';
     else h+='<div class="muted" style="margin-top:6px">今日 v5 池無符合 CFG_SINGLE 過濾嘅候選。</div>';
   }
-  h+='<div class="small muted" style="margin-top:8px">⚠️ 此模式執行只記錄於瀏覽器本地紙上賬（回測參考用）。<b>真倉落盤經 v4 engine 即時推 Telegram</b>（開/平/改張/轉真倉＋盤中 cut/roll/指派警報），與 v4_balanced 同一套通知。</div>';
+  h+='<div class="small muted" style="margin-top:8px">⚠️ 落盤一律真倉記賬——<b>經 engine 即時推 Telegram</b>（開/平/轉真倉＋盤中 cut/roll/指派警報）。</div>';
   b.innerHTML=h;
   // ⭐ 08-24 v4：「候選名單」section（h6040 模式）＝ v5 全池表（⭐09-14 起＝wr 次序＝排序優先次序，mom 只做入場閘——L_mom×W_wr）
   const cd=$('candBody');
@@ -3902,27 +3324,7 @@ function h6040ExecCand(tk,exp,K,contracts,prem){
   // ⭐ 2026-08-23：改經 confirmExec → v4 engine 記賬＋即時 Telegram（同 v4_balanced，唔再寫本地紙上賬）。
   confirmExec(tk,exp,K,contracts,prem);
 }
-function h6040ClosePos(id){
-  const book=h6040Book();
-  const i=book.findIndex(p=>p.id===id);
-  if(i<0)return;
-  const premStr=prompt('平倉權利金（每股，買回價；留空=0 即到期全收）：','0');
-  const buyBack=parseFloat(premStr);
-  if(isNaN(buyBack)||buyBack<0)return;
-  const p=book[i];
-  const pnl=(p.prem-buyBack)*100*p.contracts;
-  book.splice(i,1);
-  h6040SaveBook(book);
-  const led=h6040Ledger();
-  led.push({leg:p.leg,ticker:p.ticker,expiry:p.expiry,strike:p.strike,contracts:p.contracts,pnl:Math.round(pnl),pnl_hkd:Math.round(pnl*HKD_USD),ts:new Date().toISOString()});
-  h6040SaveLedger(led);
-  toast('已平倉 '+p.ticker+'：P&L '+money(pnl)+' USD ≈ HKD '+fmt(pnl*HKD_USD));
-  renderAll();
-}
-
 /* ════════════ boot ════════════ */
-/* ════════════ 方法論切換（v4_balanced / h6040）════════════ */
-let METHOD='h6040';   // ⭐ 08-24 user 欽定：一開即 Hybrid 60/40（唔讀舊 stored 偏好；切換掣照常可轉 v4_balanced）
 /* ⭐ 2026-08-23：清除所有 paper trade 本地記錄（v4 排隊/跳过 + hybrid 本地賬）—— 只保留真倉 */
 try{localStorage.removeItem('h6040_book');localStorage.removeItem('h6040_ledger');localStorage.removeItem('optdash_queued');localStorage.removeItem('optdash_skips');}catch(e){}
 const H6040_BT = {
@@ -3985,10 +3387,10 @@ const ALEG={
   /* ⭐⭐ 09-15 誠實口徑修復（拍板）：mark/平倉改當日 IV 唔用凍結 IV（Arm H/G-H/H4，
      真源 ~/quant_model/research/pitwr_20260915/）；舊 frozen-IV 口徑 50.92/PF 309.9 作廢，
      官方＝Arm H（wr 腿 PF 113.2/161 筆/21 活躍月薄樣本）。 */
-  wr_hc:{ann:27.52,dd:-6.45,wr:98.76,n:161,mo_usd:1160,peak_margin_usd:15501},
-  mix:{l_mom:{ann:38.50,dd:-13.35,wr:90.96,pf:4.88,n:188,mo_usd:1390,cap:192000},
+  wr_hc:{ann:27.52,dd:-6.45,pf:113.2,wr:98.76,n:161,mo_usd:1160,peak_margin_usd:15501},
+  mix:{l_mom:{ann:39.15,dd:-15.62,wr:91.30,pf:5.62,n:184,mo_usd:1436,cap:192000},   /* ⭐09-15 LLEG 誠實 H1（mark/mtm 當日 IV）；frozen 38.50/−13.35/PF4.88/n188 留底 research/pitwr_20260915 */
        subtotal:{ann:29.16,mdd:0.00,mean_mo_hkd:19605,mean_mo_usd:2513,cap:483743.4},
-       full:{ann:51.12,mdd:-4.48,sharpe:2.35,mean_mo:32946,mean_mo_usd:4224,worst:-19998,n_neg:6,n:544,wr:93.9,final:2164957},
+       full:{ann:51.41,mdd:-4.48,sharpe:2.40,mean_mo:33287,mean_mo_usd:4268,worst:-20020,n_neg:6,n:540,wr:93.9,final:2184053},   /* ⭐09-15 誠實L+誠實W 新官方（LLEG）；n=184+161+195；wr 93.9＝frozen 口徑冇重算 */
        alt_wr_all:{ann:53.01,sharpe:2.14,worst:-40923,n_neg:9}},
   stress_rev:'長腿 stress 反轉：double（cost×2＋IV×0.86）下 L_mom 月DD −22.59%（三臂最深）vs L_wr_mom −17.86%——「長腿 mom 較安全」唔係 stress-robust；當周腿 wr double +22.12%/−5.36% 仍贏 mom +13.28%/−7.01%'
 };
@@ -4025,8 +3427,7 @@ async function loadH6040Gates(){
 /* ⭐ 08-24：v5 回測池（h6040_scan.py 每日 06:10 掃 h6040_rec.json）。
    ⭐ 08-24 v2：live https 頁 fetch 唔到 http://127.0.0.1:8799（mixed content/PNA 封鎖）→
    主路徑改 bridge /h6040（同 rec/snapshot 行同一條 tunnel＋worker /live proxy 鏈），
-   loopback monitor 只做本地 fallback。⚠️ render 要 call renderH6040Best（renderBest 係 v4
-   renderer，METHOD=h6040 時 call 佢會用 v4 卡覆蓋 bestCard）。*/
+   loopback monitor 只做本地 fallback。*/
 let h6040Rec=null;
 let h6040SrvBook=null;   // ⭐ 08-25：監察倉（monitor 紙上 book — 自動執行＋出場評估，伺服器權威）
 async function loadH6040Rec(){
@@ -4052,45 +3453,23 @@ async function loadH6040Rec(){
   const nb=(h6040Rec&&h6040Rec.book)||null;
   if(JSON.stringify(nb)!==JSON.stringify(h6040SrvBook)){
     h6040SrvBook=nb;
-    if(METHOD==='h6040'){renderH6040Positions();renderH6040Overview();}   // book 郁咗 → 持倉/總覽即刻重繪
+    {renderPositions();renderOverview();}   // book 郁咗 → 持倉/總覽即刻重繪
   }
-  if(h6040Rec&&METHOD==='h6040')renderH6040Best();
+  if(h6040Rec)renderBest();
   return h6040Rec;
 }
-function setMethod(m){
-  METHOD=m;
-  try{localStorage.setItem('optdash_method',m);}catch(e){}
-  document.title=(m==='h6040'?'🧪 Hybrid 60/40':'📊 v4_balanced')+' · 證券交易';   // ⭐ 標題列即時反映方法論（診斷＋辨識用）
-  document.querySelectorAll('#methodSel button').forEach(b=>b.classList.toggle('on',b.dataset.method===m));
-  // update tab label
-  const mt=document.querySelector('[data-pane="method"]');
-  if(mt)mt.textContent=m==='h6040'?'❓ Hybrid 60/40 方法論':'❓ v4_balanced 方法論';
-  // ⭐ 總覽共用卡片標題跟方法論切換
-  const rt=$('railsTitle'); if(rt)rt.textContent=m==='h6040'?'🛤️ Hybrid 60/40 執行閘門（即時）':'🛤️ v4_balanced 執行欄位（即時）';
-  const cm=$('ovCapMeta'); if(cm)cm.textContent=m==='h6040'?'總資本 HKD 320,000 · 兩腿分配':'HKD 200,000 組合上限';
-  const lm=$('ovLedgerMeta'); if(lm)lm.textContent=m==='h6040'?'真倉（Futu 實單）':'紙上賬';
-  const pr=$('pnlModeRow'); if(pr)pr.style.display=m==='h6040'?'none':'';   // h6040 永遠顯示真倉，P&L 掣唔適用
-  // update appbar subtitle
+/* ⭐ 09-15 手術：setMethod/v4_balanced 分岔退役——單一方法論（全家桶 L_mom×W_wr）直接 boot。
+   靜態 UI（tab label／ovCapMeta／ovLedgerMeta／candCard 收埋／pnlModeRow 剷除）已搬入 HTML。 */
+function bootMode(){
+  document.title='🧪 Hybrid 60/40 · 證券交易';   // ⭐ 標題列（診斷＋辨識用）
   const sub=$('appbarSub');
-  if(sub){
-    sub.innerHTML=m==='h6040'
-      ?'Hybrid 60/40 + 金 sleeve ＋ A級平衡王單股腿（Δ0.20–0.25 × 5–7DTE × 按金硬閘 US$12,726 · 8 倉 · mom閘＋wr排序）+ 40% XSP Put + IAU 金CSP ≤'+GOLD_BT.max_contracts+'張 · <strong>L_mom×W_wr 全家桶 +'+ALEG.mix.full.ann+'%/年 · 月撤 '+ALEG.mix.full.mdd+'% · Sharpe '+ALEG.mix.full.sharpe+'</strong> · 金腿 RV20>'+GOLD_BT.rv20_max+'% 停手 · 執行＝當周掃描榜（board≡engine）'
-      :'v4_balanced · 沽 Put 輪動 · <strong>engine v4.2（09-15）：VIX[20,32] 硬閘＋Δ best-ay</strong> · 單腿公平測 2022+ CAGR +5.99%／maxDD 3.2%（cash-secured 口徑，見方法論）· 紙上 · Futu 實時';
-  }
-  // ⭐ 08-24 v4：h6040 模式 — 候選名單 title 換合併單腿股表字眼；⭐ 09-14 起「單腿股表」卡
-  //   兩個方法論都顯示（合併單腿股表＝排名/顯示層，執行仍以當周掃描榜過 P7 為準）
-  const ct=$('candTitle'); if(ct)ct.textContent='候選名單（h6040 v5 池快照 · wr 排序 · mom 只做閘）';
-  const wc=$('winrankCard'); if(wc)wc.style.display='';
-  const cc=$('candCard'); if(cc)cc.style.display='none';   /* ⭐09-14 user 拍板：兩個 tab 都收埋——呢張卡＝h6040 v5 池快照（h6040_rec.json），v4 tab 唔應該見到 h6040 宇宙＋「一個表就夠」；TG＋h6040_rec.json 照推照寫不受影響 */
-  if(m==='h6040'){loadH6040Gates().then(()=>renderAll());loadH6040Margin();}   // ⭐ 09-02 margin_gap 即拉
-  else renderAll();
-  loadWeeklyScan();   // ⭐ 09-09：掃描榜跟 METHOD 分流（h6040_174 名單 ↔ v4_balanced winrank），切換即重拉
+  if(sub)sub.innerHTML='Hybrid 60/40 + 金 sleeve ＋ A級平衡王單股腿（Δ0.20–0.25 × 5–7DTE × 按金硬閘 US$12,726 · 8 倉 · mom閘＋wr排序）+ 40% XSP Put + IAU 金CSP ≤'+GOLD_BT.max_contracts+'張 · <strong>L_mom×W_wr 全家桶 +'+ALEG.mix.full.ann+'%/年 · 月撤 '+ALEG.mix.full.mdd+'% · Sharpe '+ALEG.mix.full.sharpe+'</strong> · 金腿 RV20>'+GOLD_BT.rv20_max+'% 停手 · 執行＝當周掃描榜（board≡engine）';
+  loadH6040Gates().then(()=>renderAll());
+  loadH6040Margin();   // ⭐ 09-02 margin_gap 即拉
+  loadWeeklyScan();
 }
-/* h6040 paper book (localStorage, separate from v4 engine) */
+/* h6040 book（localStorage fallback——server book 權威，呢度只做後盾） */
 function h6040Book(){try{return JSON.parse(localStorage.getItem('h6040_book')||'[]');}catch(e){return[];}}
-function h6040SaveBook(b){try{localStorage.setItem('h6040_book',JSON.stringify(b));}catch(e){}}
-function h6040Ledger(){try{return JSON.parse(localStorage.getItem('h6040_ledger')||'[]');}catch(e){return[];}}
-function h6040SaveLedger(l){try{localStorage.setItem('h6040_ledger',JSON.stringify(l));}catch(e){}}
 
 /* ⭐ 2026-08-23：KPI 標籤加 👁 hide/unhide 掣 */
 (function(){HIDABLE.forEach(id=>{
@@ -4104,7 +3483,7 @@ function h6040SaveLedger(l){try{localStorage.setItem('h6040_ledger',JSON.stringi
   lbl.appendChild(btn);
 });})();
 setInterval(loadRec,60000);
-setInterval(function(){if(METHOD==='h6040')loadH6040Gates().then(renderAll);},60000);
+setInterval(function(){loadH6040Gates().then(renderAll);},60000);
 setInterval(loadH6040Rec,60000);   // ⭐ 08-24：v5 回測池（monitor :8799）每 60s 對時
 setInterval(loadH6040Margin,60000);   // ⭐ 09-02：按金試算（bridge /margin_gap — 按金/空間實時變）
 setInterval(loadWeeklyScan,60000);   // ⭐ 09-09：當周掃描榜 real-time（bridge /weekly_scan）
@@ -4113,8 +3492,7 @@ setInterval(function(){loadQuant(true);},15*60000);   // ⭐ 08-23：正股 quan
 loadQuant();   // boot 即刻拎（990KB；到手自動重繪 執倉建議／策略交易台／業績日曆 三個 tab）
 loadRec();
 loadH6040Rec();
-if(METHOD==='h6040')setMethod('h6040');
-else setMethod('v4_balanced');
+bootMode();
 </script>
 </body>
 </html>
