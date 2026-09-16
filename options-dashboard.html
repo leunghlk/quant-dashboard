@@ -1250,11 +1250,23 @@ function renderWinRank(){
   const w=(legacy?[...((rec&&rec.winrank)||[])]:[...mb]).map(x=>Object.assign({band:x.band||(legacy?'weekly':undefined)},x));
   if(!w.length){el.innerHTML='<div class="muted">單腿股表：等待盤前全宇宙掃描（每日更新）。</div>';return;}
   /* ⭐09-16 正選統一（user 拍板「可否＝閘，揀邊隻＝wr，揀邊個 K＝年化收入，POP/贏錢＝讀數唔係指南」）：
-     __wrPos＝rec.winrank 位置（engine wr 排序；TG 🏆 Top5 同源）——⭐跟 ticker 對位（winrank 同 merged_board
-     嘅 strike snap 時刻唔同，會有 647.5 vs 645 vintage 漂移，跟 strike 對會走失）。預設排序＝短帶按 __wrPos、
-     長帶殿後——頭 10 短帶行＝TG 頭 5 嘅延伸（✓正選#1–10 徽章）；撳欄位標題改排序（倒序↓↔順序↑↔第三下返正選序）。 */
-  const _rk={};((rec&&rec.winrank)||[]).forEach(function(x,i){if(x&&x.ticker&&!(x.ticker in _rk))_rk[x.ticker]=i;});
-  w.forEach(function(x){x.__wrPos=(x.band!=='long'&&_rk[x.ticker]!=null)?_rk[x.ticker]:null;});
+     __wrPos＝rec.winrank 位置（engine wr 排序；TG 🏆 Top5 同源）——⭐跟 ticker|expiry 對位
+     （winrank 同 merged_board 嘅 strike snap 時刻唔同會漂移（647.5 vs 645），跟 strike 會走失；
+     同 ticker 兩個 expiry 係兩行（09-21/09-23），ticker-only 會撞位——expiry 先分到，ticker-only 做後備）。
+     預設排序＝短帶按 __wrPos、長帶殿後——頭 10 短帶行＝TG 頭 5 嘅延伸（✓正選#1–10 徽章）；
+     撳欄位標題改排序（倒序↓↔順序↑↔第三下返正選序）。 */
+  const _rk={},_rkE={};
+  ((rec&&rec.winrank)||[]).forEach(function(x,i){
+    if(x&&x.ticker){
+      if(!(_rk[x.ticker]!=null))_rk[x.ticker]=i;
+      const ke=x.ticker+'|'+x.expiry;
+      if(_rkE[ke]==null)_rkE[ke]=i;
+    }
+  });
+  w.forEach(function(x){
+    const p=(_rkE[x.ticker+'|'+x.expiry]!=null)?_rkE[x.ticker+'|'+x.expiry]:_rk[x.ticker];
+    x.__wrPos=(x.band!=='long'&&p!=null)?p:null;
+  });
   const st=window._wrSort;
   if(st&&WR_SORTS[st.k]){const f=WR_SORTS[st.k].f,sg=(st.dir==='asc')?1:-1;
     w.sort(function(a,b){const va=f(a),vb=f(b);return sg*((va==null?-1e9:va)-(vb==null?-1e9:vb));});}
@@ -1290,7 +1302,7 @@ function renderWinRank(){
    +thS('sigma','c','σ距＝(S−K)/S ÷ (IV×√(DTE/252))——波動調整距離；≥1σ 綠／0.7-1σ 琥珀／<0.7σ 紅（同 preflight）','σ距')
    +thS('strike','r','接貨K＝被指派時按此價買入；淨接貨成本＝K−權利金','接貨K')
    +'<th class="c">到期</th>'
-   +thS('prem','r','權利金收入/張（US$）；⚠＝非即市報價（model 估值／舊 chain）——執行前入詳情頁用 live chain 核價','收入/張 US$')
+   +thS('prem','r','收入/張 US$＝即市 chain 快照（板 ≤45min 新）或 ≈BS live 重估（板舊過 45min：S＝盤中 spot 一價原則、IV 跟板行）；⚠＝只有舊數/估算冇即市價；落單前入詳情頁 live chain 核價','收入/張 US$')
    +thS('m1','r','Reg-T 按金/張（US$）＝max(20%×S＋金−OTM, 10%×K＋金)×100','按金/張 US$')
    +thS('yann','r','年化＝yield%×365/DTE','年化')
    +thS('iv','r','IV（r＝IV rank）','IV')
@@ -1301,11 +1313,36 @@ function renderWinRank(){
      （09-15 事故：APP 312.5P 盤前建板用 stale chain mark $1,268，live 實 $495；engine 已修，此卡逐行揭出嚟） */
   const _wrMark=x=>{const ps=(x.premium_source||'live'),sd=x.stale_days||0;
     return ((ps!=='live'||sd>2||x.mid_suspect)?' <span style="color:#d97706;font-weight:700;cursor:help" title="⚠ 收入非即市報價：'+(ps==='model'?'model 估值':'舊 chain 報價'+(sd?' '+sd+' 日前':''))+(x.mid_suspect?'· mid 同 BS 估值偏差＞50%':'')+'——執行前入詳情頁用 live chain 核價">⚠</span>':'');};
+  /* ⭐09-16 收入欄 live 化（user：「每張嘅收入又是錯的」——22/00/02 死 slot 之間板凍 19.5h，
+     開市跳空後 source=live 都係昨日數）。⭐T 單位＝年（expiry 起計 ÷365——頭先寫成日數餵 σ√T，
+     IV 爆大 21 倍出天價，py 對數都一齊錯所以測唔出：教訓＝sanity check 要獨立口徑）。S＝live map
+     （一價原則）、IV 跟板行；spot 冇/過時(>30min)/毒價(同板 spot 差>25%)/非盤中 → null（退板快照＋⚠）。
+     ⭐板新過 45min 唔使 BS——快照本身已係即市 chain mid，BS 係 downgrade。 */
+  const _wrBSprem=x=>{
+    const lv=live[(x.ticker||'').toUpperCase()];
+    if(!lv)return null;
+    if(lv.session&&lv.session!=='盤中')return null;
+    const S=Number(lv.live_price!=null?lv.live_price:lv.price)||0;
+    const iv=Number(x.iv)||0,K=Number(x.strike)||0;
+    if(!S||!iv||!K||(x.side&&x.side!=='PUT'))return null;
+    const _age=(lv.asof!=null)?(Date.now()/1000-Number(lv.asof)):null;
+    if(_age!=null&&(_age<0||_age>1800))return null;
+    const _sb=Number(x.spot)||0;
+    if(_sb>0&&Math.abs(S/_sb-1)>0.25)return null;
+    let T=null;
+    try{const ex=new Date(x.expiry+'T20:00:00Z');if(isFinite(ex))T=Math.max((ex-Date.now())/86400000,0.4)/365;}catch(e){}
+    if(T==null)T=Math.max(Number(x.dte)||0,0.4)/365;
+    const sq=iv*Math.sqrt(T),d1=(Math.log(S/K)+0.5*iv*iv*T)/sq,d2=d1-sq;
+    return Math.max(0,K*Math.exp(-0.045*T)*_ncdf(-d2)-S*_ncdf(-d1))*100;
+  };
   w.forEach((x,i)=>{
     const una=x.unaffordable?' <span style="color:#dc2626;font-weight:700" title="單名按金超單名上限，無法執行">⚠</span>':'';
     const bandPill=(x.band==='long')?pill('t','長帶 10-14D · L_mom 僅參考'):pill('b','當周 5-7D · W_wr');
     const excPill=x.excluded?' '+pill('w','唔入正式候選'):'';
     const m1=x.margin1||Math.round(0.22*(x.collateral||1));
+    const _baH=(rec&&rec.board_asof)?Math.max((Date.now()-new Date(rec.board_asof).getTime())/3600000,0):null;
+    const _bs=(_baH!=null&&_baH>0.75)?_wrBSprem(x):null;   /* 板舊過 45min 先 BS 重估——新板快照＝chain mid 就係真收入 */
+    const _bsGap=(_bs!=null&&x.premium>0&&Math.abs(_bs-x.premium)>Math.max(30,0.25*x.premium));
     const sv=_wrSigma(x);
     const sigCell=(sv==null)?'<span class="muted">—</span>':(sv>=1?'<span style="color:#16a34a;font-weight:700">'+sv.toFixed(2)+'σ</span>':(sv>=0.7?'<span style="color:#d97706;font-weight:700">'+sv.toFixed(2)+'σ</span>':'<span style="color:#dc2626;font-weight:700">'+sv.toFixed(2)+'σ</span>'));
     const prev=window._wrDetail[x.ticker];
@@ -1327,7 +1364,11 @@ function renderWinRank(){
       +'<td class="c">'+sigCell+'</td>'
       +'<td class="r">$'+px2(x.strike)+'</td>'
       +'<td class="c">'+(x.dte||'—')+'日 '+x.expiry.slice(5)+'</td>'
-      +'<td class="r">$'+x.premium+_wrMark(x)+'</td>'
+      +(_bs!=null
+         ?'<td class="r"><b>≈$'+px2(_bs)+'</b><span class="muted" style="font-size:10px">BS</span>'
+           +(_bsGap?' <span style="color:#d97706;font-weight:700;cursor:help" title="板快照 $'+px2(x.premium)+(_baH!=null?(' · '+_baH.toFixed(0)+' 小時前'):'')+'，同 live BS 估差異＞25%——以 ≈ 數為準，落單前入詳情頁核 live chain">⚠</span>':'')
+         +'</td>'
+         :'<td class="r">$'+x.premium+_wrMark(x)+((_bs==null&&_baH!=null&&_baH>0.75)?' <span style="color:#d97706;font-weight:700;cursor:help" title="'+(_baH.toFixed(0)+' 小時前起板，即市 spot 未到手（收市/盤前/數據疑問）——呢個係舊快照數；落單前入詳情頁核 live chain')+'">⚠</span>':'')+'</td>')
       +'<td class="r">$'+Number(m1).toLocaleString()+'</td>'
       +'<td class="r">'+(x.yield_ann!=null?Number(x.yield_ann).toFixed(1)+'%':'—')+'</td>'
       +'<td class="r">'+(x.iv!=null?Math.round(x.iv*100)+'%':'—')+(x.iv_rank!=null?' <span class="muted" style="font-size:10px">r'+x.iv_rank+'</span>':'')+'</td>'
