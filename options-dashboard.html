@@ -114,6 +114,8 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 .warn-note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:11.5px;border-radius:8px;padding:8px 10px;margin-top:8px}
 .muted{color:var(--muted)} .small{font-size:11px}
 .mono{font-family:ui-monospace,Menlo,monospace}
+.w320tg{background:#f8fafc;border:1px solid #cbd5e1;color:#475569;border-radius:6px;padding:1px 8px;font-size:10px;font-weight:600;cursor:pointer}
+.w320tg:hover{background:#eef2f6}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
 .bar{height:10px;background:#e2e8f0;border-radius:5px;overflow:hidden}
@@ -170,6 +172,8 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
   <button data-pane="advice">🎯 執倉建議</button>
   <button data-pane="toppick">⭐ 最優先部署</button>
   <button data-pane="earnings">📅 業績日曆</button>
+  <span class="tab-group">模型</span>
+  <button data-pane="wheel320">🔄 wheel320（CSP 75k · 每 6 個月清倉）</button>
 </div>
 <div id="optAlert" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:#dc2626;color:#fff;padding:11px 22px;font-weight:700;font-size:14.5px;cursor:pointer;box-shadow:0 -3px 12px rgba(0,0,0,.3)" onclick="switchPane('positions')">
   <span id="optAlertTxt"></span><button onclick="event.stopPropagation();ackAlarm()" title="不再顯示這一組警報（之後有新警報仍會出現）" style="float:right;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.65);color:#fff;border-radius:6px;padding:1px 10px;font-weight:600;font-size:13px;cursor:pointer">✕ 知道了</button><span style="float:right;font-weight:500;opacity:.9;margin-right:14px">點擊查看持倉 →</span>
@@ -316,6 +320,20 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
   <div class="pane" id="pane-earnings">
     <div class="card"><div class="card-h"><span class="t">📅 業績日曆（quant watchlist）</span><span class="meta">每隻 watchlist 股票 · 績前風險評估 · 同 quant dashboard 同一款</span></div>
       <div class="card-b" id="earningsBody"><div class="muted">載入中…</div></div></div>
+  </div>
+
+  <!-- ═══════════ wheel320（凍結配方・CSP 75k・每 6 個月清倉） ═══════════ -->
+  <div class="pane" id="pane-wheel320">
+    <div class="card" style="border:1.5px solid #0d9488"><div class="card-h"><span class="t">🔄 wheel320 — 凍結配方（CSP 核心 ＋ sleeve 0.25）</span><span class="meta" id="w320Meta">載入中…</span></div>
+      <div class="card-b" id="w320Head"><div class="muted">載入中（wheel320 feed）…</div></div></div>
+    <div class="card"><div class="card-h"><span class="t">📊 回測：每 6 個月清倉 vs 揸住唔郁</span><span class="meta">同一段 · US$75k · 由 wheel320_feed.py 產生（零手抄）</span></div>
+      <div class="card-b" id="w320BT"><div class="muted">載入中…</div></div></div>
+    <div class="card"><div class="card-h"><span class="t">🎯 模型候選腿（engine signal）</span><span class="meta" id="w320CandMeta">載入中…</span></div>
+      <div class="card-b" id="w320Cand"><div class="muted">載入中…</div></div></div>
+    <div class="card"><div class="card-h"><span class="t">🆚 模型倉（paper US$75k）vs 真倉</span><span class="meta">真倉＝Futu 實時 · 邊啲腿屬於 wheel320 由你人手 tag</span></div>
+      <div class="card-b" id="w320Book"><div class="muted">載入中…</div></div></div>
+    <div class="card"><div class="card-h"><span class="t">📅 清倉日曆（每 6 個月 · 1 月／7 月頭）</span><span class="meta" id="w320CalMeta">載入中…</span></div>
+      <div class="card-b" id="w320Cal"><div class="muted">載入中…</div></div></div>
   </div>
 
 </div>
@@ -2423,6 +2441,189 @@ function renderEarnings(){
   applyEarnFilter();
 }
 
+/* ═══════════ wheel320（凍結配方 · CSP 75k · 每 6 個月清倉） ═══════════
+   ⚠️ 配方未封：δ0.29 同「每 6 個月清倉」都係全窗事後揀出嚟（RESEARCH stamp）。
+   數字唯一來源＝bridge /wheel320（wheel320_feed.py 產生，零手抄）；
+   呢頁唔會自己計數。模型倉＝engine replay，唔係真倉。 */
+let w320Rec=null,w320Busy=false,w320At=0,w320Err=null;
+function w320n(x,d){ if(x==null||isNaN(x))return '—';
+  const n=(d==null?2:d); return Number(x).toLocaleString('en-US',{minimumFractionDigits:n,maximumFractionDigits:n}); }
+function w320pct(x,d){ if(x==null||isNaN(x))return '—';
+  return (x>=0?'+':'')+(x*100).toFixed(d==null?1:d)+'%'; }
+function w320cls(x){ return x==null?'':(x>=0?'pos':'neg'); }
+function w320ago(iso){ if(!iso)return '—';
+  const t=Date.parse(iso); if(isNaN(t))return esc(String(iso).slice(0,16));
+  const m=Math.round((Date.now()-t)/60000);
+  if(m<1)return '剛剛'; if(m<90)return m+' 分鐘前';
+  const h=Math.round(m/60); if(h<36)return h+' 小時前'; return Math.round(h/24)+' 日前'; }
+function w320chip(lbl,val){ return '<div class="k"><div class="lbl">'+lbl+'</div><div class="val">'+val+'</div></div>'; }
+function w320R(p){ // 真倉期權腿 → tag key
+  return [p.ticker,(p.kind||'option'),(p.strike!=null?p.strike:''),(p.expiry||'')].join('|'); }
+async function loadWheel320(force){
+  if(w320Busy)return;
+  if(w320Rec&&!force&&Date.now()-w320At<60000){ renderWheel320(); return; }
+  w320Busy=true; w320Err=null;
+  try{
+    if(!activeBridge){ await detectBridge(); }
+    const base=activeBridge||BRIDGE_PROXY;
+    const r=await fetchTimeout(base+'/wheel320?secret='+encodeURIComponent(BRIDGE_SECRET),25000);
+    const j=await r.json().catch(()=>null);
+    if(!j||j.error)throw new Error((j&&j.error)||'feed 未就緒');
+    w320Rec=j; w320At=Date.now();
+  }catch(e){ w320Err=String(e&&e.message||e); }
+  w320Busy=false; renderWheel320();
+}
+async function w320Tag(key,on){
+  try{
+    if(!activeBridge){ await detectBridge(); }
+    const r=await postJSON((activeBridge||BRIDGE_PROXY)+'/wheel320_tag?secret='+encodeURIComponent(BRIDGE_SECRET),
+                           {key:key,tag:on?'wheel320':null});
+    if(r&&r.ok){ if(w320Rec)w320Rec.tags=r.tags||{}; toast(on?'✅ 已標記為 wheel320':'✅ 已取消標記'); renderWheel320(); }
+    else toast('❌ tag 失敗：'+((r&&r.error)||'bridge 未連接'));
+  }catch(e){ toast('❌ tag 失敗：'+String(e)); }
+}
+function renderWheel320(){
+  const head=document.getElementById('w320Head'); if(!head)return;
+  if(!w320Rec){
+    head.innerHTML='<div class="warn-note" style="margin:0 0 8px">🔬 <b>RESEARCH</b> — 呢個係研究倉：配方（δ0.29 ＋ 每 6 個月清倉）係回測後事後揀出嚟，未經 sealed 驗證，數字係 in-sample 口徑，冇 live 業績。</div>'
+      +'<div class="muted">'+(w320Err?('⚠️ wheel320 feed 讀取失敗：'+esc(w320Err)+'<br><span class="small">需要 bridge 起咗＋跑過 wheel320/wheel320_feed.py。60 秒後自動重試。</span>'):'⏳ 載入中（bridge /wheel320）…')+'</div>';
+    ['w320BT','w320Cand','w320Book','w320Cal'].forEach(id=>{const e=document.getElementById(id); if(e)e.innerHTML='<div class="muted">'+(w320Err?'—':'載入中…')+'</div>';});
+    if(!w320Err&&!w320Busy)setTimeout(()=>loadWheel320(false),60000);
+    return;
+  }
+  const d=w320Rec, R=d.recipe||{}, bt=d.backtest||{}, mb=d.model_book||{}, cd=d.candidates||{}, tags=d.tags||{};
+  const m=document.getElementById('w320Meta');
+  if(m)m.textContent='數據 as of '+esc(d.data_asof||'—')+(d.data_lag_days>0?('（落後 '+d.data_lag_days+' 日）'):'')+' · feed 產出 '+w320ago(d.generated);
+  /* ---- 1. 配方 + KPI ---- */
+  const bd=(R.flatten||{});
+  const mbLegs=mb.legs||[];
+  let h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+    +'<span class="pill b">δ '+esc(R.delta)+'</span>'
+    +'<span class="pill b">floor '+(R.min_yield*100).toFixed(2)+'%</span>'
+    +'<span class="pill b">dte '+esc(R.dte_target)+'</span>'
+    +'<span class="pill b">'+esc(R.sleeve_skeleton)+' · '+esc(R.sleeve_frac)+'</span>'
+    +'<span class="pill b">US$'+w320n(R.capital_usd,0)+'</span>'
+    +'<span class="pill t">每 6 個月全平倉</span></div>';
+  h+='<div class="warn-note" style="margin:0 0 10px">🔬 <b>RESEARCH</b> — '+esc((d.stamp||'').slice(0,140))
+    +'<br><span class="small">兩個口徑並列：<b>清倉版</b>＝每 6 個月全平倉後重啟（回測 fold 邊界）；<b>揸住唔郁</b>＝同一 config 一條連續 run。'
+    +'2022 壓力窗（tune 期，OOS 冇計）＝'+(bt.stress_2022?w320pct(bt.stress_2022.total_ret):'—')+'／MDD '+(bt.stress_2022?w320pct(bt.stress_2022.mdd):'—')+'。</span></div>';
+  h+='<div class="kpi" style="margin-bottom:0">'
+    +w320chip('距下次清倉',(bd.next?('<b>'+esc(bd.next)+'</b>'):'—')+(bd.days_to_next!=null?(' <span class="small muted">'+bd.days_to_next+' 個交易日</span>'):''))
+    +w320chip('模型倉 equity',mb.status==='live'?('US$'+w320n(mb.equity_usd,0)):'<span class="muted">未開始</span>')
+    +w320chip('模型倉腿數',mb.status==='live'?String(mbLegs.length):'—')
+    +w320chip('錨核對',bt.anchor_ok?'<span class="up">OK ✅</span>':'<span class="dn">FAIL</span>')
+    +'</div>';
+  head.innerHTML=h;
+  /* ---- 2. 回測兩欄 ---- */
+  const f6=bt.flatten6m||{}, ho=bt.hold||{};
+  const elBT=document.getElementById('w320BT');
+  if(!f6.total_ret){ elBT.innerHTML='<div class="muted">未跑 --stats（回測數未 cache）。</div>'; }
+  else{
+    const col=(t,o,extra)=>'<div>'
+      +'<div style="font-weight:700;margin-bottom:6px">'+t+'</div>'
+      +'<div class="kpi" style="margin:0">'
+      +w320chip('累計',w320pct(o.total_ret))
+      +w320chip('Sharpe',w320n(o.sharpe,2))
+      +w320chip('MDD','<span class="dn">'+w320pct(o.mdd)+'</span>')
+      +'</div>'+(extra||'')+'</div>';
+    let g='<div class="grid2" style="gap:14px">'
+      +col('🔄 每 6 個月清倉（fold 邊界）',f6,
+           '<div class="small" style="margin-top:6px;line-height:1.7">月入 <b>HK$'+w320n(f6.inc_avg_hkdmo,0)+'</b>／月 · '
+           +f6.n_months_10k+'/'+f6.n_months+' 個月 ≥10k · '+f6.legs+' 腿 · 最差半年 <span class="pos">'+w320pct(f6.worst_chunk)+'</span></div>')
+      +col('✋ 揸住唔郁（連續 run）',ho,
+           '<div class="small" style="margin-top:6px;line-height:1.7">期末 US$'+w320n(ho.end_equity_usd,0)+'（對清倉版 US$'+w320n(f6.end_equity_usd,0)+'）</div>')
+      +'</div>';
+    g+='<div style="margin-top:10px;padding:8px 10px;background:#f0fdfa;border-radius:6px;font-size:11px;color:#0f766e;font-weight:600">'
+      +'相差 '+w320pct(f6.total_ret-ho.total_ret)+'（Sharpe '+w320n(f6.sharpe,2)+' vs '+w320n(ho.sharpe,2)+'）＝「清倉政策」本身嘅價值。'
+      +'平倉成本實測只佔 0.28%（7 個邊界共 US$158），唔係 mark artifact。</div>';
+    if(f6.folds&&f6.folds.length){
+      g+='<div class="table-scroll" style="margin-top:8px"><table class="utable"><thead><tr><th>週期</th>'+f6.folds.map((_,i)=>'<th class="r">'+(i+1)+'</th>').join('')+'</tr></thead><tbody>'
+        +'<tr><td>到期日</td>'+f6.folds.map(x=>'<td class="r small">'+esc(x.cycle_end||'—')+'</td>').join('')+'</tr>'
+        +'<tr><td>回報</td>'+f6.folds.map(x=>'<td class="r '+w320cls(x.ret)+'">'+w320pct(x.ret)+'</td>').join('')+'</tr>'
+        +'</tbody></table></div>';
+    }
+    elBT.innerHTML=g;
+  }
+  /* ---- 3. 候選腿 ---- */
+  const elC=document.getElementById('w320Cand');
+  const cm=document.getElementById('w320CandMeta');
+  const legs=cd.legs||[];
+  if(cm)cm.textContent='as of '+esc(cd.as_of||'—')+' · '+legs.length+' 腿 · top_n '+((cd.gate||{}).top_n||'—')+' · VIX brake '+((cd.gate||{}).vix_brake||'—')+' · vrp_gate z>'+((cd.gate||{}).spike_z_thr||'—');
+  if(!legs.length){ elC.innerHTML='<div class="muted">今日冇候選（閘關／冇名過 floor）。</div>'; }
+  else{
+    let g='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">現價</th><th class="r">行使價</th><th>到期</th>'
+      +'<th class="r">DTE</th><th class="r">距價外</th><th class="r">權利金</th><th class="r">yield</th><th class="r">名義額</th><th>閘</th></tr></thead><tbody>';
+    legs.forEach(l=>{ g+='<tr><td><b>'+esc(l.ticker)+'</b>'+(l.is_index?' <span class="pill t">指數</span>':'')+'</td>'
+      +'<td class="r">$'+w320n(l.spot,2)+'</td><td class="r">$'+w320n(l.K,2)+'</td><td>'+esc(l.expiry)+'</td>'
+      +'<td class="r">'+esc(l.dte)+'</td><td class="r">'+w320pct(l.otm_pct)+'</td><td class="r">$'+w320n(l.prem_mid,2)+'</td>'
+      +'<td class="r '+(l.passes_floor?'pos':'neg')+'">'+(l.yield_pct*100).toFixed(2)+'%</td>'
+      +'<td class="r">US$'+w320n(l.notional_usd,0)+'</td>'
+      +'<td>'+(l.passes_floor?'<span class="pill g">floor ✓</span>':'<span class="pill r">floor ✗</span>')+'</td></tr>'; });
+    g+='</tbody></table></div><div class="small muted" style="margin-top:4px">'
+      +'⚠️ 呢啲係<b>模型 signal 輸出</b>（as of 數據日），唔係下單建議；數據層未更新到今日時 as_of 會停喺最後一個有價日。</div>';
+    elC.innerHTML=g;
+  }
+  /* ---- 4. 模型倉 vs 真倉 ---- */
+  const elB=document.getElementById('w320Book');
+  const realOpts=(typeof optsList==='function')?optsList():[];
+  const tagged=realOpts.filter(p=>tags[w320R(p)]);
+  let b='';
+  if(mb.status==='pending_data'){
+    b+='<div class="warn-note" style="margin:0 0 10px">⏸️ <b>模型倉未開始</b> — '+esc(mb.reason||'')+'。數據層一更新（> '+esc(d.recipe&&d.recipe.flatten?d.recipe.flatten.cycle_start:'')+'）就會自動由 75k 起 replay，唔需要人手入數。</div>';
+  } else if(mb.status==='live'){
+    b+='<div class="kpi" style="margin:0 0 10px">'
+      +w320chip('模型 equity','US$'+w320n(mb.equity_usd,0))
+      +w320chip('已實現收入','US$'+w320n(mb.realized_income_usd,2))
+      +w320chip('開倉腿',String(mbLegs.length))
+      +w320chip('margin calls',String(mb.margin_calls==null?'—':mb.margin_calls))
+      +'</div>';
+    if(mbLegs.length){
+      b+='<div class="table-scroll"><table class="utable"><thead><tr><th>模型倉腿</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場</th><th class="r">現 mark</th><th class="r">未實現</th></tr></thead><tbody>';
+      mbLegs.forEach(p=>{ b+='<tr><td><b>'+esc(p.ticker)+'</b> <span class="muted small">'+esc(p.kind||'')+'</span></td>'
+        +'<td class="r">$'+w320n(p.K,2)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+esc(p.contracts)+'</td>'
+        +'<td class="r">$'+w320n(p.entry_prem,2)+'</td><td class="r">$'+w320n(p.mark,2)+'</td>'
+        +'<td class="r '+w320cls(p.unreal_pnl_usd)+'">US$'+w320n(p.unreal_pnl_usd,2)+'</td></tr>'; });
+      b+='</tbody></table></div>';
+    } else { b+='<div class="muted">模型倉暫無開倉腿。</div>'; }
+  } else { b+='<div class="muted">模型倉狀態：'+esc(mb.status||'—')+'</div>'; }
+  b+='<div style="margin-top:12px;font-weight:700">🔴 真倉期權腿（'+realOpts.length+'）'
+    +'<span class="muted small" style="font-weight:400"> · 已 tag wheel320：'+tagged.length+'</span></div>';
+  if(!realOpts.length){ b+='<div class="muted small">'+(realPosSeen?'真戶口暫時冇期權持倉。':'真倉讀取中…')+'</div>'; }
+  else{
+    b+='<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">未實現(HKD)</th><th>wheel320</th></tr></thead><tbody>';
+    realOpts.forEach(p=>{ const k=w320R(p), on=!!tags[k];
+      b+='<tr'+(on?' style="background:#f0fdfa"':'')+'><td><b>'+esc(p.ticker)+'</b></td>'
+        +'<td class="r">$'+w320n(p.strike,2)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+esc(p.contracts)+'</td>'
+        +'<td class="r '+w320cls(p.pnl_hkd)+'">'+(p.pnl_hkd!=null?money(p.pnl_hkd):'—')+'</td>'
+        +'<td>'+(on?('<span class="pill t">wheel320</span> <button class="w320tg" onclick="w320Tag(\''+esc(k).replace(/'/g,'')+'\',false)">✕</button>')
+               :('<button class="w320tg" onclick="w320Tag(\''+esc(k).replace(/'/g,'')+'\',true)">標記為 wheel320</button>'))+'</td></tr>'; });
+    b+='</tbody></table></div>';
+    b+='<div class="small muted" style="margin-top:4px">tag 只係記帳用標籤（存 wheel320_tags.json），唔會影響任何下單／出場邏輯。</div>';
+  }
+  elB.innerHTML=b;
+  /* ---- 5. 清倉日曆 ---- */
+  const elCal=document.getElementById('w320Cal');
+  const calm=document.getElementById('w320CalMeta');
+  if(calm)calm.textContent='錨：'+esc(bd.anchor||'—')+' · 下一個 '+esc(bd.next||'—');
+  const costs=(bt.flatten_costs||[]);
+  let c='<div class="kpi" style="margin:0 0 10px">'
+    +w320chip('下一個清倉日',bd.next?('<b>'+esc(bd.next)+'</b>'):'—')
+    +w320chip('仲有',bd.days_to_next!=null?(bd.days_to_next+' 個交易日'):'—')
+    +w320chip('本周期',esc(bd.cycle_start||'—')+' → '+esc(bd.cycle_end||'—'))
+    +'</div>';
+  c+='<div class="small muted">回測做過 '+((bd.past||[]).length)+' 次清倉（'+((bd.past||[]).join('、'))+'）。'
+    +'每 6 個月全平倉一次＝release 晒所有腿（按 mark 平，加 1 tick ＋佣金）。</div>';
+  if(costs.length){
+    c+='<div class="table-scroll" style="margin-top:8px"><table class="utable"><thead><tr><th>邊界</th><th class="r">開倉腿</th><th class="r">標記負債</th><th class="r">1-tick 成本</th><th class="r">佣金</th><th class="r">equity</th></tr></thead><tbody>';
+    costs.forEach(r=>{ c+='<tr><td>'+esc(r.window_end)+'</td><td class="r">'+esc(r.n_open_contracts)+'</td>'
+      +'<td class="r">US$'+w320n(Number(r.marked_liability_usd),0)+'</td><td class="r">US$'+w320n(Number(r.one_tick_cost_usd),2)+'</td>'
+      +'<td class="r">US$'+w320n(Number(r.fees_usd),2)+'</td>'
+      +'<td class="r small">'+w320n(Number(r.equity_start),0)+' → '+w320n(Number(r.equity_end),0)+'</td></tr>'; });
+    c+='</tbody></table></div>';
+  }
+  elCal.innerHTML=c;
+}
+
 /* ════════════ tabs ════════════ */
 function switchPane(id){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.pane===id));
@@ -2434,6 +2635,7 @@ function switchPane(id){
   if(id==='advice')renderAdvice();
   if(id==='toppick')renderTopPick();
   if(id==='earnings')renderEarnings();
+  if(id==='wheel320')loadWheel320(false);
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>switchPane(b.dataset.pane)));
 /* ⭐ 08-16 fix：tabs sticky top 實際 = appbar 高度（appbar .sub 換行會高於 53px →
