@@ -116,6 +116,18 @@ body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-syst
 .mono{font-family:ui-monospace,Menlo,monospace}
 .w320tg{background:#f8fafc;border:1px solid #cbd5e1;color:#475569;border-radius:6px;padding:1px 8px;font-size:10px;font-weight:600;cursor:pointer}
 .w320tg:hover{background:#eef2f6}
+/* ── wheel320：真倉月入進度 hover 卡（其他全部重用 .card/.kpi/.bar/.pill）── */
+.prog{display:flex;align-items:center;gap:8px;margin-top:4px;padding:3px 4px;border-radius:6px;cursor:help;outline:none}
+.prog:hover,.prog:focus-visible{background:#f8fafc}
+.prog:focus-visible{box-shadow:0 0 0 2px rgba(13,148,136,.35)}
+.prog .prog-pct{font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.prog .prog-hint{font-size:10px;color:var(--muted);opacity:.7;white-space:nowrap}
+#tipbox .tip-hd{font-weight:700;margin-bottom:4px}
+#tipbox .tip-row{display:flex;justify-content:space-between;gap:16px;padding:1px 0}
+#tipbox .tip-k{color:#94a3b8;font-weight:700}
+#tipbox .tip-note{margin-top:6px;padding-top:5px;border-top:1px solid #334155;font-size:11px}
+.w320rank{display:inline-block;min-width:20px;text-align:center;border-radius:5px;padding:1px 5px;font-weight:800;font-size:10px;background:#e2e8f0;color:#334155}
+.w320rank.b1{background:#0f766e;color:#fff}.w320rank.b2{background:#0d9488;color:#fff}.w320rank.b3{background:#5eead4;color:#134e4a}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:900px){.grid2{grid-template-columns:1fr}}
 .bar{height:10px;background:#e2e8f0;border-radius:5px;overflow:hidden}
@@ -322,16 +334,36 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
       <div class="card-b" id="earningsBody"><div class="muted">載入中…</div></div></div>
   </div>
 
-  <!-- ═══════════ wheel320（凍結配方・CSP 75k・每 6 個月清倉） ═══════════ -->
+  <!-- ═══════════ wheel320（凍結配方・CSP 75k・每 6 個月清倉） ═══════════
+       卡序（用戶 2026-09-18 拍板）：真倉現況 → 落盤指示 → 模型倉vs真倉 →
+       凍結配方 → 回測 → 清倉日曆。⚠️ #w320Head 係 renderWheel320() 嘅
+       early-return guard（id 唔可以改／唔可以移走），#w320BT 冇 null 保護。 -->
   <div class="pane" id="pane-wheel320">
-    <div class="card" style="border:1.5px solid #0d9488"><div class="card-h"><span class="t">🔄 wheel320 — 凍結配方（CSP 核心 ＋ sleeve 0.25）</span><span class="meta" id="w320Meta">載入中…</span></div>
-      <div class="card-b" id="w320Head"><div class="muted">載入中（wheel320 feed）…</div></div></div>
-    <div class="card"><div class="card-h"><span class="t">📊 回測：每 6 個月清倉 vs 揸住唔郁</span><span class="meta">同一段 · US$75k · 由 wheel320_feed.py 產生（零手抄）</span></div>
-      <div class="card-b" id="w320BT"><div class="muted">載入中…</div></div></div>
-    <div class="card"><div class="card-h"><span class="t">🎯 模型候選腿（engine signal）</span><span class="meta" id="w320CandMeta">載入中…</span></div>
+    <!-- 1. 真倉現況 ＋ 本月收入進度（hover／tap 出詳細卡） -->
+    <div class="card" style="border:1.5px solid #0d9488"><div class="card-h"><span class="t">🏦 真倉現況 · 本月收入進度</span><span class="meta" id="w320LiveMeta">載入中…</span></div>
+      <div class="card-b">
+        <div class="kpi" id="w320LiveKpi" style="margin:0 0 10px"></div>
+        <div class="prog" id="w320Prog" tabindex="0" role="button" aria-label="本月收入進度：移入或撳一下睇詳情" data-tip="">
+          <div class="bar" style="flex:1"><div id="w320ProgFill" style="width:0%;background:#16a34a"></div></div>
+          <span class="prog-pct" id="w320ProgPct">0%</span>
+          <span class="prog-hint">ⓘ 目標／差額／尚餘日數</span>
+        </div>
+        <div class="small muted" id="w320ProgSub" style="margin-top:4px">—</div>
+        <div id="w320RealBox" style="margin-top:10px"></div>
+      </div></div>
+    <!-- 2. 落盤指示（模型揀股 × 實價／按金／夠唔夠錢） -->
+    <div class="card" style="border:1.5px solid #b45309"><div class="card-h"><span class="t">🧾 落盤指示（賣 put 開倉 · 由最好排到冇咁好）</span><span class="meta" id="w320CandMeta">載入中…</span></div>
       <div class="card-b" id="w320Cand"><div class="muted">載入中…</div></div></div>
+    <!-- 3. 模型倉 vs 真倉 -->
     <div class="card"><div class="card-h"><span class="t">🆚 模型倉（paper US$75k）vs 真倉</span><span class="meta">真倉＝Futu 實時 · 邊啲腿屬於 wheel320 由你人手 tag</span></div>
       <div class="card-b" id="w320Book"><div class="muted">載入中…</div></div></div>
+    <!-- 4. 凍結配方（⚠️ early-return guard：#w320Head 必須存在） -->
+    <div class="card"><div class="card-h"><span class="t">🔄 wheel320 — 凍結配方（CSP 核心 ＋ sleeve 0.25）</span><span class="meta" id="w320Meta">載入中…</span></div>
+      <div class="card-b" id="w320Head"><div class="muted">載入中（wheel320 feed）…</div></div></div>
+    <!-- 5. 回測兩欄 -->
+    <div class="card"><div class="card-h"><span class="t">📊 回測：每 6 個月清倉 vs 揸住唔郁</span><span class="meta">同一段 · US$75k · 由 wheel320_feed.py 產生（零手抄）</span></div>
+      <div class="card-b" id="w320BT"><div class="muted">載入中…</div></div></div>
+    <!-- 6. 清倉日曆 -->
     <div class="card"><div class="card-h"><span class="t">📅 清倉日曆（每 6 個月 · 1 月／7 月頭）</span><span class="meta" id="w320CalMeta">載入中…</span></div>
       <div class="card-b" id="w320Cal"><div class="muted">載入中…</div></div></div>
   </div>
@@ -915,7 +947,7 @@ function renderAll(){
   /* ⭐ 09-15 手術：v4_balanced 分岔退役——單一方法論（全家桶 L_mom×W_wr）＝單一 render path。
      每月進度條照 08-28 修（呢度直接 call，唔經舊 v4 renderOverview）；⭐09-14 +renderWinRank——單腿股表兩帶合併顯示。
      統一證券組合卡（renderUnified）由 loadReal 鏈負責，唔行呢度。 */
-  renderOverview();renderBest();renderWinRank();renderPositions();renderDecisions();renderMethod();renderAlarm();renderAdvice();renderTopPick();renderEarnings();if(activeTk)renderDetail();if(rec)updateMonthlyProgress();
+  renderOverview();renderBest();renderWinRank();renderPositions();renderDecisions();renderMethod();renderAlarm();renderAdvice();renderTopPick();renderEarnings();if(activeTk)renderDetail();if(rec)updateMonthlyProgress();if(typeof renderW320Live==='function')renderW320Live();
 }
 /* ⭐ 出場警報：engine actions／熔斷 → 頁面頂部紅 bar + 標題閃 + 提示音（Telegram 已由 engine 即時推送） */
 const BASE_TITLE=document.title;
@@ -2482,6 +2514,186 @@ async function w320Tag(key,on){
     else toast('❌ tag 失敗：'+((r&&r.error)||'bridge 未連接'));
   }catch(e){ toast('❌ tag 失敗：'+String(e)); }
 }
+/* ── 真倉腿：由 Futu code 拆 strike/expiry（/real_positions 冇 strike/expiry 欄）──
+   ⚠️ 實測：US.DELL260925P570000 → DELL / 2026-09-25 / P / K=570.00（strike×1000，無零墊）
+   ⚠️ price 係 cost fallback（唔係 mark），avg_cost 才係每股入場權利金（short 都係正數）→ 取 abs */
+function w320ParseCode(code){
+  const m=/^([A-Z]{2})\.([A-Z0-9.\-]+?)(\d{6})([CP])(\d{5,})$/.exec(String(code||''));
+  if(!m)return null;
+  const K=parseInt(m[5],10)/1000;
+  if(!(K>0)||K>1e6)return null;
+  return {ticker:m[1], sym:m[2], cp:m[4], K:K,
+          expiry:'20'+m[3].slice(0,2)+'-'+m[3].slice(2,4)+'-'+m[3].slice(4,6)};
+}
+function w320RealOpts(){
+  const out=[];
+  (typeof optsList==='function'?optsList():[]).forEach(p=>{
+    const c=w320ParseCode(p.code); if(!c)return;
+    const qty=Number(p.shares)||0, prem=Math.abs(Number(p.avg_cost)||0);
+    const be=(prem>0 && c.cp==='P') ? c.K-prem : null;      /* 短 put：跌穿 K−權利金 開始蝕 */
+    out.push({t:ticker(p), code:p.code, K:c.K, expiry:c.expiry, cp:c.cp, qty:qty,
+              prem:prem, be:be, pnl_hkd:p.pnl_hkd, live:liveSpot(ticker(p),null)});
+    function ticker(x){return (x.ticker||c.sym||'').toUpperCase();}
+  });
+  return out;
+}
+/* Live 買賣力：us_cash_power_usd 係唯一真約束（futu_bridge.py:3512 ⑤）。
+   headroom_freeze = power / 1.255（model 按金 ×1.255 ≤ power）。 */
+function w320Funds(){
+  const f=(typeof realFunds!=='undefined'&&realFunds)||{};
+  const pow=Number(f.us_cash_power_usd);
+  const has=isFinite(pow)&&pow>0;
+  return {power_usd:has?pow:null,
+          usable_freeze_usd:has?pow/FREEZE_MULT:null,
+          init_margin_hkd:Number(f.init_margin_hkd), total_hkd:Number(f.total_hkd),
+          fund_assets_hkd:Number(f.fund_assets_hkd), equity_usd:Number(f.equity_usd),
+          seen:!!(typeof realFundsSeen!=='undefined'&&realFundsSeen)||has};
+}
+const FREEZE_MULT=1.255;
+/* 落盤 sizing：一張要幾多按金、夠開幾張、開完仲剩幾多、卡喺邊條閘 */
+function w320Size(leg, d){
+  const sz=(d&&d.sizing)||{}, F=w320Funds();
+  const mpc=Number(leg.margin_per_contract_usd)||0;
+  if(!mpc)return {fits:null,reason:'冇按金數（feed 未更新）'};
+  if(!F.power_usd)return {fits:null,reason:'等真倉購買力（/real_funds）…'};
+  const freeze=mpc*(sz.freeze_mult||FREEZE_MULT);
+  const usable=Math.max(0,F.usable_freeze_usd*(1-(sz.emergency_frac!=null?sz.emergency_frac:0.2)));
+  const paper_used=Number((rec&&rec.portfolio&&rec.portfolio.used_usd)||0);
+  const paper_budget=Math.min((sz.margin_util||0.25)*(F.equity_usd||0),(sz.hard_cap_usd||0))-paper_used;
+  const by_power=Math.floor(usable/freeze);
+  const by_paper=Math.floor(Math.max(0,paper_budget)/freeze);
+  const n=Math.max(0,Math.min(by_power,by_paper));
+  const bind=(by_power<=by_paper)?'購買力(實凍)':'paper 預算(min(25%×equity,12,726))';
+  return {freeze_usd:Math.round(freeze), max_ct:n, fits:n>0, bind:bind,
+          after_freeze_usd:Math.round(usable-freeze*n),
+          after_pct: usable>0?Math.max(0,(usable-freeze*n)/usable):0,
+          power_usd:F.power_usd, usable_usd:Math.round(usable)};
+}
+/* 實價：bridge /preflight 六問卡（唯讀）——出 spot/bid/mid/ask/IV/Δ ＋ bridge 自己嘅按金 */
+const _w320Pf={};
+async function w320Quote(leg, force){
+  const k=leg.ticker+'|'+leg.K+'|'+leg.expiry;
+  if(_w320Pf[k]&&!force)return _w320Pf[k];
+  try{
+    if(!activeBridge)await detectBridge();
+    const u=(activeBridge||BRIDGE_PROXY)+'/preflight?ticker='+encodeURIComponent(leg.ticker)
+      +'&strike='+leg.K+'&expiry='+leg.expiry+'&side=P&qty=1&secret='+encodeURIComponent(BRIDGE_SECRET);
+    const r=await fetchTimeout(u,20000);
+    const j=await r.json().catch(()=>null);
+    if(j&&j.ok!==false){ _w320Pf[k]=j; return j; }
+    _w320Pf[k]={ok:false,error:(j&&j.error)||'preflight 冇回應'};
+  }catch(e){ _w320Pf[k]={ok:false,error:String(e&&e.message||e)}; }
+  return _w320Pf[k];
+}
+async function w320PullAll(){
+  const d=w320Rec; if(!d||!(d.candidates||{}).legs)return;
+  for(const l of d.candidates.legs){ await w320Quote(l, true); }
+  w320LiveQuotes=true; renderWheel320();
+}
+let w320LiveQuotes=false;
+function w320Copy(txt){
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(()=>toast('📋 已複製：'+txt),()=>toast('複製失敗，請手動抄：'+txt)); }
+    else { const t=document.createElement('textarea'); t.value=txt; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); toast('📋 已複製：'+txt); }
+  }catch(e){ toast('複製失敗：'+txt); }
+}
+/* hover / 鍵盤 / tap 三用 tooltip —— 只擴充 #tipbox，唔郁原有 mouseover handler */
+(function(){
+  const box=()=>document.getElementById('tipbox');
+  const place=(r)=>{const b=box(); if(!b)return;
+    b.style.display='block';
+    b.style.left=Math.max(8,Math.min(r.left,window.innerWidth-360))+'px';
+    const below=r.bottom+8, bh=b.offsetHeight||160;
+    b.style.top=((below+bh>window.innerHeight-8)?Math.max(8,r.top-bh-8):below)+'px';};
+  document.addEventListener('focusin',e=>{const t=e.target.closest('[data-tip]'); if(!t)return;
+    const b=box(); if(b)b.innerHTML=t.dataset.tip; place(t.getBoundingClientRect());});
+  document.addEventListener('focusout',e=>{if(e.target.closest('[data-tip]')){const b=box(); if(b)b.style.display='none';}});
+  document.addEventListener('pointerdown',e=>{const b=box(); if(!b)return;
+    const t=e.target.closest('[data-tip]');
+    if(t){ if(b.innerHTML!==t.dataset.tip){b.innerHTML=t.dataset.tip; place(t.getBoundingClientRect());} }
+    else if(!e.target.closest('#tipbox')){ b.style.display='none'; }});
+})();
+/* 月入目標口徑：同 updateMonthlyProgress() 一致，唔自創第二套 */
+function w320Target(){
+  const now=new Date(), mk=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const g=rec&&rec.goals, p=(rec&&rec.portfolio)||{};
+  if(g&&g.monthly_target_hkd&&g.month_realized_hkd!=null&&g.month_key===mk)
+    return {inc:g.month_realized_hkd,tgt:g.monthly_target_hkd,src:'monitor 月目標（09-16 拍板）',live:true};
+  const inc=(p.realized_hkd!=null?p.realized_hkd:((rec&&rec.realized_hkd!=null)?rec.realized_hkd:null));
+  return {inc:inc,tgt:LIVE_ANCHOR_MO_HKD,src:'HK$10,000 目標錨（mu 0.25）',live:inc!=null};
+}
+function w320ProgTip(){
+  const t=w320Target(), now=new Date(), d=w320Rec||{};
+  const dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const dLeft=Math.max(0,dim-now.getDate()), mPct=Math.round(now.getDate()/dim*100);
+  const has=(t.tgt>0&&t.inc!=null), prog=has?Math.round(t.inc/t.tgt*100):0;
+  const gap=has?(t.tgt-t.inc):null, F=w320Funds(), bd=(d.recipe&&d.recipe.flatten)||{};
+  const row=(k,v)=>'<div class="tip-row"><span class="tip-k">'+k+'</span><span>'+v+'</span></div>';
+  let h='<div class="tip-hd">🏦 '+now.toLocaleDateString('zh-HK',{year:'numeric',month:'long'})+' 收入進度</div>';
+  h+=row('目標',has?(hkd(t.tgt)+' <small>（'+esc(t.src)+'）</small>'):'<span style="color:#fca5a5">未有目標</span>');
+  h+=row('已實現',has?('<b>'+hkd(t.inc)+'</b>'):'<span style="color:#fca5a5">等 monitor／真倉…</span>');
+  h+=row('差額',!has?'—':(gap>0?('<span style="color:#fca5a5">'+hkd(gap)+'</span>'):('<span style="color:#5eead4">超額 '+hkd(-gap)+'</span>')));
+  h+=row('進度',has?('<b>'+prog+'%</b> <small>（月已過 '+mPct+'% · 尚餘 '+dLeft+' 日）</small>'):'—');
+  h+=row('真倉購買力',F.power_usd?('US$'+w320n(F.power_usd,0)+' <small>（實凍可用 US$'+w320n(F.usable_freeze_usd,0)+'）</small>'):'<small>等 /real_funds…</small>');
+  h+=row('下次清倉',bd.days_to_next!=null?(bd.days_to_next+' 個交易日 → '+esc(bd.next)):'<small>feed 未到</small>');
+  h+=row('資料時間',d.data_asof?('feed as of '+esc(d.data_asof)+' · '+w320ago(d.generated)):'—');
+  h+='<div class="tip-note">'+(has?('本月日均 '+hkd(Math.round(t.inc/Math.max(1,now.getDate())))+' · 達標需日均 '+hkd(Math.round(t.tgt/dim))):'數據未連線：顯示為 0 而唔係錯誤值')+'</div>';
+  return h;
+}
+function renderW320Live(){
+  const box=document.getElementById('w320ProgFill'); if(!box)return;
+  const t=w320Target(), has=(t.tgt>0&&t.inc!=null), prog=has?Math.round(t.inc/t.tgt*100):0;
+  const col=!has?'#94a3b8':(prog<30?'#dc2626':prog<70?'#d97706':'#16a34a');
+  box.style.width=(has?Math.max(0,Math.min(100,prog)):0)+'%';
+  box.style.background=col;
+  const p=document.getElementById('w320ProgPct');
+  if(p)p.textContent=!has?'0% · —':((t.inc<0)?('虧損 · '+hkd(t.inc)):(prog+'% · '+hkd(t.inc)));
+  const s=document.getElementById('w320ProgSub');
+  if(s)s.textContent=!has?'等 monitor goals／真倉數據（顯示 0，未計入）'
+      :((t.inc<0)?('⚠️ 本月暫為虧損 '+hkd(t.inc)+' · 目標 '+hkd(t.tgt)+'（要追 '+hkd(t.tgt-t.inc)+'）')
+        :(prog<100?('目標 '+hkd(t.tgt)+' · 差 '+hkd(t.tgt-t.inc)):('目標 '+hkd(t.tgt)+' · 已達標 🎉')));
+  const pg=document.getElementById('w320Prog'); if(pg)pg.setAttribute('data-tip',w320ProgTip());
+  /* KPI：真倉（HKD）＋ 購買力（USD） */
+  const F=w320Funds(), pf=(rec&&rec.portfolio)||{};
+  const k=document.getElementById('w320LiveKpi');
+  if(k){
+    const col2=((pf.real_unrealized_hkd||0)>=0)?'var(--good)':'var(--bad)';
+    k.innerHTML=w320chip('真倉總資產',F.total_hkd?('HK$'+w320n(F.total_hkd,0)):'—')
+      +w320chip('USD 購買力',F.power_usd?('US$'+w320n(F.power_usd,0)):'<span class="muted">等…</span>')
+      +w320chip('已佔按金',F.init_margin_hkd?('HK$'+w320n(F.init_margin_hkd,0)):'—')
+      +w320chip('真倉期權腿',String(w320RealOpts().length))
+      +w320chip('未實現','<span style="color:'+col2+'">'+hkd(pf.real_unrealized_hkd||0)+'</span>');
+  }
+  const m=document.getElementById('w320LiveMeta');
+  if(m)m.textContent='真倉 Futu 實時'+(w320Rec&&w320Rec.data_asof?(' · feed as of '+w320Rec.data_asof):'');
+  const rb=document.getElementById('w320RealBox');
+  if(rb){
+    const legs=w320RealOpts();
+    if(!legs.length)rb.innerHTML='<div class="muted small">真倉暫時冇期權腿（或者讀取中…）。</div>';
+    else{
+      let h='<div style="font-weight:700;font-size:12px;margin-bottom:4px">🔴 真倉期權腿 ＋ 盈虧平衡</div>'
+        +'<div class="table-scroll"><table class="utable"><thead><tr><th>腿</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th>'
+        +'<th class="r">入場權利金</th><th class="r">盈虧平衡</th><th class="r">現價 vs BE</th><th class="r">未實現(HKD)</th></tr></thead><tbody>';
+      legs.forEach(l=>{
+        const sp=(l.live!=null&&!isNaN(l.live))?Number(l.live):null;
+        let dcell='<span class="muted">—</span>';
+        if(l.be!=null&&sp){
+          const diff=sp-l.be;
+          dcell='<span style="font-size:10px;color:'+(diff>=0?'#16a34a':'#dc2626')+'">現價'+(diff>=0?'高於':'低於')+' '+Math.abs(diff).toFixed(2)+'（'+(Math.abs(diff/l.be*100)).toFixed(1)+'%）</span>';
+        }
+        h+='<tr><td><b>'+esc(l.t)+'</b> <span class="pill '+(l.cp==='P'?'b':'w')+'">'+(l.cp==='P'?'賣 put':'賣 call')+'</span></td>'
+          +'<td class="r">$'+w320n(l.K,2)+'</td><td>'+esc(l.expiry)+'</td><td class="r">'+esc(l.qty)+'</td>'
+          +'<td class="r">$'+w320n(l.prem,2)+'</td>'
+          +'<td class="r">'+(l.be!=null?('<b>$'+w320n(l.be,2)+'</b>'):'<span class="muted">—</span>')+'</td>'
+          +'<td class="r">'+dcell+'</td>'
+          +'<td class="r" style="color:'+((l.pnl_hkd||0)>=0?'var(--good)':'var(--bad)')+'">'+(l.pnl_hkd!=null?money(l.pnl_hkd):'—')+'</td></tr>';
+      });
+      h+='</tbody></table></div><div class="small muted" style="margin-top:4px">BE＝行使價 −｜avg_cost（每股入場權利金）｜；'
+        +'strike/到期由 Futu code 拆出（API 冇獨立欄位）。現價＝標的正股 live 價。</div>';
+      rb.innerHTML=h;
+    }
+  }
+}
 function renderWheel320(){
   const head=document.getElementById('w320Head'); if(!head)return;
   if(!w320Rec){
@@ -2539,68 +2751,127 @@ function renderWheel320(){
     if(f6.folds&&f6.folds.length){
       g+='<div class="table-scroll" style="margin-top:8px"><table class="utable"><thead><tr><th>週期</th>'+f6.folds.map((_,i)=>'<th class="r">'+(i+1)+'</th>').join('')+'</tr></thead><tbody>'
         +'<tr><td>到期日</td>'+f6.folds.map(x=>'<td class="r small">'+esc(x.cycle_end||'—')+'</td>').join('')+'</tr>'
-        +'<tr><td>回報</td>'+f6.folds.map(x=>'<td class="r '+w320cls(x.ret)+'">'+w320pct(x.ret)+'</td>').join('')+'</tr>'
+        +'<tr><td>回報</td>'+f6.folds.map(x=>'<td class="r" style="color:'+((x.ret||0)>=0?'var(--good)':'var(--bad)')+'">'+w320pct(x.ret)+'</td>').join('')+'</tr>'
         +'</tbody></table></div>';
     }
     elBT.innerHTML=g;
   }
-  /* ---- 3. 候選腿 ---- */
+  /* ---- 3. 落盤指示（賣 put 開倉）：模型揀股 × 實價／按金／夠唔夠錢 ---- */
   const elC=document.getElementById('w320Cand');
   const cm=document.getElementById('w320CandMeta');
-  const legs=cd.legs||[];
-  if(cm)cm.textContent='as of '+esc(cd.as_of||'—')+' · '+legs.length+' 腿 · top_n '+((cd.gate||{}).top_n||'—')+' · VIX brake '+((cd.gate||{}).vix_brake||'—')+' · vrp_gate z>'+((cd.gate||{}).spike_z_thr||'—');
+  const legs=(cd.legs||[]).slice();
+  const F=w320Funds();
+  legs.forEach(l=>{l._sz=w320Size(l,d);});
+  legs.sort((a,b)=>((b._sz.fits?1:0)-(a._sz.fits?1:0))||((b.ann_yield||0)-(a.ann_yield||0)));
+  if(cm)cm.textContent='模型 as of '+esc(cd.as_of||'—')+(d.data_lag_days>0?('（落後 '+d.data_lag_days+' 日）'):'')
+    +' · '+legs.length+' 腿 · 真倉購買力 '+(F.power_usd?('US$'+w320n(F.power_usd,0)):'等…')
+    +' · 實凍可用 '+(F.usable_freeze_usd?('US$'+w320n(F.usable_freeze_usd,0)):'—');
   if(!legs.length){ elC.innerHTML='<div class="muted">今日冇候選（閘關／冇名過 floor）。</div>'; }
   else{
-    let g='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">現價</th><th class="r">行使價</th><th>到期</th>'
-      +'<th class="r">DTE</th><th class="r">距價外</th><th class="r">權利金</th><th class="r">yield</th><th class="r">名義額</th><th>閘</th></tr></thead><tbody>';
-    legs.forEach(l=>{ g+='<tr><td><b>'+esc(l.ticker)+'</b>'+(l.is_index?' <span class="pill t">指數</span>':'')+'</td>'
-      +'<td class="r">$'+w320n(l.spot,2)+'</td><td class="r">$'+w320n(l.K,2)+'</td><td>'+esc(l.expiry)+'</td>'
-      +'<td class="r">'+esc(l.dte)+'</td><td class="r">'+w320pct(l.otm_pct)+'</td><td class="r">$'+w320n(l.prem_mid,2)+'</td>'
-      +'<td class="r '+(l.passes_floor?'pos':'neg')+'">'+(l.yield_pct*100).toFixed(2)+'%</td>'
-      +'<td class="r">US$'+w320n(l.notional_usd,0)+'</td>'
-      +'<td>'+(l.passes_floor?'<span class="pill g">floor ✓</span>':'<span class="pill r">floor ✗</span>')+'</td></tr>'; });
-    g+='</tbody></table></div><div class="small muted" style="margin-top:4px">'
-      +'⚠️ 呢啲係<b>模型 signal 輸出</b>（as of 數據日），唔係下單建議；數據層未更新到今日時 as_of 會停喺最後一個有價日。</div>';
+    let g='<div class="kpi" style="margin:0 0 10px">'
+      +w320chip('真倉購買力',F.power_usd?('US$'+w320n(F.power_usd,0)):'<span class="muted">等…</span>')
+      +w320chip('實凍可用',F.usable_freeze_usd?('US$'+w320n(F.usable_freeze_usd,0)+' <span class="small muted">÷1.255</span>'):'—')
+      +w320chip('可開（夠錢）','<b>'+legs.filter(l=>l._sz&&l._sz.fits).length+'</b> / '+legs.length+' 腿')
+      +w320chip('按金規則','<span class="small">max(0.2S−max(S−K,0), 0.1S)+prem</span>')
+      +'</div>';
+    g+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">'
+      +'<button class="w320tg" style="padding:3px 10px" onclick="w320PullAll()">🔄 拉實價（bridge /preflight 六問卡）</button>'
+      +'<span class="small muted">'+(w320LiveQuotes?'實價已拉（bid/ask/Δ/IV ＋ bridge 自己嘅按金）':'模型 mid 係數據日價，落單前必先拉實價核對')+'</span></div>';
+    g+='<div class="table-scroll"><table class="utable"><thead><tr>'
+      +'<th>#</th><th>股票</th><th class="r">現貨</th><th class="r">行使價</th><th>到期</th><th class="r">DTE</th>'
+      +'<th class="r">距價外</th><th class="r">權利金</th><th class="r">yield</th><th class="r">年化</th>'
+      +'<th class="r">按金/張</th><th class="r">實凍/張</th><th class="r">可開</th><th class="r">開完剩</th>'
+      +'<th>卡喺</th><th>檢查</th><th class="r">盈虧平衡</th><th>指令</th></tr></thead><tbody>';
+    legs.forEach((l,i)=>{
+      const sz=l._sz||{}, q=_w320Pf[l.ticker+'|'+l.K+'|'+l.expiry];
+      const liveq=(w320LiveQuotes&&q&&q.ok!==false)?q:null;
+      const prem=liveq?(Number(liveq.mid||liveq.bid||0)||l.prem_mid):l.prem_mid;
+      const mpc=liveq&&liveq.margin_usd?Number(liveq.margin_usd):l.margin_per_contract_usd;
+      const szL=mpc!==l.margin_per_contract_usd?Object.assign({},sz):sz;   /* 卡片用模型按金；顯示 bridge 實數 */
+      const rc=i<3?(' b'+(i+1)):'';
+      const fitTxt=sz.fits==null?('<span class="muted small">'+esc(sz.reason||'—')+'</span>')
+        :(sz.fits?('<span style="color:var(--good);font-weight:800">'+sz.max_ct+' 張</span>')
+                 :'<span style="color:var(--bad);font-weight:800">0</span>');
+      g+='<tr'+(sz.fits===false?' style="background:#fef2f2"':'')+'>'
+        +'<td><span class="w320rank'+rc+'">'+(i+1)+'</span></td>'
+        +'<td><b>'+esc(l.ticker)+'</b>'+(l.is_index?' <span class="pill t">指數</span>':'')+'</td>'
+        +'<td class="r">$'+w320n(l.spot,2)+'</td><td class="r">$'+w320n(l.K,2)+'</td><td>'+esc(l.expiry)+'</td>'
+        +'<td class="r">'+esc(l.dte)+'</td><td class="r">'+w320pct(l.otm_pct)+'</td>'
+        +'<td class="r">'+(liveq?'<b style="color:#0f766e">$'+w320n(prem,2)+'</b><br><span class="small muted">'+w320n(liveq.bid,2)+'/'+w320n(liveq.ask,2)+'</span>':('$'+w320n(l.prem_mid,2)+'<br><span class="small muted">模型 mid</span>'))+'</td>'
+        +'<td class="r"'+(l.passes_floor?'':' style="color:var(--bad)"')+'>'+(l.yield_pct*100).toFixed(2)+'%</td>'
+        +'<td class="r">'+(l.ann_yield?w320pct(l.ann_yield,0):'—')+'</td>'
+        +'<td class="r">US$'+w320n(mpc,0)+'</td>'
+        +'<td class="r">US$'+w320n((mpc||0)*FREEZE_MULT,0)+'</td>'
+        +'<td class="r">'+fitTxt+'</td>'
+        +'<td class="r">'+(sz.after_freeze_usd!=null?('US$'+w320n(sz.after_freeze_usd,0)):'—')+'</td>'
+        +'<td class="small muted">'+esc(sz.bind||'—')+'</td>'
+        +'<td>'+(function(){
+            const chk=liveq&&Array.isArray(liveq.checks)?liveq.checks:null;
+            if(!chk)return '<span class="muted small">拉實價先</span>';
+            const nP=chk.filter(c=>c.pass).length;
+            const fails=chk.filter(c=>!c.pass).map(c=>String(c.label||'').slice(0,2));
+            const tip='<b>'+esc(l.ticker)+' 檢查（bridge preflight）</b><br>'
+              +chk.map(c=>(c.pass?'✅':'❌')+' '+esc(c.label||'')+'：'+esc(c.detail||'')).join('<br>')
+              +'<br><small>接貨義務 US$'+w320n(liveq.assign_usd,0)+' · all_pass='+(liveq.all_pass?'true':'false')+'</small>';
+            return '<span class="pill '+(nP===chk.length?'g':(nP>=chk.length-2?'w':'r'))+'" data-tip="'+esc(tip)+'">'+nP+'/'+chk.length+' ✓</span>'
+              +(fails.length?('<br><span class="small" style="color:var(--bad)">'+esc(fails.join(' '))+'</span>'):'');
+          })()+'</td>'
+        +'<td class="r"><b>$'+w320n((liveq&&liveq.be!=null)?liveq.be:l.breakeven,2)+'</b></td>'
+        +'<td><button class="w320tg" onclick="w320Copy(\'SELL 1 '+esc(l.futu_code)+' @ '+w320n(prem,2)+' limit\')">📋 複製</button>'
+        +'<br><span class="small muted" style="font-family:ui-monospace,Menlo,monospace">SELL 1 '+esc(l.futu_code)+'</span></td></tr>';
+    });
+    g+='</tbody></table></div>';
+    g+='<div class="small muted" style="margin-top:4px">'
+      +'① 按金 = max(0.2S−max(S−K,0), 0.1S)+prem（×100/張）——同 live 閘門（futu_bridge.py:3177／engine.py:243）同一條式；'
+      +'「實凍/張」= 按金×1.255（實測 Futu 凍結倍數）。<br>'
+      +'② 可開張數 = min(實凍可用÷實凍/張, paper 預算÷實凍/張)，並已扣 20% 緊急緩衝；'
+      +'「卡喺」＝真正綁死嗰條閘。③ 盈虧平衡 = 行使價 − 權利金（跌穿開始蝕）。<br>'
+      +'④ <b>模型 mid 係數據日價（落後 '+esc(d.data_lag_days)+' 日）</b>——要落單必須先撳「拉實價」，'
+      +'或者喺 Futu 自己睇 bid/ask；呢個 panel 係<b>指示</b>，唔會自動落單。</div>';
     elC.innerHTML=g;
   }
   /* ---- 4. 模型倉 vs 真倉 ---- */
   const elB=document.getElementById('w320Book');
-  const realOpts=(typeof optsList==='function')?optsList():[];
-  const tagged=realOpts.filter(p=>tags[w320R(p)]);
+  const rl=w320RealOpts();
+  const taggedN2=rl.filter(l=>tags[l.ticker+'|option|'+l.K+'|'+l.expiry]||tags[w320R({ticker:l.ticker})]).length;
   let b='';
+  b+='<div class="kpi" style="margin:0 0 10px">'
+    +w320chip('模型倉（paper US$75k）',mb.status==='live'?('US$'+w320n(mb.equity_usd,0)):'<span class="muted">未開始</span>')
+    +w320chip('模型倉開倉腿',mb.status==='live'?String(mbLegs.length):'—')
+    +w320chip('真倉期權腿',String(rl.length))
+    +w320chip('已 tag wheel320',String(taggedN2))
+    +'</div>';
   if(mb.status==='pending_data'){
-    b+='<div class="warn-note" style="margin:0 0 10px">⏸️ <b>模型倉未開始</b> — '+esc(mb.reason||'')+'。數據層一更新（> '+esc(d.recipe&&d.recipe.flatten?d.recipe.flatten.cycle_start:'')+'）就會自動由 75k 起 replay，唔需要人手入數。</div>';
+    b+='<div class="warn-note" style="margin:0 0 10px">⏸️ <b>模型倉未開始</b> — '+esc(mb.reason||'')+'。數據層一更新（> '+esc(d.recipe&&d.recipe.flatten?d.recipe.flatten.cycle_start:'')+'）就會自動由 75k 起 replay，唔需要人手入數。所以下面「模型 vs 真倉」暫時只有真倉一邊有數。</div>';
   } else if(mb.status==='live'){
-    b+='<div class="kpi" style="margin:0 0 10px">'
-      +w320chip('模型 equity','US$'+w320n(mb.equity_usd,0))
-      +w320chip('已實現收入','US$'+w320n(mb.realized_income_usd,2))
-      +w320chip('開倉腿',String(mbLegs.length))
-      +w320chip('margin calls',String(mb.margin_calls==null?'—':mb.margin_calls))
-      +'</div>';
     if(mbLegs.length){
       b+='<div class="table-scroll"><table class="utable"><thead><tr><th>模型倉腿</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場</th><th class="r">現 mark</th><th class="r">未實現</th></tr></thead><tbody>';
       mbLegs.forEach(p=>{ b+='<tr><td><b>'+esc(p.ticker)+'</b> <span class="muted small">'+esc(p.kind||'')+'</span></td>'
         +'<td class="r">$'+w320n(p.K,2)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+esc(p.contracts)+'</td>'
         +'<td class="r">$'+w320n(p.entry_prem,2)+'</td><td class="r">$'+w320n(p.mark,2)+'</td>'
-        +'<td class="r '+w320cls(p.unreal_pnl_usd)+'">US$'+w320n(p.unreal_pnl_usd,2)+'</td></tr>'; });
+        +'<td class="r" style="color:'+((p.unreal_pnl_usd||0)>=0?'var(--good)':'var(--bad)')+'">US$'+w320n(p.unreal_pnl_usd,2)+'</td></tr>'; });
       b+='</tbody></table></div>';
     } else { b+='<div class="muted">模型倉暫無開倉腿。</div>'; }
   } else { b+='<div class="muted">模型倉狀態：'+esc(mb.status||'—')+'</div>'; }
-  b+='<div style="margin-top:12px;font-weight:700">🔴 真倉期權腿（'+realOpts.length+'）'
-    +'<span class="muted small" style="font-weight:400"> · 已 tag wheel320：'+tagged.length+'</span></div>';
-  if(!realOpts.length){ b+='<div class="muted small">'+(realPosSeen?'真戶口暫時冇期權持倉。':'真倉讀取中…')+'</div>'; }
+  b+='<div style="margin-top:12px;font-weight:700">🔴 真倉期權腿（'+rl.length+'）'
+    +'<span class="muted small" style="font-weight:400"> · 撳掣標記邊啲腿屬於 wheel320</span></div>';
+  if(!rl.length){ b+='<div class="muted small">'+(realPosSeen?'真戶口暫時冇期權持倉。':'真倉讀取中…')+'</div>'; }
   else{
-    b+='<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">未實現(HKD)</th><th>wheel320</th></tr></thead><tbody>';
-    realOpts.forEach(p=>{ const k=w320R(p), on=!!tags[k];
-      b+='<tr'+(on?' style="background:#f0fdfa"':'')+'><td><b>'+esc(p.ticker)+'</b></td>'
-        +'<td class="r">$'+w320n(p.strike,2)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+esc(p.contracts)+'</td>'
-        +'<td class="r '+w320cls(p.pnl_hkd)+'">'+(p.pnl_hkd!=null?money(p.pnl_hkd):'—')+'</td>'
-        +'<td>'+(on?('<span class="pill t">wheel320</span> <button class="w320tg" onclick="w320Tag(\''+esc(k).replace(/'/g,'')+'\',false)">✕</button>')
-               :('<button class="w320tg" onclick="w320Tag(\''+esc(k).replace(/'/g,'')+'\',true)">標記為 wheel320</button>'))+'</td></tr>'; });
+    b+='<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場</th><th class="r">盈虧平衡</th><th class="r">未實現(HKD)</th><th>wheel320</th></tr></thead><tbody>';
+    rl.forEach(l=>{ const k=l.ticker+'|option|'+l.K+'|'+l.expiry, on=!!tags[k];
+      b+='<tr'+(on?' style="background:#f0fdfa"':'')+'><td><b>'+esc(l.ticker)+'</b> <span class="pill '+(l.cp==='P'?'b':'w')+'">'+(l.cp==='P'?'賣 put':'賣 call')+'</span></td>'
+        +'<td class="r">$'+w320n(l.K,2)+'</td><td>'+esc(l.expiry)+'</td><td class="r">'+esc(l.qty)+'</td>'
+        +'<td class="r">$'+w320n(l.prem,2)+'</td>'
+        +'<td class="r">'+(l.be!=null?('<b>$'+w320n(l.be,2)+'</b>'):'<span class="muted">—</span>')+'</td>'
+        +'<td class="r" style="color:'+((l.pnl_hkd||0)>=0?'var(--good)':'var(--bad)')+'">'+(l.pnl_hkd!=null?money(l.pnl_hkd):'—')+'</td>'
+        +'<td>'+(on?('<span class="pill t">wheel320</span> <button class="w320tg" onclick="w320Tag(\''+esc(k)+'\',false)">✕</button>')
+               :('<button class="w320tg" onclick="w320Tag(\''+esc(k)+'\',true)">標記為 wheel320</button>'))+'</td></tr>'; });
     b+='</tbody></table></div>';
-    b+='<div class="small muted" style="margin-top:4px">tag 只係記帳用標籤（存 wheel320_tags.json），唔會影響任何下單／出場邏輯。</div>';
+    b+='<div class="small muted" style="margin-top:4px">tag 只係記帳用標籤（存 wheel320_tags.json），唔會影響任何下單／出場邏輯。'
+      +'strike／到期由 Futu code 拆出（/real_positions 冇獨立欄位）。</div>';
   }
   elB.innerHTML=b;
+  renderW320Live();
   /* ---- 5. 清倉日曆 ---- */
   const elCal=document.getElementById('w320Cal');
   const calm=document.getElementById('w320CalMeta');
