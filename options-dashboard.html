@@ -628,6 +628,8 @@ async function loadLive(){
   (realPos||[]).forEach(p=>{if(p.ticker)set.add(p.ticker);});   // ⭐ 08-24：Futu 真倉（LITE/DLLL 正股＋期權標的）都要 live 現價
   ((h6040Rec&&Array.isArray(h6040Rec.candidates))?h6040Rec.candidates:[]).forEach(x=>{if(x&&x.ticker)set.add(x.ticker);});   // ⭐ 08-26 價格對齊：v5 回測池都要 live（h6040 表以前出 06:10 掃描凍價，同其他 tab 差成 2%+）
   ((h6040Rec&&h6040Rec.book&&Array.isArray(h6040Rec.book.open))?h6040Rec.book.open:[]).forEach(x=>{if(x&&x.ticker)set.add(x.ticker);});   // ⭐ 08-26：監察倉標的同樣要 live
+  ((w320Rec&&w320Rec.candidates&&Array.isArray(w320Rec.candidates.legs))?w320Rec.candidates.legs:[]).forEach(x=>{if(x&&x.ticker)set.add(x.ticker);});   // ⭐ 09-18 價格對齊：wheel320 候選都要 live（以前呢個 tab 唔喺 set 入面，現貨欄永遠停喺數據日價，要人手撳「拉實價」——user 報）
+  ((w320Rec&&w320Rec.model_book&&Array.isArray(w320Rec.model_book.legs))?w320Rec.model_book.legs:[]).forEach(x=>{if(x&&x.ticker)set.add(x.ticker);});   // ⭐ 09-18：wheel320 模型簿標的一樣
   const _qs=(quant&&quant.strategy)||{};   // ⭐ 08-26 價格對齊：策略台 tickers 入 live set（參考價欄轉 live-first）
   [].concat(_qs.positions||[],_qs.buys||[],_qs.sells||[],_qs.reentry||[]).forEach(x=>{if(x&&x.tk)set.add(x.tk);});
   if(!set.size)return;
@@ -2507,6 +2509,7 @@ async function loadWheel320(force){
     w320Rec=j; w320At=Date.now();
   }catch(e){ w320Err=String(e&&e.message||e); }
   w320Busy=false; renderWheel320();
+  w320AutoQuotes(false);   // ⭐ 09-18：開 tab／feed 更新即刻自動拉實價（唔使人手撳掣）
 }
 async function w320Tag(key,on){
   try{
@@ -2594,6 +2597,20 @@ async function w320PullAll(){
   w320LiveQuotes=true; renderWheel320();
 }
 let w320LiveQuotes=false;
+/* ⭐ 09-18：自動拉實價——user「唔需要我下下咁樣撳拉實價架，fix it la」。同一招照
+   h6040AutoXspChain：模組級時間戳＋60s 節流，逐個候選腿打一次 bridge /preflight（唯讀六問卡），
+   拿到 bid/ask/Δ/IV ＋ bridge 自己嘅按金就 set w320LiveQuotes=true 再重繪。手動掣保留＝想即刻強拉。
+   簽名（數據日＋每個 leg 嘅 K|expiry）一變＝立刻重拉，唔等節流窗（換日／換合約即刻跟上）。 */
+let w320PfAt=0, w320PfSig='';
+async function w320AutoQuotes(force){
+  const d=w320Rec, legs=(d&&d.candidates&&d.candidates.legs)||[];
+  if(!legs.length)return;
+  const sig=String(d.candidates.as_of||'')+'|'+legs.map(l=>l.ticker+'|'+l.K+'|'+l.expiry).join(',');
+  if(!force&&sig===w320PfSig&&Date.now()-w320PfAt<60000)return;
+  w320PfAt=Date.now(); w320PfSig=sig;
+  for(const l of legs){ await w320Quote(l,true); }
+  w320LiveQuotes=true; renderWheel320();
+}
 function w320Copy(txt){
   try{
     if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(()=>toast('📋 已複製：'+txt),()=>toast('複製失敗，請手動抄：'+txt)); }
@@ -2802,6 +2819,9 @@ function renderWheel320(){
     +' · 實凍可用 '+(F.usable_freeze_usd?('US$'+w320n(F.usable_freeze_usd,0)):'—');
   if(!legs.length){ elC.innerHTML='<div class="muted">今日冇候選（閘關／冇名過 floor）。</div>'; }
   else{
+    /* ⭐ 09-18：真正有市場報價嘅腿數（preflight 有回應但 bid/mid 全 0 ＝收市／冷門 strike，唔算） */
+    const nQ=legs.filter(l=>{const q=_w320Pf[l.ticker+'|'+l.K+'|'+l.expiry];
+      return q&&q.ok!==false&&(Number(q.mid)>0||Number(q.bid)>0);}).length;
     let g='<div class="kpi" style="margin:0 0 10px">'
       +w320chip('真倉購買力',F.power_usd?('US$'+w320n(F.power_usd,0)):'<span class="muted">等…</span>')
       +w320chip('實凍可用',F.usable_freeze_usd?('US$'+w320n(F.usable_freeze_usd,0)+' <span class="small muted">÷1.255</span>'):'—')
@@ -2809,8 +2829,8 @@ function renderWheel320(){
       +w320chip('按金規則','<span class="small">max(0.2S−max(S−K,0), 0.1S)+prem</span>')
       +'</div>';
     g+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">'
-      +'<button class="w320tg" style="padding:3px 10px" onclick="w320PullAll()">🔄 拉實價（bridge /preflight 六問卡）</button>'
-      +'<span class="small muted">'+(w320LiveQuotes?'實價已拉（bid/ask/Δ/IV ＋ bridge 自己嘅按金）':'模型 mid 係數據日價，落單前必先拉實價核對')+'</span></div>';
+      +'<button class="w320tg" style="padding:3px 10px" onclick="w320PullAll()">🔄 即拉實價（自動每 60s 都有，呢個＝唔等、即刻拉）</button>'
+      +'<span class="small muted">'+(w320LiveQuotes?('實價：'+nQ+'/'+legs.length+' 腿有市場報價（現貨／距價外／yield／年化／按金同口徑重算），每 60s 自動更新；冇報價嘅腿照出模型 mid（收市後 Futu 會回 0）'):'等實價… 現貨欄暫顯示模型數據日價')+'</span></div>';
     g+='<div class="table-scroll"><table class="utable"><thead><tr>'
       +'<th>#</th><th>股票</th><th class="r">模型分數</th><th class="r">現貨</th><th class="r">行使價</th><th>到期</th><th class="r">DTE</th>'
       +'<th class="r">距價外</th><th class="r">權利金</th><th class="r">yield</th><th class="r">年化</th>'
@@ -2819,8 +2839,25 @@ function renderWheel320(){
     legs.forEach((l,i)=>{
       const sz=l._sz||{}, q=_w320Pf[l.ticker+'|'+l.K+'|'+l.expiry];
       const liveq=(w320LiveQuotes&&q&&q.ok!==false)?q:null;
-      const prem=liveq?(Number(liveq.mid||liveq.bid||0)||l.prem_mid):l.prem_mid;
+      /* ⭐ 09-18：preflight 有回應 ≠ 有報價。收市後／冷門行使價，Futu 會回 bid/ask=0 或 null、
+         mid=null——呢個時候照用模型 mid，但**唔可以當佢係實價**（原本會着住 teal 綠字出模型數，
+         旁邊寫 0.00/0.00，睇落好似拉到實價）。hasQ＝真係有市場報價先叫實價口徑。 */
+      const hasQ=!!(liveq&&(Number(liveq.mid)>0||Number(liveq.bid)>0));
+      const prem=hasQ?Number(liveq.mid||liveq.bid):l.prem_mid;
       const mpc=liveq&&liveq.margin_usd?Number(liveq.margin_usd):l.margin_per_contract_usd;
+      /* ⭐ 09-18 一價原則：現貨欄同全 dashboard 其他 tab 用同一個 bridge /snapshot live map
+         （yahoo，60s 對時）；冇就退落 /preflight 自己嘅現貨（Futu 期權鏈 underlying），
+         再冇就出模型數據日價（橙字標明）。有實價＝距價外／yield／年化／floor 全部同口徑重算，
+         唔會出現「live 權利金 × 數據日現貨」嘅行內矛盾。 */
+      const lvRow=live[l.ticker]||null, spotF=(liveq&&liveq.spot)?Number(liveq.spot):null;
+      const spotY=(lvRow&&lvRow.live_price!=null)?Number(lvRow.live_price):null;
+      const hasLive=!!((spotY&&spotY>0)||(spotF&&spotF>0));
+      const S=(spotY&&spotY>0)?spotY:((spotF&&spotF>0)?spotF:l.spot);
+      const spotTag=(spotY&&spotY>0)?('live '+_tEt(lvRow.asof)+' ET'):((spotF&&spotF>0)?('Futu 鏈 '+_tEt(liveq.asof)+' ET'):'');
+      const otm=hasLive?((S-l.K)/S):l.otm_pct;
+      const yld=(hasLive&&prem!=null)?(prem/S):l.yield_pct;
+      const ann=(hasLive&&prem!=null)?((prem/S)*365/(l.dte>0?l.dte:1)):l.ann_yield;
+      const floorOk=(hasLive&&hasQ&&prem!=null)?(yld>=0.006):l.passes_floor;
       const szL=mpc!==l.margin_per_contract_usd?Object.assign({},sz):sz;   /* 卡片用模型按金；顯示 bridge 實數 */
       const rc=i<3?(' b'+(i+1)):'';
       const fitTxt=sz.fits==null?('<span class="muted small">'+esc(sz.reason||'—')+'</span>')
@@ -2831,11 +2868,15 @@ function renderWheel320(){
         +'<td><b>'+esc(l.ticker)+'</b>'+(l.is_index?' <span class="pill t">指數</span>':'')+'</td>'
         +'<td class="r"'+(l.score!=null?(' data-tip="<b>模型分數</b><br>vrp_gate rank_key = max 12 週 RV z-score：<b>'+w320n(l.score,2)+'</b><br><small>模型就係用呢個分數排 top_n=4；分數越高＝premium 相對歷史波動越肥</small>"'):'')+'>'
           +(l.score!=null?w320n(l.score,2):'<span class="muted">—</span>')+'</td>'
-        +'<td class="r">$'+w320n(l.spot,2)+'</td><td class="r">$'+w320n(l.K,2)+'</td><td>'+esc(l.expiry)+'</td>'
-        +'<td class="r">'+esc(l.dte)+'</td><td class="r">'+w320pct(l.otm_pct)+'</td>'
-        +'<td class="r">'+(liveq?'<b style="color:#0f766e">$'+w320n(prem,2)+'</b><br><span class="small muted">'+w320n(liveq.bid,2)+'/'+w320n(liveq.ask,2)+'</span>':('$'+w320n(l.prem_mid,2)+'<br><span class="small muted">模型 mid</span>'))+'</td>'
-        +'<td class="r"'+(l.passes_floor?'':' style="color:var(--bad)"')+'>'+(l.yield_pct*100).toFixed(2)+'%</td>'
-        +'<td class="r">'+(l.ann_yield?w320pct(l.ann_yield,0):'—')+'</td>'
+        +'<td class="r">'+(hasLive
+            ?('<b>$'+w320n(S,2)+'</b><div style="font-size:9px;color:#059669;font-weight:400;margin-top:1px">'+esc(spotTag)+'</div>')
+            :('$'+w320n(l.spot,2)+'<div style="font-size:9px;color:#b45309;font-weight:400;margin-top:1px">模型 '+esc(cd.as_of||'')+'</div>'))+'</td>'
+        +'<td class="r">$'+w320n(l.K,2)+'</td><td>'+esc(l.expiry)+'</td>'
+        +'<td class="r">'+esc(l.dte)+'</td><td class="r">'+w320pct(otm)+'</td>'
+        +'<td class="r">'+(hasQ?'<b style="color:#0f766e">$'+w320n(prem,2)+'</b><br><span class="small muted">'+w320n(liveq.bid,2)+'/'+w320n(liveq.ask,2)+'</span>'
+                         :('<b>$'+w320n(prem,2)+'</b><br><span class="small muted">'+(liveq?'模型 mid（Futu 冇報價）':'模型 mid')+'</span>'))+'</td>'
+        +'<td class="r"'+(floorOk?'':' style="color:var(--bad)"')+'>'+(yld*100).toFixed(2)+'%</td>'
+        +'<td class="r">'+(ann?w320pct(ann,0):'—')+'</td>'
         +'<td class="r">US$'+w320n(mpc,0)+'</td>'
         +'<td class="r">US$'+w320n((mpc||0)*FREEZE_MULT,0)+'</td>'
         +'<td class="r">'+fitTxt+'</td>'
@@ -2843,7 +2884,7 @@ function renderWheel320(){
         +'<td class="small muted">'+esc(sz.bind||'—')+'</td>'
         +'<td>'+(function(){
             const chk=liveq&&Array.isArray(liveq.checks)?liveq.checks:null;
-            if(!chk)return '<span class="muted small">拉實價先</span>';
+            if(!chk)return '<span class="muted small">實價未到…</span>';
             const nP=chk.filter(c=>c.pass).length;
             const fails=chk.filter(c=>!c.pass).map(c=>String(c.label||'').slice(0,2));
             const tip='<b>'+esc(l.ticker)+' 檢查（bridge preflight）</b><br>'
@@ -2861,13 +2902,14 @@ function renderWheel320(){
       +'⓪ <b>呢個 list 係模型自己出嘅</b>：同一個 signal（<code>Wheel320Signal.csp_candidates</code>）＋'
       +'凍結配方（δ0.29／floor 0.6%／dte10／vrp_gate z&gt;1.0／top_n 4／sector_cap 0.4／VIX brake 28／SMA100／SK4 0.25），'
       +'排序＝模型 rank_key，冇人手加減。⚠️ 但係<b>數據日 as-of '+esc(cd.as_of||'—')+'</b>嘅模型決定（唔係今日），'
-      +'價係模型 BS mid；要落單必須撳「拉實價」或者喺 Futu 自己核 bid/ask。<br>'
+      +'價係模型 BS mid（實價一到就自動轉實價口徑，見 ④）。<br>'
       +'① 按金 = max(0.2S−max(S−K,0), 0.1S)+prem（×100/張）——同 live 閘門（futu_bridge.py:3177／engine.py:243）同一條式；'
       +'「實凍/張」= 按金×1.255（實測 Futu 凍結倍數）。<br>'
       +'② 可開張數 = min(實凍可用÷實凍/張, paper 預算÷實凍/張)，並已扣 20% 緊急緩衝；'
       +'「卡喺」＝真正綁死嗰條閘。③ 盈虧平衡 = 行使價 − 權利金（跌穿開始蝕）。<br>'
-      +'④ <b>模型 mid 係數據日價（落後 '+esc(d.data_lag_days)+' 日）</b>——要落單必須先撳「拉實價」，'
-      +'或者喺 Futu 自己睇 bid/ask；呢個 panel 係<b>指示</b>，唔會自動落單。</div>';
+      +'④ <b>實價自動更新</b>：開住呢個 tab 每 60s 自動打一次 bridge /preflight，'
+      +'現貨／距價外／yield／年化／按金全部轉即市口徑（現貨欄綠字＝實價、橙字＝模型數據日價，落後 '+esc(d.data_lag_days)+' 日）。'
+      +'落單前喺 Futu 自己核 bid/ask；呢個 panel 係<b>指示</b>，唔會自動落單。</div>';
     elC.innerHTML=g;
   }
   /* ---- 4. 模型倉 vs 真倉 ---- */
@@ -3799,6 +3841,12 @@ setInterval(function(){loadH6040Gates().then(renderAll);},60000);
 setInterval(loadH6040Rec,60000);   // ⭐ 08-24：v5 回測池（monitor :8799）每 60s 對時
 setInterval(loadH6040Margin,60000);   // ⭐ 09-02：按金試算（bridge /margin_gap — 按金/空間實時變）
 setInterval(fetchWscanUsd,60000);   // ⭐ 09-16：USD 購買力/equity 60s 刷新（/real_funds；當周掃描榜 B 卡已退役）
+setInterval(function(){   // ⭐ 09-18：wheel320 tab（開住先跑，唔開唔燒 bridge）——feed 檔案 5 分鐘對一次（launchd 出，成日先變）＋ 實價 60s 節流自動拉
+  const p=document.getElementById('pane-wheel320');
+  if(!p||!p.classList.contains('active'))return;
+  if(Date.now()-w320At>5*60000)loadWheel320(false);
+  w320AutoQuotes(false);
+},60000);
 fetchWscanUsd();
 setInterval(function(){loadQuant(true);},15*60000);   // ⭐ 08-23：正股 quant model（策略交易台＋業績日曆）每 15 分鐘重拎（/api ~1MB，唔跟 60s 週期）
 loadQuant();   // boot 即刻拎（990KB；到手自動重繪 執倉建議／策略交易台／業績日曆 三個 tab）
