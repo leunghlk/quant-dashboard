@@ -2713,8 +2713,8 @@ function renderWheel320(){
   const bd=(R.flatten||{});
   const mbLegs=mb.legs||[];
   let h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
-    +'<span class="pill b">δ '+esc(R.delta)+'</span>'
-    +'<span class="pill b">floor '+(R.min_yield*100).toFixed(2)+'%</span>'
+    +'<span class="pill w" data-tip="<b>δ '+esc(R.delta)+' — 未封印</b><br>δ 係<b>睇晒全窗之後揀</b>出嚟（事後揀），唔似 floor 0.6% 咁過咗 sealed walk-forward。<br>三個獨立方法（holdout 揀參、sealed tuner、2022 壓力窗）都<b>唔會揀 0.29</b>，low-δ（0.15-0.25）先係誠實搜尋嘅選擇。<br><small>詳見 decisions.md D30／D29</small>">δ '+esc(R.delta)+' ⚠️未封印</span>'
+    +'<span class="pill g" data-tip="<b>floor '+(R.min_yield*100).toFixed(2)+'% — 已封印 ✅</b><br>2026-09-18 通過完整 mainline walk-forward（18m tune→freeze→6m test×7）：+97.63%／Sharpe 1.823／MDD −9.97%（US$41,105）。<br>寫入 engine_api.SEALED_MIN_YIELD，4 項披露隨行。">floor '+(R.min_yield*100).toFixed(2)+'% 🔒</span>'
     +'<span class="pill b">dte '+esc(R.dte_target)+'</span>'
     +'<span class="pill b">'+esc(R.sleeve_skeleton)+' · '+esc(R.sleeve_frac)+'</span>'
     +'<span class="pill b">US$'+w320n(R.capital_usd,0)+'</span>'
@@ -2757,6 +2757,34 @@ function renderWheel320(){
         +'<tr><td>回報</td>'+f6.folds.map(x=>'<td class="r" style="color:'+((x.ret||0)>=0?'var(--good)':'var(--bad)')+'">'+w320pct(x.ret)+'</td>').join('')+'</tr>'
         +'</tbody></table></div>';
     }
+    /* ⭐ sealed walk-forward（唯一通過 walk-forward 嘅數；frozen-config 卡係未封印） */
+    const sv=(d.sealed||[]);
+    g+='<div style="margin-top:14px;padding-top:10px;border-top:1px dashed #cbd5e1">'
+      +'<div style="font-weight:700;margin-bottom:6px">🔒 Sealed walk-forward（18m tune → freeze → 6m test ×7，floor 焗入 signal 層）'
+      +'<span class="muted small" style="font-weight:400"> · 2023-07-03→2026-08-31 · 呢個先係已驗證嘅口徑</span></div>';
+    if(!sv.length){
+      g+='<div class="muted small">未有 sealed report（跑 `run_floor_sealed.py`）→ 上面兩欄全部係「未封印」數，唔可以當已驗證。</div>';
+    } else {
+      sv.forEach(function(v){
+        g+='<div style="margin-top:6px">'
+          +'<div class="small" style="margin-bottom:4px"><b>'+esc(v.capital_note)+'</b>'
+          +(v.oos_mainline_eligible?' <span class="pill g">mainline-eligible ✓</span>':' <span class="pill r">未 eligible</span>')
+          +(v.gates_ok?' <span class="pill g">gates PASS</span>':' <span class="pill r">gates FAIL</span>')+'</div>'
+          +'<div class="kpi" style="margin:0">'
+          +w320chip('總回報',w320pct(v.total_return))
+          +w320chip('Sharpe',w320n(v.sharpe,3))
+          +w320chip('MDD','<span style="color:var(--bad)">'+w320pct(v.max_dd)+'</span>')
+          +w320chip('月入','HK$'+w320n(v.avg_monthly_income_hkd,0))
+          +w320chip('≥10k 月',v.n_months_10k+'/'+v.n_months)
+          +'</div>'
+          +'<div class="small muted" style="margin-top:5px;line-height:1.7">'
+          +'tuner 每 fold 自己揀參（唔係凍結 δ0.29）· hindsight premium '+(v.hindsight_premium_hkdmo!=null?('HK$'+w320n(v.hindsight_premium_hkdmo,0)+'/月（負＝walk-forward 贏全窗最優）'):'—')
+          +' · '+esc(String(v.vs_random_luck||'').slice(0,60))+'</div>'
+          +(v.sim_to_real&&v.sim_to_real.verdict?('<div class="small" style="margin-top:5px;padding:6px 8px;background:#fffbeb;border-radius:5px;color:#b45309">⚠️ sim-to-real：'+esc(v.sim_to_real.verdict)+'</div>'):'')
+          +'</div>';
+      });
+    }
+    g+='</div>';
     elBT.innerHTML=g;
   }
   /* ---- 3. 落盤指示（賣 put 開倉）：模型揀股 × 實價／按金／夠唔夠錢 ---- */
@@ -2765,9 +2793,12 @@ function renderWheel320(){
   const legs=(cd.legs||[]).slice();
   const F=w320Funds();
   legs.forEach(l=>{l._sz=w320Size(l,d);});
-  legs.sort((a,b)=>((b._sz.fits?1:0)-(a._sz.fits?1:0))||((b.ann_yield||0)-(a.ann_yield||0)));
+  /* ⭐ 排序＝模型自己嘅 order（engine rank_key＝vrp_gate max 12-week RV z 降序），
+     唔再自己 re-sort（用戶 2026-09-18 問「係唔係跟足模型」）。夠唔夠錢用顏色標示。 */
+  legs.sort((a,b)=>((a.model_rank||99)-(b.model_rank||99)));
   if(cm)cm.textContent='模型 as of '+esc(cd.as_of||'—')+(d.data_lag_days>0?('（落後 '+d.data_lag_days+' 日）'):'')
-    +' · '+legs.length+' 腿 · 真倉購買力 '+(F.power_usd?('US$'+w320n(F.power_usd,0)):'等…')
+    +' · '+legs.length+' 腿 · 排序＝'+esc(cd.ordered_by||'模型 rank_key')
+    +' · 真倉購買力 '+(F.power_usd?('US$'+w320n(F.power_usd,0)):'等…')
     +' · 實凍可用 '+(F.usable_freeze_usd?('US$'+w320n(F.usable_freeze_usd,0)):'—');
   if(!legs.length){ elC.innerHTML='<div class="muted">今日冇候選（閘關／冇名過 floor）。</div>'; }
   else{
@@ -2781,7 +2812,7 @@ function renderWheel320(){
       +'<button class="w320tg" style="padding:3px 10px" onclick="w320PullAll()">🔄 拉實價（bridge /preflight 六問卡）</button>'
       +'<span class="small muted">'+(w320LiveQuotes?'實價已拉（bid/ask/Δ/IV ＋ bridge 自己嘅按金）':'模型 mid 係數據日價，落單前必先拉實價核對')+'</span></div>';
     g+='<div class="table-scroll"><table class="utable"><thead><tr>'
-      +'<th>#</th><th>股票</th><th class="r">現貨</th><th class="r">行使價</th><th>到期</th><th class="r">DTE</th>'
+      +'<th>#</th><th>股票</th><th class="r">模型分數</th><th class="r">現貨</th><th class="r">行使價</th><th>到期</th><th class="r">DTE</th>'
       +'<th class="r">距價外</th><th class="r">權利金</th><th class="r">yield</th><th class="r">年化</th>'
       +'<th class="r">按金/張</th><th class="r">實凍/張</th><th class="r">可開</th><th class="r">開完剩</th>'
       +'<th>卡喺</th><th>檢查</th><th class="r">盈虧平衡</th><th>指令</th></tr></thead><tbody>';
@@ -2798,6 +2829,8 @@ function renderWheel320(){
       g+='<tr'+(sz.fits===false?' style="background:#fef2f2"':'')+'>'
         +'<td><span class="w320rank'+rc+'">'+(i+1)+'</span></td>'
         +'<td><b>'+esc(l.ticker)+'</b>'+(l.is_index?' <span class="pill t">指數</span>':'')+'</td>'
+        +'<td class="r"'+(l.score!=null?(' data-tip="<b>模型分數</b><br>vrp_gate rank_key = max 12 週 RV z-score：<b>'+w320n(l.score,2)+'</b><br><small>模型就係用呢個分數排 top_n=4；分數越高＝premium 相對歷史波動越肥</small>"'):'')+'>'
+          +(l.score!=null?w320n(l.score,2):'<span class="muted">—</span>')+'</td>'
         +'<td class="r">$'+w320n(l.spot,2)+'</td><td class="r">$'+w320n(l.K,2)+'</td><td>'+esc(l.expiry)+'</td>'
         +'<td class="r">'+esc(l.dte)+'</td><td class="r">'+w320pct(l.otm_pct)+'</td>'
         +'<td class="r">'+(liveq?'<b style="color:#0f766e">$'+w320n(prem,2)+'</b><br><span class="small muted">'+w320n(liveq.bid,2)+'/'+w320n(liveq.ask,2)+'</span>':('$'+w320n(l.prem_mid,2)+'<br><span class="small muted">模型 mid</span>'))+'</td>'
@@ -2825,6 +2858,10 @@ function renderWheel320(){
     });
     g+='</tbody></table></div>';
     g+='<div class="small muted" style="margin-top:4px">'
+      +'⓪ <b>呢個 list 係模型自己出嘅</b>：同一個 signal（<code>Wheel320Signal.csp_candidates</code>）＋'
+      +'凍結配方（δ0.29／floor 0.6%／dte10／vrp_gate z&gt;1.0／top_n 4／sector_cap 0.4／VIX brake 28／SMA100／SK4 0.25），'
+      +'排序＝模型 rank_key，冇人手加減。⚠️ 但係<b>數據日 as-of '+esc(cd.as_of||'—')+'</b>嘅模型決定（唔係今日），'
+      +'價係模型 BS mid；要落單必須撳「拉實價」或者喺 Futu 自己核 bid/ask。<br>'
       +'① 按金 = max(0.2S−max(S−K,0), 0.1S)+prem（×100/張）——同 live 閘門（futu_bridge.py:3177／engine.py:243）同一條式；'
       +'「實凍/張」= 按金×1.255（實測 Futu 凍結倍數）。<br>'
       +'② 可開張數 = min(實凍可用÷實凍/張, paper 預算÷實凍/張)，並已扣 20% 緊急緩衝；'
