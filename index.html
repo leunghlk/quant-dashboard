@@ -454,23 +454,37 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')document.que
 //   （DEPLOYMENT_NOT_FOUND；quant_sentinel PAGE_API_KNOWN_DEAD 早已標記）。failover = CF→Vercel。
 const API_PRIMARY='https://quant-api.leunghlk.workers.dev/api';  // Cloudflare — 而家 primary
 const API_SPARE='https://quant-api-beta.vercel.app/api';        // Vercel（無 subrequest cap；HK 網絡 SNI-block vercel.app）
+const API_HOSTS=[API_PRIMARY,API_SPARE];  // 白名單：只有呢兩個係活 host（失敗 host 唔准留喺 qapiHost 度）
 const OPT_API=API_PRIMARY+'/options'; // 期權策略（Hybrid：Yahoo chain 優先 / BS 估算 fallback）
 async function fetchApiFallback(timeoutMs){
   // 2026-08-09: CF workers.dev 係唯一從 HK 穩定 reachable 嘅 host（Vercel SNI-block、Deno Deploy 404）。
   // 舊版 sequential 3-host 會喺 CF 瞬斷時 hang 喺 dead host 25s/個 → "load failed"。
   // 新版：CF 為唯一 active host；失敗（530/瞬斷通常 <1s）即短暫等待後 retry 一次跨過去，
   // 仍敗先試 dead spares 作 last resort（唔 race — race 3 host 會喺 CF blip 時 amplify request 觸發 530）。
+  // 2026-09-18: CF /api 1102 由「間歇」變慢性（實測 down 42%/63%）。舊版無論如何都
+  //   先打 CF 兩次（15s＋0.8s＋15s）先翻 Vercel ⇒ live 實測 elapsed 29.3s。
+  //   新版：上次成功嘅 host（qapiHost）優先，失敗先翻另一個 ⇒ CF 死嗰陣 ~29s → ~3s。
+  //   ⚠️ qapiHost 必須過白名單：舊 session 可能留住已死 host（例：deno.dev，2026-07 已 sunset），
+  //      唔過濾就會白等一個 timeout。⚠️ 唔可以 Promise.any race（並發打 CF 喺 blip 時 amplify 觸發 530）。
+  //   註：CF 成功/失敗都唔會鎖死 —— tryHost 成功先寫 qapiHost，所以 CF 一復活就自動翻返去。
   const t=timeoutMs||15000;
   const tryHost=async(u)=>{
     const r=await fetchTimeout(u,t);
     if(r&&r.ok){ try{ localStorage.setItem('qapiHost',u); }catch(e){} return r; }
     throw new Error('HTTP '+(r?r.status:'?'));
   };
-  try{ return await tryHost(API_PRIMARY); }
+  let pref=null;
+  try{ pref=localStorage.getItem('qapiHost'); }catch(e){}
+  if(API_HOSTS.indexOf(pref)<0) pref=null;            // 白名單外／空 → 當冇偏好（＝行返 CF 先）
+  const first=pref||API_PRIMARY;
+  const rest=API_HOSTS.filter(function(h){ return h!==first; });
+  try{ return await tryHost(first); }
   catch(e){
-    await new Promise(function(r){ setTimeout(r,800); });  // 跨 CF 瞬斷 / 530
-    try{ return await tryHost(API_PRIMARY); }catch(e2){}
-    for(const u of [API_SPARE]){ try{ return await tryHost(u); }catch(_){} }
+    if(first===API_PRIMARY){                            // CF 專屬：瞬斷 / 530 通常 <1s，等一等補刀一次
+      await new Promise(function(r){ setTimeout(r,800); });
+      try{ return await tryHost(API_PRIMARY); }catch(e2){}
+    }
+    for(const u of rest){ try{ return await tryHost(u); }catch(_){} }
     throw new Error('api unreachable');
   }
 }
