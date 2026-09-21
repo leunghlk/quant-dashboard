@@ -2478,8 +2478,10 @@ function renderEarnings(){
   applyEarnFilter();
 }
 
-/* ═══════════ wheel320（凍結配方 · CSP 75k · 每 6 個月清倉） ═══════════
-   ⚠️ 配方未封：δ0.29 同「每 6 個月清倉」都係全窗事後揀出嚟（RESEARCH stamp）。
+/* ═══════════ wheel320（sealed 部署配方 · CSP 75k · 每 6 個月清倉） ═══════════
+   ✅ 已封印（2026-09-21 D35）：sealed@75k walk-forward 判決 +127.89%／Sharpe 2.137／
+   MDD −6.56%／月入 HK$9,604（13/38 ≥10k），gates PASS／零 hindsight 膨脹。
+   部署底 δ0.25（sealed champions 揀 δ0.15-0.20；δ0.29 只喺「清倉＋事後揀」口徑最靚）。
    數字唯一來源＝bridge /wheel320（wheel320_feed.py 產生，零手抄）；
    呢頁唔會自己計數。模型倉＝engine replay，唔係真倉。 */
 let w320Rec=null,w320Busy=false,w320At=0,w320Err=null;
@@ -2717,7 +2719,7 @@ function renderW320Live(){
 function renderWheel320(){
   const head=document.getElementById('w320Head'); if(!head)return;
   if(!w320Rec){
-    head.innerHTML='<div class="warn-note" style="margin:0 0 8px">🔬 <b>RESEARCH</b> — 呢個係研究倉：配方（δ0.29 ＋ 每 6 個月清倉）係回測後事後揀出嚟，未經 sealed 驗證，數字係 in-sample 口徑，冇 live 業績。</div>'
+    head.innerHTML='<div class="warn-note" style="margin:0 0 8px">✅ <b>SEALED</b> — 部署配方（δ0.25 ＋ floor 0.6% ＋ 每 6 個月清倉）已過 sealed@75k walk-forward（2026-09-21 D35）：+127.89%／Sharpe 2.137／MDD −6.56%／月入 HK$9,604（13/38 ≥10k），零 hindsight 膨脹。</div>'
       +'<div class="muted">'+(w320Err?('⚠️ wheel320 feed 讀取失敗：'+esc(w320Err)+'<br><span class="small">需要 bridge 起咗＋跑過 wheel320/wheel320_feed.py。60 秒後自動重試。</span>'):'⏳ 載入中（bridge /wheel320）…')+'</div>';
     ['w320BT','w320Cand','w320Book','w320Cal'].forEach(id=>{const e=document.getElementById(id); if(e)e.innerHTML='<div class="muted">'+(w320Err?'—':'載入中…')+'</div>';});
     if(!w320Err&&!w320Busy)setTimeout(()=>loadWheel320(false),60000);
@@ -2730,7 +2732,7 @@ function renderWheel320(){
   const bd=(R.flatten||{});
   const mbLegs=mb.legs||[];
   let h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
-    +'<span class="pill w" data-tip="<b>δ '+esc(R.delta)+' — 未封印</b><br>δ 係<b>睇晒全窗之後揀</b>出嚟（事後揀），唔似 floor 0.6% 咁過咗 sealed walk-forward。<br>三個獨立方法（holdout 揀參、sealed tuner、2022 壓力窗）都<b>唔會揀 0.29</b>，low-δ（0.15-0.25）先係誠實搜尋嘅選擇。<br><small>詳見 decisions.md D30／D29</small>">δ '+esc(R.delta)+' ⚠️未封印</span>'
+    +'<span class="pill g" data-tip="<b>δ '+esc(R.delta)+' — 部署底（誠實口徑）</b><br>sealed@75k walk-forward 判決已通過（D35）：+127.89%／Sharpe 2.137／MDD −6.56%／月入 HK$9,604。<br>δ0.29 只喺「清倉＋事後揀」口徑最靚，hold 口徑反而輸 δ0.25；sealed tuner 每 fold 揀 δ0.15-0.20 同向。<br><small>詳見 decisions.md D35／D30／D29</small>">δ '+esc(R.delta)+' 🔒</span>'
     +'<span class="pill g" data-tip="<b>floor '+(R.min_yield*100).toFixed(2)+'% — 已封印 ✅</b><br>2026-09-18 通過完整 mainline walk-forward（18m tune→freeze→6m test×7）：+97.63%／Sharpe 1.823／MDD −9.97%（US$41,105）。<br>寫入 engine_api.SEALED_MIN_YIELD，4 項披露隨行。">floor '+(R.min_yield*100).toFixed(2)+'% 🔒</span>'
     +'<span class="pill b">dte '+esc(R.dte_target)+'</span>'
     +'<span class="pill b">'+esc(R.sleeve_skeleton)+' · '+esc(R.sleeve_frac)+'</span>'
@@ -2900,7 +2902,7 @@ function renderWheel320(){
     g+='</tbody></table></div>';
     g+='<div class="small muted" style="margin-top:4px">'
       +'⓪ <b>呢個 list 係模型自己出嘅</b>：同一個 signal（<code>Wheel320Signal.csp_candidates</code>）＋'
-      +'凍結配方（δ0.29／floor 0.6%／dte10／vrp_gate z&gt;1.0／top_n 4／sector_cap 0.4／VIX brake 28／SMA100／SK4 0.25），'
+      +'部署配方（δ0.25／floor 0.6%／dte 7-10（sealed champions）／vrp_gate z&gt;1.0／top_n 4／sector_cap 0.4／VIX brake 28／SMA100／SK4 0.25），'
       +'排序＝模型 rank_key，冇人手加減。⚠️ 但係<b>數據日 as-of '+esc(cd.as_of||'—')+'</b>嘅模型決定（唔係今日），'
       +'價係模型 BS mid（實價一到就自動轉實價口徑，見 ④）。<br>'
       +'① 按金 = max(0.2S−max(S−K,0), 0.1S)+prem（×100/張）——同 live 閘門（futu_bridge.py:3177／engine.py:243）同一條式；'
