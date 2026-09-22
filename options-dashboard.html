@@ -2687,7 +2687,7 @@ function renderW320Live(){
       +w320chip('未實現','<span style="color:'+col2+'">'+hkd(pf.real_unrealized_hkd||0)+'</span>');
   }
   const m=document.getElementById('w320LiveMeta');
-  if(m)m.textContent='真倉 live（Yahoo 價鏈，同 h6040 同源，60s 自動更新）'+(w320Rec&&w320Rec.data_asof?(' · 模型 feed as-of '+w320Rec.data_asof+'（最近完成嘅美股交易日）'):'');
+  if(m)m.textContent='真倉 live（Futu OpenD 實時優先 · Yahoo 兜底，同 h6040 同源，60s 自動更新）'+(w320Rec&&w320Rec.data_asof?(' · 模型 feed as-of '+w320Rec.data_asof+'（最近完成嘅美股交易日）'):'');
   const rb=document.getElementById('w320RealBox');
   if(rb){
     const legs=w320RealOpts();
@@ -2706,7 +2706,7 @@ function renderW320Live(){
           const diff=sp-l.be;
           dcell='<b>$'+w320n(sp,2)+'</b> <span style="font-size:10px;color:'+(diff>=0?'#16a34a':'#dc2626')+'">'+(diff>=0?'高於':'低於')+' BE '+Math.abs(diff).toFixed(2)+'（'+(Math.abs(diff/l.be*100)).toFixed(1)+'%）</span>';
         }
-        if(asof)dcell+='<div style="font-size:9px" class="muted">spot as-of '+esc(asof)+(src?(' · '+esc(src)):'')+'</div>';
+        if(asof){const srcLbl=src==='futu_opend'?'Futu OpenD 實時':(src==='yahoo'?'Yahoo':(src||''));dcell+='<div style="font-size:9px" class="muted">spot as-of '+esc(_tEt(Number(asof)))+' ET'+(srcLbl?(' · '+esc(srcLbl)):'')+'</div>';}
         h+='<tr><td><b>'+esc(l.t)+'</b> <span class="pill '+(l.cp==='P'?'b':'w')+'">'+(l.cp==='P'?'賣 put':'賣 call')+'</span></td>'
           +'<td class="r">$'+w320n(l.K,2)+'</td><td>'+esc(l.expiry)+'</td><td class="r">'+esc(l.qty)+'</td>'
           +'<td class="r">$'+w320n(l.prem,2)+'</td>'
@@ -2715,7 +2715,7 @@ function renderW320Live(){
           +'<td class="r" style="color:'+((l.pnl_hkd||0)>=0?'var(--good)':'var(--bad)')+'">'+(l.pnl_hkd!=null?money(l.pnl_hkd):'—')+'</td></tr>';
       });
       h+='</tbody></table></div><div class="small muted" style="margin-top:4px">BE＝行使價 −｜avg_cost（每股入場權利金）｜；'
-        +'strike/到期由 Futu code 拆出（API 冇獨立欄位）。現價＝標的正股 live 價（Yahoo 價鏈 60s 更新）。'
+        +'strike/到期由 Futu code 拆出（API 冇獨立欄位）。現價＝標的正股 live 價（Futu OpenD 實時優先 · Yahoo 兜底，60s 更新）。'
         +'入場權利金＝開倉 avg_cost（唔係現時 mark）；未實現(HKD)＝Futu unrealized_pl 直通（用現時 mark 計）。</div>';
       rb.innerHTML=h;
     }
@@ -2853,7 +2853,7 @@ function renderWheel320(){
       const prem=hasQ?Number(liveq.mid||liveq.bid):l.prem_mid;
       const mpc=liveq&&liveq.margin_usd?Number(liveq.margin_usd):l.margin_per_contract_usd;
       /* ⭐ 09-18 一價原則：現貨欄同全 dashboard 其他 tab 用同一個 bridge /snapshot live map
-         （yahoo，60s 對時）；冇就退落 /preflight 自己嘅現貨（Futu 期權鏈 underlying），
+         （⭐09-22 Futu OpenD 實時優先 · Yahoo 兜底，60s 對時）；冇就退落 /preflight 自己嘅現貨（Futu 期權鏈 underlying），
          再冇就出模型數據日價（橙字標明）。有實價＝距價外／yield／年化／floor 全部同口徑重算，
          唔會出現「live 權利金 × 數據日現貨」嘅行內矛盾。 */
       const lvRow=live[l.ticker]||null, spotF=(liveq&&liveq.spot)?Number(liveq.spot):null;
@@ -2909,7 +2909,7 @@ function renderWheel320(){
       +'⓪ <b>呢個 list 係模型自己出嘅</b>：同一個 signal（<code>Wheel320Signal.csp_candidates</code>）＋'
       +'部署配方（δ0.25／floor 0.6%／dte 7-10（sealed champions）／vrp_gate z&gt;1.0／top_n 4／sector_cap 0.4／VIX brake 28／SMA100／SK4 0.25），'
       +'排序＝模型 rank_key，冇人手加減。<b>數據日 as-of '+esc(cd.as_of||'—')+'</b>＝最近一個完成咗嘅美股交易日（唔係 delay；feed 每日 06:25 HKT 自動跳日）；'
-      +'榜上價係模型 BS mid，現價欄同真倉腿就係 live 價（Yahoo 價鏈 60s 更新，見 ④）。<br>'
+      +'榜上價係模型 BS mid，現價欄同真倉腿就係 live 價（Futu OpenD 實時優先 · Yahoo 兜底，60s 更新，見 ④）。<br>'
       +'① 按金 = max(0.2S−max(S−K,0), 0.1S)+prem（×100/張）——同 live 閘門（futu_bridge.py:3177／engine.py:243）同一條式；'
       +'「實凍/張」= 按金×1.255（實測 Futu 凍結倍數）。<br>'
       +'② 可開張數 = min(實凍可用÷實凍/張, paper 預算÷實凍/張)，並已扣 20% 緊急緩衝；'
