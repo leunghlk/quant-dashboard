@@ -2687,7 +2687,7 @@ function renderW320Live(){
       +w320chip('未實現','<span style="color:'+col2+'">'+hkd(pf.real_unrealized_hkd||0)+'</span>');
   }
   const m=document.getElementById('w320LiveMeta');
-  if(m)m.textContent='真倉 Futu 實時'+(w320Rec&&w320Rec.data_asof?(' · feed as of '+w320Rec.data_asof):'');
+  if(m)m.textContent='真倉 live（Yahoo 價鏈，同 h6040 同源，60s 自動更新）'+(w320Rec&&w320Rec.data_asof?(' · 模型 feed as-of '+w320Rec.data_asof+'（最近完成嘅美股交易日）'):'');
   const rb=document.getElementById('w320RealBox');
   if(rb){
     const legs=w320RealOpts();
@@ -2698,11 +2698,15 @@ function renderW320Live(){
         +'<th class="r">入場權利金</th><th class="r">盈虧平衡</th><th class="r">現價 vs BE</th><th class="r">未實現(HKD)</th></tr></thead><tbody>';
       legs.forEach(l=>{
         const sp=(l.live!=null&&!isNaN(l.live))?Number(l.live):null;
+        const lv=live[(l.t||'').toUpperCase()];
+        const asof=lv&&lv.asof?String(lv.asof):null;
+        const src=lv&&lv.src?String(lv.src):null;
         let dcell='<span class="muted">—</span>';
         if(l.be!=null&&sp){
           const diff=sp-l.be;
-          dcell='<span style="font-size:10px;color:'+(diff>=0?'#16a34a':'#dc2626')+'">現價'+(diff>=0?'高於':'低於')+' '+Math.abs(diff).toFixed(2)+'（'+(Math.abs(diff/l.be*100)).toFixed(1)+'%）</span>';
+          dcell='<b>$'+w320n(sp,2)+'</b> <span style="font-size:10px;color:'+(diff>=0?'#16a34a':'#dc2626')+'">'+(diff>=0?'高於':'低於')+' BE '+Math.abs(diff).toFixed(2)+'（'+(Math.abs(diff/l.be*100)).toFixed(1)+'%）</span>';
         }
+        if(asof)dcell+='<div style="font-size:9px" class="muted">spot as-of '+esc(asof)+(src?(' · '+esc(src)):'')+'</div>';
         h+='<tr><td><b>'+esc(l.t)+'</b> <span class="pill '+(l.cp==='P'?'b':'w')+'">'+(l.cp==='P'?'賣 put':'賣 call')+'</span></td>'
           +'<td class="r">$'+w320n(l.K,2)+'</td><td>'+esc(l.expiry)+'</td><td class="r">'+esc(l.qty)+'</td>'
           +'<td class="r">$'+w320n(l.prem,2)+'</td>'
@@ -2711,7 +2715,8 @@ function renderW320Live(){
           +'<td class="r" style="color:'+((l.pnl_hkd||0)>=0?'var(--good)':'var(--bad)')+'">'+(l.pnl_hkd!=null?money(l.pnl_hkd):'—')+'</td></tr>';
       });
       h+='</tbody></table></div><div class="small muted" style="margin-top:4px">BE＝行使價 −｜avg_cost（每股入場權利金）｜；'
-        +'strike/到期由 Futu code 拆出（API 冇獨立欄位）。現價＝標的正股 live 價。</div>';
+        +'strike/到期由 Futu code 拆出（API 冇獨立欄位）。現價＝標的正股 live 價（Yahoo 價鏈 60s 更新）。'
+        +'入場權利金＝開倉 avg_cost（唔係現時 mark）；未實現(HKD)＝Futu unrealized_pl 直通（用現時 mark 計）。</div>';
       rb.innerHTML=h;
     }
   }
@@ -2903,8 +2908,8 @@ function renderWheel320(){
     g+='<div class="small muted" style="margin-top:4px">'
       +'⓪ <b>呢個 list 係模型自己出嘅</b>：同一個 signal（<code>Wheel320Signal.csp_candidates</code>）＋'
       +'部署配方（δ0.25／floor 0.6%／dte 7-10（sealed champions）／vrp_gate z&gt;1.0／top_n 4／sector_cap 0.4／VIX brake 28／SMA100／SK4 0.25），'
-      +'排序＝模型 rank_key，冇人手加減。⚠️ 但係<b>數據日 as-of '+esc(cd.as_of||'—')+'</b>嘅模型決定（唔係今日），'
-      +'價係模型 BS mid（實價一到就自動轉實價口徑，見 ④）。<br>'
+      +'排序＝模型 rank_key，冇人手加減。<b>數據日 as-of '+esc(cd.as_of||'—')+'</b>＝最近一個完成咗嘅美股交易日（唔係 delay；feed 每日 06:25 HKT 自動跳日）；'
+      +'榜上價係模型 BS mid，現價欄同真倉腿就係 live 價（Yahoo 價鏈 60s 更新，見 ④）。<br>'
       +'① 按金 = max(0.2S−max(S−K,0), 0.1S)+prem（×100/張）——同 live 閘門（futu_bridge.py:3177／engine.py:243）同一條式；'
       +'「實凍/張」= 按金×1.255（實測 Futu 凍結倍數）。<br>'
       +'② 可開張數 = min(實凍可用÷實凍/張, paper 預算÷實凍/張)，並已扣 20% 緊急緩衝；'
