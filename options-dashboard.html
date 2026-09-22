@@ -2827,7 +2827,8 @@ function renderWheel320(){
   if(cm)cm.textContent='模型 as of '+esc(cd.as_of||'—')+(d.data_lag_days>0?('（落後 '+d.data_lag_days+' 日）'):'')
     +' · '+legs.length+' 腿 · 排序＝'+esc(cd.ordered_by||'模型 rank_key')
     +' · 真倉購買力 '+(F.power_usd?('US$'+w320n(F.power_usd,0)):'等…')
-    +' · 實凍可用 '+(F.usable_freeze_usd?('US$'+w320n(F.usable_freeze_usd,0)):'—');
+    +' · 實凍可用 '+(F.usable_freeze_usd?('US$'+w320n(F.usable_freeze_usd,0)):'—')
+    +((d.live_rescan&&d.live_rescan.updated)?(' · 日內 live 重掃 '+esc((d.live_rescan.updated||'').replace('T',' ').slice(0,16))+' HKT（Futu OpenD '+(((d.live_rescan.src_summary||{}).futu_opend)||0)+'＋Yahoo '+(((d.live_rescan.src_summary||{}).yahoo)||0)+'）· K/prem 跟 live、榜序照模型'):'');
   if(!legs.length){ elC.innerHTML='<div class="muted">今日冇候選（閘關／冇名過 floor）。</div>'; }
   else{
     /* ⭐ 09-18：真正有市場報價嘅腿數（preflight 有回應但 bid/mid 全 0 ＝收市／冷門 strike，唔算） */
