@@ -3222,7 +3222,7 @@ async function fetchWscanUsd(){
   try{
     const r=await fetchTimeout(activeBridge+'/real_funds?secret='+encodeURIComponent(BRIDGE_SECRET),12000);
     const j=r&&r.ok?await r.json().catch(function(){return null;}):null;
-    if(j&&j.us_cash_power_usd!=null)wscanUsd=j.us_cash_power_usd;
+    if(j&&j.us_cash_power_usd!=null){const _p=wscanUsd;wscanUsd=j.us_cash_power_usd;if(_p!==wscanUsd&&typeof renderBest==='function')renderBest();}   /* ⭐ 09-22：可開 chip 即時跟上 */
     if(j&&j.equity_usd!=null)wscanEquity=j.equity_usd;   // ⭐ 09-11：接貨 affordability 分母
   }catch(e){}
 }
@@ -3580,6 +3580,16 @@ function h6040GoldExec(){
   if(!g||!(g.bid>0))return;   // bid=0／冇報價唔入 exec modal
   execCandidate(g.ticker,g.expiry,g.strike,GOLD_BT.max_contracts,'PUT',g.bid,g);
 }
+/* ⭐ 09-22 對齊 wheel320「可開」chip：帳戶層可行性＝顯示，唔係過濾（落單仍以 /preflight 八項為準）。
+   同 w320Size 購買力側同一條式：實凍/張＝模型按金×1.255；可開＝floor(實凍可用×0.8÷實凍/張)
+   （實凍可用＝us_cash_power÷1.255，扣 20% 緊急緩衝）。h6040 冇 wheel320 個 paper 預算
+   （min(25%×equity,12,726) 係 wheel320 書嘅紙面分配）——單腿書綁死閘＝購買力(實凍)。 */
+function h6040Fit(m1){
+  if(!(m1>0))return {fits:null,reason:'冇按金數'};
+  if(!(wscanUsd>0))return {fits:null,reason:'等購買力…'};
+  const n=Math.floor((wscanUsd/FREEZE_MULT)*0.8/(m1*FREEZE_MULT));
+  return {max_ct:Math.max(0,n),fits:n>0};
+}
 function renderBest(){
   const b=$('bestCard');
   if(!b)return;
@@ -3668,12 +3678,17 @@ function renderBest(){
         const eD=c.earnings?c.earnings.slice(5):'';
         const eCell=c.earn_in_window?'<span style="color:#dc2626;font-weight:700">⚠️'+eD+'</span>':(c.earnings?'<span class="muted">'+eD+'</span>':'—');
         const _m1=(c.sug_prem!=null&&c.sug_strike!=null&&c.price!=null)?Math.max(0.20*c.price+c.sug_prem-Math.max(0,c.sug_strike-c.price),0.10*c.sug_strike+c.sug_prem)*100:null;   // 所需按金/張＝Reg-T 模型口徑（同 engine：max(20%×S＋prem−OTM, 10%×K＋prem)×100，US$；Futu 實收高約 25%）
-        rows+='<tr style="cursor:pointer" onclick="showDetail(\''+c.ticker+'\')"><td><b>'+c.ticker+'</b></td><td class="r">'+h6040PxCell(c.ticker,c.price)+'</td><td class="r">'+(c.wr!=null?'<b>'+c.wr.toFixed(2)+'</b>':'—')+'</td><td class="r">'+(c.score!=null?c.score.toFixed(2):'—')+'</td><td>'+_sigPill(c.signal)+'</td><td class="r">'+(c.iv!=null?(c.iv*100).toFixed(0)+'%':'—')+'</td><td class="r">'+(c.rsi!=null?c.rsi.toFixed(0):'—')+'</td><td class="r">'+eCell+'</td><td class="r">'+(c.sug_strike!=null?'$'+px2(c.sug_strike):'—')+'</td><td class="r">'+(c.sug_dte||'—')+'</td><td class="r">'+(c.sug_dte?h6040ExpNearest(c.sug_dte).slice(5)+'<br><span class="muted small">≈</span>':'—')+'</td><td class="r">'+(c.sug_delta!=null?'−'+Math.abs(c.sug_delta).toFixed(2):'—')+'</td><td class="r">'+(c.sug_prem!=null?'$'+Math.round(c.sug_prem*100)+'<br><span class="muted small">≈HK$'+fmt(Math.round(c.sug_prem*100*HKD_USD))+'</span>':'—')+'</td><td class="r">'+(_m1!=null?'$'+fmt(Math.round(_m1))+'<br><span class="muted small">≈HK$'+fmt(Math.round(_m1*HKD_USD))+'</span>':'—')+'</td><td class="r">'+(c.sug_yield_ann!=null?c.sug_yield_ann+'%':'—')+'</td></tr>';
+        /* ⭐ 09-22 對齊 wheel320：per-row 可開 chip（同 w320Size 購買力側同式；顯示唔係過濾） */
+        const _fit=h6040Fit(_m1);
+        const _fitTxt=_fit.fits==null?('<span class="muted small">'+esc(_fit.reason||'—')+'</span>')
+          :(_fit.fits?('<span style="color:var(--good);font-weight:800">'+_fit.max_ct+' 張</span>')
+                    :'<span style="color:var(--bad);font-weight:800">0</span>');
+        rows+='<tr style="cursor:pointer'+(_fit.fits===false?';background:#fef2f2':'')+'" onclick="showDetail(\''+c.ticker+'\')"><td><b>'+c.ticker+'</b></td><td class="r">'+h6040PxCell(c.ticker,c.price)+'</td><td class="r">'+(c.wr!=null?'<b>'+c.wr.toFixed(2)+'</b>':'—')+'</td><td class="r">'+(c.score!=null?c.score.toFixed(2):'—')+'</td><td>'+_sigPill(c.signal)+'</td><td class="r">'+(c.iv!=null?(c.iv*100).toFixed(0)+'%':'—')+'</td><td class="r">'+(c.rsi!=null?c.rsi.toFixed(0):'—')+'</td><td class="r">'+eCell+'</td><td class="r">'+(c.sug_strike!=null?'$'+px2(c.sug_strike):'—')+'</td><td class="r">'+(c.sug_dte||'—')+'</td><td class="r">'+(c.sug_dte?h6040ExpNearest(c.sug_dte).slice(5)+'<br><span class="muted small">≈</span>':'—')+'</td><td class="r">'+(c.sug_delta!=null?'−'+Math.abs(c.sug_delta).toFixed(2):'—')+'</td><td class="r">'+(c.sug_prem!=null?'$'+Math.round(c.sug_prem*100)+'<br><span class="muted small">≈HK$'+fmt(Math.round(c.sug_prem*100*HKD_USD))+'</span>':'—')+'</td><td class="r">'+(_m1!=null?'$'+fmt(Math.round(_m1))+'<br><span class="muted small">≈HK$'+fmt(Math.round(_m1*HKD_USD))+'</span>':'—')+'</td><td class="r">'+_fitTxt+'</td><td class="r">'+(c.sug_yield_ann!=null?c.sug_yield_ann+'%':'—')+'</td></tr>';
       });
-      cd.innerHTML=(rows?banner+'<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">現價</th><th class="r">wr</th><th class="r">mom</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th class="r">業績</th><th class="r">建議K</th><th class="r">DTE</th><th class="r">到期</th><th class="r">Δ</th><th class="r">收入/張</th><th class="r">按金/張 US$</th><th class="r">年化</th></tr></thead><tbody>'+rows+'</tbody></table></div>':banner+'<div class="muted">今日 v5 池無符合 CFG_SINGLE 過濾嘅候選。</div>');
+      cd.innerHTML=(rows?banner+'<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">現價</th><th class="r">wr</th><th class="r">mom</th><th>訊號</th><th class="r">IV</th><th class="r">RSI</th><th class="r">業績</th><th class="r">建議K</th><th class="r">DTE</th><th class="r">到期</th><th class="r">Δ</th><th class="r">收入/張</th><th class="r">按金/張 US$</th><th class="r">可開</th><th class="r">年化</th></tr></thead><tbody>'+rows+'</tbody></table></div>':banner+'<div class="muted">今日 v5 池無符合 CFG_SINGLE 過濾嘅候選。</div>');
     }
   }
-  const cm=$('candMeta'); if(cm)cm.innerHTML='v5 回測池 '+pool.length+' 隻 · scan '+(scan.scan_date||'—')+' · VIX '+(scan.vix!=null?scan.vix.toFixed(1):'—')+' · breadth '+(scan.breadth!=null?(scan.breadth*100).toFixed(0)+'%':'—')+' · <b>wr＝排序 key</b>（年化收入×(0.5+IV_rank/100) 降序；mom 只做入場閘——09-14 L_mom×W_wr；wr—＝無合法 strike 沉底） · 現價＝live 優先（綠＝即時／琥珀＝掃描價，同其他 tab 同一來源） · 建議K/Δ/收入/按金/年化＝BS 模型價（收入/張＝建議倉權利金×100，未計佣金；按金/張＝Reg-T 模型口徑 max(20%×S＋金−OTM, 10%×K＋金)×100，Futu 實收按金高約 25%） · 業績⚠️＝落喺持有期內（DTE＋2緩衝，回測冇剔業績——自行迴避） · 到期＝sug_dte 推算最近週五（≈；詳情頁以 live chain 為準，建議K/DTE＝掃描快照、詳情頁係即市重揀）';
+  const cm=$('candMeta'); if(cm)cm.innerHTML='v5 回測池 '+pool.length+' 隻 · scan '+(scan.scan_date||'—')+' · VIX '+(scan.vix!=null?scan.vix.toFixed(1):'—')+' · breadth '+(scan.breadth!=null?(scan.breadth*100).toFixed(0)+'%':'—')+' · <b>wr＝排序 key</b>（年化收入×(0.5+IV_rank/100) 降序；mom 只做入場閘——09-14 L_mom×W_wr；wr—＝無合法 strike 沉底） · 現價＝live 優先（綠＝即時／琥珀＝掃描價，同其他 tab 同一來源） · 建議K/Δ/收入/按金/年化＝BS 模型價（收入/張＝建議倉權利金×100，未計佣金；按金/張＝Reg-T 模型口徑 max(20%×S＋金−OTM, 10%×K＋金)×100，Futu 實收按金高約 25%） · 業績⚠️＝落喺持有期內（DTE＋2緩衝，回測冇剔業績——自行迴避） · 到期＝sug_dte 推算最近週五（≈；詳情頁以 live chain 為準，建議K/DTE＝掃描快照、詳情頁係即市重揀） · <b>可開</b>＝帳戶層顯示唔係過濾（09-22 同 wheel320「可開」對齊同式：floor(實凍可用×0.8÷實凍/張)，實凍/張＝按金×1.255、實凍可用＝us_cash_power÷1.255、20% 緊急緩衝；購買力＝/real_funds 60s；0 張照陳列＋紅底；h6040 冇 paper 預算綁、wheel320 另受 min(25%×equity,12,726) 綁；落單仍以 /preflight 八項為準）';
   const nt=$('notesBody'); if(nt)nt.innerHTML='<span class="muted">Hybrid 60/40 排除：單股腿要 VIX 20–32＋breadth≥50% 才開（v5 回測池）；XSP 腿要 XSP>200DMA 才開；金腿要 RV20≤'+GOLD_BT.rv20_max+'% 先開（IAU）。兩腿皆關 = 今日全場休息（同回測）。</span>';
 }
 function h6040OpenSpyChain(){
