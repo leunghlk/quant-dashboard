@@ -2589,7 +2589,7 @@ async function w320Quote(leg, force){
   try{
     if(!activeBridge)await detectBridge();
     const u=(activeBridge||BRIDGE_PROXY)+'/preflight?ticker='+encodeURIComponent(leg.ticker)
-      +'&strike='+leg.K+'&expiry='+leg.expiry+'&side=P&qty=1&secret='+encodeURIComponent(BRIDGE_SECRET);
+      +'&strike='+leg.K+'&expiry='+leg.expiry+'&side=P&qty=1&src=w320&secret='+encodeURIComponent(BRIDGE_SECRET);
     const r=await fetchTimeout(u,20000);
     const j=await r.json().catch(()=>null);
     if(j&&j.ok!==false){ _w320Pf[k]=j; return j; }
