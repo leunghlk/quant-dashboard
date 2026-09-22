@@ -1256,6 +1256,7 @@ const WR_SORTS={
   win:{f:function(x){return x.pop!=null?x.pop:-1;}},delta:{f:function(x){return Math.abs(x.delta||0);}},
   sigma:{f:function(x){var v=_wrSigma(x);return v!=null?v:-1;}},strike:{f:function(x){return x.strike||0;}},
   prem:{f:function(x){return x.premium||0;}},m1:{f:function(x){return x.margin1||Math.round(0.22*(x.collateral||1));}},
+  fit:{f:function(x){var _f=h6040Fit(x.margin1||Math.round(0.22*(x.collateral||1)));return _f.fits==null?-1:(_f.fits?_f.max_ct:0);}},   /* ⭐09-22 可開（帳戶層顯示）排序 */
   yann:{f:function(x){return x.yield_ann||0;}},total:{f:_wrTotal},dte:{f:function(x){return x.dte||0;}},iv:{f:function(x){return x.iv||0;}}
 };
 function _wrSortBy(k){
@@ -1356,6 +1357,7 @@ function renderWinRank(){
    +'<th class="c">到期</th>'
    +thS('prem','r','收入/張 US$＝即市 chain 快照（板 ≤45min 新）或 ≈BS live 重估（板舊過 45min：S＝盤中 spot 一價原則、IV 跟板行）；⚠＝只有舊數/估算冇即市價；落單前入詳情頁 live chain 核價','收入/張 US$')
    +thS('m1','r','按金/張（US$）＝max(0.2S−max(S−K,0), 0.1S)＋金)×100（＝bridge／engine 閘門同式）','按金/張 US$')
+   +thS('fit','r','<b>可開＝帳戶層顯示唔係過濾</b>（09-22 同 wheel320「可開」對齊：同 w320Size 購買力側同式 floor(實凍可用×0.8÷實凍/張)，實凍/張＝按金×1.255、實凍可用＝us_cash_power÷1.255、20% 緊急緩衝；0 張＝紅字＋紅底照陳列＋原因；h6040 冇 wheel320 個 paper 預算綁；購買力＝/real_funds 60s；落單仍以 /preflight 八項為準）','可開')
    +thS('yann','r','年化＝yield%×365/DTE','年化')
    +thS('iv','r','IV（r＝IV rank）','IV')
    +thS('total','r','總評分＝score×質素(qscore→0.7-1.3)×動量減速——同 engine _win_total 同式','總評分')
@@ -1392,6 +1394,7 @@ function renderWinRank(){
     const bandPill=(x.band==='long')?pill('t','長帶 10-14D · L_mom 僅參考'):pill('b','當周 5-7D · W_wr');
     const excPill=x.excluded?' '+pill('w','唔入正式候選'):'';
     const m1=x.margin1||Math.round(0.22*(x.collateral||1));
+    const _wf=h6040Fit(m1);   /* ⭐09-22 對齊 wheel320：per-row 可開 chip（帳戶層顯示唔係過濾） */
     const _baH=(rec&&rec.board_asof)?Math.max((Date.now()-new Date(rec.board_asof).getTime())/3600000,0):null;
     const _bs=(_baH!=null&&_baH>0.75)?_wrBSprem(x):null;   /* 板舊過 45min 先 BS 重估——新板快照＝chain mid 就係真收入 */
     const _bsGap=(_bs!=null&&x.premium>0&&Math.abs(_bs-x.premium)>Math.max(30,0.25*x.premium));
@@ -1405,7 +1408,7 @@ function renderWinRank(){
         premium:x.premium,premium_total:Math.round(x.premium*1),premium_total_hkd:Math.round(x.premium*HKD_USD),
         collateral:x.collateral,margin1:x.margin1,premium_source:x.premium_source,stale_days:x.stale_days,mid_suspect:!!x.mid_suspect,band:x.band,excluded:!!x.excluded,fromWinRank:true};
     }
-    h+='<tr class="rowlink" onclick="showDetail(\''+x.ticker+'\')">'
+    h+='<tr class="rowlink"'+(_wf.fits===false?' style="background:#fef2f2"':'')+' onclick="showDetail(\''+x.ticker+'\')">'
       +'<td class="c">'+((x.__wrPos!=null&&x.__wrPos<10)?'<b style="color:#15803d" title="wr 正選序（同 TG Top5）——落單 K＝詳情頁 best-ay 年化最大">✓'+(x.__wrPos+1)+'</b>':'<span style="color:#94a3b8">'+(i+1)+'</span>')+'</td><td><b>'+esc(x.ticker)+'</b>'+una+'</td>'
       +'<td class="c" style="white-space:nowrap">'+bandPill+excPill+'</td>'
       +'<td class="r"><b style="color:#1a73e8">'+_wrWr(x).toFixed(2)+'</b></td>'
@@ -1422,6 +1425,7 @@ function renderWinRank(){
          +'</td>'
          :'<td class="r">$'+x.premium+_wrMark(x)+((_bs==null&&_baH!=null&&_baH>0.75)?' <span style="color:#d97706;font-weight:700;cursor:help" title="'+(_baH.toFixed(0)+' 小時前起板，即市 spot 未到手（收市/盤前/數據疑問）——呢個係舊快照數；落單前入詳情頁核 live chain')+'">⚠</span>':'')+'</td>')
       +'<td class="r">$'+Number(m1).toLocaleString()+'</td>'
+      +'<td class="r">'+(_wf.fits==null?'<span class="muted" style="font-size:11px">'+esc(_wf.reason||'—')+'</span>':(_wf.fits?'<b style="color:var(--good)">'+_wf.max_ct+' 張</b>':'<b style="color:var(--bad)">0 張</b>'))+'</td>'
       +'<td class="r">'+(x.yield_ann!=null?Number(x.yield_ann).toFixed(1)+'%':'—')+'</td>'
       +'<td class="r">'+(x.iv!=null?Math.round(x.iv*100)+'%':'—')+(x.iv_rank!=null?' <span class="muted" style="font-size:10px">r'+x.iv_rank+'</span>':'')+'</td>'
       +'<td class="r"><b>'+_wrTotal(x).toFixed(2)+'</b></td>'
@@ -3222,7 +3226,7 @@ async function fetchWscanUsd(){
   try{
     const r=await fetchTimeout(activeBridge+'/real_funds?secret='+encodeURIComponent(BRIDGE_SECRET),12000);
     const j=r&&r.ok?await r.json().catch(function(){return null;}):null;
-    if(j&&j.us_cash_power_usd!=null){const _p=wscanUsd;wscanUsd=j.us_cash_power_usd;if(_p!==wscanUsd&&typeof renderBest==='function')renderBest();}   /* ⭐ 09-22：可開 chip 即時跟上 */
+    if(j&&j.us_cash_power_usd!=null){const _p=wscanUsd;wscanUsd=j.us_cash_power_usd;if(_p!==wscanUsd&&typeof renderBest==='function'){renderBest();if(typeof renderWinRank==='function')renderWinRank();}}   /* ⭐ 09-22：可開 chip 即時跟上（今日榜＋單腿股表） */
     if(j&&j.equity_usd!=null)wscanEquity=j.equity_usd;   // ⭐ 09-11：接貨 affordability 分母
   }catch(e){}
 }
