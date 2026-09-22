@@ -2623,6 +2623,74 @@ function w320Copy(txt){
     else { const t=document.createElement('textarea'); t.value=txt; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); toast('📋 已複製：'+txt); }
   }catch(e){ toast('複製失敗：'+txt); }
 }
+/* ⭐ 09-22：w320 執行＋記賬（對齊 h6040 confirmExec 手勢）——POST /wheel320_action →
+   wheel320_engine.py 消費：記賬＋成交/override Telegram。落單仍然喺 Futu app 手動；
+   引擎只記帳＋跟封印模型出聲（止賺 50%／止蝕 1.5× alert-only／roll dte≤2／vix_brake 28）。 */
+function w320Exec(tk,exp,K,prem,maxN){
+  const box=$('execBox');
+  const q=_w320Pf[tk+'|'+K+'|'+exp], hasQ=!!(q&&q.ok!==false&&(Number(q.bid)>0||Number(q.mid)>0));
+  const bid=hasQ?Number(q.bid||0):0, ask=hasQ?Number(q.ask||0):0;
+  const midQ=(bid>0&&ask>bid)?(bid+(ask-bid)/2):Number(prem||0);
+  const C=window._w320ExecCtx={tk:tk,exp:exp,K:Number(K),n:1,px:(bid>0)?bid:Number(prem||0),
+    maxN:Math.max(1,maxN||1),hasQ:hasQ,q:q};
+  const renderBox=()=>{
+    const total=C.px*100*C.n, be=C.K-C.px, mpc=(q&&q.margin_usd)?Number(q.margin_usd):0;
+    box.innerHTML=
+      '<h3>✅ w320 執行：SELL PUT '+esc(tk)+' ×'+C.n+'<button class="exec-x" onclick="closeExec()" title="關閉">✕ 關閉</button></h3>'
+      +'<div class="row"><span class="k">到期</span><span>'+esc(exp)+'</span></div>'
+      +'<div class="row"><span class="k">行使價</span><span>$'+C.K.toFixed(2)+((q&&q.spot)?('（現價 $'+Number(q.spot).toFixed(2)+'）'):'')+'</span></div>'
+      +(hasQ?('<div class="row"><span class="k">實時報價（Futu）</span><span class="mono">bid $'+bid.toFixed(2)+' · ask $'+ask.toFixed(2)+'</span></div>')
+            :('<div class="row"><span class="k">報價</span><span class="small muted">冇市場報價——跟模型 mid $'+Number(prem||0).toFixed(2)+'</span></div>'))
+      +'<div class="row"><span class="k">張數</span><span class="stepper"><button onclick="w320N(-1)">−</button><b>'+C.n+'</b><button onclick="w320N(1)">+</button><span class="small muted">上限 '+C.maxN+'（可開欄）</span></span></div>'
+      +'<div class="row"><span class="k">限價（賣出價）</span><span class="stepper"><button onclick="w320Px(-0.05)">−</button><b>$'+C.px.toFixed(2)+'</b><button onclick="w320Px(0.05)">+</button>'
+        +(hasQ?('<button class="btn btn-ghost" style="padding:1px 8px;margin-left:4px" onclick="w320PxTo('+bid+')">bid</button><button class="btn btn-ghost" style="padding:1px 8px" onclick="w320PxTo('+midQ+')">mid</button><button class="btn btn-ghost" style="padding:1px 8px" onclick="w320PxTo('+ask+')">ask</button>'):'')
+      +'</span></div>'
+      +'<div class="row"><span class="k">權利金（全收）</span><span>$'+total.toFixed(2)+' ≈ '+hkd(total*HKD_USD)+'</span></div>'
+      +'<div class="row"><span class="k">模型線（封印）</span><span>止賺 $'+(C.px*0.5).toFixed(2)+'（50%）· 止蝕 $'+(C.px*1.5).toFixed(2)+'（1.5×，alert-only）</span></div>'
+      +'<div class="row"><span class="k">盈虧平衡</span><span>$'+be.toFixed(2)+'</span></div>'
+      +(mpc?('<div class="row"><span class="k">按金/張（bridge）</span><span>US$'+w320n(mpc,0)+' · 實凍 ≈ US$'+w320n(mpc*1.255,0)+'</span></div>'):'')
+      +'<div class="warn-note">確認 → bridge queue → <b>wheel320_engine 記賬＋Telegram 通告</b>。落單仍然要你自己喺 Futu app 手動做；引擎唔會自動落單。</div>'
+      +'<div class="modal-actions sticky"><button class="btn btn-ghost" onclick="closeExec()">✕ 取消</button> <button class="btn btn-go" onclick="w320Confirm()">✅ 確認執行</button></div>';
+  };
+  window.w320N=function(d){C.n=Math.max(1,Math.min(C.maxN,C.n+d));renderBox();};
+  window.w320Px=function(d){C.px=Math.max(0.05,Math.round((C.px+d)*20)/20);renderBox();};
+  window.w320PxTo=function(v){if(v&&v>0){C.px=Number(Number(v).toFixed(2));renderBox();}};
+  renderBox();
+  $('execModal').style.display='flex';
+}
+async function w320Confirm(){
+  const C=window._w320ExecCtx||{}; if(!C.tk)return;
+  let ovFlag=false,ovReason='',pf=null;
+  try{ pf=await w320Quote({ticker:C.tk,expiry:C.exp,K:C.K},true); }catch(e){ pf=null; }
+  if(pf&&pf.ok!==false){
+    const fails=(pf.checks||[]).filter(function(x){return x.status==='fail';});
+    if(fails.length){
+      const why=prompt('🛂 w320 檢查卡有 '+fails.length+' 個 ❌，逆 model 開倉要 override＋理由留底：\n\n'
+        +fails.map(function(x){return '❌ '+x.label+'：'+(x.detail||'');}).join('\n')
+        +'\n\n輸入 override 理由（取消／空白＝唔開）：');
+      if(!why||!why.trim()){toast('🛂 已取消——紅燈要 override+reason 先開得');return;}
+      ovFlag=true;ovReason=why.trim();
+    }
+  } else toast('⚠️ 檢查卡攞唔到數據，照純記帳');
+  const payload={action:'open',ticker:C.tk,expiry:C.exp,strike:Number(C.K),contracts:Number(C.n),premium:Number(C.px),side:'P',real:true};
+  if(ovFlag){payload.override=true;payload.reason=ovReason;}
+  const r=await postJSON(activeBridge+'/wheel320_action?secret='+encodeURIComponent(BRIDGE_SECRET),payload);
+  closeExec();
+  if(r&&r.ok){toast('✅ [wheel320] 已排隊記賬 '+C.tk+' ×'+C.n+'（engine 下個週期確認；Telegram 已通知）');setTimeout(function(){loadWheel320(true);},3000);}
+  else toast('❌ 執行失敗：'+((r&&r.error)||'bridge 未連接'));
+}
+async function w320ClosePos(tk,K,exp,prem){
+  if(!confirm('平倉記賬：'+tk+' $'+K+' '+exp+'\n\n呢個只係記賬——真倉平倉要你自己喺 Futu 做。'))return;
+  const p=prompt('出場溢價 $/股（空白＝用引擎 last mark）：',(prem!=null&&Number(prem)>0)?String(prem):'');
+  if(p===null)return;
+  const r=await postJSON(activeBridge+'/wheel320_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'close',ticker:tk,strike:Number(K),expiry:exp,premium:Number(p||0)});
+  if(r&&r.ok){toast('📤 已排隊平倉記賬 '+tk+'（engine 下個週期確認）');setTimeout(function(){loadWheel320(true);},3000);}
+  else toast('❌ 失敗：'+((r&&r.error)||'bridge 未連接'));
+}
+async function w320SkipLeg(tk,K,exp){
+  const r=await postJSON(activeBridge+'/wheel320_action?secret='+encodeURIComponent(BRIDGE_SECRET),{action:'skip',ticker:tk,strike:Number(K),expiry:exp});
+  if(r&&r.ok)toast('已記下：今日不做 '+tk); else toast('❌ 失敗：'+((r&&r.error)||'bridge 未連接'));
+}
 /* hover / 鍵盤 / tap 三用 tooltip —— 只擴充 #tipbox，唔郁原有 mouseover handler */
 (function(){
   const box=()=>document.getElementById('tipbox');
@@ -2906,7 +2974,9 @@ function renderWheel320(){
               +(fails.length?('<br><span class="small" style="color:var(--bad)">'+esc(fails.join(' '))+'</span>'):'');
           })()+'</td>'
         +'<td class="r"><b>$'+w320n((liveq&&liveq.be!=null)?liveq.be:l.breakeven,2)+'</b></td>'
-        +'<td><button class="w320tg" onclick="w320Copy(\'SELL 1 '+esc(l.futu_code)+' @ '+w320n(prem,2)+' limit\')">📋 複製</button>'
+        +'<td><button class="btn btn-go" style="font-size:12px;padding:3px 10px;margin-right:4px" onclick="w320Exec(\''+esc(l.ticker)+'\',\''+esc(l.expiry)+'\','+l.K+','+(prem!=null?w320n(prem,2):0)+','+Math.max(0,sz.max_ct||0)+')">⚡ 執行</button>'
+        +'<button class="w320tg" onclick="w320SkipLeg(\''+esc(l.ticker)+'\','+l.K+',\''+esc(l.expiry)+'\')">今日不做</button>'
+        +'<br><button class="w320tg" style="margin-top:3px" onclick="w320Copy(\'SELL 1 '+esc(l.futu_code)+' @ '+w320n(prem,2)+' limit\')">📋 複製</button>'
         +'<br><span class="small muted" style="font-family:ui-monospace,Menlo,monospace">SELL 1 '+esc(l.futu_code)+'</span></td></tr>';
     });
     g+='</tbody></table></div>';
@@ -2921,7 +2991,7 @@ function renderWheel320(){
       +'「卡喺」＝真正綁死嗰條閘。③ 盈虧平衡 = 行使價 − 權利金（跌穿開始蝕）。<br>'
       +'④ <b>實價自動更新</b>：開住呢個 tab 每 60s 自動打一次 bridge /preflight，'
       +'現貨／距價外／yield／年化／按金全部轉即市口徑（現貨欄綠字＝實價、橙字＝模型數據日價，落後 '+esc(d.data_lag_days)+' 日）。'
-      +'落單前喺 Futu 自己核 bid/ask；呢個 panel 係<b>指示</b>，唔會自動落單。</div>';
+      +'落單前喺 Futu 自己核 bid/ask。「⚡執行」＝確認後過 bridge queue 由 <b>wheel320_engine 記賬＋Telegram 通告</b>（紅燈要 override＋理由）；引擎唔會自動落單，真倉始終喺 Futu app 手動做。</div>';
     elC.innerHTML=g;
   }
   /* ---- 4. 模型倉 vs 真倉 ---- */
@@ -2958,7 +3028,7 @@ function renderWheel320(){
         +'<td class="r">$'+w320n(l.prem,2)+'</td>'
         +'<td class="r">'+(l.be!=null?('<b>$'+w320n(l.be,2)+'</b>'):'<span class="muted">—</span>')+'</td>'
         +'<td class="r" style="color:'+((l.pnl_hkd||0)>=0?'var(--good)':'var(--bad)')+'">'+(l.pnl_hkd!=null?money(l.pnl_hkd):'—')+'</td>'
-        +'<td>'+(on?('<span class="pill t">wheel320</span> <button class="w320tg" onclick="w320Tag(\''+esc(k)+'\',false)">✕</button>')
+        +'<td>'+(on?('<span class="pill t">wheel320</span> <button class="w320tg" onclick="w320ClosePos(\''+esc(l.ticker)+'\','+l.K+',\''+esc(l.expiry)+'\','+(l.prem!=null?l.prem:0)+')">平倉記賬</button> <button class="w320tg" onclick="w320Tag(\''+esc(k)+'\',false)">✕</button>')
                :('<button class="w320tg" onclick="w320Tag(\''+esc(k)+'\',true)">標記為 wheel320</button>'))+'</td></tr>'; });
     b+='</tbody></table></div>';
     b+='<div class="small muted" style="margin-top:4px">tag 只係記帳用標籤（存 wheel320_tags.json），唔會影響任何下單／出場邏輯。'
