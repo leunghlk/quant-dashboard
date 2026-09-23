@@ -3880,6 +3880,24 @@ async function loadH6040Gates(){
    loopback monitor 只做本地 fallback。*/
 let h6040Rec=null;
 let h6040SrvBook=null;   // ⭐ 08-25：監察倉（monitor 紙上 book — 自動執行＋出場評估，伺服器權威）
+/* ⭐ 2026-09-23 榜單新鮮度對期（同 quant_snapshot.last_et_session 同一條式）：
+   以前 scan_fresh 用 generated 4 日寬限——Yahoo 靜默餵 D-1 日線（09-23 手動實測，
+   全宇宙得 09-21 bar）都當新鮮照出榜。而家 scan_date 必須等於最新（進行中/已完成）
+   ET 交易日（假期/週末 walk back；09:30 ET 前今日 bar 未出；09:45 ET 前 intraday
+   未刷新，寬限上一個交易日）。假日程式碼＝quant_snapshot US_HOLIDAYS 同一份。 */
+const US_MKT_HOLIDAYS={'2026-01-01':1,'2026-01-19':1,'2026-02-16':1,'2026-04-03':1,'2026-05-25':1,'2026-06-19':1,'2026-07-03':1,'2026-09-07':1,'2026-11-26':1,'2026-12-25':1,'2027-01-01':1,'2027-01-18':1,'2027-02-15':1,'2027-03-26':1,'2027-05-31':1,'2027-06-18':1,'2027-07-05':1,'2027-09-06':1,'2027-11-25':1,'2027-12-24':1};
+function _etParts(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());const o={};p.forEach(x=>{o[x.type]=x.value});return o;}
+function _isoUtc(dt){return dt.toISOString().slice(0,10);}
+function _isTd(dt){const dow=dt.getUTCDay();return dow>0&&dow<6&&!US_MKT_HOLIDAYS[_isoUtc(dt)];}
+function expScanDate(){const e=_etParts();let dt=new Date(Date.UTC(+e.year,+e.month-1,+e.day));const mins=(+e.hour)*60+(+e.minute);
+  if(!(mins>=570&&_isTd(dt)))dt.setUTCDate(dt.getUTCDate()-1);
+  while(!_isTd(dt))dt.setUTCDate(dt.getUTCDate()-1);
+  return _isoUtc(dt);}
+function prevScanDate(iso){const dt=new Date(iso+'T00:00:00Z');dt.setUTCDate(dt.getUTCDate()-1);while(!_isTd(dt))dt.setUTCDate(dt.getUTCDate()-1);return _isoUtc(dt);}
+function h6040ScanFresh(sd){try{const exp=expScanDate();if(sd===exp)return true;
+  const e=_etParts();const mins=(+e.hour)*60+(+e.minute);
+  if(mins>=570&&mins<585&&sd===prevScanDate(exp))return true;  // 09:30–09:45 ET 專用寬限：exp 已反轉做今日、intraday 未刷新
+  return false;}catch(e){return false;}}
 async function loadH6040Rec(){
   if(!activeBridge){await detectBridge();}   // boot 時同 loadRec 一齊探 bridge，咪 fetch 去 null/
   if(activeBridge){try{
@@ -3887,8 +3905,7 @@ async function loadH6040Rec(){
     if(r&&r.ok){
       const j=await r.json();
       if(j&&j.scan_date&&Array.isArray(j.candidates)){
-        let fresh=false;
-        try{fresh=(Date.now()-new Date(j.generated).getTime())<4*86400000;}catch(e){}
+        const fresh=h6040ScanFresh(j.scan_date);   // ⭐ 09-23：scan_date 對期（取代 generated 4 日寬限）
         h6040Rec={scan:{scan_date:j.scan_date,vix:j.vix,breadth:j.breadth,gate_open:j.gate_open,universe_n:j.universe_n,n_passed:j.n_passed},scan_fresh:fresh,candidates:j.candidates};
         if(j.book&&j.book.open)h6040Rec.book=j.book;   // ⭐ 08-25：bridge merge 嘅監察倉
       }
