@@ -3033,6 +3033,20 @@ function renderWheel320(){
   b+='<div style="margin-top:12px;font-weight:700">⚙️ 引擎記賬腿（'+ebLegs.length+'）'
     +'<span class="muted small" style="font-weight:400"> · w320 tab「⚡執行」入簿 · <span style="color:#dc2626;font-weight:700">● 真倉</span>＝Futu 實單 · <span style="color:#64748b">○ 模擬</span>＝紙上記賬</span>'
     +(eb.heartbeat?(' <span class="muted small" style="font-weight:400">· heartbeat '+esc(String(eb.heartbeat).slice(5,16))+' HKT</span>'):'')+'</div>';
+  /* ⭐ 2026-09-24 真/模分帳（user 欽定）：本金 HK$520,000 獨立模擬帳；exposure/P&L 唔跨簿加總 */
+  const ebs=eb.summary||{};
+  if(ebs.sim_base_hkd){
+    const sgn=v=>(v>=0?'+':'−');
+    b+='<div class="kpi" style="margin:6px 0 0">'
+      +w320chip('○ 模擬帳本金','<b>HK$'+w320n(ebs.sim_base_hkd,0)+'</b>')
+      +w320chip('○ 模擬已實現','<span style="color:'+((ebs.realized_hkd_sim||0)>=0?'var(--good)':'var(--bad)')+';font-weight:700">'+sgn(ebs.realized_hkd_sim||0)+'HK$'+w320n(Math.abs(ebs.realized_hkd_sim||0),0)+'</span>')
+      +w320chip('○ 模擬未實現','<span style="color:'+((ebs.unrealized_hkd_sim||0)>=0?'var(--good)':'var(--bad)')+';font-weight:700">'+sgn(ebs.unrealized_hkd_sim||0)+'HK$'+w320n(Math.abs(ebs.unrealized_hkd_sim||0),0)+'</span>')
+      +w320chip('○ 模擬權益','<b>HK$'+w320n(ebs.sim_equity_hkd||ebs.sim_base_hkd,0)+'</b>')
+      +w320chip('● 真倉已實現(引擎簿)','<span style="color:'+((ebs.realized_hkd_real||0)>=0?'var(--good)':'var(--bad)')+';font-weight:700">'+sgn(ebs.realized_hkd_real||0)+'HK$'+w320n(Math.abs(ebs.realized_hkd_real||0),0)+'</span>')
+      +w320chip('● 真倉未實現(引擎簿)','<span style="color:'+((ebs.unrealized_hkd_real||0)>=0?'var(--good)':'var(--bad)')+';font-weight:700">'+sgn(ebs.unrealized_hkd_real||0)+'HK$'+w320n(Math.abs(ebs.unrealized_hkd_real||0),0)+'</span>')
+      +'</div>'
+      +'<div class="small muted" style="margin-top:3px">真／模完全分帳：模擬腿唔食真倉 Futu 按金預算，exposure 唔跨簿加總；模擬權益＝本金＋已實現＋未實現。</div>';
+  }
   if(!ebLegs.length){ b+='<div class="muted small">引擎未有記賬腿。</div>'; }
   else{
     b+='<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>腿</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場溢價</th><th class="r">現 mark</th><th class="r">未實現(US$)</th><th>開倉</th></tr></thead><tbody>';
