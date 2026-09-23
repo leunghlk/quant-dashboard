@@ -2812,7 +2812,7 @@ function renderWheel320(){
     if(!w320Err&&!w320Busy)setTimeout(()=>loadWheel320(false),60000);
     return;
   }
-  const d=w320Rec, R=d.recipe||{}, bt=d.backtest||{}, mb=d.model_book||{}, cd=d.candidates||{}, tags=d.tags||{};
+  const d=w320Rec, R=d.recipe||{}, bt=d.backtest||{}, mb=d.model_book||{}, cd=d.candidates||{}, tags=d.tags||{}, eb=d.engine_book||{}, ebLegs=eb.legs||[];
   const m=document.getElementById('w320Meta');
   if(m)m.textContent='數據 as of '+esc(d.data_asof||'—')+(d.data_lag_days>0?('（落後 '+d.data_lag_days+' 日）'):'')+' · feed 產出 '+w320ago(d.generated);
   /* ---- 1. 配方 + KPI ---- */
@@ -3014,6 +3014,7 @@ function renderWheel320(){
     +w320chip('模型倉開倉腿',mb.status==='live'?String(mbLegs.length):'—')
     +w320chip('真倉期權腿',String(rl.length))
     +w320chip('已 tag wheel320',String(taggedN2))
+    +(ebLegs.length?w320chip('引擎記賬腿','<b>'+ebLegs.length+'</b>（<span style="color:#dc2626">真'+ebLegs.filter(p=>p.real).length+'</span>/模'+ebLegs.filter(p=>!p.real).length+'）'):'')
     +'</div>';
   if(mb.status==='pending_data'){
     b+='<div class="warn-note" style="margin:0 0 10px">⏸️ <b>模型倉未開始</b> — '+esc(mb.reason||'')+'。數據層一更新（> '+esc(d.recipe&&d.recipe.flatten?d.recipe.flatten.cycle_start:'')+'）就會自動由 75k 起 replay，唔需要人手入數。所以下面「模型 vs 真倉」暫時只有真倉一邊有數。</div>';
@@ -3027,6 +3028,22 @@ function renderWheel320(){
       b+='</tbody></table></div>';
     } else { b+='<div class="muted">模型倉暫無開倉腿。</div>'; }
   } else { b+='<div class="muted">模型倉狀態：'+esc(mb.status||'—')+'</div>'; }
+  /* ⭐ 2026-09-24 引擎記賬簿 — wheel320_engine 實際 book（bridge /wheel320 overlay engine_book）：
+     ● 真倉＝Futu 實單、○ 模擬＝紙上記賬，同下面 Futu 真倉表分開顯示 */
+  b+='<div style="margin-top:12px;font-weight:700">⚙️ 引擎記賬腿（'+ebLegs.length+'）'
+    +'<span class="muted small" style="font-weight:400"> · w320 tab「⚡執行」入簿 · <span style="color:#dc2626;font-weight:700">● 真倉</span>＝Futu 實單 · <span style="color:#64748b">○ 模擬</span>＝紙上記賬</span>'
+    +(eb.heartbeat?(' <span class="muted small" style="font-weight:400">· heartbeat '+esc(String(eb.heartbeat).slice(5,16))+' HKT</span>'):'')+'</div>';
+  if(!ebLegs.length){ b+='<div class="muted small">引擎未有記賬腿。</div>'; }
+  else{
+    b+='<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>腿</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場溢價</th><th class="r">現 mark</th><th class="r">未實現(US$)</th><th>開倉</th></tr></thead><tbody>';
+    ebLegs.forEach(p=>{ const un=(Number(p.prem_in||0)-Number(p.cur_prem||0))*100*(Number(p.contracts)||1);
+      b+='<tr><td><b>'+esc(p.ticker)+'</b> <span class="pill b">'+esc(p.side||'CSP')+'</span> '+(p.real?'<span style="color:#dc2626;font-weight:700">● 真倉</span>':'<span style="color:#64748b">○ 模擬</span>')+'</td>'
+        +'<td class="r">$'+w320n(p.K,2)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+esc(p.contracts)+'</td>'
+        +'<td class="r">$'+w320n(p.prem_in,2)+'</td><td class="r">$'+w320n(p.cur_prem,2)+'</td>'
+        +'<td class="r" style="color:'+(un>=0?'var(--good)':'var(--bad)')+'">'+w320n(un,0)+'</td>'
+        +'<td class="small muted">'+esc(p.opened||'—')+(p.dte!=null?(' · '+p.dte+'D'):'')+'</td></tr>'; });
+    b+='</tbody></table></div>';
+  }
   b+='<div style="margin-top:12px;font-weight:700">🔴 真倉期權腿（'+rl.length+'）'
     +'<span class="muted small" style="font-weight:400"> · 撳掣標記邊啲腿屬於 wheel320</span></div>';
   if(!rl.length){ b+='<div class="muted small">'+(realPosSeen?'真戶口暫時冇期權持倉。':'真倉讀取中…')+'</div>'; }
