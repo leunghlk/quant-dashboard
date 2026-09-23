@@ -239,9 +239,9 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
         </div>
         <div id="pfResult" style="margin-top:8px"><div class="small muted">填 ticker＋strike（expiry 空＝下一個周五）→ 跑六問。❓＝該項數據攞唔到，唔好當 pass。</div></div>
       </div></div>
-    <div class="card" id="candCard" style="display:none"><div class="card-h"><span class="t" id="candTitle">候選名單（h6040 v5 池快照 · wr 排序 · mom 只做閘）</span><span class="meta" id="candMeta"></span></div>
+    <div class="card" id="candCard"><div class="card-h"><span class="t" id="candTitle">候選名單（h6040 v5 池快照 · wr 排序 · mom 只做閘）</span><span class="meta" id="candMeta"></span></div>
       <div class="card-b" id="candBody"></div></div>
-    <div class="card" id="winrankCard"><div class="card-h"><span class="t">🎯 單腿股表（合併兩帶）</span><span class="meta">兩帶（當周 5-7D×Δ0.20-0.25＝<b>W_wr</b> ／ 長帶 10-14D×Δ0.25-0.30＝<b>L_mom</b> 僅參考）· 預設排名＝<b>wr 正選序（同 TG Top5 一源，✓正選#1–10）</b>· ⭐<b>撳欄位標題即排序</b>（倒序↓↔順序↑↔預設）· 落單前過 P7 六問卡 · 金額欄 US$</span></div>
+    <div class="card" id="winrankCard"><div class="card-h"><span class="t">🎯 單腿股表（合併兩帶）</span><span class="meta">兩帶（當周 5-7D×Δ0.20-0.25＝<b>W_wr</b> ／ 長帶 8-14D×Δ0.25-0.30＝<b>L_mom</b> 僅參考，09-23 起 10-14→8-14 補帶隙）· 預設排名＝<b>wr 正選序（同 TG Top5 一源，✓正選#1–10）</b>· ⭐<b>撳欄位標題即排序</b>（倒序↓↔順序↑↔預設）· 落單前過 P7 六問卡 · 金額欄 US$</span><span class="meta" id="wrAsof"></span></div>
       <div class="card-b" id="winrankBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">真倉持倉一覽 · 以及「今日不做」</span></div>
       <div class="card-b" id="decBody"></div></div>
@@ -394,7 +394,7 @@ const BRIDGE_URLS=(function(){
 
 /* ════════════ 詞彙表（layman + 公式）═ hover ⓘ ════════════ */
 const GLOSS={
-  'strike':'<b>行使價 Strike</b>：到期日你若被指派，就是以此價錢買入 100 股。越 OTM 越平但越安全。<br>選法（⭐拍板）：揀邊個 K＝詳情頁 best-ay（年化收入最大）；單股帶 Δ0.20–0.25 × 5–7DTE、長帶 Δ0.25–0.30 × 10–14D。',
+  'strike':'<b>行使價 Strike</b>：到期日你若被指派，就是以此價錢買入 100 股。越 OTM 越平但越安全。<br>選法（⭐拍板）：揀邊個 K＝詳情頁 best-ay（年化收入最大）；單股帶 Δ0.20–0.25 × 5–7DTE、長帶 Δ0.25–0.30 × 8–14D。',
   'premium':'<b>權利金 Premium</b>：買家支付給你的款項（你賣出期權立即收到）。公式：mid×100×張數。<br>你的最大利潤就是這筆錢。',
   'collateral':'<b>抵押 Collateral（接貨現金）</b>：如被指派需拿出來的款項 = 行使價×100×張數。期權倉用按金戶口（不用全額鎖定現金），但應知道接貨成本此數。',
   'margin':'<b>按金 Margin</b>：券商真正鎖住的款項 = max(0.2×現價 − max(現價−行使價,0)，0.1×現價)＋權利金，再 ×100×張數（⭐09-18 起同 bridge／engine 落單閘同一條式；舊寫法用 10%×行使價做底，會低估按金、高估可用額）。<br>倉位預算（A級平衡王）= <b>min(mu 0.25×equity, 硬閘 US$12,726)</b>（09-15 mu 0.20→0.25）。',
@@ -1233,7 +1233,7 @@ const ENGINE_SECTOR_100=('META GOOGL T VZ EA TMUS CMCSA TTWO DIS TSLA HD MCD TJX
 const ENGINE_UNIVERSE=V4_UNIVERSE.concat(ENGINE_SECTOR_100,['IAU']);   /* 170 隻（69+100+1；code header 寫 171 係舊數） */
 
 /* ⭐ 2026-09-14: 單腿股表（合併兩帶）——渲染 rec.merged_board（engine build_merged_board）：
-   當周帶 5-7D×Δ0.20-0.25（＝engine 執行帶）＋ 長帶 10-14D×Δ0.25-0.30（僅參考）。
+   當周帶 5-7D×Δ0.20-0.25（＝engine 執行帶）＋ 長帶 8-14D×Δ0.25-0.30（僅參考；09-23 起 10-14→8-14）。
    排名＝engine 側 P(OTM) 降序（差距 <2pp cluster 內按年化收入）——client 唔 re-sort。
    DLLL（CSP_EXCLUDE）照出表＋「唔入正式候選」pill（顯示-only，正式候選恒排除）。
    Fallback：engine 未出 merged_board → 照渲染舊 rec.winrank（向後兼容）。
@@ -1301,6 +1301,17 @@ function renderWinRank(){
   const legacy=!mb.length;   /* engine 未出 merged_board → 舊 winrank fallback（同一套欄位/render） */
   const w=(legacy?[...((rec&&rec.winrank)||[])]:[...mb]).map(x=>Object.assign({band:x.band||(legacy?'weekly':undefined)},x));
   if(!w.length){el.innerHTML='<div class="muted">單腿股表：等待盤前全宇宙掃描（每日更新）。</div>';return;}
+  { /* ⭐09-23 板齡透明化：board build 唔再扮新鮮——asof＋skip 數直接標（skip 因由喺 engine log/rec.board_skips） */
+    const _wa=$('wrAsof');
+    if(_wa){const _ba=(rec&&rec.board_asof)||'';let _t='';
+      if(_ba){const _h=(Date.now()-new Date(_ba).getTime())/36e5;
+        _t='板 build '+_ba.slice(5,16).replace('T',' ')+' HKT · '+(_h<1?Math.max(1,Math.round(_h*60))+' 分鐘前':_h.toFixed(1)+' 小時前');
+        const _ns=Object.keys((rec&&rec.board_skips)||{}).length;
+        if(_ns)_t+=' · skip '+_ns+' 隻（engine log 有因由）';
+      }
+      _wa.textContent=_t?'· '+_t:'';
+    }
+  }
   /* ⭐09-16 正選統一（user 拍板「可否＝閘，揀邊隻＝wr，揀邊個 K＝年化收入，POP/贏錢＝讀數唔係指南」）：
      __wrPos＝rec.winrank 位置（engine wr 排序；TG 🏆 Top5 同源）——⭐跟 ticker|expiry 對位
      （winrank 同 merged_board 嘅 strike snap 時刻唔同會漂移（647.5 vs 645），跟 strike 會走失；
@@ -1390,7 +1401,7 @@ function renderWinRank(){
   };
   w.forEach((x,i)=>{
     const una=x.unaffordable?' <span style="color:#dc2626;font-weight:700" title="單名按金超單名上限，無法執行">⚠</span>':'';
-    const bandPill=(x.band==='long')?pill('t','長帶 10-14D · L_mom 僅參考'):pill('b','當周 5-7D · W_wr');
+    const bandPill=(x.band==='long')?pill('t','長帶 8-14D · L_mom 僅參考'):pill('b','當周 5-7D · W_wr');
     const excPill=x.excluded?' '+pill('w','唔入正式候選'):'';
     const m1=x.margin1||Math.round(0.22*(x.collateral||1));
     const _wf=h6040Fit(m1);   /* ⭐09-22 對齊 wheel320：per-row 可開 chip（帳戶層顯示唔係過濾） */
