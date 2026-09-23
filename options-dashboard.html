@@ -2997,7 +2997,7 @@ function renderWheel320(){
   /* ---- 4. 模型倉 vs 真倉 ---- */
   const elB=document.getElementById('w320Book');
   const rl=w320RealOpts();
-  const taggedN2=rl.filter(l=>tags[l.ticker+'|option|'+l.K+'|'+l.expiry]||tags[w320R({ticker:l.ticker})]).length;
+  const taggedN2=rl.filter(l=>tags[w320R({ticker:l.t,strike:l.K,expiry:l.expiry})]).length;
   let b='';
   b+='<div class="kpi" style="margin:0 0 10px">'
     +w320chip('模型倉（paper US$75k）',mb.status==='live'?('US$'+w320n(mb.equity_usd,0)):'<span class="muted">未開始</span>')
@@ -3022,13 +3022,13 @@ function renderWheel320(){
   if(!rl.length){ b+='<div class="muted small">'+(realPosSeen?'真戶口暫時冇期權持倉。':'真倉讀取中…')+'</div>'; }
   else{
     b+='<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場</th><th class="r">盈虧平衡</th><th class="r">未實現(HKD)</th><th>wheel320</th></tr></thead><tbody>';
-    rl.forEach(l=>{ const k=l.ticker+'|option|'+l.K+'|'+l.expiry, on=!!tags[k];
-      b+='<tr'+(on?' style="background:#f0fdfa"':'')+'><td><b>'+esc(l.ticker)+'</b> <span class="pill '+(l.cp==='P'?'b':'w')+'">'+(l.cp==='P'?'賣 put':'賣 call')+'</span></td>'
+    rl.forEach(l=>{ const k=w320R({ticker:l.t,strike:l.K,expiry:l.expiry}), on=!!tags[k];
+      b+='<tr'+(on?' style="background:#f0fdfa"':'')+'><td><b>'+esc(l.t)+'</b> <span class="pill '+(l.cp==='P'?'b':'w')+'">'+(l.cp==='P'?'賣 put':'賣 call')+'</span></td>'
         +'<td class="r">$'+w320n(l.K,2)+'</td><td>'+esc(l.expiry)+'</td><td class="r">'+esc(l.qty)+'</td>'
         +'<td class="r">$'+w320n(l.prem,2)+'</td>'
         +'<td class="r">'+(l.be!=null?('<b>$'+w320n(l.be,2)+'</b>'):'<span class="muted">—</span>')+'</td>'
         +'<td class="r" style="color:'+((l.pnl_hkd||0)>=0?'var(--good)':'var(--bad)')+'">'+(l.pnl_hkd!=null?money(l.pnl_hkd):'—')+'</td>'
-        +'<td>'+(on?('<span class="pill t">wheel320</span> <button class="w320tg" onclick="w320ClosePos(\''+esc(l.ticker)+'\','+l.K+',\''+esc(l.expiry)+'\','+(l.prem!=null?l.prem:0)+')">平倉記賬</button> <button class="w320tg" onclick="w320Tag(\''+esc(k)+'\',false)">✕</button>')
+        +'<td>'+(on?('<span class="pill t">wheel320</span> <button class="w320tg" onclick="w320ClosePos(\''+esc(l.t)+'\','+l.K+',\''+esc(l.expiry)+'\','+(l.prem!=null?l.prem:0)+')">平倉記賬</button> <button class="w320tg" onclick="w320Tag(\''+esc(k)+'\',false)">✕</button>')
                :('<button class="w320tg" onclick="w320Tag(\''+esc(k)+'\',true)">標記為 wheel320</button>'))+'</td></tr>'; });
     b+='</tbody></table></div>';
     b+='<div class="small muted" style="margin-top:4px">tag 只係記帳用標籤（存 wheel320_tags.json），唔會影響任何下單／出場邏輯。'
