@@ -577,6 +577,17 @@ function formatStalenessWarning(warning) {
 }
 
 /* ════════════ load + refresh ════════════ */
+// ⭐ 09-26 引擎 mark 時齡守衛：rec.generated＝引擎寫 rec 嘅一刻（真倉表 cur_prem/未實現嘅源）。
+//    引擎 hang 時個格會凍（09-25 晚實錄：mark 凍 2hr、橫額照話「更新 HH:MM」＝講大話）。
+//    ET 盤中（平日 09:30-17:00，掃 NYSE 假期）mark 舊過 15 分鐘 → 橫額出紅警。
+function _etRth(){
+  const d=new Date(Date.now()-4*3600e3), w=d.getUTCDay();
+  if(w<1||w>5)return false;
+  const m=d.getUTCHours()*60+d.getUTCMinutes();
+  if(m<570||m>1020)return false;
+  const iso=d.toISOString().slice(0,10);
+  return ['2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25','2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25','2027-01-01','2027-01-18','2027-02-15','2027-03-26','2027-05-31','2027-06-18','2027-07-05','2027-09-06','2027-11-25','2027-12-24'].indexOf(iso)<0;
+}
 let lastUpdated=null;
 async function loadRec(force){
   const btn=$('refreshBtn');
@@ -590,7 +601,16 @@ async function loadRec(force){
     lastUpdated=new Date();
     const warning = getPriceStalenessWarning(Date.now(), 'us'); // Assuming US market for options
     const stalenessText = formatStalenessWarning(warning);
-    setLive((rec.paper?'📝 紙上':'🔴 LIVE')+' · '+rec.date+(activeBridge&&activeBridge.indexOf('workers')>=0?' · ⚙ proxy':'')+' · 更新 '+lastUpdated.toLocaleTimeString('zh-HK')+stalenessText);
+    let markTxt='';
+    try{
+      const _mg=rec.generated?new Date(rec.generated):null;
+      if(_mg&&!isNaN(_mg)){
+        const _ageMin=Math.round((Date.now()-_mg.getTime())/60000);
+        markTxt=' · mark '+_mg.toLocaleTimeString('zh-HK',{hour12:false});
+        if(_ageMin>=15)markTxt+=(_etRth()?' · 🔴 引擎 mark 已舊 '+_ageMin+' 分鐘（引擎 hang？）':' · mark 舊 '+_ageMin+' 分鐘');
+      }
+    }catch(_e){}
+    setLive((rec.paper?'📝 紙上':'🔴 LIVE')+' · '+rec.date+(activeBridge&&activeBridge.indexOf('workers')>=0?' · ⚙ proxy':'')+' · 更新 '+lastUpdated.toLocaleTimeString('zh-HK')+markTxt+stalenessText);
   }catch(e){
     // ⭐ 08-18：fetch/JSON 失敗 → 60 秒自動重試（以前淨係顯示「重試中」但永遠唔會自己重試）
     // ⭐ 09-03：失敗時重置 activeBridge → 下次重試重新 detectBridge 行勻全部候選
