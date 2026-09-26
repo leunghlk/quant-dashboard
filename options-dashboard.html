@@ -775,6 +775,22 @@ function realPxOf(p){
 }
 function realCcyOf(p){ return (p&&/\.HK$/.test(p.ticker||''))?'HKD':'USD'; }   // 真倉價格 native 貨幣（US 證券回 USD）
 
+/* ⭐ 2026-09-26：現金寶「累計收益」app 錨點 — POST /fund_anchor → bridge 檔案持久化（全裝置生效）。
+   清空輸入＝剷錨點返推導口徑。成功即場 patch fundHoldings＋重繪，唔使等 60s 輪詢。 */
+async function setFundAnchor(){
+  const cur=(fundHoldings&&fundHoldings.int_anchor&&fundHoldings.int_anchor.usd!=null)?String(fundHoldings.int_anchor.usd):'';
+  const v=prompt('輸入 Futu app 現金寶「累計收益」USD 數（清空＝剷走錨點，返推導口徑）:',cur);
+  if(v===null) return;
+  const t=String(v).trim().replace(/[,+%\s]/g,'');
+  const body={usd:t===''?null:Number(t)};
+  if(body.usd!=null&&!isFinite(body.usd)){alert('唔係數字：'+v);return;}
+  try{
+    const r=await postJSON(activeBridge+'/fund_anchor?secret='+encodeURIComponent(BRIDGE_SECRET),body);
+    if(r&&r.ok){ if(fundHoldings) fundHoldings.int_anchor=r.anchor; renderUnified(); }
+    else alert('設錨點失敗: '+((r&&r.error)||'no response'));
+  }catch(e){ alert('設錨點失敗: '+e); }
+}
+
 function renderUnified(){
   const el = $('unifiedBody'); if(!el)return;
   // ⭐⭐ 09-03 honest no-data（user 撞到「全 0＋回報 −100%」事故後加）：bridge 重啟窗口／OpenD 未連到時
@@ -914,19 +930,36 @@ function renderUnified(){
      *   幻象負數 headline、缺口警告、淨投入→現值明細、peg band 註解全部唔准出（「呢啲唔寫得」）。
      *   結算落場（缺口歸零）自動返正式口徑；peg band 註解任何狀態都剷。 */
     const inGap = (intUsd!=null && !unattrBig && gapUsd>prinUsd*0.01);
+    // ⭐⭐ 2026-09-26：Futu app「累計收益」錨點口徑 — 推導（NAV−淨投入）分唔開 auto-sweep/re-mark 入水
+    //   同真息（09-24 +3,695 HKD 無紀錄入水 → 推導 +159.54 vs app +84.26 實證）。有錨點＝出 app 數
+    //   （✏️ 更新／剷）；無錨點＝行舊推導三態（未歸因盒／settlement gap／正常）。錨點優先於一切態。
+    const anch = (fundHoldings.int_anchor && fundHoldings.int_anchor.usd!=null)? fundHoldings.int_anchor : null;
+    const _detStale=(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'');
+    const detailLine = (intUsd!=null && !inGap && !unattrBig)
+      ? '<div class="small muted" style="margin-top:3px">淨投入 US$'+fmt(prinUsd,2)+' → 現值 ≈ US$'+fmt(navUsd,2)+'（USD/HKD '+fhFx.toFixed(4)+(usdHkdFx!=null?' · ECB 即市':' · 戶口隱含')+'）＝ 現金寶 '+uMoney(faHkd)+pendNote+_detStale+'</div>'
+      : '';
+    const anchHead = anch
+      ? '<b style="color:#166534">💰 累計收益（08-24 起息 · app 錨點 @'+esc((anch.date||'').slice(5))+'）'
+        + uMask(' '+iSgn(anch.usd)+'US$'+fmt(Math.abs(anch.usd),2)+' ≈ '+iSgn(anch.usd)+'HKD '+fmt(Math.round(Math.abs(anch.usd)*fhFx))+(prinUsd>0?'（'+iSgn(anch.usd)+(Math.abs(anch.usd)/prinUsd*100).toFixed(3)+'% 本金）':''))
+        + '</b>'
+        + ' <span class="muted" style="font-size:10px;cursor:pointer;text-decoration:underline" onclick="setFundAnchor()">✏️ 錨點</span>'
+        + ((!detailLine && fundHoldings.stale)? ' <span style="color:#b45309">⚠️快取舊數</span>' : '')
+      : null;
     const trueLine = (trueUsd!=null&&pendUsd>0.5)
       ? '<div style="margin-top:3px;color:#166534;font-weight:700">✅ 真實累計收益（利息口徑，已還原未結算贖回）≈ '+iSgn(trueUsd)+'US$'+fmt(Math.abs(trueUsd),2)+'（≈ HK$'+fmt(Math.round(trueUsd*fhFx))+'）</div>'
       : (inGap? '<div class="small muted" style="margin-top:2px">（有大額贖回未落結算，真實累計稍後自動補上）</div>' : '');
-    const intBox = (intUsd==null)
+    const intBox = (intUsd==null && !anch)
       ? '<div class="small muted" style="margin-top:4px">淨投入 US$'+fmt(prinUsd,2)+'（現值匯率未到，累計收益稍後補上）</div>'
-      : '<div style="margin-top:6px;background:'+(unattrBig?'#fefce8':'#f0fdf4')+';border:1px solid '+(unattrBig?'#fde68a':'#bbf7d0')+';border-radius:8px;padding:7px 10px;font-size:12.5px">'
-        + (unattrBig
+      : '<div style="margin-top:6px;background:'+((!anch&&unattrBig)?'#fefce8':'#f0fdf4')+';border:1px solid '+((!anch&&unattrBig)?'#fde68a':'#bbf7d0')+';border-radius:8px;padding:7px 10px;font-size:12.5px">'
+        + (anch
+           ? anchHead+detailLine
+           : (unattrBig
            ? '<b style="color:#92400e">💰 現金寶總值 ≈ US$'+fmt(navUsd,2)+' ＝ 已歸因淨投入 US$'+fmt(prinUsd,2)+' ＋ 未歸因 ≈US$'+fmt(unattrUsd,2)+'</b>'
-             + '<div class="small muted" style="margin-top:3px">未歸因＝現金寶流水未出紀錄嘅部分（歸因後自動出收益口徑）＝ 現金寶 '+uMoney(faHkd)+(usdHkdFx!=null?' · USD/HKD '+fhFx.toFixed(4):'')+pendNote+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div>'
+             + '<div class="small muted" style="margin-top:3px">未歸因＝現金寶流水未出紀錄嘅部分（歸因後自動出收益口徑）＝ 現金寶 '+uMoney(faHkd)+(usdHkdFx!=null?' · USD/HKD '+fhFx.toFixed(4):'')+pendNote+_detStale+'</div>'
            : (inGap
               ? '<b style="color:#166534">💰 累計收益（08-24 起息）</b>'+trueLine
               : '<b style="color:'+iCol+'">💰 累計收益（08-24 起息）'+uMask(' '+iSgn(intUsd)+'US$'+fmt(Math.abs(intUsd),2)+' ≈ '+iSgn(intHkd)+'HKD '+fmt(Math.abs(intHkd),0)+'（'+iSgn(intPct)+Math.abs(intPct).toFixed(3)+'% 本金）')+'</b>'
-                + '<div class="small muted" style="margin-top:3px">淨投入 US$'+fmt(prinUsd,2)+' → 現值 ≈ US$'+fmt(navUsd,2)+'（USD/HKD '+fhFx.toFixed(4)+(usdHkdFx!=null?' · ECB 即市':' · 戶口隱含')+'）＝ 現金寶 '+uMoney(faHkd)+pendNote+(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+'</div>'))
+                + detailLine)))
         + '</div>';
     h += '<div style="margin-top:10px"><div style="font-weight:700;font-size:13px">現金寶持倉明細<span class="muted" style="font-weight:400;font-size:11px"> · 現金流推導（Σ申購−Σ贖回，累計全史）· 總額以 Futu accinfo 為準</span></div>'
       + '<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>基金</th><th class="r">淨投入(USD)</th><th class="r">≈市值(HKD)</th><th class="r">最近流水</th></tr></thead><tbody>'+frows+fsum+'</tbody></table></div>'

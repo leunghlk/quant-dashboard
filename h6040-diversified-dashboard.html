@@ -706,6 +706,22 @@ function realPxOf(p){
 }
 function realCcyOf(p){ return (p&&/\.HK$/.test(p.ticker||''))?'HKD':'USD'; }   // 真倉價格 native 貨幣（US 證券回 USD）
 
+/* ⭐ 2026-09-26：現金寶「累計收益」app 錨點 — POST /fund_anchor → bridge 檔案持久化（全裝置生效）。
+   清空輸入＝剷錨點返推導口徑。成功即場 patch fundHoldings＋重繪（同 options 總覽卡同源）。 */
+async function setFundAnchor(){
+  const cur=(fundHoldings&&fundHoldings.int_anchor&&fundHoldings.int_anchor.usd!=null)?String(fundHoldings.int_anchor.usd):'';
+  const v=prompt('輸入 Futu app 現金寶「累計收益」USD 數（清空＝剷走錨點，返推導口徑）:',cur);
+  if(v===null) return;
+  const t=String(v).trim().replace(/[,+%\s]/g,'');
+  const body={usd:t===''?null:Number(t)};
+  if(body.usd!=null&&!isFinite(body.usd)){alert('唔係數字：'+v);return;}
+  try{
+    const r=await postJSON(activeBridge+'/fund_anchor?secret='+encodeURIComponent(BRIDGE_SECRET),body);
+    if(r&&r.ok){ if(fundHoldings) fundHoldings.int_anchor=r.anchor; renderUnified(); }
+    else alert('設錨點失敗: '+((r&&r.error)||'no response'));
+  }catch(e){ alert('設錨點失敗: '+e); }
+}
+
 function renderUnified(){
   const el = $('unifiedBody'); if(!el)return;
   // ⭐⭐ 09-03 honest no-data（user 撞到「全 0＋回報 −100%」事故後加）：bridge 重啟窗口／OpenD 未連到時
@@ -824,6 +840,11 @@ function renderUnified(){
           var _kn=fundHoldings.known_usd||0;
           var _fx=(usdHkdFx!=null)?usdHkdFx:((realFx>6&&realFx<10)?realFx:7.84);
           var _st=(fundHoldings.stale?' · <span style="color:#b45309">⚠️快取舊數</span>':'')+_pn;
+          /* ⭐ 2026-09-26：app「累計收益」錨點優先 — 推導分唔開 sweep 入水同真息（09-26 實證
+             推導 +159.54 vs app +84.26）；有錨點出 app 數，✏️ 更新／剷（同 options 總覽卡同源）。 */
+          var _an=(fundHoldings.int_anchor&&fundHoldings.int_anchor.usd!=null)?fundHoldings.int_anchor:null;
+          if(_an)
+            return '累計收益（08-24 起息 · app 錨點 @'+esc((_an.date||'').slice(5))+'）≈ '+(_an.usd>=0?'+':'−')+'US$'+fmt(Math.abs(_an.usd),2)+'（≈ '+(_an.usd>=0?'+':'−')+'HK$'+fmt(Math.round(Math.abs(_an.usd)*_fx))+'）＝ 現金寶 '+uMoney(_fa)+_st+' <span class="muted" style="font-size:10px;cursor:pointer;text-decoration:underline" onclick="setFundAnchor()">✏️</span>';
           var _iu=_fa/_fx-_kn;
           if(_iu>0 && _fa>0 && _iu>_fa/_fx*0.01)
             return '<span style="color:#92400e;font-weight:700">現金寶總值 ≈US$'+fmt(_fa/_fx,2)+' ＝ 已歸因淨投入 US$'+fmt(_kn,2)+' ＋ 未歸因 ≈US$'+fmt(_iu,2)+'</span>（sweep 本金、未出紀錄嘅申購贖回、未結算都會入呢格，等現金流紀錄歸因後先出收益口徑）＝ 現金寶 '+uMoney(_fa)+_st;
