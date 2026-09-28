@@ -180,8 +180,9 @@ function render(j){
   if(!j.n){tb.innerHTML='<tr><td class="empty" colspan="7">而家冇股票喺洗倉狀態（dd20 全部 &gt; −8%）</td></tr>';return;}
   const rows=j.washout.map(w=>{
     const depth=Math.min(100,Math.round(Math.abs(w.dd20)/0.25*100));
-    return '<tr>'+
-      '<td class="tk">'+w.code+'</td>'+
+    const crash=(w.chg1d!=null&&w.chg1d<=-0.08);/* ⭐09-29 掃描判決：崩潰型=gapday池（未 seal） */
+    return '<tr'+(crash?' style="background:#fef2f2"':'')+'>'+
+      '<td class="tk">'+(crash?'<span style="background:#dc2626;color:#fff;border-radius:6px;padding:1px 5px;font-size:10px;font-weight:700;margin-right:4px">💥崩潰</span>':'')+w.code+'</td>'+
       '<td class="dn">'+fmtPct(w.dd20)+'</td>'+
       '<td><span class="bar"><i style="width:'+depth+'%"></i></span></td>'+
       '<td class="'+(w.chg1d>=0?'up':'dn')+'">'+fmtPct(w.chg1d)+'</td>'+

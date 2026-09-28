@@ -4164,8 +4164,8 @@ bootMode();
       h+=ok.map(function(p){
         const otm=(p.strike&&p.spot)?(p.strike/p.spot-1):null;
         const spCol=p.qsrc!=='ba'?'#94a3b8':(p.spread_pct<=10?'#16a34a':'#d97706');
-        return '<tr>'
-          +'<td style="'+td+';font-weight:700">'+p.code+'</td>'
+        return '<tr'+(p.crash?' style="background:#fef2f2"':'')+'>'
+          +'<td style="'+td+';font-weight:700">'+(p.crash?'<span style="background:#dc2626;color:#fff;border-radius:6px;padding:1px 5px;font-size:10px;font-weight:700;margin-right:4px">💥崩潰</span>':'')+p.code+'</td>'
           +'<td style="'+td+';text-align:right;color:#dc2626;font-weight:700">'+fmtP(p.dd20/100)+'</td>'
           +'<td style="'+td+';text-align:right;color:'+((p.chg1d||0)>=0?'#16a34a':'#dc2626')+'">'+fmtP(p.chg1d||0)+'</td>'
           +'<td style="'+td+';text-align:right">'+p.spot+'</td>'
@@ -4189,7 +4189,7 @@ bootMode();
       if(sk.length)h+='<div class="muted small" style="margin-top:5px">冇帶內行：'+sk.map(function(p){return p.code+(p.near_strike?('（最貼 '+p.near_strike+'P δ'+p.near_delta+'）'):(p.dte?'':'（冇 7-14d）'));}).join('・')+'</div>';
       const rest=(j.n_washout||0)-ok.length-sk.length;
       if(rest>0)h+='<div class="muted small" style="margin-top:4px">……其餘 '+rest+' 隻（<a href="washout-radar.html" target="_blank">開全單 →</a>）</div>';
-      h+='<div class="muted" style="margin-top:6px;font-size:11px">研究訊號（未 seal）：OTM CSP δ0.25-0.29・年期跟引擎 7-14d・PT50%・禁0DTE/深價內 · 揀 1-2 單可 · 排名＝yield（唔係 validated alpha 序）· 落單照 P7 preflight＋real-trade log 程序</div>';
+      h+='<div class="muted" style="margin-top:6px;font-size:11px">研究訊號（未 seal）：OTM CSP δ0.25-0.29・年期跟引擎 7-14d・PT50%・禁0DTE/深價內 · 揀 1-2 單可 · 排名＝💥崩潰型（chg1d≤−8%＝gapday 池）先，其餘 yield 序 · 落單照 P7 preflight＋real-trade log 程序</div>';
       b.innerHTML=h+'</div>';
     }catch(e){
       const b=document.getElementById('washoutBody');
