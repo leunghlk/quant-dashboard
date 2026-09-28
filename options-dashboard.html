@@ -4118,18 +4118,20 @@ loadH6040Rec();
 bootMode();
 </script>
 <script>
-/* ⭐ 2026-09-28: 🧪 洗倉雷達卡（未 seal・研究訊號・純顯示制）— 數據源 bridge /washout
-   （washout_radar.py 30min 掃 options_income UNIVERSE 208 寫 state，bridge 純讀檔 serve）。
+/* ⭐ 2026-09-28: 🧪 洗倉雷達卡（未 seal・研究訊號・純顯示制）— 數據源 bridge /washout_plan
+   （washout_radar.py 30min 掃 208 寫 state；bridge /washout_plan 讀 state 最深 8 隻 →
+   7-14d 鏈 → δ0.25-0.29 貼 0.25＋yield floor 0.006＋Futu 真按金；stale-serve＋背景重算）。
    獨立 IIFE＋try/catch，唔掂頁面本身任何流程；重用頁面 detectBridge/fetchTimeout。 */
 (function(){
   function fmtP(x){return(x*100).toFixed(1)+'%';}
+  function fmtK(x){return x==null?'—':'HK$'+(Math.abs(x)>=1000?(x/1000).toFixed(1)+'k':Math.round(x));}
   async function loadWashout(){
     try{
       if(typeof activeBridge==='undefined'||!activeBridge){
         if(typeof detectBridge==='function'){await detectBridge();}
       }
       if(typeof activeBridge==='undefined'||!activeBridge){throw new Error('bridge 未連接');}
-      const r=await fetchTimeout(activeBridge+'/washout?secret='+encodeURIComponent(BRIDGE_SECRET),15000);
+      const r=await fetchTimeout(activeBridge+'/washout_plan?secret='+encodeURIComponent(BRIDGE_SECRET)+'&top=8',45000);
       if(!r.ok)throw new Error('HTTP '+r.status);
       const j=await r.json();
       if(!j.ok)throw new Error(j.error||'ok:false');
@@ -4138,30 +4140,56 @@ bootMode();
         const m=Math.round((Date.now()-new Date(j.scan_hkt.replace(' ','T')))/60000);
         age='｜掃描 '+(m>=0?m+' 分鐘前':'');if(m>150)age+=' ⚠️過時';
       }
+      if(j.stale)age+='｜⏳更新中';
       const asof=document.getElementById('washoutAsof');
-      if(asof)asof.textContent=(j.n||0)+' 隻'+age;
+      if(asof)asof.textContent=(j.n_washout||0)+' 隻'+age;
       const b=document.getElementById('washoutBody');
-      if(!j.n){b.innerHTML='<div class="muted small">而家冇股票喺洗倉狀態（dd20 全部 &gt; −8%）。</div>';return;}
-      const show=j.washout.slice(0,8), rest=j.n-show.length;
-      const td='padding:5px 8px;border-bottom:1px solid #e2e8f0;white-space:nowrap';
-      let h='<div class="small" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-      h+='<tr style="color:#64748b;font-size:11px">'
+      const ok=j.plan.filter(function(p){return p.ok;}),
+            sk=j.plan.filter(function(p){return !p.ok;});
+      if(!ok.length){b.innerHTML='<div class="muted small">'+(j.n_washout||0)+' 隻洗倉中，但 7-14d 帶內揀唔到 δ0.25-0.29 有價嘅行。</div>';return;}
+      const td='padding:5px 7px;border-bottom:1px solid #e2e8f0;white-space:nowrap';
+      let h='<div class="small" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11.5px">';
+      h+='<tr style="color:#64748b;font-size:10.5px">'
         +'<th style="'+td+';text-align:left">Ticker</th>'
-        +'<th style="'+td+';text-align:right">dd20 較20日高</th>'
+        +'<th style="'+td+';text-align:right">dd20</th>'
         +'<th style="'+td+';text-align:right">今日</th>'
-        +'<th style="'+td+';text-align:center">確認</th></tr>';
-      h+=show.map(function(w){
+        +'<th style="'+td+';text-align:right">Spot</th>'
+        +'<th style="'+td+';text-align:center">到期</th>'
+        +'<th style="'+td+';text-align:right">Strike (OTM)</th>'
+        +'<th style="'+td+';text-align:right">δ</th>'
+        +'<th style="'+td+';text-align:right">Premium/張</th>'
+        +'<th style="'+td+';text-align:right">Yield</th>'
+        +'<th style="'+td+';text-align:right">按金/張</th>'
+        +'<th style="'+td+';text-align:right">點差</th></tr>';
+      h+=ok.map(function(p){
+        const otm=(p.strike&&p.spot)?(p.strike/p.spot-1):null;
+        const spCol=p.qsrc!=='ba'?'#94a3b8':(p.spread_pct<=10?'#16a34a':'#d97706');
         return '<tr>'
-          +'<td style="'+td+';font-weight:700">'+w.code+'</td>'
-          +'<td style="'+td+';text-align:right;color:#dc2626;font-weight:700">'+fmtP(w.dd20)+'</td>'
-          +'<td style="'+td+';text-align:right;color:'+(w.chg1d>=0?'#16a34a':'#dc2626')+'">'+fmtP(w.chg1d)+'</td>'
-          +'<td style="'+td+';text-align:center">'+(w.close_confirmed
-            ?'<span style="background:#ccfbf1;color:#115e59;border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:700">✓ 收市</span>'
-            :'<span style="color:#94a3b8">盤中</span>')+'</td></tr>';
+          +'<td style="'+td+';font-weight:700">'+p.code+'</td>'
+          +'<td style="'+td+';text-align:right;color:#dc2626;font-weight:700">'+fmtP(p.dd20/100)+'</td>'
+          +'<td style="'+td+';text-align:right;color:'+((p.chg1d||0)>=0?'#16a34a':'#dc2626')+'">'+fmtP(p.chg1d||0)+'</td>'
+          +'<td style="'+td+';text-align:right">'+p.spot+'</td>'
+          +'<td style="'+td+';text-align:center">'+(p.expiry||'').slice(5)+'·'+p.dte+'d</td>'
+          +'<td style="'+td+';text-align:right;font-weight:700">'+p.strike+'P '+(otm!=null?'<span style="color:#64748b;font-weight:400">'+fmtP(otm)+'</span>':'')+'</td>'
+          +'<td style="'+td+';text-align:right">'+p.delta.toFixed(3)+'</td>'
+          +'<td style="'+td+';text-align:right;font-weight:700">$'+p.prem_usd+'</td>'
+          +'<td style="'+td+';text-align:right;color:'+(p.passes_floor?'#16a34a':'#94a3b8')+'">'+p.yield_pct.toFixed(2)+'%'+(p.passes_floor?'':' ⚠️')+'</td>'
+          +'<td style="'+td+';text-align:right">'+(p.im_hkd!=null?fmtK(p.im_hkd):'—')+'</td>'
+          +'<td style="'+td+';text-align:right;color:'+spCol+'">'+(p.qsrc!=='ba'?'last價':(p.spread_pct.toFixed(1)+'%'))+'</td></tr>';
       }).join('');
       h+='</table>';
-      if(rest>0)h+='<div class="muted small" style="margin-top:6px">……其餘 '+rest+' 隻（<a href="washout-radar.html" target="_blank">開全單 →</a>）</div>';
-      h+='<div class="muted" style="margin-top:6px;font-size:11px">研究訊號（未 seal）：OTM CSP δ0.25-0.29・≥21td・PT50%・禁0DTE/深價內 · 出唔出手自己判斷，落單照 real-trade log 程序</div>';
+      const a=j.account, top=ok[0]||{};
+      if(a&&a.headroom_hkd!=null){
+        if(a.headroom_hkd<0){
+          h+='<div class="small" style="margin-top:6px;color:#dc2626;font-weight:700">💰 按金 headroom '+fmtK(a.headroom_hkd)+'：開新倉前要先贖現金寶'+(top.redeem_usd?('（'+top.code+' 1 張贖 ~US$'+Number(top.redeem_usd).toLocaleString()+'）'):'')+'</div>';
+        }else{
+          h+='<div class="small" style="margin-top:6px;color:#64748b">💰 按金 headroom '+fmtK(a.headroom_hkd)+'｜首選 '+top.code+' 可開 '+top.max_qty+' 張</div>';
+        }
+      }
+      if(sk.length)h+='<div class="muted small" style="margin-top:5px">冇帶內行：'+sk.map(function(p){return p.code+(p.near_strike?('（最貼 '+p.near_strike+'P δ'+p.near_delta+'）'):(p.dte?'':'（冇 7-14d）'));}).join('・')+'</div>';
+      const rest=(j.n_washout||0)-ok.length-sk.length;
+      if(rest>0)h+='<div class="muted small" style="margin-top:4px">……其餘 '+rest+' 隻（<a href="washout-radar.html" target="_blank">開全單 →</a>）</div>';
+      h+='<div class="muted" style="margin-top:6px;font-size:11px">研究訊號（未 seal）：OTM CSP δ0.25-0.29・年期跟引擎 7-14d・PT50%・禁0DTE/深價內 · 揀 1-2 單可 · 排名＝yield（唔係 validated alpha 序）· 落單照 P7 preflight＋real-trade log 程序</div>';
       b.innerHTML=h+'</div>';
     }catch(e){
       const b=document.getElementById('washoutBody');
