@@ -3113,6 +3113,23 @@ function renderWheel320(){
         +'<td class="small muted">'+esc(p.opened||'—')+(p.dte!=null?(' · '+p.dte+'D'):'')+'</td></tr>'; });
     b+='</tbody></table></div>';
   }
+  /* ⭐ 2026-09-28 已平腿歷史 — engine_book.history（state closed 腿＋ledger pnl_hkd），新在上 */
+  const ebHist=eb.history||[];
+  b+='<div style="margin-top:12px;font-weight:700">📜 已平腿紀錄（'+ebHist.length+'）'
+    +'<span class="muted small" style="font-weight:400"> · 引擎簿開→平全紀錄 · <span style="color:#dc2626;font-weight:700">● 真倉</span>／<span style="color:#64748b">○ 模擬</span></span></div>';
+  if(!ebHist.length){ b+='<div class="muted small">未有平倉紀錄。</div>'; }
+  else{
+    b+='<div class="table-scroll" style="margin-top:6px"><table class="utable"><thead><tr><th>腿</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場</th><th class="r">平倉</th><th class="r">P&L(US$)</th><th class="r">P&L(HK$)</th><th>開 → 平</th><th>原因</th></tr></thead><tbody>';
+    ebHist.forEach(p=>{ const pu=Number(p.pnl_usd||0), ph=(p.pnl_hkd!=null?Number(p.pnl_hkd):null), cc=(v)=>'color:'+(v>=0?'var(--good)':'var(--bad)');
+      b+='<tr><td><b>'+esc(p.ticker)+'</b> <span class="pill b">'+esc(p.side||'CSP')+'</span> '+(p.real?'<span style="color:#dc2626;font-weight:700">● 真倉</span>':'<span style="color:#64748b">○ 模擬</span>')+'</td>'
+        +'<td class="r">$'+w320n(p.K,2)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+esc(p.contracts)+'</td>'
+        +'<td class="r">$'+w320n(p.prem_in,2)+'</td><td class="r">$'+w320n(p.prem_out,2)+'</td>'
+        +'<td class="r" style="'+cc(pu)+'">'+(pu>=0?'+':'−')+w320n(Math.abs(pu),0)+'</td>'
+        +'<td class="r" style="'+cc(ph!=null?ph:0)+'">'+(ph!=null?((ph>=0?'+':'−')+'HK$'+w320n(Math.abs(ph),0)):'—')+'</td>'
+        +'<td class="small muted">'+esc(p.opened||'—')+' → '+esc(String(p.closed_ts||'—').slice(5,16))+'</td>'
+        +'<td class="small muted" style="max-width:280px;white-space:normal">'+esc(String(p.reason||'—'))+'</td></tr>'; });
+    b+='</tbody></table></div>';
+  }
   b+='<div style="margin-top:12px;font-weight:700">🔴 真倉期權腿（'+rl.length+'）'
     +'<span class="muted small" style="font-weight:400"> · 撳掣標記邊啲腿屬於 wheel320</span></div>';
   if(!rl.length){ b+='<div class="muted small">'+(realPosSeen?'真戶口暫時冇期權持倉。':'真倉讀取中…')+'</div>'; }
