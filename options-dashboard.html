@@ -247,6 +247,8 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
       <div class="card-b" id="decBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">已排除</span><span class="meta">業績窗口 / signal veto（momentum-only，同回測公式；槓桿 ETF 已按你要求列入單腿股表掃描）</span></div>
       <div class="card-b small muted" id="notesBody"></div></div>
+    <div class="card" id="washoutCard"><div class="card-h"><span class="t">🧪 洗倉雷達 <span style="font-size:10.5px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:99px;padding:1px 8px;font-weight:700;vertical-align:2px">未 seal · 研究訊號</span></span><span class="meta">洗倉狀態＝dd20 ≤ −8%（較20日收市高位）· 純顯示制，唔接落單系統 · <a href="washout-radar.html" target="_blank">全單／出手紀律 →</a></span><span class="meta" id="washoutAsof"></span></div>
+      <div class="card-b" id="washoutBody"><div class="muted small">載入中…</div></div></div>
   </div>
 
   <!-- ═══════════ 個股詳情 ═══════════ -->
@@ -4061,6 +4063,61 @@ loadQuant();   // boot 即刻拎（990KB；到手自動重繪 執倉建議／策
 loadRec();
 loadH6040Rec();
 bootMode();
+</script>
+<script>
+/* ⭐ 2026-09-28: 🧪 洗倉雷達卡（未 seal・研究訊號・純顯示制）— 數據源 bridge /washout
+   （washout_radar.py 30min 掃 options_income UNIVERSE 208 寫 state，bridge 純讀檔 serve）。
+   獨立 IIFE＋try/catch，唔掂頁面本身任何流程；重用頁面 detectBridge/fetchTimeout。 */
+(function(){
+  function fmtP(x){return(x*100).toFixed(1)+'%';}
+  async function loadWashout(){
+    try{
+      if(typeof activeBridge==='undefined'||!activeBridge){
+        if(typeof detectBridge==='function'){await detectBridge();}
+      }
+      if(typeof activeBridge==='undefined'||!activeBridge){throw new Error('bridge 未連接');}
+      const r=await fetchTimeout(activeBridge+'/washout?secret='+encodeURIComponent(BRIDGE_SECRET),15000);
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const j=await r.json();
+      if(!j.ok)throw new Error(j.error||'ok:false');
+      let age='';
+      if(j.scan_hkt){
+        const m=Math.round((Date.now()-new Date(j.scan_hkt.replace(' ','T')))/60000);
+        age='｜掃描 '+(m>=0?m+' 分鐘前':'');if(m>150)age+=' ⚠️過時';
+      }
+      const asof=document.getElementById('washoutAsof');
+      if(asof)asof.textContent=(j.n||0)+' 隻'+age;
+      const b=document.getElementById('washoutBody');
+      if(!j.n){b.innerHTML='<div class="muted small">而家冇股票喺洗倉狀態（dd20 全部 &gt; −8%）。</div>';return;}
+      const show=j.washout.slice(0,8), rest=j.n-show.length;
+      const td='padding:5px 8px;border-bottom:1px solid #e2e8f0;white-space:nowrap';
+      let h='<div class="small" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+      h+='<tr style="color:#64748b;font-size:11px">'
+        +'<th style="'+td+';text-align:left">Ticker</th>'
+        +'<th style="'+td+';text-align:right">dd20 較20日高</th>'
+        +'<th style="'+td+';text-align:right">今日</th>'
+        +'<th style="'+td+';text-align:center">確認</th></tr>';
+      h+=show.map(function(w){
+        return '<tr>'
+          +'<td style="'+td+';font-weight:700">'+w.code+'</td>'
+          +'<td style="'+td+';text-align:right;color:#dc2626;font-weight:700">'+fmtP(w.dd20)+'</td>'
+          +'<td style="'+td+';text-align:right;color:'+(w.chg1d>=0?'#16a34a':'#dc2626')+'">'+fmtP(w.chg1d)+'</td>'
+          +'<td style="'+td+';text-align:center">'+(w.close_confirmed
+            ?'<span style="background:#ccfbf1;color:#115e59;border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:700">✓ 收市</span>'
+            :'<span style="color:#94a3b8">盤中</span>')+'</td></tr>';
+      }).join('');
+      h+='</table>';
+      if(rest>0)h+='<div class="muted small" style="margin-top:6px">……其餘 '+rest+' 隻（<a href="washout-radar.html" target="_blank">開全單 →</a>）</div>';
+      h+='<div class="muted" style="margin-top:6px;font-size:11px">研究訊號（未 seal）：OTM CSP δ0.25-0.29・≥21td・PT50%・禁0DTE/深價內 · 出唔出手自己判斷，落單照 real-trade log 程序</div>';
+      b.innerHTML=h+'</div>';
+    }catch(e){
+      const b=document.getElementById('washoutBody');
+      if(b)b.innerHTML='<div class="muted small">🧪 洗倉雷達暫時連唔上（'+(e.message||'bridge')+'）· 10 分鐘後自動重試</div>';
+    }
+  }
+  setTimeout(loadWashout,2000);
+  setInterval(loadWashout,600000);
+})();
 </script>
 </body>
 </html>
