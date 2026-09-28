@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🧪 洗倉雷達 · Washout Radar（未 seal）</title>
+<style>
+:root{
+  --bg:#eef2f6; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+  --blue:#1a73e8; --blue-deep:#1557b0; --blue-tint:#e8f0fe;
+  --teal:#0d9488; --teal-deep:#115e59; --teal-tint:#ccfbf1;
+  --good:#16a34a; --bad:#dc2626; --warn:#d97706;
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+/* ── leungkathy 品牌 header（跟 main dashboard 一致，⭐ 已定型不要再改）── */
+.lk-bar{background:linear-gradient(135deg,#1a73e8 0%,#1557b0 100%);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.18);margin-bottom:12px}
+.lk-logo{width:38px;height:38px;background:#fff;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:300;font-style:italic;color:#1a73e8;transform:rotate(-6deg);font-family:'Brush Script MT','Segoe Script',cursive,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.lk-name{font-size:19px;font-weight:700;letter-spacing:.2px;line-height:1}
+.lk-sub{font-size:11.5px;opacity:.9;margin-top:3px}
+.lk-prod{margin-left:auto;font-size:12.5px;opacity:.92;text-align:right;line-height:1.5}
+.appbar{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:10px 0;margin-bottom:14px}
+.appbar-in{max-width:1080px;margin:0 auto;padding:0 22px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.appbar h1{font-size:18px;font-weight:800;letter-spacing:.2px}
+.appbar .sub{font-size:11px;color:var(--muted);margin-top:1px}
+.appbar-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.status-bar{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--muted)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--good);animation:pulse 2s infinite}
+.live-dot.dead{background:var(--bad);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}
+.badge.warnbg{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+.badge.goodbg{background:var(--teal-tint);color:var(--teal-deep)}
+.badge.greybg{background:#f1f5f9;color:#64748b}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:14px}
+.card h2{font-size:14px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.research{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:12.5px}
+.research b{color:#92400e}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chip{background:var(--blue-tint);color:var(--blue-deep);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700}
+.play{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px}
+.play div{background:#f8fafc;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:12px}
+.play b{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:2px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font-size:11px;color:var(--muted);font-weight:800;text-align:left;padding:6px 8px;border-bottom:2px solid var(--line);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr:hover td{background:#f8fafc}
+.tk{font-weight:800}
+.bar{position:relative;display:inline-block;width:110px;height:8px;background:#f1f5f9;border-radius:99px;vertical-align:middle;overflow:hidden}
+.bar i{position:absolute;right:0;top:0;bottom:0;background:var(--bad);border-radius:99px}
+.up{color:var(--good);font-weight:700}
+.dn{color:var(--bad);font-weight:700}
+.meta{font-size:11px;color:var(--muted);margin-bottom:8px}
+.empty{padding:26px;text-align:center;color:var(--muted)}
+@media(max-width:640px){.tblwrap{overflow-x:auto}}
+</style>
+</head>
+<body>
+<div class="lk-bar">
+  <div class="lk-logo">k</div>
+  <div>
+    <div class="lk-name">leungkathy</div>
+    <div class="lk-sub">All-in-One Financial Dashboard Suite</div>
+  </div>
+  <div class="lk-prod">🧪 洗倉雷達 · Washout Radar</div>
+</div>
+
+<div class="appbar"><div class="appbar-in">
+  <div>
+    <h1>🧪 洗倉雷達 <span class="badge warnbg">未 seal · 研究訊號</span></h1>
+    <div class="sub">dd20 = 現價 ÷ 20日收市高位 − 1 ≤ −8% ＝ 洗倉狀態（同 wheel320 研究定義）</div>
+  </div>
+  <div class="appbar-right">
+    <div class="status-bar"><span class="live-dot dead" id="dot"></span><span id="st">連接中…</span></div>
+    <button class="btn-primary" id="btn" onclick="loadRadar(true)">刷新</button>
+  </div>
+</div></div>
+
+<div class="wrap">
+
+<div class="research">⚠️ <b>純顯示制（研究訊號，未 seal）</b>：呢頁只係話你知邊隻喺洗倉狀態，<b>唔接落單系統、唔係 engine 決策源</b>。
+floor-only（sealed +97.63%）先係欽定策略；washout 疊加版 09-28 已判死（+91.61% 未過 +97.63%）。
+想出手＝<b>人手判斷</b>，落單照行 real-trade log 程序。TG push 同呢頁同名「🧪 洗倉雷達」。</div>
+
+<div class="card">
+  <h2>出手紀律（研究檔錨）</h2>
+  <div class="play">
+    <div><b>觸發</b>洗倉日 dd20 ≤ −8%（dn&gt;8% 日 PF 3.05／win 95.2%，n=63）</div>
+    <div><b>倉位</b>OTM CSP，δ 0.25–0.29；<b style="color:var(--bad)">禁深價內</b>（接貨率 28–41%）</div>
+    <div><b>年期</b>≥21td 緩衝；<b style="color:var(--bad)">禁 0DTE</b>（DELL −$375 教訓）</div>
+    <div><b>止賺</b>mark ≤ 50% credit（PT 73%）</div>
+    <div><b>止蝕</b>alert-only，唔自動斬（反事實 3× stop 最優）</div>
+    <div><b>心理準備</b>35–37% 會先再插 −5%；WF 接貨率 0.9%</div>
+  </div>
+  <div class="chips">
+    <span class="chip">7-fold OOS +71.46%／Sharpe 1.69</span>
+    <span class="chip">hindsight premium 負＝零過擬合</span>
+    <span class="chip">每月宇宙 ~19 洗倉日，揀 1–2 單</span>
+  </div>
+</div>
+
+<div class="card">
+  <h2>現時洗倉狀態 <span class="badge greybg" id="cnt">—</span></h2>
+  <div class="meta" id="meta">載入中…</div>
+  <div class="tblwrap">
+  <table>
+    <thead><tr>
+      <th>Ticker</th><th>dd20（較20日高）</th><th></th><th>今日</th><th>入狀態</th><th>最後 bar</th><th>收市確認</th>
+    </tr></thead>
+    <tbody id="tb"><tr><td class="empty" colspan="7">載入中…</td></tr></tbody>
+  </table>
+  </div>
+</div>
+
+</div>
+<script>
+"use strict";
+const BRIDGE_SECRET='qtbridge-K7s2-wolf-9mX4';
+const BRIDGE_PROXY='https://quant-api.leunghlk.workers.dev/live';
+const BRIDGE_URLS=(function(){
+  const p=new URLSearchParams(location.search).get('bridge');
+  let ls; try{ls=localStorage.getItem('qbridge');}catch(e){}
+  const list=[p,ls];
+  if(location.protocol!=='https:'){
+    list.push('http://127.0.0.1:8765','http://100.112.182.107:8765','http://kathys-macbook-air.tailefed71.ts.net:8765');
+  }
+  list.push(BRIDGE_PROXY);
+  return list.filter(Boolean);
+})();
+let activeBridge=null;
+
+function fetchTimeout(url,ms,opts){
+  const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),ms);
+  return fetch(url,Object.assign({},opts||{},{cache:'no-store',signal:ctrl.signal})).finally(()=>clearTimeout(t));
+}
+async function detectBridge(){
+  for(const u of BRIDGE_URLS){
+    try{
+      const r=await fetchTimeout(u+'/health',5000);
+      if(r&&r.ok){const j=await r.json().catch(()=>null);
+        if(j&&j.ok){activeBridge=u;try{localStorage.setItem('qbridge',u);}catch(e){}return true;}}
+    }catch(e){}
+  }
+  return false;
+}
+function fmtPct(x){return(x*100).toFixed(1)+'%';}
+function setSt(txt,alive){document.getElementById('st').textContent=txt;
+  document.getElementById('dot').className='live-dot'+(alive?'':' dead');}
+
+async function loadRadar(manual){
+  const btn=document.getElementById('btn');
+  if(manual&&btn)btn.classList.add('loading');
+  try{
+    if(!activeBridge){if(!(await detectBridge())){setSt('bridge 未連接，5 分鐘後重試…',false);
+      setTimeout(()=>loadRadar(false),300000);if(btn)btn.classList.remove('loading');return;}}
+    const r=await fetchTimeout(activeBridge+'/washout?secret='+encodeURIComponent(BRIDGE_SECRET),20000);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    if(!j.ok)throw new Error(j.error||'ok:false');
+    setSt('live · ⚙'+(activeBridge.indexOf('workers')>=0?'proxy':'local'),true);
+    render(j);
+  }catch(e){
+    setSt('讀取失敗（'+e.message+'），60 秒重試…',false);
+    activeBridge=null;
+    setTimeout(()=>loadRadar(false),60000);
+  }
+  if(manual&&btn)btn.classList.remove('loading');
+}
+
+function render(j){
+  document.getElementById('cnt').textContent=j.n+' 隻';
+  let age='';
+  if(j.scan_hkt){const mins=Math.round((Date.now()-new Date(j.scan_hkt.replace(' ','T')))/60000);
+    age='｜掃描 '+j.scan_hkt+' HKT（'+(mins>=0?mins+' 分鐘前':'')+'）';
+    if(mins>150)age+='⚠️ 過時';}
+  document.getElementById('meta').textContent='掃描 '+j.scanned+'/208 隻｜asof '+j.asof_et+age;
+  const tb=document.getElementById('tb');
+  if(!j.n){tb.innerHTML='<tr><td class="empty" colspan="7">而家冇股票喺洗倉狀態（dd20 全部 &gt; −8%）</td></tr>';return;}
+  const rows=j.washout.map(w=>{
+    const depth=Math.min(100,Math.round(Math.abs(w.dd20)/0.25*100));
+    return '<tr>'+
+      '<td class="tk">'+w.code+'</td>'+
+      '<td class="dn">'+fmtPct(w.dd20)+'</td>'+
+      '<td><span class="bar"><i style="width:'+depth+'%"></i></span></td>'+
+      '<td class="'+(w.chg1d>=0?'up':'dn')+'">'+fmtPct(w.chg1d)+'</td>'+
+      '<td>'+(w.since||'—')+'</td>'+
+      '<td>'+(w.last_bar||'—')+'</td>'+
+      '<td>'+(w.close_confirmed?'<span class="badge goodbg">✓ 收市確認</span>':'<span class="badge greybg">盤中</span>')+'</td>'+
+    '</tr>';
+  });
+  tb.innerHTML=rows.join('');
+}
+
+loadRadar(false);
+setInterval(()=>loadRadar(false),300000);
+</script>
+</body>
+</html>
