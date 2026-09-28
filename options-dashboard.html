@@ -2579,7 +2579,7 @@ async function loadWheel320(force){
     if(!j||j.error)throw new Error((j&&j.error)||'feed 未就緒');
     w320Rec=j; w320At=Date.now();
   }catch(e){ w320Err=String(e&&e.message||e); }
-  w320Busy=false; renderWheel320();
+  w320Busy=false; renderWheel320(); renderOverview();   // ⭐ 09-28：總覽開倉位都出 w320 引擎簿腿
   w320AutoQuotes(false);   // ⭐ 09-18：開 tab／feed 更新即刻自動拉實價（唔使人手撳掣）
 }
 async function w320Tag(key,on){
@@ -3613,7 +3613,9 @@ function renderOverview(){
       +'<div style="height:14px;background:'+(usedPct>90?'#dc2626':usedPct>70?'#d97706':'#16a34a')+';width:'+usedPct+'%;cursor:help" data-tip="<b>已用按金 vs 回測總資本</b><br>HKD '+fmt(used)+' ／ '+fmt(CAP)+'（'+usedPct+'%）<br>短 put 按金佔用（Reg-T 口徑，開倉時鎖定）"></div></div>'
       +'<div class="small muted">已用 HKD '+fmt(used)+' / '+fmt(CAP)+'（'+usedPct+'%）· 回測總資本 <b>HKD 320,000</b> · 實際資本以你 Futu 戶口為準</div>';
   }
-  $('ovPosMeta').textContent=realPos.length+' 真倉'+((((h6040SrvBook&&h6040SrvBook.open)||[]).length)?(' + '+((h6040SrvBook&&h6040SrvBook.open)||[]).length+' 監察倉（紙上）'):'');
+  /* ⭐ 2026-09-28：總覽都睇到 wheel320 引擎簿開倉位（●真倉／○模擬；MTM＝(prem_in−cur_prem)×100×n） */
+  const eb3=(w320Rec&&w320Rec.engine_book)||{}, ebLegs3=(eb3.legs||[]);
+  $('ovPosMeta').textContent=realPos.length+' 真倉'+((((h6040SrvBook&&h6040SrvBook.open)||[]).length)?(' + '+((h6040SrvBook&&h6040SrvBook.open)||[]).length+' 監察倉（紙上）'):'')+(ebLegs3.length?(' + '+ebLegs3.length+' w320 引擎簿'):'');
   let ph='';
   if(realPos.length){
     ph+='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場/現權利金</th><th class="r">盈虧平衡</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th></tr></thead><tbody>';
@@ -3630,6 +3632,24 @@ function renderOverview(){
     bo6.forEach(p=>{
       const trig=(p.triggers||[]);
       ph+='<tr'+(trig.length?' style="background:#fffbeb"':'')+'><td>'+(p.leg==='spy'?'XSP':'單股')+'</td><td><b>'+esc(p.ticker)+'</b></td><td class="r">$'+px2(p.strike)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+(p.dte!=null?p.dte:'—')+'</td><td class="r">'+px2(p.entry_prem)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'—')+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td>'+(trig.length?trig.map(t=>'<span class="pill '+(t.indexOf('止損')>=0||t==='cut'?'r':(t.indexOf('鎖利')>=0?'g':'w'))+'">'+esc(t)+'</span>').join(' '):'<span class="muted">—</span>')+'</td></tr>';
+    });
+    ph+='</tbody></table></div>';
+  }
+  if(ebLegs3.length){
+    const fx=(usdHkdFx||HKD_USD);
+    const uSum=ebLegs3.reduce((s,p)=>s+(Number(p.prem_in||0)-Number(p.cur_prem||0))*100*(Number(p.contracts)||1),0);
+    const nReal=ebLegs3.filter(p=>p.real).length;
+    ph+='<div style="margin-top:10px" class="small"><b>⚙️ wheel320 引擎簿（'+ebLegs3.length+' 張：●真倉 '+nReal+'／○模擬 '+(ebLegs3.length-nReal)+' · 未實現合計 '+((uSum>=0?'+':'−')+'US$'+fmt(Math.abs(uSum)))+' ≈ '+((uSum*fx>=0?'+':'−')+'HK$'+fmt(Math.abs(uSum*fx)))+'）</b><span class="muted"> · 詳情＋歷史 → w320 tab</span></div>';
+    ph+='<div class="table-scroll" style="margin-top:4px"><table class="utable"><thead><tr><th>腿</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場/現mark</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th>開倉</th></tr></thead><tbody>';
+    ebLegs3.forEach(p=>{
+      const un=(Number(p.prem_in||0)-Number(p.cur_prem||0))*100*(Number(p.contracts)||1);
+      const pct=(Number(p.prem_in)>0)?((Number(p.prem_in)-Number(p.cur_prem))/Number(p.prem_in)*100):null;
+      ph+='<tr><td><b>'+esc(p.ticker)+'</b> '+(p.real?'<span style="color:#dc2626;font-weight:700">● 真倉</span>':'<span style="color:#64748b">○ 模擬</span>')+'</td>'
+        +'<td class="r">$'+px2(p.K)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+esc(p.contracts)+'</td>'
+        +'<td class="r">'+px2(p.prem_in)+' / '+px2(p.cur_prem)+'</td>'
+        +'<td class="r">'+(pct!=null?pct.toFixed(0)+'%':'—')+'</td>'
+        +'<td class="r">'+(un>=0?'<span class="pos">':'<span class="neg">')+money(un*fx)+'</span></td>'
+        +'<td class="small muted">'+esc(p.opened||'—')+(p.dte!=null?(' · '+p.dte+'D'):'')+'</td></tr>';
     });
     ph+='</tbody></table></div>';
   }
