@@ -4189,7 +4189,7 @@ bootMode();
       if(sk.length)h+='<div class="muted small" style="margin-top:5px">冇帶內行：'+sk.map(function(p){return p.code+(p.near_strike?('（最貼 '+p.near_strike+'P δ'+p.near_delta+'）'):(p.dte?'':'（冇 7-14d）'));}).join('・')+'</div>';
       const rest=(j.n_washout||0)-ok.length-sk.length;
       if(rest>0)h+='<div class="muted small" style="margin-top:4px">……其餘 '+rest+' 隻（<a href="washout-radar.html" target="_blank">開全單 →</a>）</div>';
-      h+='<div class="muted" style="margin-top:6px;font-size:11px">研究訊號（未 seal）：OTM CSP δ0.25-0.29・年期跟引擎 7-14d・PT50%・禁0DTE/深價內 · 揀 1-2 單可 · 排名＝💥崩潰型（chg1d≤−8%＝gapday 池）先，其餘 yield 序 · 落單照 P7 preflight＋real-trade log 程序</div>';
+      h+='<div class="muted" style="margin-top:6px;font-size:11px">研究訊號：OTM CSP δ0.25-0.29・年期跟引擎 7-14d・PT50%・禁0DTE/深價內 · 揀 1-2 單可 · 排名＝yield 序（D36 sealed 揀法：入場 yield≥0.9% walk-forward 驗證）· 💥崩潰型（chg1d≤−8%）＝標記，同 yield 打和先 · 落單照 P7 preflight＋real-trade log 程序</div>';
       b.innerHTML=h+'</div>';
     }catch(e){
       const b=document.getElementById('washoutBody');
