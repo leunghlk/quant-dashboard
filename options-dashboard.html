@@ -2327,6 +2327,7 @@ function renderAdvice(){
   const el=document.getElementById('adviceBody'); if(!el)return;
   const pos=(realPos||[]).filter(p=>p.shares&&p.shares!==0);
   if(!pos.length){ el.innerHTML='<div class="muted" style="padding:16px;text-align:center">📭 暫無持倉（Futu 真戶口）</div>'; return; }
+  const _w32Legs={}; (((w320Rec&&w320Rec.engine_book)||{}).legs||[]).forEach(function(l){if(l.real)_w32Legs[l.ticker]=1;});
   let h='';
   const rows=pos.map(p=>{
     const t=p.ticker;
@@ -2349,6 +2350,8 @@ function renderAdvice(){
       else if(cur>=ac*1.9){action='止損警戒：權利金近翻倍（$'+px2(ac)+'→$'+px2(cur)+'）——標的插水，考慮平倉/roll';cls='sell';}
       else if(decel<=-3||sig==='SELL'||sig==='REDUCE'){action='標的轉弱（'+sig+' · Decel '+decel+'）：現 $'+px2(cur)+'，留意 PT 50% 提早收利';cls='reduce';}
       else{action='續持收 theta：權利金 $'+px2(ac)+'→$'+px2(cur)+'（'+((ac-cur)/ac*100).toFixed(0)+'%）· '+sig;cls='hold';}
+      /* ⭐ 2026-10-03：w320 引擎簿腿加署名——呢度只係顯示建議，真正出場規則（+50% 止賺線）由 w320 引擎管 */
+      if(_w32Legs[t]){action+=' <span class="pill b" style="font-size:9px">⚙️w320</span> <span class="muted small">（w320 引擎簿腿；+50% 止賺線由 w320 管）</span>';}
     }else{
       // ⭐ 08-23：正股決策＝quant model 計法（同 quant dashboard 策略交易台同一把尺）：
       //   沽出提示 → exit_trigger → Decel≤−3 → 信號轉弱 → BUY 加倉 → 續持。
@@ -3733,10 +3736,22 @@ function renderPositions(){
   const realPos=posAll.filter(x=>x.real);
   const body=$('posBody');
   let h='';
-  if(realPos.length){
+  /* ⭐ 2026-10-03（user「check across tabs and amend」）：w320 引擎簿真倉腿都入呢個表——
+     ⚙️w320 署名、冇平倉掣（出場由 w320 引擎 +50% 止賺線管，唔好用 h6040 closePos 記帳）；
+     ticker+K 撞 h6040 簿就唔重複出。欄位映射 entry_prem=prem_in 令 beCell/利潤% 同款。 */
+  const _hlk={}; realPos.forEach(function(p){_hlk[p.ticker+'|'+p.strike]=1;});
+  const _ebw=(((w320Rec&&w320Rec.engine_book)||{}).legs||[]).filter(function(p){return p.real&&!_hlk[p.ticker+'|'+p.K];});
+  if(realPos.length||_ebw.length){
     h+='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">入場/現權利金</th><th class="r">盈虧平衡</th><th class="r">利潤%</th><th class="r">未實現(HKD)</th><th></th></tr></thead><tbody>';
     realPos.forEach(p=>{
       h+='<tr><td><b>'+p.ticker+'</b> <span style="color:#dc2626;font-weight:700">● 真倉</span></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+px2(p.entry_prem)+' / '+px2(p.cur_prem)+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+(p.pct_max!=null?p.pct_max+'%':'—')+'</td><td class="r">'+(p.pnl_hkd>=0?'<span class="pos">':'<span class="neg">')+money(p.pnl_hkd)+'</span></td><td><button class="btn btn-close" onclick="closePos(\''+p.id+'\')">平倉</button></td></tr>';
+    });
+    const _fx=(usdHkdFx||HKD_USD);
+    _ebw.forEach(p=>{
+      const _p2={ticker:p.ticker,strike:p.K,expiry:p.expiry,contracts:p.contracts,entry_prem:p.prem_in,cur_prem:p.cur_prem,side:(p.side==='CC'?'CALL':'PUT')};
+      const _un=(Number(p.prem_in||0)-Number(p.cur_prem||0))*100*(Number(p.contracts)||1);
+      const _pct=(Number(p.prem_in)>0)?((Number(p.prem_in)-Number(p.cur_prem))/Number(p.prem_in)*100):null;
+      h+='<tr><td><b>'+esc(p.ticker)+'</b> <span style="color:#dc2626;font-weight:700">● 真倉</span> <span class="pill b" style="font-size:9px">⚙️w320</span></td><td class="r">$'+px2(p.K)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+esc(p.contracts)+'</td><td class="r">'+px2(p.prem_in)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'<span class="muted">等mark</span>')+'</td><td class="r">'+beCell(_p2)+'</td><td class="r">'+(_pct!=null?_pct.toFixed(0)+'%':'—')+'</td><td class="r">'+(_un>=0?'<span class="pos">':'<span class="neg">')+money(_un*_fx)+'</span></td><td class="small muted">w320 引擎管（出場經 w320 tab）</td></tr>';
     });
     h+='</tbody></table></div>';
   }else{h='<div class="muted">暫無真倉。</div>';}
