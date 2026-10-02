@@ -1262,9 +1262,16 @@ function ledPnlU(t){   // ⭐09-13：pnl=費後口徑（同 pnl_hkd 一致）；
 function w320LedgerRows(){
   try{
     const H=((w320Rec&&w320Rec.engine_book)||{}).history||[];
+    // ⭐ 10-02（user 報雙計）：同一單真倉平倉會同時入 h6040 rec ledger（Futu 實單口徑）同 w320 引擎簿
+    //   （APP K307.5 09-22 buy-back、MRVL K240 09-26 auto stop 兩單實證，pnl 分毫一樣）→ 引擎簿腿同
+    //   h6040 ledger 撞 key（ticker+K+張數+同日平倉）就剔走，留 h6040 行做代表（實單口徑、計佣金）；
+    //   淨低 ⚙️w320 行＝只有引擎簿有嘅平倉（如 ALAB 10-02）。ledger_recent 係尾 12 條，好舊 twin 會漏（暫接受）。
+    const _rk={};
+    ((rec&&rec.ledger_recent)||[]).forEach(function(t){if(t.real)_rk[[t.ticker,t.strike,t.contracts||1,String(t.closed||'').slice(0,10)].join('|')]=1;});
     return H.filter(p=>p.real).map(p=>({ticker:p.ticker,strike:p.K,contracts:p.contracts,
       close_reason:String(p.reason||'w320 close'),pnl:p.pnl_usd,pnl_hkd:p.pnl_hkd,
-      opened:p.opened,closed:p.closed_ts,__w320:true}));
+      opened:p.opened,closed:p.closed_ts,__w320:true}))
+      .filter(function(t){return !_rk[[t.ticker,t.strike,t.contracts||1,String(t.closed||'').slice(0,10)].join('|')];});
   }catch(e){return[];}
 }
 function ledSpan(t){   // 「幾時開 → 幾時平」（MM-DD → MM-DD HH:MM，HKT）
