@@ -3010,7 +3010,16 @@ function renderWheel320(){
                  :'<span style="color:var(--bad);font-weight:800">0</span>');
       g+='<tr'+(sz.fits===false?' style="background:#fef2f2"':'')+'>'
         +'<td><span class="w320rank'+rc+'">'+(i+1)+'</span></td>'
-        +'<td><b>'+esc(l.ticker)+'</b>'+(l.is_index?' <span class="pill t">指數</span>':'')+'</td>'
+        +'<td><b>'+esc(l.ticker)+'</b>'+(l.is_index?' <span class="pill t">指數</span>':'')
+        /* ⭐ 2026-10-02 榜標記（09-30 判決收口）：bridge serve-time 閘A/B/C badge——
+           ❌紅＝嗰條腿開唔過（同名／>50%／帳簿滿），✅綠＝三閘過，？灰＝equity 缺 fail-soft。
+           懸停睇義務數＋% equity；結論跟 preflight ⑨ 一字一致。 */
+        +(function(){const gm=l.gate;if(!gm)return '';
+          const tip=esc(gm.note||'');
+          if(gm.ok===true)return ' <span class="pill g" data-tip="'+tip+'" style="cursor:help">✅閘</span>';
+          if(gm.ok===false){const m=String(gm.note||'').match(/閘[ABC]/);
+            return ' <span class="pill" data-tip="'+tip+'" style="cursor:help;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca">❌'+esc(m?m[0]:'閘')+'</span>';}
+          return ' <span class="pill" data-tip="'+tip+'" style="cursor:help;background:#f1f5f9;color:#64748b">？閘</span>';})()+'</td>'
         +'<td class="r"'+(l.score!=null?(' data-tip="<b>模型分數</b><br>vrp_gate rank_key = max 12 週 RV z-score：<b>'+w320n(l.score,2)+'</b><br><small>模型就係用呢個分數排 top_n=4；分數越高＝premium 相對歷史波動越肥</small>"'):'')+'>'
           +(l.score!=null?w320n(l.score,2):'<span class="muted">—</span>')+'</td>'
         +'<td class="r">'+(hasLive
