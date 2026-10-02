@@ -218,7 +218,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
       <div class="card-b" id="ovCapBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">開倉位（未實現 mark-to-market）</span><span class="meta" id="ovPosMeta"></span></div>
       <div class="card-b" id="ovPosBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">近期平倉紀錄（已實現）</span><span class="meta" id="ovLedgerMeta">真倉（Futu 實單）</span></div>
+    <div class="card"><div class="card-h"><span class="t">近期平倉紀錄（已實現）</span><span class="meta" id="ovLedgerMeta">真倉（Futu 實單 · 含 ⚙️w320 引擎簿）</span></div>
       <div class="card-b" id="ovLedgerBody"></div></div>
   </div>
 
@@ -1195,6 +1195,13 @@ function updateMonthlyProgress(){
     if(_mrow){ monthlyIncome = _mrow.pnl_hkd; }
   }
 
+  // ⭐ 2026-10-02（user 欽定「每月進度都要update，自己醒目d」）：w320 引擎簿已實現都要入進度——
+  //   bridge goals 口徑只計 h6040 rec ledger，w320 引擎簿 P&L 要度身加（未計佣金，同 w320 tab 口徑一致）
+  const _w32rows=w320LedgerRows();
+  const _w32mo=_w32rows.filter(function(t){return String(t.closed||'').slice(0,7)===_mk;})
+                       .reduce(function(s,t){return s+(Number(t.pnl_hkd)||0);},0);
+  if(_w32rows.length) monthlyIncome += _w32mo;
+
   // 計算進度百分比：文字唔封頂（超額要見到 364%），條寬夾 0–100（負數→0）
   const pct = monthlyTarget ? (monthlyIncome / monthlyTarget) * 100 : 0;
   const progress = Math.round(pct);
@@ -1218,6 +1225,7 @@ function updateMonthlyProgress(){
     `本月實現收入：${hkd(monthlyIncome)}<br>` +
     `${targetDescription}：HKD ${monthlyTarget.toLocaleString()}<br>` +
     `進度：${progress}%<br>` +
+    (_w32rows.length ? `⚙️w320 引擎簿本月：${hkd(_w32mo)}（已合入，未計佣金）<br>` : '') +
     `<small>monitor 月目標＝d2025 實測窗三檔月化平均 HK$7,128（09-16 拍板，週 HK$1,645）；離線 fallback 錨＝HK$10,000（mu 0.25 目標線：mu25 backtest 腿均月 ≈HK$11,472 in-sample；2025 實測窗 HK$7,214＝72%，全年僅 4 活躍月，活躍月均 HK$21,641）；live 收數 8-12 週 review；全家桶均月 HK$33,287 係上限參考</small>`
   );
 
@@ -1225,34 +1233,67 @@ function updateMonthlyProgress(){
   const _ml = $('monthlyRealizedList');
   if(_ml){
     const _rows = (rec && rec.monthly_realized) || [];
-    _ml.innerHTML = _rows.length ? _rows.map(function(r){
+    // ⭐ 2026-10-02：w320 引擎簿按月實現（⚙️ 前綴）——bridge monthly_realized 只包 h6040
+    const _wm={};
+    _w32rows.forEach(function(t){const m=String(t.closed||'').slice(0,7);if(m)_wm[m]=(_wm[m]||0)+(Number(t.pnl_hkd)||0);});
+    const _whtml=Object.keys(_wm).sort().map(function(m){
+      const _pos=_wm[m]>=0,_wcur=m===_mk;
+      return '<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11px;padding:2px 0'+(_wcur?';border-top:1px dashed #334155;margin-top:3px;padding-top:4px':'')+'">'
+        +'<span style="color:#64748b">⚙️w320 '+m+'</span>'
+        +'<span style="font-weight:700;color:'+(_pos?'#16a34a':'#dc2626')+'">'+hkd(_wm[m])+'</span>'
+        +'</div>';
+    }).join('');
+    _ml.innerHTML = (_rows.length ? _rows.map(function(r){
       const _pos = (r.pnl_hkd||0) >= 0, _cur = r.month === _mk;
       return '<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11px;padding:2px 0'+(_cur?';border-top:1px dashed #334155;margin-top:3px;padding-top:4px':'')+'">'
         + '<span style="color:#64748b">'+(_cur?'📍 ':'')+r.month+'（'+r.trades+' 筆）</span>'
         + '<span style="font-weight:700;color:'+(_pos?'#16a34a':'#dc2626')+'">'+hkd(r.pnl_hkd||0)+'</span>'
         + '</div>';
-    }).join('') : '';
+    }).join('') : '') + _whtml;
   }
 }
 
 function ledPnlU(t){   // ⭐09-13：pnl=費後口徑（同 pnl_hkd 一致）；台賬倉淨有 pnl_usd，缺就 fallback
   return Number(t.pnl!=null?t.pnl:t.pnl_usd)||0;
 }
+/* ⭐ 2026-10-02（user 欽定）：w320 引擎簿真倉已平腿都入「平倉紀錄」表（總覽＋期權兩個 pane）——
+   mapping 到 h6040 ledger row 形狀（strike=K、close_reason=reason、closed=closed_ts、__w320 標記）。
+   口徑＝引擎簿 pnl（未計佣金）；只計 real，○模擬照 w320 tab 真/模分帳規矩唔入呢度。 */
+function w320LedgerRows(){
+  try{
+    const H=((w320Rec&&w320Rec.engine_book)||{}).history||[];
+    return H.filter(p=>p.real).map(p=>({ticker:p.ticker,strike:p.K,contracts:p.contracts,
+      close_reason:String(p.reason||'w320 close'),pnl:p.pnl_usd,pnl_hkd:p.pnl_hkd,
+      opened:p.opened,closed:p.closed_ts,__w320:true}));
+  }catch(e){return[];}
+}
+function ledSpan(t){   // 「幾時開 → 幾時平」（MM-DD → MM-DD HH:MM，HKT）
+  const o=t.opened?String(t.opened).slice(5,10):'—';
+  const c=t.closed?String(t.closed).slice(5,16).replace('T',' '):'—';
+  return o+' → '+c;
+}
 function ledTable(led){
   // ⭐09-13（user 拍板）：兩幣都由首張真單 NBIS 220P 開始計——paper-test 台賬倉（close_reason 'paper-test 倉…'，
   //   DRAM/GLW 08-23）唔入表唔入 Σ（同「唔計入每月進度」08-28 規則同一口徑）
   const rows=led.filter(function(t){return !/^paper-test 倉/.test(t.close_reason||'');});
   if(!rows.length)return '<div class="muted">只有 paper-test 台賬倉（09-13 起唔計入 P&amp;L 表）。</div>';
-  let h='<table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>張數</th><th>原因</th><th class="r">P&amp;L (USD)</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
+  // ⭐ 2026-10-02：加「開 → 平」欄（user 拍板）＋ w320 引擎簿腿標記
+  let h='<table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>張數</th><th>開 → 平</th><th>原因</th><th class="r">P&amp;L (USD)</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
   rows.forEach(t=>{
-    h+='<tr><td><b>'+esc(t.ticker)+'</b></td><td class="r">$'+t.strike+'</td><td class="r">'+(t.contracts||1)+'</td><td>'+esc(t.close_reason)+'</td><td class="r">'+money(ledPnlU(t))+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
+    h+='<tr><td><b>'+esc(t.ticker)+'</b>'+(t.__w320?' <span class="pill b" style="font-size:9px;vertical-align:middle">⚙️w320</span>':'')+'</td><td class="r">$'+t.strike+'</td><td class="r">'+(t.contracts||1)+'</td><td class="small muted" style="white-space:nowrap">'+esc(ledSpan(t))+'</td><td>'+esc(t.close_reason)+'</td><td class="r">'+money(ledPnlU(t))+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
   });
   // ⭐ 09-03：Σ row —— 張數＋P&L 兩幣加總（行使價/原因冇 sum 意義留空）；call site 有 led.length guard
   const sC=rows.reduce((s,t)=>s+(Number(t.contracts)||1),0);
   const sU=rows.reduce((s,t)=>s+ledPnlU(t),0);
   const sH=rows.reduce((s,t)=>s+(Number(t.pnl_hkd)||0),0);
-  h+='<tr style="border-top:2px solid var(--line);font-weight:700;background:#f8fafc"><td>Σ '+rows.length+' 筆</td><td></td><td class="r">'+sC+'</td><td></td><td class="r">'+money(sU)+'</td><td class="r">'+money(sH)+'</td></tr>';
-  return h+'</tbody></table>';
+  h+='<tr style="border-top:2px solid var(--line);font-weight:700;background:#f8fafc"><td>Σ '+rows.length+' 筆</td><td></td><td class="r">'+sC+'</td><td></td><td></td><td class="r">'+money(sU)+'</td><td class="r">'+money(sH)+'</td></tr>';
+  h+='</tbody></table>';
+  const _wr=rows.filter(function(t){return t.__w320;});
+  if(_wr.length){
+    const _u=_wr.reduce((s,t)=>s+ledPnlU(t),0), _hh=_wr.reduce((s,t)=>s+(Number(t.pnl_hkd)||0),0);
+    h+='<div class="small muted" style="margin-top:4px">⚙️ 其中 wheel320 引擎簿 '+_wr.length+' 筆（US$'+fmt(Math.abs(_u))+' / '+hkd(_hh)+'）· 引擎簿 P&amp;L 未計佣金 · 開→平＝HKT</div>';
+  }
+  return h;
 }
 
 function gateReason(){   // ⭐ 2026-08-17 v3：閘門關閉嘅「真實原因」—— 以前寫死「市寬 X%＜50%」，但 gate_closed 仲有每日 2 倉上限／熔斷兩個來源 → 出過「市寬 59% ＜ 50%」自相矛盾訊息
@@ -2579,7 +2620,7 @@ async function loadWheel320(force){
     if(!j||j.error)throw new Error((j&&j.error)||'feed 未就緒');
     w320Rec=j; w320At=Date.now();
   }catch(e){ w320Err=String(e&&e.message||e); }
-  w320Busy=false; renderWheel320(); renderOverview();   // ⭐ 09-28：總覽開倉位都出 w320 引擎簿腿
+  w320Busy=false; renderWheel320(); renderOverview(); updateMonthlyProgress();   // ⭐ 09-28 總覽開倉位；⭐ 10-02 平倉紀錄＋每月進度都吃引擎簿
   w320AutoQuotes(false);   // ⭐ 09-18：開 tab／feed 更新即刻自動拉實價（唔使人手撳掣）
 }
 async function w320Tag(key,on){
@@ -3670,7 +3711,8 @@ function renderOverview(){
     ph+='</tbody></table></div>';
   }
   $('ovPosBody').innerHTML=ph;
-  const led=((rec&&rec.ledger_recent)||[]).filter(t=>t.real);
+  // ⭐ 2026-10-02：w320 引擎簿真倉已平腿（如 ALAB）都入總覽平倉紀錄
+  const led=((rec&&rec.ledger_recent)||[]).filter(t=>t.real).concat(w320LedgerRows());
   $('ovLedgerBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">尚無真倉平倉紀錄。</div>';
   applyKpiHide();
 }
@@ -3709,8 +3751,11 @@ function renderPositions(){
   }
   body.innerHTML=h;
   const pf=(rec&&rec.portfolio)||{};
-  $('ledMeta').textContent='真倉已實現 '+hkd((pf.real_realized_hkd!=null)?pf.real_realized_hkd:0);
-  const led=((rec&&rec.ledger_recent)||[]).filter(t=>t.real);
+  // ⭐ 2026-10-02：w320 引擎簿已實現合入 ledMeta＋表（同總覽同一 concat 口徑）
+  const _wl=w320LedgerRows();
+  const _wlH=_wl.reduce((s,t)=>s+(Number(t.pnl_hkd)||0),0);
+  $('ledMeta').textContent='真倉已實現 '+hkd((pf.real_realized_hkd!=null)?pf.real_realized_hkd:0)+(_wl.length?' ＋ w320 引擎簿 '+hkd(_wlH):'');
+  const led=((rec&&rec.ledger_recent)||[]).filter(t=>t.real).concat(_wl);
   $('ledBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">尚無真倉平倉紀錄。</div>';
 }
 /* ⭐ 08-26 價格對齊：h6040 池「現價」live-first —— bridge live 優先（同全 dashboard 同一個 live map），
@@ -4130,6 +4175,7 @@ fetchWscanUsd();
 setInterval(function(){loadQuant(true);},15*60000);   // ⭐ 08-23：正股 quant model（策略交易台＋業績日曆）每 15 分鐘重拎（/api ~1MB，唔跟 60s 週期）
 loadQuant();   // boot 即刻拎（990KB；到手自動重繪 執倉建議／策略交易台／業績日曆 三個 tab）
 loadRec();
+loadWheel320(false);   // ⭐ 10-02（user 欽定）：boot 就載引擎簿——總覽開倉位 COHR／平倉紀錄 ALAB 唔使入 w320 tab 先有（以前只喺 tab click 先載）
 loadH6040Rec();
 bootMode();
 </script>
