@@ -3711,9 +3711,10 @@ function renderOverview(){
     ph+='</tbody></table></div>';
   }
   $('ovPosBody').innerHTML=ph;
-  // ⭐ 2026-10-02：w320 引擎簿真倉已平腿（如 ALAB）都入總覽平倉紀錄
+  // ⭐ 2026-10-02：w320 引擎簿真倉已平腿（如 ALAB）都入總覽平倉紀錄；照平倉時間倒序（最新喺頂，user 欽定）
   const led=((rec&&rec.ledger_recent)||[]).filter(t=>t.real).concat(w320LedgerRows());
-  $('ovLedgerBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">尚無真倉平倉紀錄。</div>';
+  led.sort(function(a,b){return String(b.closed||'').slice(0,19).localeCompare(String(a.closed||'').slice(0,19));});
+  $('ovLedgerBody').innerHTML=led.length?ledTable(led):'<div class="muted">尚無真倉平倉紀錄。</div>';
   applyKpiHide();
 }
 function renderPositions(){
@@ -3756,7 +3757,8 @@ function renderPositions(){
   const _wlH=_wl.reduce((s,t)=>s+(Number(t.pnl_hkd)||0),0);
   $('ledMeta').textContent='真倉已實現 '+hkd((pf.real_realized_hkd!=null)?pf.real_realized_hkd:0)+(_wl.length?' ＋ w320 引擎簿 '+hkd(_wlH):'');
   const led=((rec&&rec.ledger_recent)||[]).filter(t=>t.real).concat(_wl);
-  $('ledBody').innerHTML=led.length?ledTable(led.slice().reverse()):'<div class="muted">尚無真倉平倉紀錄。</div>';
+  led.sort(function(a,b){return String(b.closed||'').slice(0,19).localeCompare(String(a.closed||'').slice(0,19));});   // ⭐ 10-02 平倉時間倒序（最新喺頂）
+  $('ledBody').innerHTML=led.length?ledTable(led):'<div class="muted">尚無真倉平倉紀錄。</div>';
 }
 /* ⭐ 08-26 價格對齊：h6040 池「現價」live-first —— bridge live 優先（同全 dashboard 同一個 live map），
    冇 live 先出掃描價；每格細字標明來源（綠=live 時間／琥珀=掃描日期）。以前呢度出 06:10 掃描凍價，
