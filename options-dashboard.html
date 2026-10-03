@@ -3710,7 +3710,10 @@ function renderOverview(){
         const _p2={ticker:p.ticker,strike:p.K,expiry:p.expiry,entry_prem:p.prem_in,cur_prem:p.cur_prem,side:(p.side==='CC'?'CALL':'PUT')};
         const _un=(Number(p.prem_in||0)-Number(p.cur_prem||0))*100*(Number(p.contracts)||1);
         const _pc=(Number(p.prem_in)>0)?((Number(p.prem_in)-Number(p.cur_prem))/Number(p.prem_in)*100):null;
-        ph+='<tr><td><b>'+esc(p.ticker)+'</b> <span style="color:#dc2626;font-weight:700">● 真倉</span> <span class="muted small">引擎簿記帳</span></td><td class="r">$'+px2(p.K)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+esc(p.contracts)+'</td><td class="r">'+px2(p.prem_in)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'<span class="muted">等mark</span>')+'</td><td class="r">'+beCell(_p2)+'</td><td class="r">'+(_pc!=null?_pc.toFixed(0)+'%':'—')+'</td><td class="r">'+(_un>=0?'<span class="pos">':'<span class="neg">')+money(_un*_fx3)+'</span></td><td class="muted small">出場經 w320</td><td>'+tag3+'</td></tr>';
+        /* ⭐ 10-03 user：非 w320 model 開倉（momentum observed／洗倉雷達）要喺「操作」欄顯示開倉原因；tagged 先係「出場經 w320」 */
+        const _rs3=((p.reason||'').split('（')[0]||'').trim()||'引擎簿記帳';
+        const _op3=on3?'出場經 w320':_rs3;
+        ph+='<tr><td><b>'+esc(p.ticker)+'</b> <span style="color:#dc2626;font-weight:700">● 真倉</span> <span class="muted small">引擎簿記帳</span></td><td class="r">$'+px2(p.K)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+esc(p.contracts)+'</td><td class="r">'+px2(p.prem_in)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'<span class="muted">等mark</span>')+'</td><td class="r">'+beCell(_p2)+'</td><td class="r">'+(_pc!=null?_pc.toFixed(0)+'%':'—')+'</td><td class="r">'+(_un>=0?'<span class="pos">':'<span class="neg">')+money(_un*_fx3)+'</span></td><td class="muted small" title="'+esc(p.reason||'')+'">'+_op3+'</td><td>'+tag3+'</td></tr>';
       }
     });
     ph+='</tbody></table></div>';
@@ -3767,7 +3770,10 @@ function renderPositions(){
         const _pct=(Number(p.prem_in)>0)?((Number(p.prem_in)-Number(p.cur_prem))/Number(p.prem_in)*100):null;
         const _kk=w320R({ticker:p.ticker,strike:p.K,expiry:p.expiry});
         const _pill=_tagsP[_kk]?' <span class="pill b" style="font-size:9px">⚙️w320</span>':' <span class="muted small">引擎簿記帳</span>';
-        h+='<tr><td><b>'+esc(p.ticker)+'</b> <span style="color:#dc2626;font-weight:700">● 真倉</span>'+_pill+'</td><td class="r">$'+px2(p.K)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+esc(p.contracts)+'</td><td class="r">'+px2(p.prem_in)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'<span class="muted">等mark</span>')+'</td><td class="r">'+beCell(_p2)+'</td><td class="r">'+(_pct!=null?_pct.toFixed(0)+'%':'—')+'</td><td class="r">'+(_un>=0?'<span class="pos">':'<span class="neg">')+money(_un*_fx)+'</span></td><td class="small muted">出場經 w320 tab</td></tr>';
+        /* ⭐ 10-03 user：開倉原因入「操作」欄（tagged 先係「出場經 w320 tab」） */
+        const _rsP=((p.reason||'').split('（')[0]||'').trim()||'引擎簿記帳';
+        const _opP=_tagsP[_kk]?'出場經 w320 tab':_rsP;
+        h+='<tr><td><b>'+esc(p.ticker)+'</b> <span style="color:#dc2626;font-weight:700">● 真倉</span>'+_pill+'</td><td class="r">$'+px2(p.K)+'</td><td>'+esc(p.expiry)+'</td><td class="r">'+esc(p.contracts)+'</td><td class="r">'+px2(p.prem_in)+' / '+(p.cur_prem!=null?px2(p.cur_prem):'<span class="muted">等mark</span>')+'</td><td class="r">'+beCell(_p2)+'</td><td class="r">'+(_pct!=null?_pct.toFixed(0)+'%':'—')+'</td><td class="r">'+(_un>=0?'<span class="pos">':'<span class="neg">')+money(_un*_fx)+'</span></td><td class="small muted" title="'+esc(p.reason||'')+'">'+_opP+'</td></tr>';
       }
     });
     h+='</tbody></table></div>';
