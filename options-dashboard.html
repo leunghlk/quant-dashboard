@@ -1655,7 +1655,7 @@ function renderDetailMeta(c){
   m+='<tr><td class="c">Vega（每1% IV）</td><td class="r mono">'+(c.vega!=null?c.vega:'—')+'</td><td class="small">IV+1%→權利金變動'+tip('vega')+'</td></tr>';
   m+='<tr><td class="c">IV / IV Rank</td><td class="r mono">'+((c.iv||0)*100).toFixed(0)+'% / '+(c.iv_rank!=null?c.iv_rank:'—')+'</td><td class="small">隱含波動率 / 歷史百分位'+tip('ivrank')+'</td></tr>';
   m+='</tbody></table>';
-  $('detailMeta').innerHTML=m;
+  $('detailMeta').innerHTML='<div class="table-scroll">'+m+'</div>';
 }/* ════════════ 動態 payoff diagram（hover） ════════════ */
 let scenNval=null;
 function payoffData(c,n){
@@ -1805,7 +1805,7 @@ function renderScenarios(c){
   s+='<tr><td><b>🔵 到期被指派</b></td><td class="small">到期日收市價 &lt; $'+px2(K)+'</td><td class="r small">接 '+100*n+' 股 · 成本 $'+px2(K-prem)+'/股</td><td class="small">正常步驟不是輸：接貨 → 轉入 <b>Covered Call</b>（之後每 10–14 日沽 Call 收租 = wheel）</td></tr>';
   s+='</tbody></table>';
   s+='<div class="muted" style="font-size:11px;margin-top:4px">期權短倉 5 大出場：PT 50% 提早平倉 · Δ−0.50 roll · cut-before-assignment · 業績前平倉 · 指派 → CC。回測中大部分倉位以 PT 50% 離場，不會持有到期。</div>';
-  $('scenBody').innerHTML=s;
+  $('scenBody').innerHTML='<div class="table-scroll">'+s+'</div>';
 }
 function scenStep(d){
   scenNval=Math.max(1,Math.min(5,(scenNval||1)+d));
@@ -2264,9 +2264,9 @@ function renderDecisions(){
   const realPos=posAll.filter(x=>x.real);
   let hh='<div class="muted">Hybrid 60/40 視圖只追蹤真倉 —— 所有紙上倉已於 2026-08-23 清除。</div>';
   if(realPos.length){
-    hh+='<div style="font-weight:700;margin:8px 0 6px">🔴 現有真倉（'+realPos.length+'）</div><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">盈虧平衡</th><th class="r">未實現</th></tr></thead><tbody>';
+    hh+='<div style="font-weight:700;margin:8px 0 6px">🔴 現有真倉（'+realPos.length+'）</div><div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">盈虧平衡</th><th class="r">未實現</th></tr></thead><tbody>';
     realPos.forEach(p=>{hh+='<tr><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+money(p.pnl_hkd)+'</td></tr>';});
-    hh+='</tbody></table>';
+    hh+='</tbody></table></div>';
   }
   el.innerHTML=hh;
 }
@@ -2377,7 +2377,7 @@ function renderAdvice(){
       +'<td>'+_sigPill(sig)+'</td>'
       +'<td style="font-size:11px;font-weight:600;color:'+aCol+'">'+action+'</td></tr>';
   }).join('');
-  h+='<table class="utable"><thead><tr><th>股票</th><th class="r">股數/張</th><th class="r">現價</th><th class="r">盈虧(HKD)</th><th class="c">動量減速</th><th>信號</th><th>操作建議</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">📭 無持倉</td></tr>')+'</tbody></table>';
+  h+='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">股數/張</th><th class="r">現價</th><th class="r">盈虧(HKD)</th><th class="c">動量減速</th><th>信號</th><th>操作建議</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" style="color:#94a3b8;text-align:center;padding:16px">📭 無持倉</td></tr>')+'</tbody></table></div>';
   h+='<div style="font-size:11px;color:#64748b;margin-top:10px;padding:8px 10px;background:#f8fafc;border-radius:6px">📌 正股行＝<b>quant model（策略交易台）</b>計法：沽出提示 → 觸發退出 → Decel≤−3 強制離場 → 信號轉弱減持 → BUY 加倉（同 quant dashboard 同一把尺；無靜態到價/止蝕）。期權行＝Hybrid 60/40 短 put 出場規則（PT 50% ／ 止損 1.9×）。</div>';
   el.innerHTML=h;
 }
