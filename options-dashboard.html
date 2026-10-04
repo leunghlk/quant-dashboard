@@ -1285,7 +1285,7 @@ function ledTable(led){
   const rows=led.filter(function(t){return !/^paper-test 倉/.test(t.close_reason||'');});
   if(!rows.length)return '<div class="muted">只有 paper-test 台賬倉（09-13 起唔計入 P&amp;L 表）。</div>';
   // ⭐ 2026-10-02：加「開 → 平」欄（user 拍板）＋ w320 引擎簿腿標記
-  let h='<table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>張數</th><th>開 → 平</th><th>原因</th><th class="r">P&amp;L (USD)</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
+  let h='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>張數</th><th>開 → 平</th><th>原因</th><th class="r">P&amp;L (USD)</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
   rows.forEach(t=>{
     h+='<tr><td><b>'+esc(t.ticker)+'</b>'+(t.__w320?' <span class="pill b" style="font-size:9px;vertical-align:middle">⚙️w320</span>':'')+'</td><td class="r">$'+t.strike+'</td><td class="r">'+(t.contracts||1)+'</td><td class="small muted" style="white-space:nowrap">'+esc(ledSpan(t))+'</td><td>'+esc(t.close_reason)+'</td><td class="r">'+money(ledPnlU(t))+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
   });
@@ -1294,7 +1294,7 @@ function ledTable(led){
   const sU=rows.reduce((s,t)=>s+ledPnlU(t),0);
   const sH=rows.reduce((s,t)=>s+(Number(t.pnl_hkd)||0),0);
   h+='<tr style="border-top:2px solid var(--line);font-weight:700;background:#f8fafc"><td>Σ '+rows.length+' 筆</td><td></td><td class="r">'+sC+'</td><td></td><td></td><td class="r">'+money(sU)+'</td><td class="r">'+money(sH)+'</td></tr>';
-  h+='</tbody></table>';
+  h+='</tbody></table></div>';
   const _wr=rows.filter(function(t){return t.__w320;});
   if(_wr.length){
     const _u=_wr.reduce((s,t)=>s+ledPnlU(t),0), _hh=_wr.reduce((s,t)=>s+(Number(t.pnl_hkd)||0),0);
