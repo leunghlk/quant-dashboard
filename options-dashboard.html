@@ -218,7 +218,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
       <div class="card-b" id="ovCapBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">開倉位（未實現 mark-to-market）</span><span class="meta" id="ovPosMeta"></span></div>
       <div class="card-b" id="ovPosBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">近期平倉紀錄（已實現）</span><span class="meta" id="ovLedgerMeta">真倉（Futu 實單 · 含 ⚙️w320 引擎簿）</span></div>
+    <div class="card"><div class="card-h"><span class="t">平倉紀錄（已實現）</span><span class="meta" id="ovLedgerMeta">真倉（Futu 實單 · 含 ⚙️w320 引擎簿）</span><select id="ledPeriodSel1" onchange="ledPeriodChange(this.value)" style="font-size:11px;padding:2px 4px;border:1px solid var(--line);border-radius:6px;background:#fff;color:inherit;margin-left:6px"></select></div>
       <div class="card-b" id="ovLedgerBody"></div></div>
   </div>
 
@@ -263,7 +263,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
       <div class="card-b" id="actBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">📋 開倉位</span><span class="meta">PT 50% 平倉 · cut 止損 · 業績日必平 · 可手動平倉</span></div>
       <div class="card-b" id="posBody"></div></div>
-    <div class="card"><div class="card-h"><span class="t">📒 交易紀錄</span><span class="meta" id="ledMeta"></span></div>
+    <div class="card"><div class="card-h"><span class="t">📒 交易紀錄</span><span class="meta" id="ledMeta"></span><select id="ledPeriodSel2" onchange="ledPeriodChange(this.value)" style="font-size:11px;padding:2px 4px;border:1px solid var(--line);border-radius:6px;background:#fff;color:inherit;margin-left:6px"></select></div>
       <div class="card-b" id="ledBody"></div></div>
   </div>
 
@@ -1276,9 +1276,9 @@ function w320LedgerRows(){
     // ⭐ 10-02（user 報雙計）：同一單真倉平倉會同時入 h6040 rec ledger（Futu 實單口徑）同 w320 引擎簿
     //   （APP K307.5 09-22 buy-back、MRVL K240 09-26 auto stop 兩單實證，pnl 分毫一樣）→ 引擎簿腿同
     //   h6040 ledger 撞 key（ticker+K+張數+同日平倉）就剔走，留 h6040 行做代表（實單口徑、計佣金）；
-    //   淨低 ⚙️w320 行＝只有引擎簿有嘅平倉（如 ALAB 10-02）。ledger_recent 係尾 12 條，好舊 twin 會漏（暫接受）。
+    //   ⭐ 10-07 dedup 源改 ledger_all（bridge 全量）——舊 ledger_recent 得尾 12 條，好舊 twin 會漏。
     const _rk={};
-    ((rec&&rec.ledger_recent)||[]).forEach(function(t){if(t.real)_rk[[t.ticker,t.strike,t.contracts||1,String(t.closed||'').slice(0,10)].join('|')]=1;});
+    ((rec&&(rec.ledger_all||rec.ledger_recent))||[]).forEach(function(t){if(t.real)_rk[[t.ticker,t.strike,t.contracts||1,String(t.closed||'').slice(0,10)].join('|')]=1;});
     return H.filter(p=>p.real).map(p=>({ticker:p.ticker,strike:p.K,contracts:p.contracts,
       close_reason:String(p.reason||'w320 close'),pnl:p.pnl_usd,pnl_hkd:p.pnl_hkd,
       opened:p.opened,closed:p.closed_ts,__w320:true}))
@@ -1290,11 +1290,68 @@ function ledSpan(t){   // 「幾時開 → 幾時平」（MM-DD → MM-DD HH:MM�
   const c=t.closed?String(t.closed).slice(5,16).replace('T',' '):'—';
   return o+' → '+c;
 }
+/* ⭐ 2026-10-07（user 欽定）：平倉紀錄表加時段揀選（全期／本月 MTD／今年 YTD／按月）。
+   舊病：表只食 rec.ledger_recent（尾 12 條）→ 全期 Σ 顯 32,206，但「每月進度」Σ 43,134
+   ——差額＝NBIS 220P +6,677／CRDO +4,251 兩筆 2026-08 單跌出窗口。bridge 現出 ledger_all
+   （全量 trades），表同每月進度同一口徑；Σ row 跟住揀咗嘅時段計。預設「全期」。 */
+let LED_PERIOD='all';
+function ledInPeriod(t){
+  const c=String(t.closed||'').slice(0,10);
+  if(!c)return false;
+  const _now=new Date();
+  if(LED_PERIOD==='all')return true;
+  if(LED_PERIOD==='mtd')return c.slice(0,7)===_now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0');
+  if(LED_PERIOD==='ytd')return c.slice(0,4)===String(_now.getFullYear());
+  return c.slice(0,7)===LED_PERIOD;   // 具體月份 'YYYY-MM'
+}
+function ledPeriodTag(){
+  if(LED_PERIOD==='all')return '';
+  if(LED_PERIOD==='mtd')return ' · 本月';
+  if(LED_PERIOD==='ytd')return ' · 今年';
+  return ' · '+LED_PERIOD;
+}
+function ledPeriodChange(v){
+  LED_PERIOD=v||'all';
+  ['ledPeriodSel1','ledPeriodSel2'].forEach(function(id){
+    const el=document.getElementById(id);
+    if(el&&el.value!==LED_PERIOD)el.value=LED_PERIOD;
+  });
+  renderLedgerPanes();
+}
+function _syncLedPeriodSels(led){
+  // 按月 options 由現有數據月份倒序生成（唔用死日子）；兩個 pane 嘅 select 同步同一 value
+  const _ms={};
+  (led||[]).forEach(function(t){if(!/^paper-test 倉/.test(t.close_reason||'')){const m=String(t.closed||'').slice(0,7);if(m)_ms[m]=1;}});
+  let _o='<option value="all">全期（開始玩期權起）</option><option value="mtd">本月（MTD）</option><option value="ytd">今年（YTD）</option>';
+  Object.keys(_ms).sort().reverse().forEach(function(m){_o+='<option value="'+m+'">'+m+'</option>';});
+  ['ledPeriodSel1','ledPeriodSel2'].forEach(function(id){
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.innerHTML=_o;
+    el.value=LED_PERIOD;
+  });
+}
+function _ledMerged(){
+  // ⭐ 10-07 表源升級：rec.ledger_all（bridge 全量）為主，ledger_recent 做後備；＋w320 引擎簿（twin 已剔）
+  const _src=((rec&&(rec.ledger_all||rec.ledger_recent))||[]).filter(t=>t.real).concat(w320LedgerRows());
+  _src.sort(function(a,b){return String(b.closed||'').slice(0,19).localeCompare(String(a.closed||'').slice(0,19));});   // 平倉時間倒序（最新喺頂）
+  return _src;
+}
+function renderLedgerPanes(){
+  // 總覽＋期權 tab 兩個平倉卡共用一個渲染入口（時段揀選改變時兩邊一齊翻）
+  const led=_ledMerged();
+  _syncLedPeriodSels(led);
+  const _h=led.length?ledTable(led):'<div class="muted">尚無真倉平倉紀錄。</div>';
+  const _a=$('ovLedgerBody'),_b=$('ledBody');
+  if(_a)_a.innerHTML=_h;
+  if(_b)_b.innerHTML=_h;
+}
 function ledTable(led){
   // ⭐09-13（user 拍板）：兩幣都由首張真單 NBIS 220P 開始計——paper-test 台賬倉（close_reason 'paper-test 倉…'，
   //   DRAM/GLW 08-23）唔入表唔入 Σ（同「唔計入每月進度」08-28 規則同一口徑）
-  const rows=led.filter(function(t){return !/^paper-test 倉/.test(t.close_reason||'');});
-  if(!rows.length)return '<div class="muted">只有 paper-test 台賬倉（09-13 起唔計入 P&amp;L 表）。</div>';
+  // ⭐10-07 再加時段過濾（LED_PERIOD；Σ row 跟時段）
+  const rows=led.filter(function(t){return !/^paper-test 倉/.test(t.close_reason||'')&&ledInPeriod(t);});
+  if(!rows.length)return '<div class="muted">此時段冇平倉紀錄。</div>';
   // ⭐ 2026-10-02：加「開 → 平」欄（user 拍板）＋ w320 引擎簿腿標記
   let h='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>張數</th><th>開 → 平</th><th>原因</th><th class="r">P&amp;L (USD)</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
   rows.forEach(t=>{
@@ -1304,7 +1361,7 @@ function ledTable(led){
   const sC=rows.reduce((s,t)=>s+(Number(t.contracts)||1),0);
   const sU=rows.reduce((s,t)=>s+ledPnlU(t),0);
   const sH=rows.reduce((s,t)=>s+(Number(t.pnl_hkd)||0),0);
-  h+='<tr style="border-top:2px solid var(--line);font-weight:700;background:#f8fafc"><td>Σ '+rows.length+' 筆</td><td></td><td class="r">'+sC+'</td><td></td><td></td><td class="r">'+money(sU)+'</td><td class="r">'+money(sH)+'</td></tr>';
+  h+='<tr style="border-top:2px solid var(--line);font-weight:700;background:#f8fafc"><td>Σ '+rows.length+' 筆'+ledPeriodTag()+'</td><td></td><td class="r">'+sC+'</td><td></td><td></td><td class="r">'+money(sU)+'</td><td class="r">'+money(sH)+'</td></tr>';
   h+='</tbody></table></div>';
   const _wr=rows.filter(function(t){return t.__w320;});
   if(_wr.length){
@@ -3742,10 +3799,8 @@ function renderOverview(){
   }
   /* ⭐ 2026-10-03：拆走舊「⚙️wheel320 引擎簿」獨立段——統一表已含引擎簿真倉腿（tag 制唔分段） */
   $('ovPosBody').innerHTML=ph;
-  // ⭐ 2026-10-02：w320 引擎簿真倉已平腿（如 ALAB）都入總覽平倉紀錄；照平倉時間倒序（最新喺頂，user 欽定）
-  const led=((rec&&rec.ledger_recent)||[]).filter(t=>t.real).concat(w320LedgerRows());
-  led.sort(function(a,b){return String(b.closed||'').slice(0,19).localeCompare(String(a.closed||'').slice(0,19));});
-  $('ovLedgerBody').innerHTML=led.length?ledTable(led):'<div class="muted">尚無真倉平倉紀錄。</div>';
+  // ⭐ 2026-10-02：w320 引擎簿真倉已平腿（如 ALAB）都入總覽平倉紀錄；⭐10-07 兩 pane 統一經 renderLedgerPanes（時段揀選＋ledger_all）
+  renderLedgerPanes();
   applyKpiHide();
 }
 function renderPositions(){
@@ -3812,9 +3867,8 @@ function renderPositions(){
   const _wl=w320LedgerRows();
   const _wlH=_wl.reduce((s,t)=>s+(Number(t.pnl_hkd)||0),0);
   $('ledMeta').textContent='真倉已實現 '+hkd((pf.real_realized_hkd!=null)?pf.real_realized_hkd:0)+(_wl.length?' ＋ w320 引擎簿 '+hkd(_wlH):'');
-  const led=((rec&&rec.ledger_recent)||[]).filter(t=>t.real).concat(_wl);
-  led.sort(function(a,b){return String(b.closed||'').slice(0,19).localeCompare(String(a.closed||'').slice(0,19));});   // ⭐ 10-02 平倉時間倒序（最新喺頂）
-  $('ledBody').innerHTML=led.length?ledTable(led):'<div class="muted">尚無真倉平倉紀錄。</div>';
+  // ⭐ 10-07 表體統一經 renderLedgerPanes（ledger_all＋時段揀選；ledMeta headline 照全期口徑）
+  renderLedgerPanes();
 }
 /* ⭐ 08-26 價格對齊：h6040 池「現價」live-first —— bridge live 優先（同全 dashboard 同一個 live map），
    冇 live 先出掃描價；每格細字標明來源（綠=live 時間／琥珀=掃描日期）。以前呢度出 06:10 掃描凍價，
