@@ -1909,22 +1909,28 @@ let chainCache={}, chainExpIdx={};
 function _upgradeCandFromChain(tk,j){
   if(activeTk!==tk)return;
   const c=findCandidate(tk);
-  if(!c||c.fromChain)return;
-  if(!j||!j.ok||!Array.isArray(j.expiries)||!(Number(j.spot)>0))return;
+  if(!c||!j||!j.ok||!Array.isArray(j.expiries)||!(Number(j.spot)>0))return;
+  const S=Number(j.spot),K=Number(c.strike)||0;
+  let dirty=false;
+  /* spot reconcile：chain.spot 係 live 事實——掃描 placeholder／板快照 ctx 一律跟上（>0.5% 至郁） */
+  if(Number(c.spot||0)>0&&Math.abs(Number(c.spot)-S)>0.005*S){c.spot=S;dirty=true;}
+  const wasItm=!!c._itmNow;
+  c._itmNow=!!(K>0&&S<=K);
+  if(c._itmNow!==wasItm)dirty=true;
+  /* mid/iv/delta 升級：要有 c.expiry 對應 expiry＋該 K 嘅 PUT 行先做 */
   const exp=j.expiries.find(e=>e&&e.expiry===c.expiry)||null;
-  const S=Number(j.spot)||0,K=Number(c.strike)||0;
-  if(!exp||!S||!K)return;
-  let row=null;
-  (exp.rows||[]).forEach(r=>{if(r&&r.type==='PUT'&&r.strike!=null&&Math.abs(Number(r.strike)-K)<0.01)row=r;});
-  c.spot=S;
-  c._itmNow=!!(S<=K);
-  if(row&&(Number(row.mid)>0||Number(row.bid)>0)){
-    const m=Number(row.mid)>0?Number(row.mid):((Number(row.bid)+Number(row.ask))/2);
-    if(m>0){c.mid=m;c.premium=Math.round(m*100);c.premium_total=Math.round(m*100);c.premium_total_hkd=Math.round(m*100*HKD_USD);}
-    if(row.iv!=null)c.iv=Number(row.iv);
-    if(row.delta!=null)c.delta=row.delta;
-    c.premium_source='live';c.mid_suspect=false;
+  if(exp&&!c.fromChain){
+    let row=null;
+    (exp.rows||[]).forEach(r=>{if(r&&r.type==='PUT'&&r.strike!=null&&Math.abs(Number(r.strike)-K)<0.01)row=r;});
+    if(row&&(Number(row.mid)>0||Number(row.bid)>0)){
+      const m=Number(row.mid)>0?Number(row.mid):((Number(row.bid)+Number(row.ask))/2);
+      if(m>0&&Math.abs(Number(c.mid||0)-m)>0.005*m){c.mid=m;c.premium=Math.round(m*100);c.premium_total=Math.round(m*100);c.premium_total_hkd=Math.round(m*100*HKD_USD);dirty=true;}
+      if(row.iv!=null&&Number(c.iv)!==Number(row.iv)){c.iv=Number(row.iv);dirty=true;}
+      if(row.delta!=null&&Number(c.delta)!==Number(row.delta)){c.delta=row.delta;dirty=true;}
+      if(c.premium_source!=='live'){c.premium_source='live';c.mid_suspect=false;dirty=true;}
+    }
   }
+  if(!dirty)return;
   if(typeof renderDetailMeta==='function')renderDetailMeta(c);
   if(typeof renderScenarios==='function'&&document.getElementById('scenBody'))renderScenarios(c);
 }
