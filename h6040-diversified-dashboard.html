@@ -163,7 +163,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 </div></div>
 <!-- mkt-holiday-banner v1 -->
 <div id="mktHolidayBanner" class="warn-note" style="display:none;margin:0 0 10px"></div>
-<div style="background:#dc2626;color:#fff;padding:9px 14px;border-radius:8px;margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:.3px">🔴 紅燈期（10-16 → 10-30）：市況兇險 · 禁開新倉 · 唔好叫我做</div>
+<div style="background:#dc2626;color:#fff;padding:9px 14px;border-radius:8px;margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:.3px">🔴 市況兇險期（至 10-30）：開任何 CSP 前望實接貨燈 —— 🔴 接唔起（單腿＞50% equity／全簿＞100%）嘅，唔好做</div>
 <div class="tabs">
   <button data-pane="overview">📊 總覽</button>
   <span class="tab-group">期權</span>
@@ -1431,7 +1431,7 @@ function renderWinRank(){
       premium:x.premium,premium_total:Math.round(x.premium*nc),premium_total_hkd:Math.round(x.premium*nc*HKD_USD),
       collateral:x.collateral,margin1:x.margin1,premium_source:x.premium_source,fromWinRank:true};
     h+='<tr class="rowlink" onclick="showDetail(\''+x.ticker+'\')">'+
-      '<td class="c" style="color:#94a3b8">'+(i+1)+'</td><td><b>'+esc(x.ticker)+'</b>'+una+'</td>'+
+      '<td class="c" style="color:#94a3b8">'+(i+1)+'</td><td><b>'+esc(x.ticker)+'</b>'+una+' '+assignLight(x.strike)+'</td>'+
       '<td class="r">$'+liveSpot(x.ticker,x.spot)+'</td><td class="r">$'+px2(x.strike)+'</td><td class="r">'+(x.dte||'—')+'日 '+x.expiry.slice(5)+'</td>'+
       '<td class="r">$'+x.premium+'</td><td class="r">$'+Number(m1).toLocaleString()+'</td><td class="r">$'+Number(x.collateral||0).toLocaleString()+'</td>'+
       '<td class="c">'+nCell+'</td>'+
@@ -2038,6 +2038,28 @@ function drawChart(c){
 /* v4_balanced 按金口徑（同 engine apply_decisions 一致） */
 function marginPerPut(K,prem1,S){return Math.round(Math.max(0.20*S+prem1-Math.max(0,S-K), 0.10*K+prem1)*100,0);}
 function eqUSD(){return (rec&&rec.equity_usd)||CAPITAL_HKD/HKD_USD;}
+/* ⭐ 2026-10-16 紅燈接貨閘（user 欽定「接唔起貨就著紅燈叫我唔好做果張」）：
+   義務 K×100×n 對 realFunds.equity_usd；🔴＞50% equity（同 bridge 閘B）／🔴全簿＞100%（同閘C）。
+   顯示層 gate——最後防線仍係 engine 接貨閘＋P7。 */
+function _openOblUsd(){
+  try{
+    var s=0;
+    ((rec&&rec.positions)||[]).forEach(function(p){if(p&&p.status==='open'&&p.real!==false&&p.strike)s+=Number(p.strike)*100*(p.contracts||1);});
+    (((w320Rec&&w320Rec.engine_book)||{}).legs||[]).forEach(function(p){if(p&&p.real&&p.K)s+=Number(p.K)*100*(p.contracts||1);});
+    return s;
+  }catch(e){return 0;}
+}
+function assignLight(K,n){
+  n=n||1;
+  var ob=(Number(K)||0)*100*n, eq=(typeof realFunds!=='undefined'&&realFunds&&realFunds.equity_usd)||null;
+  var P=function(bg,t){return '<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:700;background:'+bg+';color:#fff;vertical-align:middle">'+t+'</span>';};
+  if(!(eq>0))return P('#94a3b8','接貨燈?');
+  var pct=ob/eq*100, tot=(_openOblUsd()+ob)/eq*100;
+  if(pct>50)return P('#dc2626','🔴 紅燈·接唔起 $'+Math.round(ob/1000)+'k='+pct.toFixed(0)+'%');
+  if(tot>100)return P('#ea580c','🔴 紅燈·帳簿滿 '+tot.toFixed(0)+'%');
+  return P('#16a34a','🟢 接得起 '+pct.toFixed(0)+'%');
+}
+
 function usedMarginUSD(){   // ⭐ 2026-08-17 v2：由 positions 即時計（morning scan 嘅 used_margin_open 係舊數）+ 排隊中（0.22×K×100 近似）
   let m=(rec&&rec.positions||[]).filter(p=>p.status==='open').reduce((s,p)=>{
     const n=Number(p.contracts)||1;
@@ -3175,7 +3197,7 @@ function renderH6040Best(){
   // ⭐ 08-26 價格對齊：top pick 價一樣 live-first（inline 標註，繼承卡片文字色）；冇 live 出掃描價
   const _tpLv=top?h6040PxLive(top.ticker):null;
   const topLine=top
-    ?('<b>'+top.ticker+'</b> $'+px2(_tpLv!=null?_tpLv:top.price)+(_tpLv!=null?' <span style="font-size:10px;font-weight:400">(live '+_tEt(live[top.ticker].asof)+' ET)</span>':'')+' · mom '+(top.score!=null?top.score.toFixed(2):'—')+' · '+_sigPill(top.signal)+' · IV '+(top.iv!=null?(top.iv*100).toFixed(0)+'%':'—')+' · RSI '+(top.rsi!=null?top.rsi.toFixed(0):'—')+' → 沽 '+(top.sug_strike!=null?'$'+px2(top.sug_strike):'—')+' put · '+(top.sug_dte||'—')+'DTE · Δ'+(top.sug_delta!=null?'−'+Math.abs(top.sug_delta).toFixed(2):'—')+' · 年化 '+(top.sug_yield_ann!=null?top.sug_yield_ann+'%':'—')+'（全名單見下方候選名單）')
+    ?('<b>'+top.ticker+'</b> $'+px2(_tpLv!=null?_tpLv:top.price)+(_tpLv!=null?' <span style="font-size:10px;font-weight:400">(live '+_tEt(live[top.ticker].asof)+' ET)</span>':'')+' · mom '+(top.score!=null?top.score.toFixed(2):'—')+' · '+_sigPill(top.signal)+' · IV '+(top.iv!=null?(top.iv*100).toFixed(0)+'%':'—')+' · RSI '+(top.rsi!=null?top.rsi.toFixed(0):'—')+' → 沽 '+(top.sug_strike!=null?'$'+px2(top.sug_strike):'—')+' put · '+(top.sug_dte||'—')+'DTE · Δ'+(top.sug_delta!=null?'−'+Math.abs(top.sug_delta).toFixed(2):'—')+' · 年化 '+(top.sug_yield_ann!=null?top.sug_yield_ann+'%':'—')+'（全名單見下方候選名單）'+(top.sug_strike!=null?' '+assignLight(top.sug_strike):''))
     :'';
   if(!h6040Rec||!h6040Rec.scan_fresh){
     h+='<div class="warn-note" style="margin-top:6px">⚠️ v5 回測池掃描過期（'+(scan.scan_date||'—')+'）— com.kathy.h6040-scan 未有新 output，暫不顯示單股候選。</div>';

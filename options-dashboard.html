@@ -173,7 +173,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 </div></div>
 <!-- mkt-holiday-banner v1 -->
 <div id="mktHolidayBanner" class="warn-note" style="display:none;margin:0 0 10px"></div>
-<div style="background:#dc2626;color:#fff;padding:9px 14px;border-radius:8px;margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:.3px">🔴 紅燈期（10-16 → 10-30）：市況兇險 · 禁開新倉 · 唔好叫我做</div>
+<div style="background:#dc2626;color:#fff;padding:9px 14px;border-radius:8px;margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:.3px">🔴 市況兇險期（至 10-30）：開任何 CSP 前望實接貨燈 —— 🔴 接唔起（單腿＞50% equity／全簿＞100%）嘅，唔好做</div>
 <div class="tabs">
   <button data-pane="overview">📊 總覽</button>
   <span class="tab-group">期權</span>
@@ -1607,7 +1607,7 @@ function renderWinRank(){
         collateral:x.collateral,margin1:x.margin1,premium_source:x.premium_source,stale_days:x.stale_days,mid_suspect:!!x.mid_suspect,band:x.band,excluded:!!x.excluded,fromWinRank:true};
     }
     h+='<tr class="rowlink"'+(_wf.fits===false?' style="background:#fef2f2"':'')+' onclick="showDetail(\''+x.ticker+'\')">'
-      +'<td class="c">'+((x.__wrPos!=null&&x.__wrPos<10)?'<b style="color:#15803d" title="wr 正選序（同 TG Top5）——落單 K＝詳情頁 best-ay 年化最大">✓'+(x.__wrPos+1)+'</b>':'<span style="color:#94a3b8">'+(i+1)+'</span>')+'</td><td><b>'+esc(x.ticker)+'</b>'+una+'</td>'
+      +'<td class="c">'+((x.__wrPos!=null&&x.__wrPos<10)?'<b style="color:#15803d" title="wr 正選序（同 TG Top5）——落單 K＝詳情頁 best-ay 年化最大">✓'+(x.__wrPos+1)+'</b>':'<span style="color:#94a3b8">'+(i+1)+'</span>')+'</td><td><b>'+esc(x.ticker)+'</b>'+una+' '+assignLight(x.strike)+'</td>'
       +'<td class="c" style="white-space:nowrap">'+bandPill+excPill+'</td>'
       +'<td class="r"><b style="color:#1a73e8">'+_wrWr(x).toFixed(2)+'</b></td>'
       +'<td class="c">'+(x.qscore!=null?Number(x.qscore).toFixed(2):'<span class="muted">—</span>')+'</td>'
@@ -3623,6 +3623,29 @@ async function fetchWscanUsd(){
   }catch(e){}
 }
 
+/* ⭐ 2026-10-16 紅燈接貨閘（user 欽定「接唔起貨就著紅燈叫我唔好做果張」）：
+   每張 CSP 候選＝義務 K×100×n 對 戶口 equity（/real_funds wscanEquity 同源）。
+   🔴 接唔起＝單腿義務＞50% equity（同 bridge 閘B 口徑）；🔴 帳簿滿＝Σ open 真倉義務＋呢腿＞100%（同閘C）。
+   顯示層 gate——落單最後防線仍係 engine 接貨閘＋P7；10-15 四張全深 ITM 教訓。 */
+function _openOblUsd(){
+  try{
+    let s=0;
+    ((rec&&rec.positions)||[]).forEach(function(p){if(p&&p.status==='open'&&p.real!==false&&p.strike)s+=Number(p.strike)*100*(p.contracts||1);});
+    (((w320Rec&&w320Rec.engine_book)||{}).legs||[]).forEach(function(p){if(p&&p.real&&p.K)s+=Number(p.K)*100*(p.contracts||1);});
+    return s;
+  }catch(e){return 0;}
+}
+function assignLight(K,n){
+  n=n||1;
+  var ob=(Number(K)||0)*100*n, eq=wscanEquity;
+  var P=function(bg,t){return '<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:700;background:'+bg+';color:#fff;vertical-align:middle">'+t+'</span>';};
+  if(!(eq>0))return P('#94a3b8','接貨燈?');
+  var pct=ob/eq*100, tot=(_openOblUsd()+ob)/eq*100;
+  if(pct>50)return P('#dc2626','🔴 紅燈·接唔起 $'+Math.round(ob/1000)+'k='+pct.toFixed(0)+'%');
+  if(tot>100)return P('#ea580c','🔴 紅燈·帳簿滿 '+tot.toFixed(0)+'%');
+  return P('#16a34a','🟢 接得起 '+pct.toFixed(0)+'%');
+}
+
 /* ════════════ 🛂 P7 Pre-flight 六問卡（09-12 force-semantics 拆分拍板規格 B）════════════
    bridge /preflight?ticker=&strike=&expiry=&side=&qty= — server 一次過算六問（跟榜/接貨/σ距/Event/按金/市寬），
    全用現成資料路（yahoo spot 45s cache＋Futu snapshot＋options_rec.json＋real_funds 10min cache），
@@ -4073,7 +4096,7 @@ function renderBest(){
     h+='<div style="background:#1e293b;border-radius:10px;padding:14px;color:#fff;margin-bottom:10px">'+
       '<div style="font-size:12px;color:#4ade80">🟢 XSP 腿（40% 資本）· 閘門開放</div>'+
       '<div style="font-size:15px;font-weight:700;margin:6px 0">'+_pick+'</div>'+
-      _bid+_mgLine+
+      _bid+_mgLine+(function(){try{return (_xl&&_xc&&_xc.strike!=null)?('<div style="font-size:12px;margin-top:3px;color:#cbd5e1">'+assignLight(_xc.strike,2)+' 接貨燈（Path A 2 張：義務 $'+Math.round(_xc.strike*200/1000)+'k vs equity）</div>'):'';}catch(e){return '';}})()+
       '<div style="font-size:12px;color:#cbd5e1">XSP 現價 $'+(g.spy!=null?g.spy.toFixed(2):'—')+' · 200DMA $'+(g.spyMa200!=null?g.spyMa200.toFixed(2):'—')+'</div>'+
       '<div style="margin-top:8px"><button class="btn btn-go" onclick="h6040OpenSpyChain()">✅ 揀 XSP 行使價下單（實時期權鏈）</button></div>'+
     '</div>';
@@ -4093,7 +4116,7 @@ function renderBest(){
   // ⭐ 08-26 價格對齊：top pick 價一樣 live-first（inline 標註，繼承卡片文字色）；冇 live 出掃描價
   const _tpLv=top?h6040PxLive(top.ticker):null;
   const topLine=top
-    ?('<b>'+top.ticker+'</b> $'+px2(_tpLv!=null?_tpLv:top.price)+(_tpLv!=null?' <span style="font-size:10px;font-weight:400">(live '+_tEt(live[top.ticker].asof)+' ET)</span>':'')+' · wr '+(top.wr!=null?top.wr.toFixed(2):'—')+' · mom '+(top.score!=null?top.score.toFixed(2):'—')+' · '+_sigPill(top.signal)+' · IV '+(top.iv!=null?(top.iv*100).toFixed(0)+'%':'—')+' · RSI '+(top.rsi!=null?top.rsi.toFixed(0):'—')+' → 沽 '+(top.sug_strike!=null?'$'+px2(top.sug_strike):'—')+' put · '+(top.sug_dte||'—')+'DTE · Δ'+(top.sug_delta!=null?'−'+Math.abs(top.sug_delta).toFixed(2):'—')+' · 年化 '+(top.sug_yield_ann!=null?top.sug_yield_ann+'%':'—')+'（全名單見下方候選名單）')
+    ?('<b>'+top.ticker+'</b> $'+px2(_tpLv!=null?_tpLv:top.price)+(_tpLv!=null?' <span style="font-size:10px;font-weight:400">(live '+_tEt(live[top.ticker].asof)+' ET)</span>':'')+' · wr '+(top.wr!=null?top.wr.toFixed(2):'—')+' · mom '+(top.score!=null?top.score.toFixed(2):'—')+' · '+_sigPill(top.signal)+' · IV '+(top.iv!=null?(top.iv*100).toFixed(0)+'%':'—')+' · RSI '+(top.rsi!=null?top.rsi.toFixed(0):'—')+' → 沽 '+(top.sug_strike!=null?'$'+px2(top.sug_strike):'—')+' put · '+(top.sug_dte||'—')+'DTE · Δ'+(top.sug_delta!=null?'−'+Math.abs(top.sug_delta).toFixed(2):'—')+' · 年化 '+(top.sug_yield_ann!=null?top.sug_yield_ann+'%':'—')+'（全名單見下方候選名單）'+(top.sug_strike!=null?' '+assignLight(top.sug_strike):''))
     :'';
   if(!h6040Rec||!h6040Rec.scan_fresh){
     h+='<div class="warn-note" style="margin-top:6px">⚠️ v5 回測池掃描過期（'+(scan.scan_date||'—')+'）— com.kathy.h6040-scan 未有新 output，暫不顯示單股候選。</div>';
