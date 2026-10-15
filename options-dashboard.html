@@ -1570,6 +1570,18 @@ function renderWinRank(){
     const sq=iv*Math.sqrt(T),d1=(Math.log(S/K)+0.5*iv*iv*T)/sq,d2=d1-sq;
     return Math.max(0,K*Math.exp(-0.045*T)*_ncdf(-d2)-S*_ncdf(-d1))*100;
   };
+  /* ⭐2026-10-15 價內閘：板（engine 冻結中＝幾日舊）K 係舊價揀嘅，大跌日 live S 隨時已跌穿 K ——
+     呢個時候 BS 重估會出 intrinsic 天價（LITE K1055 vs live 847 → ≈$21,792），當收入欄睇會誤導。
+     _wrLiveS＝live map 抽價（年齡 ≤12h；夜市用收市價都仲係最近啲市場事實），畀收入欄同 K 欄做價內判斷。 */
+  const _wrLiveS=x=>{
+    const lv=live[(x.ticker||'').toUpperCase()];
+    if(!lv)return null;
+    const S=Number(lv.live_price!=null?lv.live_price:lv.price)||0;
+    if(!S)return null;
+    const _age=(lv.asof!=null)?(Date.now()/1000-Number(lv.asof)):null;
+    if(_age!=null&&(_age<0||_age>43200))return null;
+    return S;
+  };
   w.forEach((x,i)=>{
     const una=x.unaffordable?' <span style="color:#dc2626;font-weight:700" title="單名按金超單名上限，無法執行">⚠</span>':'';
     const bandPill=(x.band==='long')?pill('t','長帶 8-14D · L_mom 僅參考'):pill('b','當周 5-7D · W_wr');
@@ -1579,6 +1591,10 @@ function renderWinRank(){
     const _baH=(rec&&rec.board_asof)?Math.max((Date.now()-new Date(rec.board_asof).getTime())/3600000,0):null;
     const _bs=(_baH!=null&&_baH>0.75)?_wrBSprem(x):null;   /* 板舊過 45min 先 BS 重估——新板快照＝chain mid 就係真收入 */
     const _bsGap=(_bs!=null&&x.premium>0&&Math.abs(_bs-x.premium)>Math.max(30,0.25*x.premium));
+    /* ⭐2026-10-15 價內閘：板 K 係舊價揀嘅，大跌日 live S 已跌穿 K → 舊 K 係價内 put，收入欄唔可以出數
+       （BS 重估會出 intrinsic 天價）。出「價內」pill＋K 欄紅字，叫用戶入詳情頁重揀 K。 */
+    const _lvS=_wrLiveS(x);
+    const _itmNow=(_lvS!=null&&Number(x.strike)>0&&_lvS<=Number(x.strike));
     const sv=_wrSigma(x);
     const sigCell=(sv==null)?'<span class="muted">—</span>':(sv>=1?'<span style="color:#16a34a;font-weight:700">'+sv.toFixed(2)+'σ</span>':(sv>=0.7?'<span style="color:#d97706;font-weight:700">'+sv.toFixed(2)+'σ</span>':'<span style="color:#dc2626;font-weight:700">'+sv.toFixed(2)+'σ</span>'));
     const prev=window._wrDetail[x.ticker];
@@ -1598,13 +1614,15 @@ function renderWinRank(){
       +'<td class="c">'+(x.pop!=null?'<span style="color:#16a34a;font-weight:700">'+Math.round(x.pop)+'%</span>':'<span class="muted">—</span>')+'</td>'
       +'<td class="c">'+(x.delta!=null?Number(x.delta).toFixed(2):'—')+'</td>'
       +'<td class="c">'+sigCell+'</td>'
-      +'<td class="r">$'+px2(x.strike)+'</td>'
+      +'<td class="r"'+(_itmNow?' title="live $'+px2(_lvS)+' 已跌穿呢個 K——舊板揀嘅價外位已變價內"':'')+'>'+(_itmNow?'<span style="color:#dc2626;font-weight:700">$'+px2(x.strike)+'↓價內</span>':'$'+px2(x.strike))+'</td>'
       +'<td class="c">'+(x.dte||'—')+'日 '+x.expiry.slice(5)+'</td>'
-      +(_bs!=null
+      +(_itmNow
+         ?'<td class="r"><span style="display:inline-block;padding:1px 8px;border-radius:10px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;font-weight:700;font-size:11px;cursor:help" title="live $'+px2(_lvS)+' 已跌穿板 K $'+px2(x.strike)+'（板 '+(x.asof?esc(String(x.asof).slice(0,10)):'多日前')+'起）——呢行嘅收入欄已無意義，撳行入詳情頁用 live chain 重揀 OTM K">價內</span></td>'
+         :(_bs!=null
          ?'<td class="r"><b>≈$'+px2(_bs)+'</b><span class="muted" style="font-size:10px">BS</span>'
            +(_bsGap?' <span style="color:#d97706;font-weight:700;cursor:help" title="板快照 $'+px2(x.premium)+(_baH!=null?(' · '+_baH.toFixed(0)+' 小時前'):'')+'，同 live BS 估差異＞25%——以 ≈ 數為準，落單前入詳情頁核 live chain">⚠</span>':'')
          +'</td>'
-         :'<td class="r">$'+x.premium+_wrMark(x)+((_bs==null&&_baH!=null&&_baH>0.75)?' <span style="color:#d97706;font-weight:700;cursor:help" title="'+(_baH.toFixed(0)+' 小時前起板，即市 spot 未到手（收市/盤前/數據疑問）——呢個係舊快照數；落單前入詳情頁核 live chain')+'">⚠</span>':'')+'</td>')
+         :'<td class="r">'+(x.premium!=null?'$'+px2(Number(x.premium)):'<span class="muted">—</span>')+_wrMark(x)+((_bs==null&&_baH!=null&&_baH>0.75)?' <span style="color:#d97706;font-weight:700;cursor:help" title="'+(_baH.toFixed(0)+' 小時前起板，即市 spot 未到手（收市/盤前/數據疑問）——呢個係舊快照數；落單前入詳情頁核 live chain')+'">⚠</span>':'')+'</td>'))
       +'<td class="r">$'+Number(m1).toLocaleString()+'</td>'
       +'<td class="r">'+(_wf.fits==null?'<span class="muted" style="font-size:11px">'+esc(_wf.reason||'—')+'</span>':(_wf.fits?'<b style="color:var(--good)">'+_wf.max_ct+' 張</b>':'<b style="color:var(--bad)">0 張</b>'))+'</td>'
       +'<td class="r">'+(x.yield_ann!=null?Number(x.yield_ann).toFixed(1)+'%':'—')+'</td>'
@@ -1873,6 +1891,8 @@ function renderScenarios(c){
   s+='<tr><td><b>🔵 到期被指派</b></td><td class="small">到期日收市價 &lt; $'+px2(K)+'</td><td class="r small">接 '+100*n+' 股 · 成本 $'+px2(K-prem)+'/股</td><td class="small">正常步驟不是輸：接貨 → 轉入 <b>Covered Call</b>（之後每 10–14 日沽 Call 收租 = wheel）</td></tr>';
   s+='</tbody></table>';
   s+='<div class="muted" style="font-size:11px;margin-top:4px">期權短倉 5 大出場：PT 50% 提早平倉 · Δ−0.50 roll · cut-before-assignment · 業績前平倉 · 指派 → CC。回測中大部分倉位以 PT 50% 離場，不會持有到期。</div>';
+  /* ⭐2026-10-15 板 K 已被 live 價跌穿 → 情境數全部作廢，banner 頂住先 */
+  if(c._itmNow)s='<div style="background:#fef2f2;border:1.5px solid #fecaca;color:#b91c1c;font-weight:700;font-size:13px;border-radius:8px;padding:10px 14px;margin-bottom:10px">🚨 呢個 K（$'+px2(c.strike)+'）已被現價（$'+px2(c.spot)+'）跌穿——短 put 而家係價內，上面所有情境數（最大利潤／盈虧平衡／接貨成本）都唔再代表呢張單。請喺下面實時鏈重揀 OTM K，或返 w320／單腿股表睇新板。</div>'+s;
   $('scenBody').innerHTML='<div class="table-scroll">'+s+'</div>';
 }
 function scenStep(d){
@@ -1882,6 +1902,32 @@ function scenStep(d){
 }
 /* ════════════ Futu 實時期權鏈 ════════════ */
 let chainCache={}, chainExpIdx={};
+/* ⭐ 2026-10-15 詳情 ctx live 化：winrank／engine 板起嘅 candidate，spot/mid 係板快照——撞正大跌日會同
+   實時鏈自相矛盾（TSEM 板 K222.50@breakeven215 vs live 203：K 已價內，情境表全部作廢但照出數）。
+   鏈到手就用 chain.spot＋該 K 嘅鏈 bid/ask mid 升級 ctx 再重繪情境／meta；K 已價內就着 renderScenarios
+   插紅 banner。XSP／h6040 鏈價 ctx（fromChain）已係 live，skip 免 double-count。 */
+function _upgradeCandFromChain(tk,j){
+  if(activeTk!==tk)return;
+  const c=findCandidate(tk);
+  if(!c||c.fromChain)return;
+  if(!j||!j.ok||!Array.isArray(j.expiries)||!(Number(j.spot)>0))return;
+  const exp=j.expiries.find(e=>e&&e.expiry===c.expiry)||null;
+  const S=Number(j.spot)||0,K=Number(c.strike)||0;
+  if(!exp||!S||!K)return;
+  let row=null;
+  (exp.rows||[]).forEach(r=>{if(r&&r.type==='PUT'&&r.strike!=null&&Math.abs(Number(r.strike)-K)<0.01)row=r;});
+  c.spot=S;
+  c._itmNow=!!(S<=K);
+  if(row&&(Number(row.mid)>0||Number(row.bid)>0)){
+    const m=Number(row.mid)>0?Number(row.mid):((Number(row.bid)+Number(row.ask))/2);
+    if(m>0){c.mid=m;c.premium=Math.round(m*100);c.premium_total=Math.round(m*100);c.premium_total_hkd=Math.round(m*100*HKD_USD);}
+    if(row.iv!=null)c.iv=Number(row.iv);
+    if(row.delta!=null)c.delta=row.delta;
+    c.premium_source='live';c.mid_suspect=false;
+  }
+  if(typeof renderDetailMeta==='function')renderDetailMeta(c);
+  if(typeof renderScenarios==='function'&&document.getElementById('scenBody'))renderScenarios(c);
+}
 async function loadChain(tk){
   const cEl=$('chainCard');
   if(!cEl)return;
@@ -1892,6 +1938,7 @@ async function loadChain(tk){
     if(!j||!j.ok){cEl.innerHTML='<div class="muted">Futu 期權鏈不可用：'+(j&&j.error?esc(j.error):'')+'</div>';return;}
     chainCache[tk]=j;
     renderChain(j,tk);
+    _upgradeCandFromChain(tk,j);   /* ⭐2026-10-15 板 ctx 用鏈價升級＋價內 banner */
     // ⭐ 08-24 h6040：詳情仲係掃描 placeholder（BS 模型價）→ 實時鏈到手即升級重繪成鏈價。
     //   ⚠️ stage 由 renderChain→findCandidate（live branch）之後仍會喺度（live branch 唔刪），
     //   呢度刪＋確認真係升級到 live 先重繪 —— 鏈冇可用 PUT 行時唔會無限 re-render loop。
