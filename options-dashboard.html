@@ -442,6 +442,13 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
         <tbody id="krVuln"><tr><td colspan="8" class="muted">載入中…</td></tr></tbody>
       </table></div></div></div>
 
+    <!-- 監察池 40 隻 -->
+    <div class="card"><div class="card-h"><span class="t">監察池 40 隻</span><span class="meta">雷達底層掃嘅全名單（AI 主力／AI infra／半導體鏈／高波動）· 🔴行=A腿血（今日≤−6%）· 旗：⛳deep20 彈坑｜⏳bar遲到（chg1d 唔計）｜🟣手動持倉 · 分=脆弱度 0-5</span></div>
+      <div class="card-b"><div class="table-scroll"><table class="utable">
+        <thead><tr><th>Ticker</th><th class="r">收市</th><th class="r">chg1d</th><th class="r">dd20</th><th class="r">脆弱度</th><th>旗</th></tr></thead>
+        <tbody id="krUni"><tr><td colspan="6" class="muted">載入中…</td></tr></tbody>
+      </table></div></div></div>
+
     <!-- 歷史回看 -->
     <div class="card"><div class="card-h"><span class="t">歷史回看</span><span class="meta" id="krHistMeta">2026-02-02 起 逐日</span></div>
       <div class="card-b">
@@ -4741,6 +4748,27 @@ function krRender(){
       '<td class="r">'+v.corr+'</td><td class="r">'+(v.debt!=null?v.debt+'%':'—')+'</td>'+
       '<td>'+(v.hold?krBadge(krEsc(v.hold),'#fdf4ff','#a21caf','#f5d0fe'):'')+'</td></tr>';
   }).join('')||'<tr><td colspan="8" class="muted">—</td></tr>';
+
+  // 監察池 40 隻
+  var uni=S.universe||[];
+  document.getElementById('krUni').innerHTML=uni.map(function(u){
+    var flags='';
+    if(u.deep20)flags+=' '+krBadge('⛳ deep20','#ffedd5','#9a3412','#fed7aa');
+    if(u.stale)flags+=' '+krBadge('⏳ bar遲','#f1f5f9','#64748b','#e2e8f0');
+    if(u.hold)flags+=' '+krBadge(krEsc(u.hold),'#fdf4ff','#a21caf','#f5d0fe');
+    var c1=u.chg1d,dd=u.dd20;
+    var c1t=(c1!=null?((c1>=0?'+':'')+(c1*100).toFixed(1)+'%'):'—');
+    var c1s=(c1==null?'':(c1<=-0.06?'color:#dc2626;font-weight:700':(c1>=0?'color:#16a34a':'color:#b45309')));
+    var ddt=(dd!=null?(dd*100).toFixed(1)+'%':'—');
+    var dds=(dd!=null&&dd<=-0.20?'color:#dc2626;font-weight:700':'');
+    return '<tr'+(u.blood?' style="background:#fef2f2"':'')+'>'+
+      '<td style="font-weight:800">'+krEsc(u.t)+'</td>'+
+      '<td class="r">'+(u.last!=null?u.last.toFixed(2):'—')+'</td>'+
+      '<td class="r" style="'+c1s+'">'+c1t+'</td>'+
+      '<td class="r" style="'+dds+'">'+ddt+'</td>'+
+      '<td class="r">'+(u.score>=4?'<b style="color:#dc2626">'+u.score+'</b>':u.score)+'/5</td>'+
+      '<td style="white-space:normal">'+(flags||(u.blood?'<span style="color:#dc2626;font-weight:700">🔴 A腿血</span>':'<span class="muted">—</span>'))+'</td></tr>';
+  }).join('')||'<tr><td colspan="6" class="muted">—</td></tr>';
 
   document.getElementById('krInterpret').innerHTML=krInterpretHTML(S);
   krRenderHist();
