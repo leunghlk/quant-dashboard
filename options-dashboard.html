@@ -486,6 +486,9 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 "use strict";
 /* ════════════ 常數 ════════════ */
 const BRIDGE_SECRET='qtbridge-K7s2-wolf-9mX4';
+// ⭐ 10-16 kill switch 狀態旗：引擎 10-10 起用戶令全系統禁落單（bootout）——mark 凍／date 停舊係「停機」唔係「hang」。
+//    狀態欄改顯示 ⚪ 已停，唔好出 🔴 hang 假警。恢復引擎（必須用戶明言）嗰陣先 flip 返 active:false，hang 偵測即復活。
+const ENGINE_STOPPED={active:true,since:'2026-10-10',reason:'kill switch 用戶令全系統禁落單'};
 const HKD_USD=7.8, CAPITAL_HKD=200000;
 const BRIDGE_PROXY=(location.protocol==='https:'||'http:')?'https://quant-api.leunghlk.workers.dev/live':'';
 const BRIDGE_URLS=(function(){
@@ -713,11 +716,16 @@ async function loadRec(force){
       const _mg=rec.generated?new Date(rec.generated):null;
       if(_mg&&!isNaN(_mg)){
         const _ageMin=Math.round((Date.now()-_mg.getTime())/60000);
-        markTxt=' · mark '+_mg.toLocaleTimeString('zh-HK',{hour12:false});
-        if(_ageMin>=15)markTxt+=(_etRth()?' · 🔴 引擎 mark 已舊 '+_ageMin+' 分鐘（引擎 hang？）':' · mark 舊 '+_ageMin+' 分鐘');
+        if(ENGINE_STOPPED.active){
+          const _ageTxt=_ageMin>=120?Math.round(_ageMin/60)+' 小時':_ageMin+' 分鐘';
+          markTxt=' · ⚪ 引擎已停（'+ENGINE_STOPPED.since+' '+ENGINE_STOPPED.reason+'）· 停機前 mark '+_mg.toLocaleTimeString('zh-HK',{hour12:false})+'（'+_ageTxt+'前）';
+        }else{
+          markTxt=' · mark '+_mg.toLocaleTimeString('zh-HK',{hour12:false});
+          if(_ageMin>=15)markTxt+=(_etRth()?' · 🔴 引擎 mark 已舊 '+_ageMin+' 分鐘（引擎 hang？）':' · mark 舊 '+_ageMin+' 分鐘');
+        }
       }
     }catch(_e){}
-    setLive((rec.paper?'📝 紙上':'🔴 LIVE')+' · '+rec.date+(activeBridge&&activeBridge.indexOf('workers')>=0?' · ⚙ proxy':'')+' · 更新 '+lastUpdated.toLocaleTimeString('zh-HK')+markTxt+stalenessText);
+    setLive((rec.paper?'📝 紙上':'🔴 LIVE')+' · '+rec.date+(ENGINE_STOPPED.active?'（停機前）':'')+(activeBridge&&activeBridge.indexOf('workers')>=0?' · ⚙ proxy':'')+' · 更新 '+lastUpdated.toLocaleTimeString('zh-HK')+markTxt+stalenessText);
   }catch(e){
     // ⭐ 08-18：fetch/JSON 失敗 → 60 秒自動重試（以前淨係顯示「重試中」但永遠唔會自己重試）
     // ⭐ 09-03：失敗時重置 activeBridge → 下次重試重新 detectBridge 行勻全部候選
