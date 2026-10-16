@@ -1,0 +1,21 @@
+{
+ "version": 1,
+ "level": "RED",
+ "reasons": [
+  "單名血 16 隻 chg1d≤−6%（worst CRWV -0.2%）",
+  "新深20 14 隻：AAOI,ALAB,APP,COHR,CRWV,INTC,IONQ,LITE",
+  "10y 5.09 水平閘 Y（MOVE 102）",
+  "HY OAS 3.25（5日 +0.16，2026-10-14）"
+ ],
+ "context": {
+  "vix": 16.46,
+  "tnx": 5.09,
+  "move": 102.5,
+  "oas": 3.25,
+  "blood": 16,
+  "new20": 14
+ },
+ "as_of": "10-16 08:23 HKT",
+ "updated": 1792110187605,
+ "note": "殺倉預警雷達 v1——🔴=即時危險（TG 已同步）／🟡=計時中／🟢=靜。VIX 唔可靠僅顯示。"
+}
