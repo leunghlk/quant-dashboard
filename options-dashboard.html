@@ -176,6 +176,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 <div style="background:#dc2626;color:#fff;padding:9px 14px;border-radius:8px;margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:.3px">🔴 市況兇險期（至 10-30）：開任何 CSP 前望實接貨燈 —— 🔴 接唔起（單腿＞50% equity／全簿＞100%）嘅，唔好做</div>
 <!-- kill-radar-banner v1 (2026-10-16)：殺倉預警雷達。資料=kill_radar_status.json（launchd 僅 level 變化 git push）。TG 同步推送，此處只顯示 -->
 <div id="killRadarBanner" style="display:none;margin:0 0 10px;cursor:pointer" onclick="switchPane('killradar')" title="撳一下去殺倉雷達 tab"></div>
+<div id="staleBoardBanner" style="display:none;margin:0 0 10px"></div>
 <script>
 (function(){
   'use strict';
@@ -690,13 +691,44 @@ function formatStalenessWarning(warning) {
 // ⭐ 09-26 引擎 mark 時齡守衛：rec.generated＝引擎寫 rec 嘅一刻（真倉表 cur_prem/未實現嘅源）。
 //    引擎 hang 時個格會凍（09-25 晚實錄：mark 凍 2hr、橫額照話「更新 HH:MM」＝講大話）。
 //    ET 盤中（平日 09:30-17:00，掃 NYSE 假期）mark 舊過 15 分鐘 → 橫額出紅警。
+function _etHols(){return ['2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25','2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25','2027-01-01','2027-01-18','2027-02-15','2027-03-26','2027-05-31','2027-06-18','2027-07-05','2027-09-06','2027-11-25','2027-12-24'];}
 function _etRth(){
   const d=new Date(Date.now()-4*3600e3), w=d.getUTCDay();
   if(w<1||w>5)return false;
   const m=d.getUTCHours()*60+d.getUTCMinutes();
   if(m<570||m>1020)return false;
   const iso=d.toISOString().slice(0,10);
-  return ['2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25','2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25','2027-01-01','2027-01-18','2027-02-15','2027-03-26','2027-05-31','2027-06-18','2027-07-05','2027-09-06','2027-11-25','2027-12-24'].indexOf(iso)<0;
+  return _etHols().indexOf(iso)<0;
+}
+/* ⭐ 2026-10-16 板過時閘（root-cause 防護）：單腿股表／最佳交易／候選全部食 rec（引擎 build）。
+   引擎 bootout／hang／盤前掃描失敗 → rec.date（板對象 ET session）凍結，但板照 render＝10-09 板
+   serve 到 10-16 事故（K／到期／收入全舊世界價，用戶照板睇會中伏）。定義：rec.date 落後「最近
+   完成 ET session」（假期感知，ET 09:30 後先計今日）→ 頁頂紅橫額＋單腿股表減光。引擎翻生出新板自動消。 */
+function _lastETSessionISO(){
+  const d=new Date(Date.now()-4*3600e3), HOLS=_etHols();
+  const w=d.getUTCDay(), m=d.getUTCHours()*60+d.getUTCMinutes();
+  const iso=d.toISOString().slice(0,10);
+  if(w>=1&&w<=5&&m>=570&&HOLS.indexOf(iso)<0)return iso;   /* 今日 ET 09:30 後＝今日 session 應有新板 */
+  let t=new Date(d.getTime());
+  for(;;){ t=new Date(t.getTime()-86400e3); const ww=t.getUTCDay(), ii=t.toISOString().slice(0,10); if(ww>=1&&ww<=5&&HOLS.indexOf(ii)<0)return ii; }
+}
+function _recBoardStale(){
+  if(!rec||!rec.date)return null;
+  const last=_lastETSessionISO();
+  if(rec.date>=last)return null;
+  const ba=(rec.board_asof||'');
+  const baH=ba?Math.max((Date.now()-new Date(ba).getTime())/3600000,0):null;
+  return {recDate:rec.date,lastET:last,ba:ba?ba.slice(0,16).replace('T',' ')+' HKT':'不詳',ageH:baH};
+}
+function _staleBoardBannerHTML(s){
+  const days=s.ageH!=null?(s.ageH>=48?Math.round(s.ageH/24)+' 日':s.ageH.toFixed(1)+' 小時'):'?';
+  return '<div style="background:#7f1d1d;color:#fff;padding:10px 14px;border-radius:8px;font-size:13.5px;font-weight:700;line-height:1.6">🛑 <b>建議板係舊快照（'+s.recDate+' ET session · build '+s.ba+' · 已 '+days+' 冇重算）</b>——引擎停機，最近 ET session（'+s.lastET+'）冇出過新板。全部接貨K／到期／收入／年化／可開已失效，<u>唔好照板落單</u>；要睇 live 價，撳行入個股詳情頁用 live chain 重揀 K。</div>';
+}
+function _renderStaleGate(){
+  const el=$('staleBoardBanner');if(!el)return;
+  const s=_recBoardStale();
+  if(s){el.innerHTML=_staleBoardBannerHTML(s);el.style.display='block';}
+  else{el.style.display='none';el.innerHTML='';}
 }
 let lastUpdated=null;
 async function loadRec(force){
@@ -1117,7 +1149,7 @@ function renderAll(){
   /* ⭐ 09-15 手術：v4_balanced 分岔退役——單一方法論（全家桶 L_mom×W_wr）＝單一 render path。
      每月進度條照 08-28 修（呢度直接 call，唔經舊 v4 renderOverview）；⭐09-14 +renderWinRank——單腿股表兩帶合併顯示。
      統一證券組合卡（renderUnified）由 loadReal 鏈負責，唔行呢度。 */
-  renderOverview();renderBest();renderWinRank();renderPositions();renderDecisions();renderMethod();renderAlarm();renderAdvice();renderTopPick();renderEarnings();if(activeTk)renderDetail();if(rec)updateMonthlyProgress();if(typeof renderW320Live==='function')renderW320Live();
+  _renderStaleGate();renderOverview();renderBest();renderWinRank();renderPositions();renderDecisions();renderMethod();renderAlarm();renderAdvice();renderTopPick();renderEarnings();if(activeTk)renderDetail();if(rec)updateMonthlyProgress();if(typeof renderW320Live==='function')renderW320Live();
 }
 /* ⭐ 出場警報：engine actions／熔斷 → 頁面頂部紅 bar + 標題閃 + 提示音（Telegram 已由 engine 即時推送） */
 const BASE_TITLE=document.title;
@@ -1569,6 +1601,7 @@ function _uniMapHTML(){
   window._uniMapCache=s;return s;
 }
 function renderWinRank(){
+  const _st=_recBoardStale();   /* ⭐10-16 板過時閘：見頁頂橫額；呢度表頂註記＋減光 */
   const gw=(rec&&rec.gate_closed)?gateWarnHTML():'';
   /* ⭐09-16 B 卡（當周掃描榜）退役搬入：regime／購買力一行（VIX＝h6040Gates ^VIX close；
      市寬＝rec.breadth；購買力＝/real_funds wscanUsd）。⑦ 雙 OFF 橫額條件照舊。 */
@@ -1639,7 +1672,7 @@ function renderWinRank(){
      局部 const（唔上 window）——防 window.X 撞函數自身 binding（09-14 _uniMapHTML 亂碼事故教訓） */
   const wfHTML='<div style="margin:0 0 6px;padding:6px 10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:8px;font-size:12px;line-height:1.8">'
    +'<b style="color:#1a73e8">🧭 落手流程：</b>跟 <b>✓正選</b> 行（同 TG Top5 一源；可否＝閘，揀邊隻＝wr，POP/贏錢＝讀數）→ 點列入<b>詳情頁</b>核 live 價（揀邊個 K＝<b>年化收入 best-ay</b>）→ 過 <b>P7 六問卡</b>先落手。想再穩陣啲就 <b>XSP</b>。</div>';
-  let h=gw+rg+wfHTML+chips+_uniMapHTML()+'<div class="table-scroll"><table class="utable"><thead><tr>'
+  let h=gw+rg+wfHTML+chips+_uniMapHTML()+(_st?'<div class="small" style="margin:0 0 4px;color:#b91c1c;font-weight:700">⚠ 成表係 '+rec.date+' 快照（見頁頂紅橫額）——K／收入／可開全部過時，只作宇宙參考，唔好照落單</div>':'')+'<div class="table-scroll"'+(_st?' style="opacity:.55"':'')+'><table class="utable"><thead><tr>'
    +'<th class="c" title="✓N＝wr 正選序（同 TG Top5：TG 推頭 5、dashboard 列頭 10）">#</th><th>標的</th><th class="c">帶</th>'
    +thS('wr','r','wr＝年化收入×(0.5+IV_rank/100)——09-14 L_mom×W_wr 當周腿排序 key（A/B wr 誠實口徑 +27.52%/−6.45% vs mom +16.42%/−6.70%）','wr')
    +thS('mom','c','MOM＝worker 動量-質素分（qscore 0-1；回測長腿 mom_score 同方向唔同源，僅排序參考——長 tenor 腿拍板留 mom）','MOM')
