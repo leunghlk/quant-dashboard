@@ -202,6 +202,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 </script>
 <div class="tabs">
   <button data-pane="overview">📊 總覽</button>
+  <button data-pane="killradar">🧭 殺倉雷達</button>
   <span class="tab-group">期權</span>
   <button data-pane="best" class="active">🎯 今日最佳交易</button>
   <button data-pane="detail">📈 個股詳情</button>
@@ -213,7 +214,6 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
   <button data-pane="earnings">📅 業績日曆</button>
   <span class="tab-group">模型</span>
   <button data-pane="wheel320">🔄 wheel320（CSP 75k · 每 6 個月清倉）</button>
-  <button data-pane="killradar">🧭 殺倉雷達</button>
 </div>
 <div id="optAlert" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:#dc2626;color:#fff;padding:11px 22px;font-weight:700;font-size:14.5px;cursor:pointer;box-shadow:0 -3px 12px rgba(0,0,0,.3)" onclick="switchPane('positions')">
   <span id="optAlertTxt"></span><button onclick="event.stopPropagation();ackAlarm()" title="不再顯示這一組警報（之後有新警報仍會出現）" style="float:right;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.65);color:#fff;border-radius:6px;padding:1px 10px;font-weight:600;font-size:13px;cursor:pointer">✕ 知道了</button><span style="float:right;font-weight:500;opacity:.9;margin-right:14px">點擊查看持倉 →</span>
@@ -406,6 +406,10 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
     <!-- 總燈 -->
     <div class="card" id="krTopCard"><div class="card-h"><span class="t"><span id="krLamp">…</span> <span id="krLvText">載入中…</span></span><span class="meta" id="krAsof"></span><span class="meta" id="krStreaks" style="margin-left:6px"></span><span style="margin-left:auto"><button class="btn btn-ghost" onclick="krLoad(true)">🔄 刷新</button></span></div>
       <div class="card-b"><ul id="krReasons" style="margin-left:18px;font-size:12.5px;line-height:1.6"><li class="muted">載入中…</li></ul></div></div>
+
+    <!-- 白話解讀（動態：一句總結＋目前情況＋re-entry rule 情況） -->
+    <div class="card" style="border:1.5px solid #1a73e8"><div class="card-h"><span class="t">🗣️ 白話解讀</span><span class="meta">一句總結＋而家咩情況＋re-entry rule 情況 · 自動跟住塊板更新（唔係人手寫死）</span></div>
+      <div class="card-b" id="krInterpret"><div class="muted small">載入中…</div></div></div>
 
     <!-- 手動持倉 -->
     <div class="card" id="krHoldCard" style="display:none;border:1.5px solid #dc2626"><div class="card-h"><span class="t">⚠️ 手動持倉 <span class="method-badge bt" style="background:#fee2e2;color:#b91c1c">系統唔管理</span></span><span class="meta">富途 app 手動腿（kill switch 未解，引擎 bootout）· TG 盯倉 com.kathy.manual-watch 每 5 分鐘 · 到期自動出卡</span></div>
@@ -4569,6 +4573,66 @@ function krLoad(manual){
 }
 setInterval(function(){if(KR_LOADED)krLoad(false);},300000);
 
+function krInterpretHTML(S){
+  var lv=S.level||'GREEN', sk=S.streak||{}, legs=S.legs||{}, tw=S.tailwind||{}, cx=S.context||{};
+  function st(k){var L=legs[k];return L?(L.state||'off'):'off';}
+  var cOn=(st('C')==='Y'||st('C')==='R'),cR=(st('C')==='R');
+  var dOn=(st('D')==='Y'||st('D')==='R'),dR=(st('D')==='R');
+  var macro=(cOn||dOn), macroRed=(cR||dR);
+  var eY=(st('E')==='Y'),eR=(st('E')==='R'),eOn=(eY||eR);
+  var abOn=(st('A')==='Y'||st('A')==='R'||st('B')==='Y'||st('B')==='R');
+  var n=tw.n||0;
+  var sTxt='';
+  if(sk.yel)sTxt='已連續響 '+sk.yel+' 個交易日'+(sk.red?('，其中 🔴 '+sk.red+' td'):'');
+  var head,body;
+  if(lv==='GREEN'&&!macro&&!eOn&&!abOn){
+    head='🟢 全靜——常規監察中';
+    body=['六腿全部靜：目前冇殺倉訊號，可以照返自己計劃行事。',
+          '唔使估頂——👑 E 腿（POW/QQQ）一破 20d 低，TG 會即推，嗰個先係主trigger。'];
+  }else if(eOn&&abOn){
+    head='🔴 殺倉進行中——主trigger＋單名血齊響（最高警戒組合）';
+    body=['👑 POW/QQQ 已斷線＋單名血／深20 響緊＝結構弱勢同屠殺同時成立，最毒嘅組合。',
+          '動作：已持倉縮、新倉停。唔好同市場拗撬。'];
+  }else if(eOn){
+    head='👑 主trigger 響——theme 相對弱勢已現，引信倒數中';
+    body=['POW/QQQ（CEG+VST vs QQQ）破咗 20d 低'+(eR?'，仲要係 40d 新低（加強版🔴）':'')+'——兩窗研究入面最準嘅訊號（窗A 頂前 17td／窗B 14td）。',
+          macro?'macro 壓力族（C/D）都着緊——同窗B 梯一樣，引信快過淨 E 腿獨響。':'macro 壓力族（C/D）未跟——窗A 型（theme 內生殺倉）冇 macro 點火係預期，唔係矛盾。',
+          '動作：新倉停；舊倉跟出場規則，唔使恐慌全清——窗B 由首 🔴 到殺日實際行咗 16 個交易日。'];
+  }else if(abOn){
+    head='🔴 單名殺倉開始——theme 內生型（窗A 嗰隻獸）';
+    body=['A 廣度血／B 新深20 響緊，但 👑 主trigger 未斷。',
+          '窗A 教訓：呢種殺法 C/D 可以全程盲——跟 A/B/E 梯行，唔好等 10y／OAS 施救。',
+          '動作：新倉停先；若 E 腿其後都斷（TG 會推），即升級全面縮倉。'];
+  }else if(macro){
+    head=(macroRed?'🔴':'🟡')+' 壓力鍋仲熱——macro 壓力族着火，主trigger 未響';
+    body=['C/D 響＝宏觀環境惡劣（10y 企 5.00 上／垃圾債息差拉闊）——同窗B（10月波）殺倉前嘅塊板同款。',
+          '但 👑 E（POW/QQQ）未破新低＋單名血停手＝theme 內部暫時冇再斷線——即係「啱啱殺完一波」或者「純壓力未爆」，兩種都要當紅燈期處事。',
+          '白話：塊板話你知嘅唔係「即刻再殺」，係「環境未准你落場」——停開新倉，等梯升級（TG 會推）或者解除。'];
+  }else{
+    head='單一 regime 標記——未成梯';
+    body=['有腿亮但係孤燈（例如 MOVE ≥100 標記）——呢類虛警高，要疊加先算數，唔使單獨做嘢。'];
+  }
+  var watch=[];
+  if(lv!=='GREEN'&&!eOn)watch.push('最想盯住：👑 E 腿——POW/QQQ 一破 20d 低，TG 即推（第二波確認訊號）。');
+  if(lv!=='GREEN')watch.push('解除條件：連續 3 日六腿全靜 → ✅ TG 自動通知，燈先算真解除。');
+  if(lv!=='GREEN')watch.push('唔使估：紅燈唔預測邊日殺，佢只負責叫你「停開新倉」——日子交由梯升級話你知。');
+  var rows=[],brLast=null;
+  if(KR_HIST&&KR_HIST.rows){for(var i=KR_HIST.rows.length-1;i>=0;i--){if(KR_HIST.rows[i].br200!=null){brLast=KR_HIST.rows[i].br200;break;}}}
+  rows.push((tw.c1?'✅':'⬜')+' <b>① TNX 自 20 日高連跌 3 日</b>'+((!tw.c1&&cx.tnx)?'——而家 10y '+cx.tnx+'，要先見頂回落（借貸成本壓力先退得）':''));
+  rows.push((tw.c2?'✅':'⬜')+' <b>② 廣度（&gt;200MA%）五日 +10pp</b>'+((!tw.c2&&brLast!=null)?'——現值 '+Math.round(brLast*100)+'%，要轉勢上推':''));
+  rows.push((tw.c3?'✅':'⬜')+' <b>③ CRWV 收返 sma20</b>（後備：OAS 距 25 日峰 −10bp）'+((!tw.c3&&tw.detail)?'——後備③現值：'+krEsc(String(tw.detail)):''));
+  var reVerdict;
+  if(n>=2)reVerdict='✅ <b>2/3 齊——re-entry 窗口 armed</b>（旗鮮 5td）：可以開始分注落返嚟，唔使執最平——研究價：確認代價＝入場高底 11.6%，換嚟兩個假底零中伏（假底中伏 −26%/−17%）。';
+  else if(n===1)reVerdict='<b>1/3——行緊但未到</b>：而家唔好撈底，等第兩個確認亮先算 re-entry。';
+  else reVerdict='<b>0/3——完全未到尾聲</b>：任何「見底」感覺都唔算數（OAS 真底仲遲 4-5td），等確認梯先講落注。';
+  return '<div style="border-left:4px solid #1a73e8;padding:2px 0 2px 12px;margin-bottom:10px">'+
+    '<div style="font-size:15px;font-weight:800">'+head+(sTxt?' <span class="muted" style="font-weight:400;font-size:12px">（'+sTxt+'）</span>':'')+'</div>'+
+    '<ul style="margin:8px 0 0 18px;font-size:12.5px;line-height:1.65">'+body.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul></div>'+
+    (watch.length?'<div style="font-weight:800;font-size:13px;margin-bottom:4px">🔄 升級／解除位</div><ul style="margin:0 0 10px 18px;font-size:12.5px;line-height:1.6">'+watch.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>':'')+
+    '<div style="font-weight:800;font-size:13px;margin-bottom:4px">🚪 re-entry rule 情況：'+n+'/3</div>'+
+    '<div style="font-size:12.5px;line-height:1.7">'+rows.join('<br>')+'</div>'+
+    '<div style="margin-top:6px;font-size:12.5px;background:'+(n>=2?'#ccfbf1':'#f1f5f9')+';border-radius:8px;padding:8px 10px">'+reVerdict+'</div>';
+}
 function krRender(){
   var S=KR_STATUS; if(!S)return;
   var lv=S.level||'GREEN';
@@ -4635,6 +4699,7 @@ function krRender(){
       '<td>'+(v.hold?krBadge(krEsc(v.hold),'#fdf4ff','#a21caf','#f5d0fe'):'')+'</td></tr>';
   }).join('')||'<tr><td colspan="8" class="muted">—</td></tr>';
 
+  document.getElementById('krInterpret').innerHTML=krInterpretHTML(S);
   krRenderHist();
 }
 function krSetWin(w){
