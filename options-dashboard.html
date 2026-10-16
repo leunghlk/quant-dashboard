@@ -419,8 +419,12 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
       </table></div></div></div>
 
     <!-- 六腿 -->
-    <div class="card"><div class="card-h"><span class="t">六腿狀態</span><span class="meta">每 30 分鐘掃 · A/B/C/D 評分入燈；E=👑主trigger；F credit 錨顯示不評分</span></div>
+    <div class="card"><div class="card-h"><span class="t">六腿狀態</span><span class="meta">每 30 分鐘掃 · A/B/C/D 評分入燈；E=👑主trigger；F credit 錨顯示不評分 · ⓘ hover 每腿睇定義＋兩窗實績</span></div>
       <div class="card-b"><div id="krLegs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px"><div class="muted small">載入中…</div></div></div></div>
+
+    <!-- 環境數據（只顯示） -->
+    <div class="card"><div class="card-h"><span class="t">環境數據</span><span class="meta">只顯示唔評分（盲名單）· ⓘ hover 每格睇定義</span></div>
+      <div class="card-b"><div id="krCtx" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px"><div class="muted small">載入中…</div></div></div></div>
 
     <!-- 尾聲三確認 -->
     <div class="card"><div class="card-h"><span class="t">尾聲三確認（re-entry rule）</span><span class="meta" id="krTwN">—</span></div>
@@ -4664,18 +4668,57 @@ function krRender(){
     }).join('');
   }
 
-  // 六腿
+  // 六腿（hover＝定義＋兩窗實績）
   var notes={A:'廣度血：跟到但嘈（11/18td）',B:'新深20：跟到（10/16td）',
     C:'窗A 全盲（max 4.74）——只做 macro 型後置確認',D:'窗A 頂前盲（+18td 先響）——B型專用',
     E:'👑主trigger：窗A 17td／窗B 14td，兩窗最乾淨',F:'鐵證級（7-13td）：真數要 FINRA token，現用股價代理'};
+  var krShort={A:'今日跌≥6%隻數（40隻AI/半導體/電力池）',B:'今日「新」跌穿 −20% 嘅隻數',
+    C:'美國 10 年期國債孳息率',D:'垃圾債息差（credit 違約風險定價）',
+    E:'發電股(CEG+VST)÷納指100 相對強度',F:'單名 credit：CRWV 代理＋ORCL CDS 錨'};
+  var krDefs={
+    A:'量咩：40 隻 AI／半導體／電力股入面，今日收市跌 ≥6% 嘅隻數。\n閘：≥2 隻🟡／≥5 隻🔴（10-14 主殺日＝16 隻）。\n兩窗表現：跟到但嘈（窗A 11/18td）——佢響時多半已經殺緊，係確認唔係預警。\n而家靜＝冇單名屠殺進行中。',
+    B:'量咩：今日「首次」跌穿 20 日高位 −20% 嘅隻數——只計新傷，唔計舊彈坑。\n閘：≥3🟡／≥6🔴。\n兩窗表現：窗A 10/16-18td，同 A 一齊做確認腿。\n而家靜＝冇新名跌入深水區（deep20 累計 16 隻係殘留彈坑，唔係新訊號）。',
+    C:'量咩：美國 10 年期國債孳息率（^TNX）——全市場借貸成本嘅錨。\n閘：≥5.00%🟡／≥5.15%🔴／<4.95% 先解除。sticky 設計：亮過要保持亮，防日日閃。\n點解重要：10月波就係 10y 穿 5.00 點火（殺喺見頂後——水平＞速度）。\n⚠️ 窗A（6-7月）佢全程盲：theme 內生殺倉可以同 10y 無關。',
+    D:'量咩：美國垃圾債息差（FRED BAMLH0A0HYM2，T-1 數）——credit 市場對違約風險嘅定價，AI 債風險最先喺呢度現形。\n閘：水平 ≥3.20🟡，或者 5 日 +0.15pp 以上＝🔴（升緊比企高更毒）。\n兩窗表現：窗A 頂前盲（+18td 先響）；窗B 09-25 轉紅（殺前 13td）＝B 型專用。\n而家 3.25 仲升緊＝紅燈未退。',
+    E:'👑 主trigger（兩窗最準）。\n量咩：POW/QQQ＝CEG+VST 發電股等權指數 ÷ 納指100。AI data center 食電——發電股係最擠擁嘅 AI 表達，聰明錢撤退一定最先斷呢條線。\n⚠️ 冇絕對 safe 數：ratio 係相對值，只同自己近期比——破 20 日低🟡／40 日新低🔴；緩衝＝而家離觸發線幾遠。\n兩窗實績：唯一兩窗都先斷價格線（窗A 頂前 42td、殺前 17td；窗B 頂前 20td、殺前 14td）。\n而家靜＝水未退、亦未再斷。',
+    F:'量咩：單名 credit 錨——CRWV 股價 vs sma20 做代理（真債價免費攞唔到）＋ORCL 5Y CDS 人手錨 227bp（09-25 紀錄高）。\n點解重要：兩次殺倉最早嘅鐵證都係單名 credit——窗A：CRWV B級定價投降→股殺 7td；窗B：ORCL CDS 破紀錄→殺 12-13td。\n顯示不評分：真數要 FINRA TRACE token（最平升級步）。'};
   document.getElementById('krLegs').innerHTML=Object.keys(S.legs||{}).map(function(k){
     var L=S.legs[k],hot=(L.state==='R'),warm=(L.state==='Y');
-    return '<div style="background:'+(hot?'#fef2f2':warm?'#fffbeb':'#f8fafc')+';border:1px solid '+(hot?'#fecaca':warm?'#fde68a':'var(--line)')+';border-radius:10px;padding:10px 12px">'+
-      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13px">'+krEsc(k)+' · '+krEsc(L.name)+'</b>'+krStateBadge(L.state)+'</div>'+
+    var buf='';
+    if(k==='E'&&L.buf20!=null&&!L.on){
+      var bc=(L.buf20>=5?'#16a34a':L.buf20>=2?'#d97706':'#dc2626');
+      buf=' <span style="display:inline-block;font-size:10.5px;font-weight:700;color:#fff;background:'+bc+';border-radius:99px;padding:1px 8px;margin-left:4px" title="緩衝＝而家 ratio 離 20 日低（觸發線）幾遠。冇絕對 safe 數——相對值只同自己比；緩衝越大越難誤響。≥5% 綠／2-5% 黃／<2% 紅。">緩衝 +'+L.buf20+'%</span>';
+    }
+    return '<div title="'+krEsc(krDefs[k]||'')+'" style="background:'+(hot?'#fef2f2':warm?'#fffbeb':'#f8fafc')+';border:1px solid '+(hot?'#fecaca':warm?'#fde68a':'var(--line)')+';border-radius:10px;padding:10px 12px;cursor:help">'+
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13px">'+krEsc(k)+' · '+krEsc(L.name)+'</b>'+krStateBadge(L.state)+buf+'</div>'+
+      '<div class="small muted" style="margin-top:3px">量咩：'+krEsc(krShort[k]||'')+' <span style="opacity:.7">ⓘ hover 睇定義</span></div>'+
       '<div style="font-size:12px;margin-top:4px">'+krEsc(L.val||'')+(L.detail?' <span class="muted">｜'+krEsc(L.detail)+'</span>':'')+'</div>'+
       '<div class="small muted" style="margin-top:3px">閘：'+krEsc(L.thr||'')+'</div>'+
       '<div style="font-size:11px;margin-top:4px;color:#1557b0;background:#e8f0fe;border-radius:6px;padding:2px 7px;display:inline-block">'+krEsc(notes[k]||'')+'</div></div>';
   }).join('')||'<div class="muted small">—</div>';
+
+  // 環境數據（只顯示，hover 有定義）
+  var cx=S.context||{},krBr=null;
+  if(KR_HIST&&KR_HIST.rows){for(var bi=KR_HIST.rows.length-1;bi>=0;bi--){if(KR_HIST.rows[bi].br200!=null){krBr=KR_HIST.rows[bi].br200;break;}}}
+  var krCtxDef={
+    vix:'VIX＝標普期權隱含波動率（「恐慌指數」）。\n⚠️ 兩次殺倉全程滯後——殺完先飆。永遠只准顯示，唔入評分。',
+    move:'MOVE＝ICE BofA 國債波動率指數（債市嘅 VIX）。\n≥100＝債市波動 regime 標記（黃燈級環境提示，虛警高要疊加先算數）。\n窗B 殺前 MOVE 企 100 上 10-14td。',
+    tnx:'10 年期國債孳息率＝C 腿數據源（借貸成本錨）。\n閘：≥5.00🟡／≥5.15🔴／<4.95 解除。',
+    oas:'垃圾債息差＝D 腿數據源（credit 違約定價，T-1）。\n閘：≥3.20 或 5日 +0.15pp＝🔴。',
+    deep20:'deep20 累計＝仲企喺 20 日高位 −20% 以下嘅隻數（彈坑存貨，唔係新訊號）。\n新訊號係 B 腿：今日「新」跌入嘅隻數。',
+    br:'廣度 >200MA%＝幾多 % 隻數企喺 200 日線上。\n⚠️ 做預測係盲嘅（殺前一日仲 100% 完美＝反向脆弱標記）；但佢做 re-entry 確認②有效：五日 +10pp。'};
+  var krCtx=[
+    ['VIX',cx.vix!=null?cx.vix.toFixed(1):'—',krCtxDef.vix],
+    ['MOVE',cx.move!=null?cx.move.toFixed(0):'—',krCtxDef.move],
+    ['10y %',cx.tnx!=null?cx.tnx.toFixed(2):'—',krCtxDef.tnx],
+    ['HY OAS',cx.oas!=null?Number(cx.oas).toFixed(2):'—',krCtxDef.oas],
+    ['deep20 累計',cx.deep20!=null?cx.deep20:'—',krCtxDef.deep20],
+    ['廣度>200MA',krBr!=null?Math.round(krBr*100)+'%':'—',krCtxDef.br]];
+  document.getElementById('krCtx').innerHTML=krCtx.map(function(c){
+    return '<div title="'+krEsc(c[2])+'" style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:help">'+
+      '<div class="small muted">'+c[0]+' <span style="opacity:.6">ⓘ</span></div>'+
+      '<div style="font-size:16px;font-weight:800">'+c[1]+'</div></div>';
+  }).join('');
 
   // 尾聲
   var tw=S.tailwind||{},names={c1:'① TNX 自20日高連跌3日',c2:'② 廣度 &gt;200MA% 五日 +10pp',c3:'③ CRWV 收返 sma20（後備 OAS 距峰 −10bp）'};
