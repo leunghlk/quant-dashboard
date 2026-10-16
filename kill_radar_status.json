@@ -1,19 +1,184 @@
 {
- "version": 1,
+ "version": 2,
  "level": "RED",
+ "level_since": null,
+ "streak": {
+  "yel": 1,
+  "red": 1
+ },
  "reasons": [
-  "10y 5.09 水平閘 Y（MOVE 102）",
-  "HY OAS 3.25（5日 +0.16，2026-10-14）"
+  "10y 5.09 水平閘 Y",
+  "HY OAS 3.25（5日 +0.16）"
+ ],
+ "legs": {
+  "A": {
+   "name": "廣度血",
+   "val": "0 隻 chg1d≤−6%",
+   "thr": "≥2🟡/≥5🔴",
+   "state": "off"
+  },
+  "B": {
+   "name": "新深20",
+   "val": "0 隻（現 deep20 16）",
+   "thr": "≥3🟡/≥6🔴",
+   "state": "off"
+  },
+  "C": {
+   "name": "10y 水平",
+   "val": "5.09",
+   "thr": "≥5.00🟡/≥5.15🔴/<4.95解除",
+   "state": "Y",
+   "detail": "MOVE 102"
+  },
+  "D": {
+   "name": "HY OAS",
+   "val": "3.25（5日 +0.16，2026-10-14）",
+   "thr": "≥3.20 或 5日 +15bp🔴",
+   "state": "R"
+  },
+  "E": {
+   "name": "POW/QQQ",
+   "val": "ratio 0.594（20d低 0.532）",
+   "thr": "破20d低🟡／40d新低🔴／👑主trigger",
+   "state": "off",
+   "detail": ""
+  },
+  "F": {
+   "name": "credit 錨",
+   "val": "CRWV 69.7 vs sma20 84.0（下）｜ORCL CDS 人手錨 227bp 09-25",
+   "thr": "顯示不評分（真數要 FINRA token）",
+   "state": "note"
+  }
+ },
+ "tailwind": {
+  "c1": false,
+  "c2": false,
+  "c3": false,
+  "n": 0,
+  "detail": "oas_offpeak 0bp"
+ },
+ "vuln_top": [
+  {
+   "t": "NBIS",
+   "score": 5,
+   "beta": 5.08,
+   "vol": 0.74,
+   "mcap": 51.0,
+   "corr": 14.23,
+   "debt": 9.7,
+   "hold": "⚠️手動 P200×2 BE174.95 至10-23"
+  },
+  {
+   "t": "CRWV",
+   "score": 5,
+   "beta": 4.97,
+   "vol": 0.78,
+   "mcap": 38.0,
+   "corr": 14.84,
+   "debt": 77.6,
+   "hold": null
+  },
+  {
+   "t": "COHR",
+   "score": 5,
+   "beta": 4.01,
+   "vol": 0.85,
+   "mcap": 49.0,
+   "corr": 15.19,
+   "debt": 7.2,
+   "hold": null
+  },
+  {
+   "t": "WOLF",
+   "score": 5,
+   "beta": 5.41,
+   "vol": 1.04,
+   "mcap": 1.0,
+   "corr": 14.1,
+   "debt": 131.0,
+   "hold": null
+  },
+  {
+   "t": "ALAB",
+   "score": 4,
+   "beta": 5.01,
+   "vol": 0.8,
+   "mcap": 52.0,
+   "corr": 15.69,
+   "debt": 0.0,
+   "hold": null
+  },
+  {
+   "t": "SMCI",
+   "score": 4,
+   "beta": 4.23,
+   "vol": 0.55,
+   "mcap": 23.0,
+   "corr": 14.65,
+   "debt": 38.0,
+   "hold": null
+  },
+  {
+   "t": "STM",
+   "score": 4,
+   "beta": 3.16,
+   "vol": 0.51,
+   "mcap": 42.0,
+   "corr": 14.48,
+   "debt": 5.6,
+   "hold": null
+  },
+  {
+   "t": "AMKR",
+   "score": 4,
+   "beta": 3.47,
+   "vol": 0.51,
+   "mcap": 11.0,
+   "corr": 13.27,
+   "debt": 14.3,
+   "hold": null
+  },
+  {
+   "t": "INTC",
+   "score": 4,
+   "beta": 3.26,
+   "vol": 0.64,
+   "mcap": 501.0,
+   "corr": 11.08,
+   "debt": 9.3,
+   "hold": null
+  },
+  {
+   "t": "TSEM",
+   "score": 4,
+   "beta": 3.66,
+   "vol": 0.67,
+   "mcap": 24.0,
+   "corr": 15.14,
+   "debt": 0.7,
+   "hold": null
+  }
  ],
  "context": {
   "vix": 16.46,
-  "tnx": 5.09,
+  "tnx": 5.089,
   "move": 102.5,
   "oas": 3.25,
-  "blood": 1,
-  "new20": 0
+  "blood": 0,
+  "deep20": 16,
+  "stale_names": [
+   "NVDA",
+   "MSFT",
+   "AAPL",
+   "AMZN",
+   "GOOGL",
+   "META",
+   "AVGO",
+   "AMD"
+  ],
+  "name_fails": []
  },
- "as_of": "10-16 13:54 HKT",
- "updated": 1792130091179,
- "note": "殺倉預警雷達 v1——🔴=即時危險（TG 已同步）／🟡=計時中／🟢=靜。VIX 唔可靠僅顯示。"
+ "as_of": "10-16 14:22 HKT",
+ "updated": 1792131746019,
+ "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
