@@ -3,8 +3,8 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 30,
-  "red": 26
+  "yel": 31,
+  "red": 27
  },
  "reasons": [
   "10y 5.09 水平閘 Y",
@@ -182,6 +182,448 @@
    "hold": null
   }
  ],
+ "universe": [
+  {
+   "t": "NVDA",
+   "last": 217.22999572753906,
+   "chg1d": null,
+   "dd20": -0.09199970431472804,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 1,
+   "hold": null
+  },
+  {
+   "t": "MSFT",
+   "last": 539.4400024414062,
+   "chg1d": null,
+   "dd20": -0.007378801500693255,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 1,
+   "hold": null
+  },
+  {
+   "t": "AAPL",
+   "last": 342.0,
+   "chg1d": null,
+   "dd20": -0.0027991354064512697,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 0,
+   "hold": null
+  },
+  {
+   "t": "AMZN",
+   "last": 254.75999450683594,
+   "chg1d": null,
+   "dd20": -0.029226835281823904,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 2,
+   "hold": null
+  },
+  {
+   "t": "GOOGL",
+   "last": 349.2200012207031,
+   "chg1d": null,
+   "dd20": -0.016198551934603955,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 1,
+   "hold": null
+  },
+  {
+   "t": "META",
+   "last": 736.719970703125,
+   "chg1d": null,
+   "dd20": -0.05255990270042432,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 1,
+   "hold": null
+  },
+  {
+   "t": "AVGO",
+   "last": 344.3299865722656,
+   "chg1d": null,
+   "dd20": -0.0854692368295632,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 1,
+   "hold": null
+  },
+  {
+   "t": "AMD",
+   "last": 562.22998046875,
+   "chg1d": null,
+   "dd20": -0.1342582685101461,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 1,
+   "hold": null
+  },
+  {
+   "t": "MRVL",
+   "last": 241.24000549316406,
+   "chg1d": null,
+   "dd20": -0.15947180486784118,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 2,
+   "hold": null
+  },
+  {
+   "t": "BE",
+   "last": 236.3000030517578,
+   "chg1d": null,
+   "dd20": -0.20109539513495445,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 3,
+   "hold": null
+  },
+  {
+   "t": "ALAB",
+   "last": 301.9800109863281,
+   "chg1d": null,
+   "dd20": -0.22529497064346682,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 4,
+   "hold": null
+  },
+  {
+   "t": "WDC",
+   "last": 356.45001220703125,
+   "chg1d": null,
+   "dd20": -0.24750361973045265,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 2,
+   "hold": null
+  },
+  {
+   "t": "NBIS",
+   "last": 188.41000366210938,
+   "chg1d": null,
+   "dd20": -0.24596787391881036,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 5,
+   "hold": "⚠️手動 P200×2 BE174.95 至10-23"
+  },
+  {
+   "t": "CRWV",
+   "last": 69.69000244140625,
+   "chg1d": null,
+   "dd20": -0.24018751075119094,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 5,
+   "hold": null
+  },
+  {
+   "t": "ORCL",
+   "last": 134.47000122070312,
+   "chg1d": null,
+   "dd20": -0.10704559073776587,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 3,
+   "hold": null
+  },
+  {
+   "t": "VRT",
+   "last": 214.75,
+   "chg1d": null,
+   "dd20": -0.15326076754802886,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 2,
+   "hold": null
+  },
+  {
+   "t": "SMCI",
+   "last": 35.09000015258789,
+   "chg1d": null,
+   "dd20": -0.21918110314019879,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 4,
+   "hold": null
+  },
+  {
+   "t": "DELL",
+   "last": 473.3900146484375,
+   "chg1d": null,
+   "dd20": -0.19546227905098013,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 3,
+   "hold": null
+  },
+  {
+   "t": "COHR",
+   "last": 250.60000610351562,
+   "chg1d": null,
+   "dd20": -0.2593686696045414,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 5,
+   "hold": null
+  },
+  {
+   "t": "MU",
+   "last": 931.239990234375,
+   "chg1d": null,
+   "dd20": -0.15140471682466572,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 1,
+   "hold": null
+  },
+  {
+   "t": "TSM",
+   "last": 422.25,
+   "chg1d": null,
+   "dd20": -0.13081512842699283,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 2,
+   "hold": null
+  },
+  {
+   "t": "STM",
+   "last": 46.599998474121094,
+   "chg1d": null,
+   "dd20": -0.20640331223816188,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 4,
+   "hold": null
+  },
+  {
+   "t": "AMKR",
+   "last": 44.04999923706055,
+   "chg1d": null,
+   "dd20": -0.21367370801305008,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 4,
+   "hold": null
+  },
+  {
+   "t": "ASML",
+   "last": 1657.43994140625,
+   "chg1d": null,
+   "dd20": -0.11239168140375722,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 1,
+   "hold": null
+  },
+  {
+   "t": "TER",
+   "last": 343.2099914550781,
+   "chg1d": null,
+   "dd20": -0.2356805965525821,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 2,
+   "hold": null
+  },
+  {
+   "t": "GLW",
+   "last": 138.42999267578125,
+   "chg1d": null,
+   "dd20": -0.18074219284067772,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 3,
+   "hold": null
+  },
+  {
+   "t": "INTC",
+   "last": 95.37000274658203,
+   "chg1d": null,
+   "dd20": -0.25135408428040473,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 4,
+   "hold": null
+  },
+  {
+   "t": "TSEM",
+   "last": 209.8000030517578,
+   "chg1d": null,
+   "dd20": -0.18811191486964574,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 4,
+   "hold": null
+  },
+  {
+   "t": "CRDO",
+   "last": 178.5,
+   "chg1d": null,
+   "dd20": -0.19168591894247744,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 4,
+   "hold": null
+  },
+  {
+   "t": "AAOI",
+   "last": 83.7300033569336,
+   "chg1d": null,
+   "dd20": -0.35671480484670526,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 4,
+   "hold": null
+  },
+  {
+   "t": "WOLF",
+   "last": 25.90999984741211,
+   "chg1d": null,
+   "dd20": -0.2655895480751348,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 5,
+   "hold": null
+  },
+  {
+   "t": "SNDK",
+   "last": 1394.8299560546875,
+   "chg1d": null,
+   "dd20": -0.2608371167642777,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 3,
+   "hold": null
+  },
+  {
+   "t": "LITE",
+   "last": 869.5399780273438,
+   "chg1d": null,
+   "dd20": -0.23280398862098783,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 3,
+   "hold": null
+  },
+  {
+   "t": "ON",
+   "last": 73.69999694824219,
+   "chg1d": null,
+   "dd20": -0.14610127409389562,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 3,
+   "hold": null
+  },
+  {
+   "t": "PLTR",
+   "last": 200.5,
+   "chg1d": null,
+   "dd20": -0.04089932038719446,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 2,
+   "hold": null
+  },
+  {
+   "t": "SNOW",
+   "last": 335.07000732421875,
+   "chg1d": null,
+   "dd20": -0.09168046295980703,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 1,
+   "hold": null
+  },
+  {
+   "t": "CEG",
+   "last": 275.0,
+   "chg1d": null,
+   "dd20": -0.08455390949587382,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 3,
+   "hold": null
+  },
+  {
+   "t": "IONQ",
+   "last": 34.349998474121094,
+   "chg1d": null,
+   "dd20": -0.24472298109367907,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 4,
+   "hold": null
+  },
+  {
+   "t": "MRNA",
+   "last": 236.5,
+   "chg1d": null,
+   "dd20": 0.0,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 3,
+   "hold": "⚠️手動 P200×3 BE189 至10-30"
+  },
+  {
+   "t": "APP",
+   "last": 279.2900085449219,
+   "chg1d": null,
+   "dd20": -0.15410244060201062,
+   "blood": false,
+   "deep20": false,
+   "stale": true,
+   "score": 1,
+   "hold": null
+  }
+ ],
  "context": {
   "vix": 16.0,
   "tnx": 5.089,
@@ -201,7 +643,7 @@
   ],
   "name_fails": []
  },
- "as_of": "10-16 17:26 HKT",
- "updated": 1792142780654,
+ "as_of": "10-16 17:27 HKT",
+ "updated": 1792142879086,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
