@@ -3,8 +3,8 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 25,
-  "red": 21
+  "yel": 26,
+  "red": 22
  },
  "reasons": [
   "10y 5.09 水平閘 Y",
@@ -38,9 +38,14 @@
   },
   "E": {
    "name": "POW/QQQ",
-   "val": "ratio 0.594（20d低 0.532）",
+   "val": "ratio 0.594（20d低 0.532，緩衝 +11.7%）",
    "thr": "破20d低🟡／40d新低🔴／👑主trigger",
    "state": "off",
+   "ratio": 0.594,
+   "lo20": 0.532,
+   "lo40": 0.532,
+   "buf20": 11.7,
+   "buf40": 11.7,
    "detail": ""
   },
   "F": {
@@ -197,6 +202,6 @@
   "name_fails": []
  },
  "as_of": "10-16 15:25 HKT",
- "updated": 1792135535386,
+ "updated": 1792135555020,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
