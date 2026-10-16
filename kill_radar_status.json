@@ -3,11 +3,11 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 38,
-  "red": 34
+  "yel": 39,
+  "red": 35
  },
  "reasons": [
-  "10y 5.10 水平閘 Y",
+  "10y 5.12 水平閘 Y",
   "HY OAS 3.25（5日 +0.16）"
  ],
  "legs": {
@@ -25,10 +25,10 @@
   },
   "C": {
    "name": "10y 水平",
-   "val": "5.10",
+   "val": "5.12",
    "thr": "≥5.00🟡/≥5.15🔴/<4.95解除",
    "state": "Y",
-   "detail": "MOVE 102"
+   "detail": "MOVE 98"
   },
   "D": {
    "name": "HY OAS",
@@ -625,9 +625,9 @@
   }
  ],
  "context": {
-  "vix": 15.99,
-  "tnx": 5.104,
-  "move": 102.5,
+  "vix": 15.82,
+  "tnx": 5.119,
+  "move": 98.1,
   "oas": 3.25,
   "blood": 0,
   "deep20": 16,
@@ -643,7 +643,7 @@
   ],
   "name_fails": []
  },
- "as_of": "10-16 20:57 HKT",
- "updated": 1792155453064,
+ "as_of": "10-16 21:27 HKT",
+ "updated": 1792157265023,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
