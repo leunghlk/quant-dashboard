@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🧭 AI-trade 殺倉預警 · Kill Radar</title>
+<style>
+:root{
+  --bg:#eef2f6; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+  --blue:#1a73e8; --blue-deep:#1557b0; --blue-tint:#e8f0fe;
+  --teal:#0d9488; --teal-deep:#115e59; --teal-tint:#ccfbf1;
+  --good:#16a34a; --bad:#dc2626; --warn:#d97706;
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.lk-bar{background:linear-gradient(135deg,#1a73e8 0%,#1557b0 100%);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.18);margin-bottom:12px}
+.lk-logo{width:38px;height:38px;background:#fff;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:300;font-style:italic;color:#1a73e8;transform:rotate(-6deg);font-family:'Brush Script MT','Segoe Script',cursive,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.lk-name{font-size:19px;font-weight:700;letter-spacing:.2px;line-height:1}
+.lk-sub{font-size:11.5px;opacity:.9;margin-top:3px}
+.lk-prod{margin-left:auto;font-size:12.5px;opacity:.92;text-align:right;line-height:1.5}
+.appbar{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:10px 0;margin-bottom:14px}
+.appbar-in{max-width:1080px;margin:0 auto;padding:0 22px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.appbar h1{font-size:18px;font-weight:800;letter-spacing:.2px}
+.appbar .sub{font-size:11px;color:var(--muted);margin-top:1px}
+.appbar-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.status-bar{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--muted)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--good);animation:pulse 2s infinite}
+.live-dot.dead{background:var(--bad);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}
+.badge.redbg{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+.badge.warnbg{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+.badge.goodbg{background:var(--teal-tint);color:var(--teal-deep)}
+.badge.greybg{background:#f1f5f9;color:#64748b}
+.badge.holdbg{background:#fdf4ff;color:#a21caf;border:1px solid #f5d0fe}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:14px}
+.card h2{font-size:14px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.meta{font-size:11px;color:var(--muted);margin-bottom:8px}
+.research{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:12.5px}
+.research b{color:#92400e}
+/* 總燈 banner */
+.banner{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.lamp{font-size:38px;line-height:1}
+.banner .big{font-size:17px;font-weight:800}
+.banner .streaks{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.reasons{margin-top:8px;font-size:12.5px}
+.reasons li{margin-left:18px;margin-top:2px}
+/* 六腿 grid */
+.legs{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px;margin-top:10px}
+.leg{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.leg .hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.leg .nm{font-weight:800;font-size:13px}
+.leg .val{font-size:12px;margin-top:4px}
+.leg .thr{font-size:11px;color:var(--muted);margin-top:3px}
+.leg .note{font-size:11px;margin-top:4px;color:var(--blue-deep);background:var(--blue-tint);border-radius:6px;padding:2px 7px;display:inline-block}
+.leg.hot{background:#fef2f2;border-color:#fecaca}
+.leg.warm{background:#fffbeb;border-color:#fde68a}
+/* 尾聲 */
+.tw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:8px}
+.tw{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.tw .nm{font-weight:800;font-size:12.5px}
+.tw .dt{font-size:11.5px;color:var(--muted);margin-top:3px}
+.progress{height:10px;background:#f1f5f9;border-radius:99px;overflow:hidden;margin-top:8px}
+.progress i{display:block;height:100%;background:var(--teal);border-radius:99px;transition:width .3s}
+/* tables */
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font-size:11px;color:var(--muted);font-weight:800;text-align:left;padding:6px 8px;border-bottom:2px solid var(--line);white-space:nowrap;position:sticky;top:0;background:var(--card)}
+td{padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr:hover td{background:#f8fafc}
+.tk{font-weight:800}
+.up{color:var(--good);font-weight:700}
+.dn{color:var(--bad);font-weight:700}
+tr.keyrow td{background:#fff7ed;font-weight:700}
+tr.killrow td{background:#fef2f2;font-weight:700}
+/* window toggle */
+.wintab{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.wintab button{background:#f1f5f9;border:1px solid var(--line);border-radius:99px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted)}
+.wintab button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.empty{padding:26px;text-align:center;color:var(--muted)}
+.legend{font-size:11px;color:var(--muted);margin-top:8px}
+@media(max-width:640px){.wrap{padding:0 12px 32px}.card{padding:12px 12px}}
+</style>
+</head>
+<body>
+<div class="lk-bar">
+  <div class="lk-logo">k</div>
+  <div>
+    <div class="lk-name">leungkathy</div>
+    <div class="lk-sub">All-in-One Financial Dashboard Suite</div>
+  </div>
+  <div class="lk-prod">🧭 AI-trade 殺倉預警 · Kill Radar v2</div>
+</div>
+
+<div class="appbar"><div class="appbar-in">
+  <div>
+    <h1>🧭 AI-trade 殺倉預警 <span class="badge greybg" id="lvbadge">載入中…</span></h1>
+    <div class="sub">兩窗（2026-06~07 / 10月）四研究定案：E=POW/QQQ 主trigger；尾聲三確認 2/3=可落注窗口</div>
+  </div>
+  <div class="appbar-right">
+    <div class="status-bar"><span class="live-dot dead" id="dot"></span><span id="st">載入中…</span></div>
+    <button class="btn" onclick="loadAll(true)">刷新</button>
+  </div>
+</div></div>
+
+<div class="wrap">
+
+<div class="research">⚠️ <b>純顯示制（零落單）</b>：呢頁係預警雷達，<b>唔接 engine、唔接落單系統</b>（kill switch 未解）。
+引擎每 30 分鐘掃一次＋TG push（🔴即時／🟡晨7點digest／E腿首響／尾聲確認／脆弱度滿分）。
+數據源：Yahoo 日線（stale-bar 閘）＋FRED OAS（T-1）。VIX 全程盲<b>只准顯示</b>（兩次殺倉都滯後）。</div>
+
+<!-- 總燈 -->
+<div class="card">
+  <div class="banner">
+    <div class="lamp" id="lamp">…</div>
+    <div style="flex:1;min-width:240px">
+      <div class="big" id="lvtext">載入中…</div>
+      <div class="streaks" id="streaks"></div>
+    </div>
+    <div style="text-align:right;font-size:11px;color:var(--muted)" id="asof"></div>
+  </div>
+  <ul class="reasons" id="reasons"></ul>
+</div>
+
+<!-- 六腿 -->
+<div class="card">
+  <h2>六腿狀態 <span class="badge greybg">每 30 分鐘掃</span></h2>
+  <div class="meta">A/B/C/D 評分入燈；E=👑主trigger（兩窗一致最早 17/14td）；F credit 錨顯示不評分；C/D 窗A型盲——theme 內生殺倉佢哋會全程靜音</div>
+  <div class="legs" id="legs"></div>
+</div>
+
+<!-- 尾聲三確認 -->
+<div class="card">
+  <h2>尾聲三確認（re-entry rule） <span class="badge greybg" id="twn">—</span></h2>
+  <div class="meta">窗A 模擬：真底 +2td armed、兩假底零中伏（假底中伏代價 −26%/−17%，確認代價 = 入場高底 11.6%）。任兩齊 = 可落注窗口（旗鮮 5td）。⚠️ 等确认唔等於執最平：OAS 真底當日仲創窗新高（遲 4-5td）</div>
+  <div class="progress"><i id="twbar" style="width:0%"></i></div>
+  <div class="tw-grid" id="twgrid"></div>
+  <div class="legend" id="twstatus"></div>
+</div>
+
+<!-- 脆弱度 -->
+<div class="card">
+  <h2>脆弱度旗 Top 10 <span class="badge greybg">旗唔係 trigger</span></h2>
+  <div class="meta">五點評分：β60&gt;3 ＋ vol20&gt;0.6 ＋ 市值&lt;$60B ＋ corr20&gt;0.6 ＋ debt/mcap&gt;5%（兩窗 AUC .80/.83，in-sample 閾值——做相對排名用）。窗A worst10 <b>10/10</b> 窗B 再死 = 持久脆弱 cluster</div>
+  <div class="tblwrap">
+  <table>
+    <thead><tr><th>Ticker</th><th>分</th><th>β60</th><th>vol20</th><th>市值($B)</th><th>corr20</th><th>debt/mcap</th><th>持倉</th></tr></thead>
+    <tbody id="vuln"><tr><td class="empty" colspan="8">載入中…</td></tr></tbody>
+  </table>
+  </div>
+</div>
+
+<!-- 歷史回看 -->
+<div class="card">
+  <h2>歷史回看 <span class="badge greybg">2026-02-02 起 逐日</span></h2>
+  <div class="meta" id="histmeta"></div>
+  <div class="wintab">
+    <button id="wtb" class="on" onclick="setWin('B')">窗B：10月轉（08-03→）</button>
+    <button id="wta" onclick="setWin('A')">窗A：6-7月轉（02-02→07-31）</button>
+  </div>
+  <div class="tblwrap">
+  <table>
+    <thead><tr>
+      <th>日期</th><th>燈</th><th>A 血</th><th>B 深20</th><th>C 10y</th><th>D OAS</th><th>E POW/QQQ</th><th>MOVE</th><th>尾聲</th>
+    </tr></thead>
+    <tbody id="hist"><tr><td class="empty" colspan="9">載入中…</td></tr></tbody>
+  </table>
+  </div>
+  <div class="legend">🟠行 = 關鍵日（頂/底/假底）｜🔴行 = 主殺日。窗A：06-02 頂→07-29 真底（−28.1%）；03-26「狼來了」假警梯（EW40 只回 −12.4% 就破頂）；tnx_stk3 07-28 亮→07-29 底、07-31 落注 +2td。窗B：10-06/07 頂、09-10 🟡 起（頂前18td）、主殺日 = ET 10-14（CPI，16 隻≤−6%）。</div>
+</div>
+
+<!-- 研究錨 note -->
+<div class="card">
+  <h2>研究錨（10-16 四研究定案）</h2>
+  <div class="meta">報告全在 ~/quant_model/kill_research_20261016/</div>
+  <div class="tw-grid">
+    <div class="tw"><div class="nm">👑 E 腿 = POW/QQQ（CEG+VST 等權）</div><div class="dt">窗A 頂前 17td 七連響／窗B 14td——兩窗最乾淨，唯一先斷價格線。破20d低=🟡、40d新低=🔴</div></div>
+    <div class="tw"><div class="nm">單名 credit = 鐵證級</div><div class="dt">窗A：CRWV 06-11 B級定價投降（7td）；窗B：ORCL 5Y CDS 09-25 紀錄 227bp（12-13td）。免費日度攞唔到——最平升級 = FINRA 免費註冊 token 解鎖 TRACE；而家用 CRWV 股價代理</div></div>
+    <div class="tw"><div class="nm">「狼來了」假警梯</div><div class="dt">窗A 頂前 2-3 月有成套假警（03-26 單日23隻血、OAS 3.46、MOVE 115）→ EW40 只回 −12.4% 就破頂。macro 梯可以呃人，<b>單名深水 credit 唔會</b>——窗A 後 8 月 alert 批無行動係啱</div></div>
+    <div class="tw"><div class="nm">盲名單（只准顯示）</div><div class="dt">VIX／廣度做預測／20d相關性／CNN F&amp;G／AAII／IG OAS／RRP/TGA——兩窗全程盲。殺前一日廣度 100% 完美 = 反向脆弱標記</div></div>
+  </div>
+</div>
+
+</div>
+<script>
+"use strict";
+let STATUS=null, HIST=null, win='B';
+const KEY_A={"2026-06-02":"頂","2026-07-29":"真底","2026-06-10":"假底1","2026-07-17":"假底2","2026-03-26":"狼來了23血","2026-05-07":"E腿首響","2026-07-28":"TNX3連跌"};
+const KEY_B={"2026-10-06":"頂","2026-10-07":"頂","2026-10-14":"主殺日CPI","2026-09-10":"首🟡(前18td)","2026-09-14":"首🔴","2026-09-16":"E腿破20d"};
+
+function fetchTimeout(url,ms){
+  const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),ms);
+  return fetch(url,Object.assign({},{cache:'no-store',signal:ctrl.signal})).finally(()=>clearTimeout(t));
+}
+function setSt(txt,alive){document.getElementById('st').textContent=txt;
+  document.getElementById('dot').className='live-dot'+(alive?'':' dead');}
+
+async function loadAll(manual){
+  try{
+    const r=await fetchTimeout('./kill_radar_status.json?v='+Date.now(),10000);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    STATUS=await r.json();
+    try{
+      const r2=await fetchTimeout('./kill_radar_history.json?v='+Date.now(),10000);
+      if(r2.ok)HIST=await r2.json();
+    }catch(e){}
+    setSt('live · '+STATUS.as_of,true);
+    render();
+  }catch(e){
+    setSt('讀取失敗（'+e.message+'），90 秒重試…',false);
+    setTimeout(()=>loadAll(false),90000);
+  }
+}
+
+function lvMeta(lv){
+  return {RED:['🔴','紅燈——縮倉／停開新倉（1-4日引信）','redbg'],
+          YEL:['🟡','黃燈——計時中','warnbg'],
+          GREEN:['🟢','綠燈——靜','goodbg']}[lv]||['⚪','?','greybg'];
+}
+function stBadge(s){
+  return {R:['🔴','redbg'],Y:['🟡','warnbg'],off:['—','greybg'],note:['ℹ️','greybg']}[s]||['—','greybg'];
+}
+
+function render(){
+  const lv=STATUS.level||'GREEN';
+  const [icon,txt,cls]=lvMeta(lv);
+  document.getElementById('lamp').textContent=icon;
+  document.getElementById('lvtext').textContent=txt;
+  const lb=document.getElementById('lvbadge');
+  lb.textContent=icon+' '+lv; lb.className='badge '+cls;
+  const sk=STATUS.streak||{};
+  let sh='';
+  if(sk.red)sh+='<span class="badge redbg">連續 🔴 '+sk.red+' td</span>';
+  if(sk.yel)sh+='<span class="badge warnbg">連續 ≥🟡 '+sk.yel+' td</span>';
+  if(!sk.red&&!sk.yel)sh='<span class="badge goodbg">常規</span>';
+  document.getElementById('streaks').innerHTML=sh;
+  document.getElementById('asof').textContent=STATUS.as_of||'';
+  document.getElementById('reasons').innerHTML=((STATUS.reasons||[]).map(r=>'<li>'+r+'</li>').join(''))||'<li style="color:var(--muted)">各腿靜</li>';
+
+  // 六腿
+  const notes={A:'廣度血：跟到但嘈（11/18td）',B:'新深20：跟到（10/16td）',
+    C:'窗A 全盲（max 4.74）——只做 macro 型後置確認',D:'窗A 頂前盲（+18td 先響）——B型專用',
+    E:'👑主trigger：窗A 17td／窗B 14td，兩窗最乾淨',F:'鐵證級（7-13td）：真數要 FINRA token，現用股價代理'};
+  document.getElementById('legs').innerHTML=Object.entries(STATUS.legs||{}).map(function(kv){
+    const k=kv[0],L=kv[1];const [ic,cl]=stBadge(L.state);
+    return '<div class="leg'+(L.state==='R'?' hot':(L.state==='Y'?' warm':''))+'">'+
+      '<div class="hd"><span class="nm">'+k+' · '+L.name+'</span><span class="badge '+cl+'">'+ic+(L.state==='R'?' 紅':L.state==='Y'?' 黃':L.state==='note'?' 顯示':' 靜')+'</span></div>'+
+      '<div class="val">'+(L.val||'')+(L.detail?' <span style="color:var(--muted)">｜'+L.detail+'</span>':'')+'</div>'+
+      '<div class="thr">閘：'+(L.thr||'')+'</div>'+
+      '<div class="note">'+(notes[k]||'')+'</div></div>';
+  }).join('');
+
+  // 尾聲
+  const tw=STATUS.tailwind||{};
+  const names={c1:'① TNX 自20日高連跌3日',c2:'② 廣度 &gt;200MA% 五日 +10pp',c3:'③ CRWV 收返 sma20（後備 OAS 距峰 −10bp）'};
+  document.getElementById('twn').textContent=(tw.n||0)+'/3'+((tw.n||0)>=2?' ✅窗口':'');
+  document.getElementById('twbar').style.width=((tw.n||0)/3*100)+'%';
+  document.getElementById('twgrid').innerHTML=['c1','c2','c3'].map(function(k){
+    const on=!!tw[k];
+    return '<div class="tw" style="'+(on?'background:var(--teal-tint);border-color:#99f6e4':'')+'">'+
+      '<div class="nm">'+names[k]+'</div><div class="dt">'+(on?'✅ 已確認':'未確認')+'</div></div>';
+  }).join('');
+  document.getElementById('twstatus').innerHTML=(tw.n||0)>=2
+    ?'✅ <b>2/3 齊——re-entry 窗口 armed</b>（旗鮮 5td，聽日落注原則）'
+    :'窗B 現狀 <b>'+(tw.n||0)+'/3</b>——未到尾聲（'+(tw.detail?('後備③現值：'+tw.detail):'')+'）';
+
+  // 脆弱度
+  document.getElementById('vuln').innerHTML=(STATUS.vuln_top||[]).map(function(v){
+    return '<tr'+(v.score>=5?' style="background:#fef2f2"':'')+'>'+
+      '<td class="tk">'+v.t+'</td><td class="'+(v.score>=4?'dn':'')+'"><b>'+v.score+'</b>/5</td>'+
+      '<td>'+v.beta+'</td><td>'+v.vol+'</td><td>'+(v.mcap!=null?v.mcap:'—')+'</td>'+
+      '<td>'+v.corr+'</td><td>'+(v.debt!=null?v.debt+'%':'—')+'</td>'+
+      '<td>'+(v.hold?'<span class="badge holdbg">'+v.hold+'</span>':'')+'</td></tr>';
+  }).join('')||'<tr><td class="empty" colspan="8">—</td></tr>';
+
+  renderHist();
+}
+
+function setWin(w){
+  win=w;
+  document.getElementById('wta').className=(w==='A')?'on':'';
+  document.getElementById('wtb').className=(w==='B')?'on':'';
+  renderHist();
+}
+
+function renderHist(){
+  const rows=(HIST&&HIST.rows)||[];
+  const sel=rows.filter(function(r){return win==='A'?(r.d>='2026-02-02'&&r.d<='2026-07-31'):(r.d>='2026-08-03');});
+  const keys=(win==='A')?KEY_A:KEY_B;
+  document.getElementById('histmeta').textContent=sel.length+' 個交易日'+(win==='A'?'（02-02→07-31）':'（08-03→今日）');
+  if(!sel.length){document.getElementById('hist').innerHTML='<tr><td class="empty" colspan="9">—</td></tr>';return;}
+  const disp=sel.slice().reverse();
+  document.getElementById('hist').innerHTML=disp.map(function(r){
+    const key=keys[r.d];
+    const kill=(r.d==='2026-10-14');
+    const lv={RED:['🔴','dn'],YEL:['🟡',''],GREEN:['🟢','up']}[r.level]||['·',''];
+    return '<tr class="'+(kill?'killrow':(key?'keyrow':''))+'">'+
+      '<td class="tk">'+r.d+(key?' <span class="badge warnbg">'+key+'</span>':'')+'</td>'+
+      '<td class="'+lv[1]+'">'+lv[0]+'</td>'+
+      '<td'+((r.blood||0)>=5?' class="dn"':'')+'>'+(r.blood||0)+'</td>'+
+      '<td>'+(r.deep20!=null?r.deep20:'—')+'</td>'+
+      '<td>'+(r.tnx!=null?r.tnx.toFixed(2)+(r.tnx_arm?'<span class="badge '+(r.tnx_arm==='R'?'redbg':'warnbg')+'">'+r.tnx_arm+'</span>':''):'—')+'</td>'+
+      '<td>'+(r.oas!=null?r.oas.toFixed(2)+(r.oas_d5?' <span class="'+(r.oas_d5>=0.15?'dn':'')+'">('+(r.oas_d5>=0?'+':'')+r.oas_d5.toFixed(2)+')</span>':''):'—')+'</td>'+
+      '<td>'+(r.E?'👑':(r.pow!=null?r.pow.toFixed(3):'—'))+'</td>'+
+      '<td>'+(r.move!=null?r.move.toFixed(0):'—')+'</td>'+
+      '<td>'+(r.tw!=null?r.tw+'/3':'—')+'</td></tr>';
+  }).join('');
+}
+
+loadAll(false);
+setInterval(()=>loadAll(false),300000);
+</script>
+</body>
+</html>
