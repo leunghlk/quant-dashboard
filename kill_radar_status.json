@@ -3,8 +3,8 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 22,
-  "red": 18
+  "yel": 23,
+  "red": 19
  },
  "reasons": [
   "10y 5.09 水平閘 Y",
@@ -50,6 +50,24 @@
    "state": "note"
   }
  },
+ "holdings": [
+  {
+   "t": "NBIS",
+   "pos": "P200×2 @25.05",
+   "be": 174.95,
+   "exp": "2026-10-23",
+   "days": 7,
+   "note": "實質槓桿接刀；BE 174.95 即 spot ≤175 輸凸"
+  },
+  {
+   "t": "MRNA",
+   "pos": "P200×3 @11.00",
+   "be": 189.0,
+   "exp": "2026-10-30",
+   "days": 14,
+   "note": "IV135% 事件型生技名；OTM 16% 但 −16% 就摸 200"
+  }
+ ],
  "tailwind": {
   "c1": false,
   "c2": false,
@@ -178,7 +196,7 @@
   ],
   "name_fails": []
  },
- "as_of": "10-16 14:25 HKT",
- "updated": 1792131900869,
+ "as_of": "10-16 14:42 HKT",
+ "updated": 1792132939180,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
