@@ -162,7 +162,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
     <div class="lk-name">leungkathy</div>
     <div class="lk-sub">All-in-One Financial Dashboard Suite</div>
   </div>
-  <div class="lk-prod">證券交易總覽 · My Securities Desk ｜ <a href="kill-radar.html" target="_blank" style="color:#fff;text-decoration:underline">🧭 殺倉預警</a></div>
+  <div class="lk-prod">證券交易總覽 · My Securities Desk</div>
 </div>
 <div class="appbar"><div class="appbar-in">
   <div><h1>💼 證券交易總覽</h1><div class="sub" id="appbarSub">正股 ＋ 期權 ＋ 現金寶 · 統一持倉（HKD 700,000 基準）· Futu 實時 · <strong>回本目標 HKD 50,000 @ 2026-12-31</strong></div></div>
@@ -175,7 +175,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 <div id="mktHolidayBanner" class="warn-note" style="display:none;margin:0 0 10px"></div>
 <div style="background:#dc2626;color:#fff;padding:9px 14px;border-radius:8px;margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:.3px">🔴 市況兇險期（至 10-30）：開任何 CSP 前望實接貨燈 —— 🔴 接唔起（單腿＞50% equity／全簿＞100%）嘅，唔好做</div>
 <!-- kill-radar-banner v1 (2026-10-16)：殺倉預警雷達。資料=kill_radar_status.json（launchd 僅 level 變化 git push）。TG 同步推送，此處只顯示 -->
-<div id="killRadarBanner" style="display:none;margin:0 0 10px"></div>
+<div id="killRadarBanner" style="display:none;margin:0 0 10px;cursor:pointer" onclick="switchPane('killradar')" title="撳一下去殺倉雷達 tab"></div>
 <script>
 (function(){
   'use strict';
@@ -213,6 +213,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
   <button data-pane="earnings">📅 業績日曆</button>
   <span class="tab-group">模型</span>
   <button data-pane="wheel320">🔄 wheel320（CSP 75k · 每 6 個月清倉）</button>
+  <button data-pane="killradar">🧭 殺倉雷達</button>
 </div>
 <div id="optAlert" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;background:#dc2626;color:#fff;padding:11px 22px;font-weight:700;font-size:14.5px;cursor:pointer;box-shadow:0 -3px 12px rgba(0,0,0,.3)" onclick="switchPane('positions')">
   <span id="optAlertTxt"></span><button onclick="event.stopPropagation();ackAlarm()" title="不再顯示這一組警報（之後有新警報仍會出現）" style="float:right;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.65);color:#fff;border-radius:6px;padding:1px 10px;font-weight:600;font-size:13px;cursor:pointer">✕ 知道了</button><span style="float:right;font-weight:500;opacity:.9;margin-right:14px">點擊查看持倉 →</span>
@@ -395,6 +396,68 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
     <!-- 6. 清倉日曆 -->
     <div class="card"><div class="card-h"><span class="t">📅 清倉日曆（每 6 個月 · 1 月／7 月頭）</span><span class="meta" id="w320CalMeta">載入中…</span></div>
       <div class="card-b" id="w320Cal"><div class="muted">載入中…</div></div></div>
+  </div>
+
+  <!-- ═══════════ 殺倉雷達（v2 六腿，2026-10-16 四研究定案；唯讀零落單） ═══════════ -->
+  <div class="pane" id="pane-killradar">
+    <div class="card" style="border:1.5px solid #b45309"><div class="card-h"><span class="t">⚠️ 純顯示制（零落單）</span><span class="meta">唯讀雷達，唔接 engine／落單系統（kill switch 未解）· launchd 每 30 分鐘掃＋TG 推（🔴即時／🟡07:00 digest／E腿首響／尾聲確認／脆弱度滿分）</span></div>
+      <div class="card-b small muted">數據源：Yahoo 日線（stale-bar 閘）＋FRED OAS（T-1）。訊號分層＝兩窗（2026-06~07 內生去槓桿 / 10月 macro 點火）四研究定案：<b>E=POW/QQQ 係唯一兩窗一致最早嘅主trigger</b>；C/D 窗A型盲（theme 內生殺倉佢哋全程靜音）；VIX／廣度預測／情緒兩窗全程盲——只准顯示唔入評分。</div></div>
+
+    <!-- 總燈 -->
+    <div class="card" id="krTopCard"><div class="card-h"><span class="t"><span id="krLamp">…</span> <span id="krLvText">載入中…</span></span><span class="meta" id="krAsof"></span><span class="meta" id="krStreaks" style="margin-left:6px"></span><span style="margin-left:auto"><button class="btn btn-ghost" onclick="krLoad(true)">🔄 刷新</button></span></div>
+      <div class="card-b"><ul id="krReasons" style="margin-left:18px;font-size:12.5px;line-height:1.6"><li class="muted">載入中…</li></ul></div></div>
+
+    <!-- 手動持倉 -->
+    <div class="card" id="krHoldCard" style="display:none;border:1.5px solid #dc2626"><div class="card-h"><span class="t">⚠️ 手動持倉 <span class="method-badge bt" style="background:#fee2e2;color:#b91c1c">系統唔管理</span></span><span class="meta">富途 app 手動腿（kill switch 未解，引擎 bootout）· TG 盯倉 com.kathy.manual-watch 每 5 分鐘 · 到期自動出卡</span></div>
+      <div class="card-b"><div class="table-scroll"><table class="utable">
+        <thead><tr><th>Ticker</th><th class="r">持倉</th><th class="r">BE</th><th>到期</th><th class="r">倒數</th><th>風險 note</th></tr></thead>
+        <tbody id="krHoldRows"><tr><td colspan="6" class="muted">—</td></tr></tbody>
+      </table></div></div></div>
+
+    <!-- 六腿 -->
+    <div class="card"><div class="card-h"><span class="t">六腿狀態</span><span class="meta">每 30 分鐘掃 · A/B/C/D 評分入燈；E=👑主trigger；F credit 錨顯示不評分</span></div>
+      <div class="card-b"><div id="krLegs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px"><div class="muted small">載入中…</div></div></div></div>
+
+    <!-- 尾聲三確認 -->
+    <div class="card"><div class="card-h"><span class="t">尾聲三確認（re-entry rule）</span><span class="meta" id="krTwN">—</span></div>
+      <div class="card-b">
+        <div class="small muted">窗A 模擬：真底 +2td armed、兩假底零中伏（中伏代價 −26%/−17%，確認代價＝入場高底 11.6%）。任兩齊＝可落注窗口（旗鮮 5td）· ⚠️ 等確認唔等於執最平：OAS 真底當日仲創窗新高（遲 4-5td）</div>
+        <div style="height:10px;background:#f1f5f9;border-radius:99px;overflow:hidden;margin:8px 0"><div id="krTwBar" style="height:100%;width:0%;background:#0d9488;border-radius:99px;transition:width .3s"></div></div>
+        <div id="krTwGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px"></div>
+        <div class="small muted" id="krTwStatus" style="margin-top:8px"></div>
+      </div></div>
+
+    <!-- 脆弱度 -->
+    <div class="card"><div class="card-h"><span class="t">脆弱度旗 Top 10</span><span class="meta">旗唔係 trigger · β60&gt;3＋vol20&gt;0.6＋市值&lt;$60B＋corr20&gt;0.6＋debt/mcap&gt;5%（兩窗 AUC .80/.83，in-sample——做相對排名）· 窗A worst10 10/10 窗B 再死＝持久脆弱 cluster</span></div>
+      <div class="card-b"><div class="table-scroll"><table class="utable">
+        <thead><tr><th>Ticker</th><th class="r">分</th><th class="r">β60</th><th class="r">vol20</th><th class="r">市值($B)</th><th class="r">corr20</th><th class="r">debt/mcap</th><th>持倉</th></tr></thead>
+        <tbody id="krVuln"><tr><td colspan="8" class="muted">載入中…</td></tr></tbody>
+      </table></div></div></div>
+
+    <!-- 歷史回看 -->
+    <div class="card"><div class="card-h"><span class="t">歷史回看</span><span class="meta" id="krHistMeta">2026-02-02 起 逐日</span></div>
+      <div class="card-b">
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+          <button class="btn btn-ghost" id="krWtB" onclick="krSetWin('B')">窗B：10月轉（08-03→）</button>
+          <button class="btn btn-ghost" id="krWtA" onclick="krSetWin('A')">窗A：6-7月轉（02-02→07-31）</button>
+        </div>
+        <div class="table-scroll"><table class="utable">
+          <thead><tr><th>日期</th><th class="c">燈</th><th class="r">A 血</th><th class="r">B 深20</th><th class="r">C 10y</th><th class="r">D OAS</th><th class="c">E POW/QQQ</th><th class="r">MOVE</th><th class="c">尾聲</th></tr></thead>
+          <tbody id="krHist"><tr><td colspan="9" class="muted">載入中…</td></tr></tbody>
+        </table></div>
+        <div class="small muted" style="margin-top:8px">🟠行＝關鍵日（頂/底/假底）｜🔴行＝主殺日。窗A：06-02 頂→07-29 真底（−28.1%）；03-26「狼來了」假警梯（EW40 只回 −12.4% 就破頂）；tnx_stk3 07-28 亮→07-29 底、07-31 落注 +2td。窗B：10-06/07 頂、09-10 🟡 起（頂前18td）、主殺日＝ET 10-14（CPI，16 隻≤−6%）。</div>
+      </div></div>
+
+    <!-- 研究錨 -->
+    <div class="card"><div class="card-h"><span class="t">研究錨（10-16 四研究定案）</span><span class="meta">報告在 ~/quant_model/kill_research_20261016/</span></div>
+      <div class="card-b small">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">
+          <div style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px"><b>👑 E 腿＝POW/QQQ（CEG+VST 等權）</b><div class="muted" style="margin-top:3px">窗A 頂前 17td 七連響／窗B 14td——兩窗最乾淨，唯一先斷價格線。破20d低=🟡、40d新低=🔴</div></div>
+          <div style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px"><b>單名 credit＝鐵證級</b><div class="muted" style="margin-top:3px">窗A：CRWV 06-11 B級定價投降（7td）；窗B：ORCL 5Y CDS 09-25 紀錄 227bp（12-13td）。免費日度攞唔到——最平升級＝FINRA token 解鎖 TRACE；現用 CRWV 股價代理</div></div>
+          <div style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px"><b>「狼來了」假警梯</b><div class="muted" style="margin-top:3px">窗A 頂前 2-3 月有成套假警（03-26 單日23隻血、OAS 3.46、MOVE 115）→ EW40 只回 −12.4% 就破頂。macro 梯可以呃人，<b>單名深水 credit 唔會</b>——窗A 後 8 月 alert 批無行動係啱</div></div>
+          <div style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px"><b>盲名單（只准顯示）</b><div class="muted" style="margin-top:3px">VIX／廣度做預測／20d相關性／CNN F&amp;G／AAII／IG OAS／RRP/TGA——兩窗全程盲。殺前一日廣度 100% 完美＝反向脆弱標記</div></div>
+        </div>
+      </div></div>
   </div>
 
 </div>
@@ -3418,6 +3481,7 @@ function switchPane(id){
   if(id==='toppick')renderTopPick();
   if(id==='earnings')renderEarnings();
   if(id==='wheel320')loadWheel320(false);
+  if(id==='killradar')krLoad(false);
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>switchPane(b.dataset.pane)));
 /* ⭐ 08-16 fix：tabs sticky top 實際 = appbar 高度（appbar .sub 換行會高於 53px →
@@ -4476,6 +4540,134 @@ bootMode();
   setTimeout(loadWashout,2000);
   setInterval(loadWashout,600000);
 })();
+</script>
+<script>
+/* ═══════════ 殺倉雷達 tab（2026-10-16）═══════════
+   資料=kill_radar_status.json＋kill_radar_history.json（launchd engine git push gh-pages，同 kill-radar.html 一源）。
+   唯讀顯示：總燈／手動持倉／六腿／尾聲三確認／脆弱度／歷史回看（窗A=6-7月 backfill）。 */
+"use strict";
+var KR_STATUS=null, KR_HIST=null, KR_WIN='B', KR_LOADED=false;
+var KR_KEY_A={"2026-06-02":"頂","2026-07-29":"真底","2026-06-10":"假底1","2026-07-17":"假底2","2026-03-26":"狼來了23血","2026-05-07":"E腿首響","2026-07-28":"TNX3連跌"};
+var KR_KEY_B={"2026-10-06":"頂","2026-10-07":"頂","2026-10-14":"主殺日CPI","2026-09-10":"首🟡(前18td)","2026-09-14":"首🔴","2026-09-16":"E腿破20d"};
+function krEsc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function krBadge(txt,bg,fg,bd){return '<span style="display:inline-block;padding:1px 8px;border-radius:99px;font-size:10.5px;font-weight:700;background:'+bg+';color:'+fg+(bd?';border:1px solid '+bd:'')+'">'+txt+'</span>';}
+function krStateBadge(s){
+  if(s==='R')return krBadge('🔴 紅','#fee2e2','#b91c1c','#fecaca');
+  if(s==='Y')return krBadge('🟡 黃','#fef3c7','#92400e','#fde68a');
+  if(s==='note')return krBadge('ℹ️ 顯示','#f1f5f9','#64748b');
+  return krBadge('— 靜','#f1f5f9','#64748b');
+}
+function krFetch(url){return fetch(url+'?v='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});}
+function krLoad(manual){
+  Promise.all([krFetch('kill_radar_status.json'),krFetch('kill_radar_history.json').catch(function(){return null;})])
+    .then(function(rs){KR_STATUS=rs[0];KR_HIST=rs[1];KR_LOADED=true;krRender();})
+    .catch(function(e){
+      var b=document.getElementById('krReasons');
+      if(b)b.innerHTML='<li class="muted">殺倉雷達數據連唔上（'+krEsc(e.message||'?')+'）· 5 分鐘後重試</li>';
+      setTimeout(function(){krLoad(false);},300000);
+    });
+}
+setInterval(function(){if(KR_LOADED)krLoad(false);},300000);
+
+function krRender(){
+  var S=KR_STATUS; if(!S)return;
+  var lv=S.level||'GREEN';
+  var lamp={RED:'🔴',YEL:'🟡',GREEN:'🟢'}[lv]||'⚪';
+  var lvTxt={RED:'紅燈——縮倉／停開新倉（1-4日引信）',YEL:'黃燈——計時中',GREEN:'綠燈——靜'}[lv]||lv;
+  document.getElementById('krLamp').textContent=lamp;
+  document.getElementById('krLvText').textContent=lvTxt;
+  document.getElementById('krTopCard').style.border='1.5px solid '+(lv==='RED'?'#dc2626':lv==='YEL'?'#d97706':'#16a34a');
+  var age=S.updated?Math.max(0,Math.round((Date.now()-S.updated)/60000)):null;
+  document.getElementById('krAsof').textContent=(S.as_of||'')+(age!=null?(' · '+age+' 分鐘前'):'');
+  var sk=S.streak||{},sh='';
+  if(sk.red)sh+=krBadge('連續 🔴 '+sk.red+' td','#fee2e2','#b91c1c','#fecaca')+' ';
+  if(sk.yel)sh+=krBadge('連續 ≥🟡 '+sk.yel+' td','#fef3c7','#92400e','#fde68a');
+  if(!sk.red&&!sk.yel)sh=krBadge('常規','#f0fdf4','#166534');
+  document.getElementById('krStreaks').innerHTML=sh;
+  document.getElementById('krReasons').innerHTML=(S.reasons&&S.reasons.length)?S.reasons.map(function(r){return '<li>'+krEsc(r)+'</li>';}).join(''):'<li class="muted">各腿靜</li>';
+
+  // 手動持倉
+  var holds=S.holdings||[],hc=document.getElementById('krHoldCard');
+  if(!holds.length){hc.style.display='none';}
+  else{
+    hc.style.display='';
+    document.getElementById('krHoldRows').innerHTML=holds.map(function(h){
+      var urgent=(h.days!=null&&h.days<=7);
+      return '<tr'+(urgent?' style="background:#fef2f2;font-weight:700"':'')+'>'+
+        '<td style="font-weight:800">'+krEsc(h.t)+'</td><td class="r">'+krEsc(h.pos)+'</td><td class="r">$'+h.be+'</td>'+
+        '<td>'+krEsc(h.exp)+'</td><td class="r"'+(urgent?' style="color:#dc2626"':'')+'><b>'+(h.days!=null?h.days+' 日':'—')+'</b></td>'+
+        '<td style="white-space:normal">'+krEsc(h.note)+'</td></tr>';
+    }).join('');
+  }
+
+  // 六腿
+  var notes={A:'廣度血：跟到但嘈（11/18td）',B:'新深20：跟到（10/16td）',
+    C:'窗A 全盲（max 4.74）——只做 macro 型後置確認',D:'窗A 頂前盲（+18td 先響）——B型專用',
+    E:'👑主trigger：窗A 17td／窗B 14td，兩窗最乾淨',F:'鐵證級（7-13td）：真數要 FINRA token，現用股價代理'};
+  document.getElementById('krLegs').innerHTML=Object.keys(S.legs||{}).map(function(k){
+    var L=S.legs[k],hot=(L.state==='R'),warm=(L.state==='Y');
+    return '<div style="background:'+(hot?'#fef2f2':warm?'#fffbeb':'#f8fafc')+';border:1px solid '+(hot?'#fecaca':warm?'#fde68a':'var(--line)')+';border-radius:10px;padding:10px 12px">'+
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13px">'+krEsc(k)+' · '+krEsc(L.name)+'</b>'+krStateBadge(L.state)+'</div>'+
+      '<div style="font-size:12px;margin-top:4px">'+krEsc(L.val||'')+(L.detail?' <span class="muted">｜'+krEsc(L.detail)+'</span>':'')+'</div>'+
+      '<div class="small muted" style="margin-top:3px">閘：'+krEsc(L.thr||'')+'</div>'+
+      '<div style="font-size:11px;margin-top:4px;color:#1557b0;background:#e8f0fe;border-radius:6px;padding:2px 7px;display:inline-block">'+krEsc(notes[k]||'')+'</div></div>';
+  }).join('')||'<div class="muted small">—</div>';
+
+  // 尾聲
+  var tw=S.tailwind||{},names={c1:'① TNX 自20日高連跌3日',c2:'② 廣度 &gt;200MA% 五日 +10pp',c3:'③ CRWV 收返 sma20（後備 OAS 距峰 −10bp）'};
+  document.getElementById('krTwN').textContent=(tw.n||0)+'/3'+((tw.n||0)>=2?' ✅窗口':'');
+  document.getElementById('krTwBar').style.width=((tw.n||0)/3*100)+'%';
+  document.getElementById('krTwGrid').innerHTML=['c1','c2','c3'].map(function(k){
+    var on=!!tw[k];
+    return '<div style="background:'+(on?'#ccfbf1':'#f8fafc')+';border:1px solid '+(on?'#99f6e4':'var(--line)')+';border-radius:10px;padding:10px 12px">'+
+      '<b style="font-size:12.5px">'+names[k]+'</b><div class="small muted" style="margin-top:3px">'+(on?'✅ 已確認':'未確認')+'</div></div>';
+  }).join('');
+  document.getElementById('krTwStatus').innerHTML=(tw.n||0)>=2
+    ?'✅ <b>2/3 齊——re-entry 窗口 armed</b>（旗鮮 5td，聽日落注原則）'
+    :'現狀 <b>'+(tw.n||0)+'/3</b>——未到尾聲'+(tw.detail?('（後備③現值：'+krEsc(tw.detail)+'）'):'');
+
+  // 脆弱度
+  document.getElementById('krVuln').innerHTML=(S.vuln_top||[]).map(function(v){
+    return '<tr'+(v.score>=5?' style="background:#fef2f2"':'')+'>'+
+      '<td style="font-weight:800">'+krEsc(v.t)+'</td><td class="r"><b'+(v.score>=4?' style="color:#dc2626"':'')+'>'+v.score+'</b>/5</td>'+
+      '<td class="r">'+v.beta+'</td><td class="r">'+v.vol+'</td><td class="r">'+(v.mcap!=null?v.mcap:'—')+'</td>'+
+      '<td class="r">'+v.corr+'</td><td class="r">'+(v.debt!=null?v.debt+'%':'—')+'</td>'+
+      '<td>'+(v.hold?krBadge(krEsc(v.hold),'#fdf4ff','#a21caf','#f5d0fe'):'')+'</td></tr>';
+  }).join('')||'<tr><td colspan="8" class="muted">—</td></tr>';
+
+  krRenderHist();
+}
+function krSetWin(w){
+  KR_WIN=w;
+  document.getElementById('krWtA').style.background=(w==='A')?'#1a73e8':'';
+  document.getElementById('krWtA').style.color=(w==='A')?'#fff':'';
+  document.getElementById('krWtB').style.background=(w==='B')?'#1a73e8':'';
+  document.getElementById('krWtB').style.color=(w==='B')?'#fff':'';
+  krRenderHist();
+}
+function krRenderHist(){
+  var rows=(KR_HIST&&KR_HIST.rows)||[];
+  var sel=rows.filter(function(r){return KR_WIN==='A'?(r.d>='2026-02-02'&&r.d<='2026-07-31'):(r.d>='2026-08-03');});
+  var keys=(KR_WIN==='A')?KR_KEY_A:KR_KEY_B;
+  document.getElementById('krHistMeta').textContent=sel.length+' 個交易日'+(KR_WIN==='A'?'（02-02→07-31 · 6-7月窗A backfill）':'（08-03→今日）');
+  if(!sel.length){document.getElementById('krHist').innerHTML='<tr><td colspan="9" class="muted">—</td></tr>';return;}
+  document.getElementById('krHist').innerHTML=sel.slice().reverse().map(function(r){
+    var key=keys[r.d],kill=(r.d==='2026-10-14');
+    var lvm={RED:['🔴','color:#dc2626;font-weight:700'],YEL:['🟡',''],GREEN:['🟢','color:#16a34a;font-weight:700']}[r.level]||['·',''];
+    var rowBg=kill?'#fef2f2':(key?'#fff7ed':'');
+    return '<tr style="'+(rowBg?('background:'+rowBg+(key?';font-weight:700':'')):'')+'">'+
+      '<td style="font-weight:800">'+r.d+(key?' '+krBadge(krEsc(key),'#fef3c7','#92400e','#fde68a'):'')+'</td>'+
+      '<td class="c"><span style="'+lvm[1]+'">'+lvm[0]+'</span></td>'+
+      '<td class="r"'+((r.blood||0)>=5?' style="color:#dc2626;font-weight:700"':'')+'>'+(r.blood||0)+'</td>'+
+      '<td class="r">'+(r.deep20!=null?r.deep20:'—')+'</td>'+
+      '<td class="r">'+(r.tnx!=null?r.tnx.toFixed(2)+(r.tnx_arm?' '+krBadge(r.tnx_arm,r.tnx_arm==='R'?'#fee2e2':'#fef3c7',r.tnx_arm==='R'?'#b91c1c':'#92400e'):''):'—')+'</td>'+
+      '<td class="r">'+(r.oas!=null?r.oas.toFixed(2)+(r.oas_d5?' <span style="'+(r.oas_d5>=0.15?'color:#dc2626;font-weight:700':'color:#64748b')+'">('+(r.oas_d5>=0?'+':'')+r.oas_d5.toFixed(2)+')</span>':''):'—')+'</td>'+
+      '<td class="c">'+(r.E?'👑':(r.pow!=null?r.pow.toFixed(3):'—'))+'</td>'+
+      '<td class="r">'+(r.move!=null?r.move.toFixed(0):'—')+'</td>'+
+      '<td class="c">'+(r.tw!=null?r.tw+'/3':'—')+'</td></tr>';
+  }).join('');
+}
+krSetWin('B');
 </script>
 </body>
 </html>
