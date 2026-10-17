@@ -3,12 +3,11 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 64,
-  "red": 54
+  "yel": 65,
+  "red": 55
  },
  "reasons": [
   "單名血 14 隻 chg1d≤−6%（worst NBIS -12.2%）",
-  "新深20 5 隻：CRDO,DELL,GLW,MRVL,TSEM",
   "10y 5.10 水平閘 Y",
   "HY OAS 3.23（5日 +0.08）"
  ],
@@ -21,9 +20,9 @@
   },
   "B": {
    "name": "新深20",
-   "val": "5 隻（現 deep20 21）",
+   "val": "0 隻（現 deep20 21）",
    "thr": "≥3🟡/≥6🔴",
-   "state": "Y"
+   "state": "off"
   },
   "C": {
    "name": "10y 水平",
@@ -636,7 +635,7 @@
   "stale_names": [],
   "name_fails": []
  },
- "as_of": "10-17 10:02 HKT",
- "updated": 1792202531560,
+ "as_of": "10-17 10:32 HKT",
+ "updated": 1792204341459,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
