@@ -255,6 +255,8 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 
   <!-- ═══════════ 今日最佳 ═══════════ -->
   <div class="pane active" id="pane-best">
+    <div class="card" style="border:2px solid #1a73e8"><div class="card-h"><span class="t">🧭 而家做咩（風險管理＋賺錢機會匯總）</span><span class="meta" id="nowMeta">自動跟市況計 · 純顯示制</span></div>
+      <div class="card-b" id="nowBody"><div class="muted">計緊…</div></div></div>
     <div class="card"><div class="card-h"><span class="t">🎯 今日最佳交易</span><span class="meta">點「執行」下單（真倉記賬）· 點行開個股詳情</span></div>
       <div class="card-b" id="bestCard"></div></div>
     <div class="card"><div class="card-h"><span class="t">🛂 P7 Pre-flight 六問卡</span><span class="meta" id="pfMeta">落單前 30 秒——bridge /preflight 一次過問六問（跟榜→接貨→σ距→Event→按金→市寬）</span></div>
@@ -5025,6 +5027,51 @@ function krActRender(){
   el.innerHTML=h;
 }
 setInterval(krActRender,5000);krActRender();
+/* ═══ 🧭 而家做咩（pane-best 頂總卡）：一行一個動作，自動跟市況（10-18 用戶欽定）═══ */
+function nowBadge(kind){
+  var m={xdo:['✅ 而家抵做','#dcfce7','#166534'],xhold:['⚠️ 持有管理','#fef3c7','#92400e'],xno:['⛔ 而家唔好','#fee2e2','#b91c1c'],xwait:['⏳ 等訊號','#f1f5f9','#475569']}[kind]||['—','#f1f5f9','#475569'];
+  return '<span style="display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700;background:'+m[1]+';color:'+m[2]+';white-space:nowrap">'+m[0]+'</span>';
+}
+function nowRow(kind,act,detail,why){
+  return '<tr><td style="white-space:nowrap">'+nowBadge(kind)+'</td><td style="font-weight:700;white-space:nowrap">'+act+'</td><td class="small">'+detail+'</td><td class="small muted">'+why+'</td></tr>';
+}
+function renderNowCard(){
+  var el=$('nowBody');if(!el)return;
+  var S=(typeof KR_STATUS!=='undefined'&&KR_STATUS)?KR_STATUS:null;
+  var LPo=(typeof LP!=='undefined')?LP:null;
+  var lv=S?(S.level||'GREEN'):'?',n=(S&&S.tailwind)?(S.tailwind.n||0):0,red=(S&&S.streak)?(S.streak.red||0):0;
+  var iv=LPo?LPo.atmIv:null,nbis=LPo?LPo.nbisK200:null,mrna=LPo?LPo.mrnaK200:null,spot=LPo?LPo.qqqSpot:null;
+  var head;
+  if(n>=2)head='<div style="font-size:16px;font-weight:800;color:#166534">🟢 尾聲 '+n+'/3 響——開始補返：正股次日收市補回，CSP 回復正常</div>';
+  else if(lv==='RED'||lv==='YEL')head='<div style="font-size:16px;font-weight:800;color:'+(lv==='RED'?'#b91c1c':'#92400e')+'">🛡 而家主打「守」——拆風險、收現金、唔開新倉（雷達'+(lv==='RED'?'紅':'黃')+'帶'+(red?' '+red+'td':'')+'）</div>';
+  else head='<div style="font-size:16px;font-weight:800;color:#166534">⚪ 市靜——照常收入，維持 playbook</div>';
+  var rows=[];
+  if(nbis!=null){
+    if(nbis<=35.45)rows.push(nowRow('xdo','平 1× NBIS P200（10-23）','limit ≤$'+nbis.toFixed(2)+' · 流出 ≈$'+Math.round(nbis*100)+' · 即砍 $20,000 接貨義務','99% intrinsic 零 time-value 浪費——回測最抵「拆鯨魚」動作'));
+    else rows.push(nowRow('xwait','平 1× NBIS P200（10-23）','現 mid $'+nbis.toFixed(2)+'，>$35.45 等回','≤$35.45 先抵（99% intrinsic）'));
+  }else rows.push(nowRow('xwait','平 NBIS P200？','鏈未到','稍後自動更新'));
+  if(spot&&iv){
+    var base=LPo.atmK||spot,sk=1+0.9*Math.max(0,(base-675)/base)/0.10,est=lpBSPut(spot,675,13/365,iv*sk);
+    if(est>0)rows.push(nowRow('xdo','買 1× QQQ P675（10-30 對沖）','估 ~$'+est.toFixed(2)+'＝$'+Math.round(est*100)+'（1% 帳簿）· BE −'+((est/spot)*100).toFixed(1)+'%','純支出唔開義務；對 −8~10% 腿 offset 38%；10-30 唔喺橋——落盤對實 chain、limit mid-or-better'));
+  }else rows.push(nowRow('xwait','買 QQQ 10-30 對沖？','鏈未到','稍後自動更新'));
+  if(mrna!=null)rows.push(nowRow('xhold','持有 MRNA P200×3（10-30）','鏈 mid $'+mrna.toFixed(2)+' · 你嘅 long put','規則：崩盤 cluster 入面沽（唔等反彈）；到期未到價當廢紙；IV 135% 事件名'));
+  if(iv!=null){
+    if(iv>0.20)rows.push(nowRow('xno','買新 long put','而家 ATM IV '+Math.round(iv*100)+'%>20%','警號響完先買保險＝回測全滅帶（0-2/48）；等 VIX 沉返 SMA10＋IV≤16%＋觸發日'));
+    else if(iv>0.16)rows.push(nowRow('xwait','買新 long put','IV '+Math.round(iv*100)+'%（15-20 帶）','等觸發日（VIX 穿 10d SMA 或 日跌≥1.5%）→ 買 14d ATM/−10% spread，TP+80%'));
+    else rows.push(nowRow('xwait','買新 long put','IV '+Math.round(iv*100)+'%≤16 閘開','等觸發日買 7d ATM naked，TP+100%'));
+  }
+  if(lv==='RED'||lv==='YEL'){
+    rows.push(nowRow('xno','開 CSP 新倉（單名）','🔴閘生效中：單名禁開','紅日開倉 avg −$1,509/張 vs 非紅日 +$675（實倉反事實 +$11.7k）；另紅燈全簿義務>100%——雙殺'));
+    rows.push(nowRow('xhold','正股減持','規則：🟡起分批走、尾聲2/3補回','見綠燈唔好急返場（狀態制實測每窗多輸 4-8pts）'));
+  }else{
+    rows.push(nowRow('xwait','開 CSP 新倉','照 playbook：δ0.22、過 P7 六問','燈靜時 premium 正常價——唔追唔搶'));
+  }
+  rows.push(nowRow('xdo','現金為王','現金寶／T-bill ~4% 無風險','而家最大持倉應該係現金；等尾聲 2/3 補返先部署'));
+  var meta=$('nowMeta');
+  if(meta)meta.textContent='刷新 '+new Date().toLocaleTimeString('en-GB',{hour12:false})+' · 純顯示制';
+  el.innerHTML=head+'<div class="table-scroll" style="margin-top:8px"><table class="utable"><thead><tr><th>狀態</th><th>動作</th><th>詳情</th><th>點解（一句）</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
+}
+setInterval(renderNowCard,5000);renderNowCard();
 </script>
 <script>
 /* ═══════════ Long Put 手冊 tab（2026-10-17 四研究定案；唯讀零落單）═══════════
