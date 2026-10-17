@@ -209,6 +209,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
   <button data-pane="best" class="active">🎯 今日最佳交易</button>
   <button data-pane="detail">📈 個股詳情</button>
   <button data-pane="positions">📋 持倉管理</button>
+  <button data-pane="longput">🩳 Long Put 手冊</button>
   <button data-pane="method">❓ Hybrid 60/40 方法論</button>
   <span class="tab-group">正股</span>
   <button data-pane="advice">🎯 執倉建議</button>
@@ -477,6 +478,41 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
           <div style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px"><b>盲名單（只准顯示）</b><div class="muted" style="margin-top:3px">VIX／廣度做預測／20d相關性／CNN F&amp;G／AAII／IG OAS／RRP/TGA——兩窗全程盲。殺前一日廣度 100% 完美＝反向脆弱標記</div></div>
         </div>
       </div></div>
+  </div>
+
+  <!-- ═══════════ Long Put 手冊（2026-10-17 四研究定案；唯讀零落單） ═══════════ -->
+  <div class="pane" id="pane-longput">
+    <div class="card" style="border:1.5px solid #0f766e"><div class="card-h"><span class="t">🩳 Long Put Playbook（純顯示制 · 零落單）</span><span class="meta">2026 YTD 四研究定案 · 報告在 ~/quant_model/longput_research_20261017/ · 觸發狀態由 live 數據自動計（IV gate＝真 chain · VIX SMA＝Yahoo chart）</span></div>
+      <div class="card-b small muted">總判決：<b>Long put 唔係 strategy，係 event trade</b>——always-on 買保險、大跌後追沽、OTM 賭崩盤、單名 put 四條路全輸（A: 576 configs 97% 輸錢）。唯一企得住：短年期 ATM、事件觸發、IV 未飛入場、+80~100% 止賺；<b>spread 全方位贏 naked</b>（B: matched 26/33）。同你屋企「追綠燭＝輸家」判決一致。</div></div>
+
+    <!-- 現況燈 -->
+    <div class="card"><div class="card-h"><span class="t">現況燈（觸發／閘門 live 值）</span><span class="meta" id="lpEnvMeta">載入中…</span><span style="margin-left:auto"><button class="btn btn-ghost" onclick="lpLoad(true)">🔄 刷新</button></span></div>
+      <div class="card-b"><div id="lpEnv" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px"><div class="muted small">載入中…</div></div></div></div>
+
+    <!-- Playbook 表 -->
+    <div class="card"><div class="card-h"><span class="t">📋 Playbook（行＝觸發條件，狀態欄自動計）</span><span class="meta">YTD 回測數字＝研究原數，唔係保證</span></div>
+      <div class="card-b"><div class="table-scroll"><table class="utable">
+        <thead><tr><th>行</th><th>觸發條件</th><th>結構（strike/tenor/出場）</th><th>2026 YTD 回測</th><th class="c">而家狀態</th></tr></thead>
+        <tbody id="lpPlayRows"><tr><td colspan="5" class="muted">載入中…</td></tr></tbody>
+      </table></div></div></div>
+
+    <!-- Live 票 -->
+    <div class="card"><div class="card-h"><span class="t">🎫 Live 票（bridge 真鏈 · 估價列明）</span><span class="meta">橋 weeklies：QQQ/NBIS/MRNA；10-30／Nov 唔喺橋 → BS 估價</span></div>
+      <div class="card-b"><div class="table-scroll"><table class="utable">
+        <thead><tr><th>票</th><th>年期</th><th class="r">K</th><th class="r">mid／估價</th><th class="r">IV</th><th class="r">δ</th><th class="r">BE / max</th><th>備注</th></tr></thead>
+        <tbody id="lpLiveRows"><tr><td colspan="8" class="muted">載入中…</td></tr></tbody>
+      </table></div>
+      <div class="small muted" id="lpLiveNote" style="margin-top:8px"></div></div></div>
+
+    <!-- 禁區 -->
+    <div class="card" style="border:1.5px solid #dc2626"><div class="card-h"><span class="t">🚫 禁區（回測全滅，永久紅）</span></div>
+      <div class="card-b small"><ul style="margin-left:18px;line-height:1.7">
+        <li><b>大跌次日追沽</b>：≤−2% 日後買 put＝0/48（A）——同「追綠燭＝輸家」同一隻獸</li>
+        <li><b>IV 已飛先買保險</b>：VIX≥17-20 追入＝0-2/48；IV&gt;22% 帶＝26% hit、avg −26%（A）</li>
+        <li><b>OTM 賭崩盤</b>：−5%＝2/192、−10%＝0/192（A）；單名 30d −5% 回報 0.16-0.48×（C）</li>
+        <li><b>單名 long put</b>：唯一正 cell＝IREN 崩盤進行中買（彩票證明唔係 edge）；平靜日 −18~−67% premium/30d（C）</li>
+        <li><b>月月買 tail hedge</b>：−4.8% 年拖累；ATM 版 10-14 只 offset 2.1%/contract（B）——保險費食晒你</li>
+      </ul></div></div>
   </div>
 
 </div>
@@ -4948,6 +4984,193 @@ function krRenderHist(){
   }).join('');
 }
 krSetWin('B');
+</script>
+<script>
+/* ═══════════ Long Put 手冊 tab（2026-10-17 四研究定案；唯讀零落單）═══════════
+   資料＝Yahoo chart（^VIX/QQQ · SMA/chg1d·bridge /yh_chart curl_cffi）＋bridge 真鏈
+   （QQQ/NBIS/MRNA weeklies）＋kill_radar_status.json（level/尾聲）。
+   觸發狀態自動計：IV gate＝真 chain ATM IV（A 研究命脈閘）；VIX 穿 10d SMA＋QQQ
+   chg1d≤−1.5%＝chart 計。10-30／Nov 唔喺 bridge weekly → BS 估價列明（純顯示制）。
+   研究原報告：~/quant_model/longput_research_20261017/（A naked／B spread／C 單名／D 今日票）。 */
+"use strict";
+var LP={vix:null,vixSma10:null,vixAbove:false,vixCrossTd:null,qqqSpot:null,qqqChg1d:null,qqqSma20:null,
+        atmIv:null,atmK:null,atmMid:null,atmDte:null,atmExp:null,k10:null,k10Mid:null,spreadDebit:null,
+        nbisK200:null,nbisExp:null,mrnaK200:null,mrnaExp:null,radar:null,asofs:[],err:null,loaded:false};
+function lpBSPut(S,K,T,sig){
+  if(!(S>0)||!(K>0)||!(T>0)||!(sig>0))return 0;
+  function nC(x){var a=[0.31938153,-0.356563782,1.781477937,-1.821255978,1.330274429],L=Math.abs(x),k=1/(1+0.2316419*L),p=1-Math.exp(-x*x/2)/Math.sqrt(2*Math.PI)*(a[0]*k+a[1]*k*k+a[2]*Math.pow(k,3)+a[3]*Math.pow(k,4)+a[4]*Math.pow(k,5));return x<0?1-p:p;}
+  var d1=(Math.log(S/K)+(0.04+sig*sig/2)*T)/(sig*Math.sqrt(T)),d2=d1-sig*Math.sqrt(T);
+  return K*Math.exp(-0.04*T)*nC(-d2)-S*nC(-d1);
+}
+function lpChartCloses(sym,rng){
+  return fetchTimeout(activeBridge+'/yh_chart?s='+encodeURIComponent(sym)+'&r='+rng+'&i=1d&secret='+encodeURIComponent(BRIDGE_SECRET),25000)
+    .then(function(r){return r.json();})
+    .then(function(j){
+      var res=j&&j.chart&&j.chart.result&&j.chart.result[0];
+      if(!res||!res.indicators||!res.indicators.quote||!res.indicators.quote[0]||!res.indicators.quote[0].close)return null;
+      var c=res.indicators.quote[0].close.filter(function(v){return v!=null;});
+      return c.length?c:null;
+    }).catch(function(){return null;});
+}
+function lpChain(tk){
+  return fetchTimeout(activeBridge+'/options/chain?code='+encodeURIComponent(tk)+'&secret='+encodeURIComponent(BRIDGE_SECRET),25000)
+    .then(function(r){return r.json();}).catch(function(){return null;});
+}
+function lpPutMid(rows,K){
+  var best=null,bd=1e18;
+  (rows||[]).forEach(function(r){
+    if(r.type!=='PUT'||!r.strike)return;
+    var d=Math.abs(r.strike-K);if(d<bd){bd=d;best=r;}
+  });
+  if(!best||bd>0.51)return null;
+  if(!(best.bid>0&&best.ask>0))return null;
+  return {k:best.strike,mid:(best.bid+best.ask)/2,iv:best.iv,delta:best.delta,bid:best.bid,ask:best.ask};
+}
+function lpChip(label,val,fg,bg){
+  return '<div style="background:'+bg+';border:1px solid var(--line);border-radius:10px;padding:8px 10px">'
+    +'<div class="small muted">'+label+'</div><div style="font-weight:700;font-size:14.5px;color:'+(fg||'#0f172a')+';margin-top:2px">'+val+'</div></div>';
+}
+function lpBadge(txt,kind){
+  var m={go:['#dcfce7','#166534','#bbf7d0'],warn:['#fef3c7','#92400e','#fde68a'],stop:['#fee2e2','#b91c1c','#fecaca'],idle:['#f1f5f9','#475569','#e2e8f0']}[kind||'idle'];
+  return '<span style="display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700;background:'+m[0]+';color:'+m[1]+';border:1px solid '+m[2]+';white-space:nowrap">'+txt+'</span>';
+}
+function lpCalcVix(c){
+  if(!c||c.length<16)return null;
+  function sma(i,n){var s=0;for(var k=i-n+1;k<=i;k++)s+=c[k];return s/n;}
+  var last=c.length-1,s10=sma(last,10);
+  LP.vix=c[last];LP.vixSma10=s10;LP.vixAbove=c[last]>s10;
+  LP.vixCrossTd=null;
+  for(var j=last;j>=last-15&&j>=10;j--){
+    var above=c[j]>sma(j,10),prev=c[j-1]<=sma(j-1,10);
+    if(above&&prev){LP.vixCrossTd=last-j;break;}
+  }
+}
+function lpCalcQqq(c,spot){
+  if(!c||c.length<21)return null;
+  var last=c.length-1,s20=0;for(var k=last-19;k<=last;k++)s20+=c[k];s20/=20;
+  LP.qqqSpot=spot||c[last];LP.qqqChg1d=c[last-1]?(c[last]/c[last-1]-1):null;LP.qqqSma20=s20;
+}
+function lpPickExp(ch,lo,hi){
+  if(!ch||!ch.expiries||!ch.expiries.length)return null;
+  var best=null,bd=1e18;
+  ch.expiries.forEach(function(e){var d=Math.abs((e.days||0)-7);if(d<bd){bd=d;best=e;}});
+  if(!best||best.days<lo||best.days>hi)best=ch.expiries[0];
+  return best;
+}
+async function lpLoad(manual){
+  try{
+    if(typeof activeBridge==='undefined'||!activeBridge){if(typeof detectBridge==='function')await detectBridge();}
+    if(typeof activeBridge==='undefined'||!activeBridge)throw new Error('bridge 未連接');
+    var rs=await Promise.allSettled([
+      lpChartCloses('^VIX','3mo'),
+      lpChartCloses('QQQ','3mo'),
+      lpChain('QQQ'),
+      lpChain('NBIS'),
+      lpChain('MRNA'),
+      fetch('kill_radar_status.json?v='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json();})
+    ]);
+    LP.asofs=[];LP.err=null;
+    lpCalcVix(rs[0].status==='fulfilled'?rs[0].value:null);if(rs[0].status==='fulfilled'&&rs[0].value)LP.asofs.push('VIX Yahoo');
+    lpCalcQqq(rs[1].status==='fulfilled'?rs[1].value:null);
+    var qq=rs[2].status==='fulfilled'?rs[2].value:null;
+    var nb=rs[3].status==='fulfilled'?rs[3].value:null;
+    var mr=rs[4].status==='fulfilled'?rs[4].value:null;
+    LP.radar=rs[5].status==='fulfilled'?rs[5].value:null;
+    LP.atmIv=LP.atmK=LP.atmMid=LP.atmDte=LP.atmExp=LP.k10=LP.k10Mid=LP.spreadDebit=null;
+    if(qq&&qq.ok){
+      var ex=lpPickExp(qq,4,10);
+      if(ex){
+        var spot=qq.spot||LP.qqqSpot;
+        var puts=(ex.rows||[]).filter(function(r){return r.type==='PUT'&&r.iv>0.02&&r.bid>0&&r.ask>0;});
+        var atm=null,bd=1e18;
+        puts.forEach(function(r){var d=Math.abs(r.strike-spot);if(d<bd){bd=d;atm=r;}});
+        if(atm){
+          LP.atmK=atm.strike;LP.atmMid=(atm.bid+atm.ask)/2;LP.atmIv=atm.iv;LP.atmDelta=atm.delta;
+          LP.atmDte=ex.days;LP.atmExp=ex.expiry;
+          var k10=Math.round(spot*0.90/5)*5,k10r=lpPutMid(ex.rows,k10);
+          if(k10r){LP.k10=k10r.k;LP.k10Mid=k10r.mid;LP.spreadDebit=LP.atmMid-k10r.mid;}
+        }
+      }
+      LP.asofs.push('QQQ 鏈 '+new Date().getHours()+':'+String(new Date().getMinutes()).padStart(2,'0'));
+    }
+    LP.nbisK200=LP.nbisExp=null;
+    if(nb&&nb.ok){
+      var ex2=(nb.expiries||[]).find(function(e){return (e.days||0)>=4&&(e.days||0)<=10;})||((nb.expiries||[])[0]||null);
+      if(ex2){var r2=lpPutMid(ex2.rows,200);if(r2){LP.nbisK200=r2.mid;LP.nbisExp=ex2.expiry;}}
+    }
+    LP.mrnaK200=LP.mrnaExp=null;
+    if(mr&&mr.ok){
+      var ex3=(mr.expiries||[]).find(function(e){return (e.days||0)>=10;})||((mr.expiries||[]).slice(-1)[0]||null);
+      if(ex3){var r3=lpPutMid(ex3.rows,200);if(r3){LP.mrnaK200=r3.mid;LP.mrnaExp=ex3.expiry;}}
+    }
+    LP.loaded=true;
+    lpRender();
+  }catch(e){
+    LP.err=e&&e.message?e.message:'?';
+    var env=document.getElementById('lpEnv');
+    if(env)env.innerHTML='<div class="muted small">Long Put 手冊數據連唔上（'+LP.err+'）· 5 分鐘後自動重試</div>';
+  }
+}
+function lpStatus(){
+  var trig=false,trigWhy=[];
+  if(LP.vixCrossTd!=null&&LP.vixCrossTd<=5){trig=true;trigWhy.push('VIX 穿10d SMA（'+LP.vixCrossTd+'td 前）');}
+  if(LP.qqqChg1d!=null&&LP.qqqChg1d<=-0.015){trig=true;trigWhy.push('QQQ 日跌 '+(LP.qqqChg1d*100).toFixed(1)+'%');}
+  var iv=LP.atmIv;
+  var naked,spread;
+  if(!trig){naked={k:'idle',t:'⚪ 未着——冇事件觸發'};spread=naked;}
+  else{
+    var wy='觸發：'+trigWhy.join('＋');
+    if(iv==null){naked={k:'idle',t:'⚪ 觸發但鏈冇 IV'};spread=naked;}
+    else if(iv<=0.16){naked={k:'go',t:'🟢 着——IV '+Math.round(iv*100)+'%≤16 可入（'+wy+'）'};spread={k:'idle',t:'⚪ 用 naked 行（IV 喺 ≤16 帶）'};}
+    else if(iv<=0.20){naked={k:'stop',t:'🔴 閘擋——IV '+Math.round(iv*100)+'%>16（A: 呢帶 26% hit）'};spread={k:'go',t:'🟢 着——IV '+Math.round(iv*100)+'% 喺 15-20 帶（'+wy+'）'};}
+    else{naked={k:'stop',t:'🔴 閘擋——IV '+Math.round(iv*100)+'%>20（警號響完先買保險＝全滅帶）'};spread={k:'stop',t:'🔴 閘擋——IV '+Math.round(iv*100)+'%>20'};}
+  }
+  var nbis=null;
+  if(LP.nbisK200!=null)nbis=LP.nbisK200<=35.45?{k:'go',t:'🟢 抵平——P200 mid $'+LP.nbisK200.toFixed(2)+'≤$35.45'}:{k:'warn',t:'🟡 等回——P200 mid $'+LP.nbisK200.toFixed(2)+'>$35.45'};
+  else nbis={k:'idle',t:'⚪ 鏈未到'};
+  return {trig:trig,naked:naked,spread:spread,nbis:nbis};
+}
+function lpRender(){
+  var st=lpStatus();
+  var env=[];
+  var vTxt=LP.vix!=null?(LP.vix.toFixed(2)+' vs SMA10 '+LP.vixSma10.toFixed(2)):'—';
+  env.push(lpChip('VIX / 10d SMA',vTxt+(LP.vixCrossTd!=null?'<span class="small" style="font-weight:400"> · '+LP.vixCrossTd+'td 前穿</span>':(LP.vixAbove?' · 上方':' · 下方')),'#0f172a','#f8fafc'));
+  var qTxt=LP.qqqSpot!=null?LP.qqqSpot.toFixed(2)+' '+(LP.qqqSpot>LP.qqqSma20?'↑SMA20':'↓SMA20'):'—';
+  env.push(lpChip('QQQ / SMA20（reclaim）',qTxt+(LP.qqqChg1d!=null?'<span class="small" style="font-weight:400;color:'+(LP.qqqChg1d<0?'#b91c1c':'#166534')+'"> · 日'+(LP.qqqChg1d>=0?'+':'')+(LP.qqqChg1d*100).toFixed(1)+'%</span>':''),'#0f172a','#f8fafc'));
+  var ivCol=LP.atmIv==null?'#475569':(LP.atmIv<=0.16?'#166534':(LP.atmIv<=0.20?'#92400e':'#b91c1c'));
+  env.push(lpChip('QQQ ATM IV（A 研究入場閘）',LP.atmIv!=null?(Math.round(LP.atmIv*100)+'% · '+LP.atmExp+' K'+LP.atmK):'—',ivCol,'#f8fafc'));
+  env.push(lpChip('殺倉雷達',LP.radar?((LP.radar.level||'?')+' · 紅 '+((LP.radar.streak||{}).red||0)+'td'):'—','#0f172a','#f8fafc'));
+  var tw=LP.radar&&LP.radar.tailwind?LP.radar.tailwind.n:null;
+  env.push(lpChip('尾聲三確認（re-entry）',(tw!=null?tw+'/3':'—')+(tw!=null&&tw<2?'（未到窗口）':''),'#0f172a','#f8fafc'));
+  env.push(lpChip('NBIS P200 平倉參考'+(LP.nbisExp?'（'+LP.nbisExp+'）':''),LP.nbisK200!=null?('$'+LP.nbisK200.toFixed(2)+(LP.nbisK200<=35.45?' ≤35.45 ✅':' >35.45')):'—','#0f172a','#f8fafc'));
+  env.push(lpChip('你本 MRNA P200 mark'+(LP.mrnaExp?'（'+LP.mrnaExp+'）':''),LP.mrnaK200!=null?('$'+LP.mrnaK200.toFixed(2)):'—','#0f172a','#f8fafc'));
+  var envEl=document.getElementById('lpEnv');
+  if(envEl)envEl.innerHTML=env.join('');
+  var meta=document.getElementById('lpEnvMeta');
+  if(meta)meta.textContent='刷新 '+new Date().toLocaleTimeString('en-GB',{hour12:false})+' · '+LP.asofs.join('＋');
+  function td(s){return '<td>'+s+'</td>';}
+  var rows=[];
+  rows.push('<tr>'+td('<b>🛡 常備對沖</b>')+td('冇——而家就入（hedge 為個 gap 存在，唔 timing）')+td('<b>QQQ 10-30 K675 ×1</b> · 估 ~$660（1% 帳簿）· BE −7.1%')+td('D: 對 −8~10% 腿 offset 38%')+'<td class="c">'+lpBadge('🟢 常備可入（紅燈唔限——純支出唔開義務）','go')+'</td></tr>');
+  rows.push('<tr>'+td('<b>⚡ 事件 naked</b>')+td('VIX 穿 10d SMA 或 QQQ 日跌 ≥1.5%<br><b>且 ATM IV ≤16%</b>（A: 命脈閘）')+td('<b>7d ATM naked</b>（橋上最近 4-10d 帶）· TP +100% · ≤1% premium/張')+td('A: +$7,274／16 trades／50% hit／avg win +240%')+'<td class="c">'+lpBadge(st.naked.t,st.naked.k)+'</td></tr>');
+  rows.push('<tr>'+td('<b>⚡ 事件 spread</b>')+td('同上觸發，IV 15-20% 帶（naked 閘擋時改呢行）')+td('<b>14d 買 ATM／賣 −10%</b> · TP +80% debit · 30d 嚴格較差（theta）')+td('B: matched 贏 26/33＋IV crush 日少輸 11-20%')+'<td class="c">'+lpBadge(st.spread.t,st.spread.k)+'</td></tr>');
+  rows.push('<tr>'+td('<b>🔗 CSP 配套</b>')+td('持短 put 義務要拆風險時（你本 NBIS P200×2）')+td('<b>平 1× NBIS P200 @≤$35.45</b>（99% intrinsic 零浪費）<br>或買 −10% 腿做 spread（張卡：P160×2 $944 封頂 −$3,934）')+td('C: buyback／spread 自己本短倉＞另開 long put book')+'<td class="c">'+lpBadge(st.nbis.t,st.nbis.k)+'</td></tr>');
+  rows.push('<tr>'+td('<b>🚫 禁區</b>')+td('大跌次日追沽／IV&gt;20% 追保險／OTM 賭崩盤／單名 long put／月月買 tail hedge')+td('—')+td('A: 0/48・0/192｜C: 彩票｜B: −4.8% 年拖累')+'<td class="c">'+lpBadge('🔴 永遠紅——回測全滅','stop')+'</td></tr>');
+  var pb=document.getElementById('lpPlayRows');
+  if(pb)pb.innerHTML=rows.join('');
+  var lv=[];
+  var estT=13/365,base=LP.atmK||LP.qqqSpot||675,sk=1+0.9*Math.max(0,(base-675)/base)/0.10,est=lpBSPut(LP.qqqSpot||0,675,estT,(LP.atmIv||0.25)*sk);
+  lv.push('<tr>'+td('<b>🛡 常備對沖</b> QQQ')+td('10-30（13d）')+td('675')+td((est>0?'$'+est.toFixed(2):'—')+' <span class="muted small">估價（含 skew）</span>')+(LP.atmIv!=null?td(Math.round((LP.atmIv||0)*100)+'% σ'):td('—'))+td('—')+td('BE '+(est>0?(675-est).toFixed(1):'—')+' (−'+(est>0?((est/(LP.qqqSpot||675))*100).toFixed(1):'?')+'%)')+td('估價＝BS＋skew（−10%≈1.9×ATM，agentB 實測面）近似；10-30 唔喺橋 weekly——落盤前對實 chain，limit mid-or-better')+'</tr>');
+  if(LP.atmK!=null)lv.push('<tr>'+td('<b>⚡ naked</b> QQQ')+td(LP.atmExp+'（'+LP.atmDte+'d）')+td(LP.atmK)+td('$'+LP.atmMid.toFixed(2)+' <span class="muted small">實 mid</span>')+td(Math.round((LP.atmIv||0)*100)+'%')+td((LP.atmDelta!=null?LP.atmDelta.toFixed(2):'—'))+td('BE '+(LP.atmK-LP.atmMid).toFixed(1))+td('TP +100%＝$'+(LP.atmMid*2).toFixed(2)+' 記住止賺')+'</tr>');
+  if(LP.k10!=null&&LP.spreadDebit!=null)lv.push('<tr>'+td('<b>⚡ spread</b> QQQ')+td(LP.atmExp+'（'+LP.atmDte+'d）')+td('買'+LP.atmK+'/賣'+LP.k10)+td('$'+LP.spreadDebit.toFixed(2)+' <span class="muted small">兩腿實 mid</span>')+td('—')+td('—')+td('BE '+(LP.atmK-LP.spreadDebit).toFixed(1)+' · max '+(100*(LP.atmK-LP.k10-LP.spreadDebit)).toFixed(0))+td('TP +80%＝$'+(LP.spreadDebit*1.8).toFixed(2)+'；美式早指派留意短腿')+'</tr>');
+  if(LP.nbisK200!=null)lv.push('<tr>'+td('<b>🔗 平鯨魚</b> NBIS')+td(LP.nbisExp)+td('200')+td('$'+LP.nbisK200.toFixed(2)+' <span class="muted small">實 mid</span>')+td('—')+td('—')+td('—')+td('平 1 張＝−$'+(LP.nbisK200*100).toFixed(0)+' 換走 $20k 義務；≤$35.45 抵')+'</tr>');
+  if(LP.mrnaK200!=null)lv.push('<tr>'+td('<b>你本</b> MRNA P200×3')+td(LP.mrnaExp)+td('200')+td('$'+LP.mrnaK200.toFixed(2)+' <span class="muted small">實 mid</span>')+td('—')+td('—')+td('—')+td('你嘅 long mark——bridge /real_positions 帳面係入場成本，呢度係鏈價')+'</tr>');
+  var lvr=document.getElementById('lpLiveRows');
+  if(lvr)lvr.innerHTML=lv.length?lv.join(''):'<tr><td colspan="8" class="muted">鏈未到</td></tr>';
+  var note=document.getElementById('lpLiveNote');
+  if(note)note.textContent='全部純顯示制零落單。實 mid＝(bid+ask)/2 當刻鏈；估價＝BS 近似。張數規矩：≤1% premium/張（帳簿 ~$65k＝≤$650）；limit mid-or-better、開市頭 30 分鐘唔落手（10-15 教訓）。';
+}
+setTimeout(function(){lpLoad(false);},2000);
+setInterval(function(){lpLoad(false);},300000);
 </script>
 </body>
 </html>
