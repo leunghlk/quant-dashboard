@@ -274,6 +274,8 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
       <div class="card-b" id="winrankBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">真倉持倉一覽 · 以及「今日不做」</span></div>
       <div class="card-b" id="decBody"></div></div>
+    <div class="card" id="nbisPbCard"><div class="card-h"><span class="t">🛡 NBIS CSP 對策模擬（短 P200×2 · 2026-10-23 到期）</span><span class="meta" id="nbisPbMeta"></span></div>
+      <div class="card-b" id="nbisPbBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">已排除</span><span class="meta">業績窗口 / signal veto（momentum-only，同回測公式；槓桿 ETF 已按你要求列入單腿股表掃描）</span></div>
       <div class="card-b small muted" id="notesBody"></div></div>
     <div class="card" id="washoutCard"><div class="card-h"><span class="t">🧪 洗倉雷達 <span style="font-size:10.5px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:99px;padding:1px 8px;font-weight:700;vertical-align:2px">未 seal · 研究訊號</span></span><span class="meta">洗倉狀態＝dd20 ≤ −8%（較20日收市高位）· 純顯示制，唔接落單系統 · <a href="washout-radar.html" target="_blank">全單／出手紀律 →</a></span><span class="meta" id="washoutAsof"></span></div>
@@ -2525,6 +2527,76 @@ function recordDecision(kind,tk,exp,K,extra){
   renderDecisions();
   renderOverview();   // ⭐ 決定後立即調整已鎖定資本／剩餘現金
 }
+/* ⭐ 2026-10-16 NBIS CSP 對策模擬卡（用戶令）：短 P200×2 手動倉嘅 payoff 圖＋四條路連數。
+   常數＝已收 premium（歷史事實）＋ ET 10-16 收市 bridge 週刊鏈 mid（mark/hedge 估價）；現價行 live。
+   純顯示制——唔接落單系統（kill switch 中），全部對策要用戶手動。 */
+const NBIS_PB={k:200,n:2,prem:25.05,exp:'2026-10-23',hk:160,hcost:4.72,mark:31.67,ref:'ET 10-16 收市 chain mid',lastClose:168.15};
+function _nbPL(S,h){
+  const cr=NBIS_PB.prem*100*NBIS_PB.n-(h?NBIS_PB.hcost*100*NBIS_PB.n:0);
+  return cr-100*NBIS_PB.n*Math.max(NBIS_PB.k-S,0)+(h?100*NBIS_PB.n*Math.max(NBIS_PB.hk-S,0):0);
+}
+function _nbLiveS(){
+  const lv=(typeof live!=='undefined'&&live)?live['NBIS']:null;
+  if(!lv)return null;
+  const S=Number(lv.live_price!=null?lv.live_price:lv.price)||0;
+  if(!S)return null;
+  const _age=(lv.asof!=null)?(Date.now()/1000-Number(lv.asof)):null;
+  if(_age!=null&&(_age<0||_age>43200))return null;
+  return S;
+}
+function renderNbisPlaybook(){
+  const el=$('nbisPbBody');if(!el)return;
+  const B=NBIS_PB, credit=B.prem*100*B.n, hcost=B.hcost*100*B.n, net=credit-hcost;
+  const beU=B.k-B.prem, beS=B.k-net/(100*B.n), maxL=100*B.n*(B.k-B.hk)-net;
+  const S=_nbLiveS()||B.lastClose, liveOk=_nbLiveS()!=null;
+  const dLeft=Math.max(0,Math.ceil((new Date(B.exp+'T20:00:00Z')-Date.now())/86400e3));
+  const markFloat=credit-B.mark*100*B.n;   /* mark 口徑浮動 */
+  const uNow=_nbPL(S,false), hNow=_nbPL(S,true);
+  /* ---- payoff SVG ---- */
+  const W=640,H=310,L=54,R=12,T=14,Bm=30;
+  const s0=120,s1=225,p0=-15500,p1=6500;
+  const X=function(s){return L+(s-s0)/(s1-s0)*(W-L-R);};
+  const Y=function(p){return T+(p1-p)/(p1-p0)*(H-T-Bm);};
+  let ptsU='',ptsH='';
+  for(let s=s0;s<=s1+0.01;s+=2.5){ptsU+=X(s).toFixed(1)+','+Y(_nbPL(s,false)).toFixed(1)+' ';ptsH+=X(s).toFixed(1)+','+Y(_nbPL(s,true)).toFixed(1)+' ';}
+  const sv=[];
+  sv.push('<rect x="'+X(s0).toFixed(1)+'" y="'+T+'" width="'+(X(B.hk)-X(s0)).toFixed(1)+'" height="'+(H-T-Bm)+'" fill="#fef2f2" opacity="0.55"/>');
+  sv.push('<text x="'+X(140).toFixed(1)+'" y="'+Y(-4200).toFixed(1)+'" font-size="11" fill="#b91c1c" font-weight="700">封頂 −$'+(maxL/1000).toFixed(1)+'k</text>');
+  sv.push('<line x1="'+L+'" y1="'+Y(0)+'" x2="'+(W-R)+'" y2="'+Y(0)+'" stroke="#94a3b8" stroke-width="1"/>');
+  [-10000,-5000,0,5000].forEach(function(p){sv.push('<text x="'+(L-6)+'" y="'+(Y(p)+3).toFixed(1)+'" font-size="10" fill="#64748b" text-anchor="end">'+(p/1000)+'k</text>');});
+  [B.hk,B.k].forEach(function(K){sv.push('<line x1="'+X(K).toFixed(1)+'" y1="'+T+'" x2="'+X(K).toFixed(1)+'" y2="'+(H-Bm)+'" stroke="#cbd5e1" stroke-dasharray="2 4"/>');});
+  [[beU,'BE 174.9'],[beS,'BE 179.7']].forEach(function(b){sv.push('<line x1="'+X(b[0]).toFixed(1)+'" y1="'+Y(0)+'" x2="'+X(b[0]).toFixed(1)+'" y2="'+(H-Bm)+'" stroke="#16a34a" stroke-dasharray="4 3"/><text x="'+X(b[0]).toFixed(1)+'" y="'+(H-Bm+24)+'" font-size="9.5" fill="#16a34a" text-anchor="middle">'+b[1]+'</text>');});
+  const sx=Math.max(X(s0),Math.min(X(s1),X(S)));
+  sv.push('<line x1="'+sx.toFixed(1)+'" y1="'+T+'" x2="'+sx.toFixed(1)+'" y2="'+(H-Bm)+'" stroke="#dc2626" stroke-width="1.5"/><text x="'+sx.toFixed(1)+'" y="'+(T+11)+'" font-size="10.5" fill="#dc2626" font-weight="700" text-anchor="middle">$'+px2(S)+(liveOk?' live':'')+'</text>');
+  [120,140,160,180,200,220].forEach(function(s){sv.push('<text x="'+X(s).toFixed(1)+'" y="'+(H-Bm+14)+'" font-size="10" fill="#64748b" text-anchor="middle">'+s+'</text>');});
+  sv.push('<polyline points="'+ptsU+'" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="7 5"/>');
+  sv.push('<polyline points="'+ptsH+'" fill="none" stroke="#1a73e8" stroke-width="2.5"/>');
+  sv.push('<line x1="'+(L+8)+'" y1="'+(T+8)+'" x2="'+(L+40)+'" y2="'+(T+8)+'" stroke="#1a73e8" stroke-width="2.5"/><text x="'+(L+46)+'" y="'+(T+12)+'" font-size="11" fill="#334155">＋P160 對沖</text>');
+  sv.push('<line x1="'+(L+140)+'" y1="'+(T+8)+'" x2="'+(L+172)+'" y2="'+(T+8)+'" stroke="#f59e0b" stroke-width="2" stroke-dasharray="7 5"/><text x="'+(L+178)+'" y="'+(T+12)+'" font-size="11" fill="#334155">純 CSP</text>');
+  /* ---- 對策表 ---- */
+  let h='<div class="small" style="margin:0 0 8px">現價 <b style="color:#1a73e8">$'+px2(S)+'</b>'+(liveOk?'（live）':'（10-16 收市）')
+    +' · 已收 <b>$'+fmt(credit,0)+'</b> · 買返 mark $'+px2(B.mark)+'/張 → 浮動 ≈ <b style="color:#dc2626">−$'+fmt(Math.abs(markFloat),0)+'</b>（≈−HK$'+fmt(Math.abs(markFloat)*HKD_USD,0)+'）'
+    +' · 義務 $'+fmt(100*B.n*B.k,0)+'＝61% 證券資產 <span style="color:#dc2626;font-weight:700">🔴 紅燈</span>'
+    +' · 剩 <b>'+dLeft+'</b> 日（ET '+B.exp+'）</div>';
+  h+='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:680px;display:block;margin:0 auto">'+sv.join('')+'</svg>';
+  h+='<div class="table-scroll"><table class="utable"><thead><tr><th>對策</th><th>即刻做</th><th class="r">現金流</th><th>到期（10-23）情景 P/L（US$）</th><th>判詞</th></tr></thead><tbody>'
+    +'<tr><td><b>A 唔做嘢</b></td><td>—</td><td class="r">已收 $'+fmt(credit,0)+'</td>'
+    +'<td class="small">≥200 <b style="color:#16a34a">+$'+fmt(credit,0)+'</b>／'+px2(beU)+' 打和／$'+px2(S)+' <b style="color:#dc2626">'+fmt(uNow,0)+'</b>／160 −$2,990／130 −$8,990／<b>−$34,990 無底</b></td>'
+    +'<td class="small">賭反彈，尾部全裸——單日 −7% 係呢隻嘅日常，仲有 '+dLeft+' 日</td></tr>'
+    +'<tr style="background:#eff6ff"><td><b>B ＋買 P160×2</b> ⭐</td><td>買 2 張 @'+px2(B.hcost)+'</td><td class="r">−$'+fmt(hcost,0)+'</td>'
+    +'<td class="small">≥200 <b style="color:#16a34a">+$'+fmt(net,0)+'</b>／'+px2(beS)+' 打和／≤160 <b>−$'+fmt(maxL,0)+' 封頂</b>／$'+px2(S)+' '+fmt(hNow,0)+'</td>'
+    +'<td class="small">$944（帳戶 1.5%）買個底——破 160（第三波確認）唔使輸 $20k+；反彈照袋 8 成 credit</td></tr>'
+    +'<tr><td><b>C 全平</b></td><td>買返 @'+px2(B.mark)+'</td><td class="r">−$'+fmt(B.mark*100*B.n,0)+'</td>'
+    +'<td class="small">即兌現 <b style="color:#dc2626">'+fmt(markFloat,0)+'</b>（−HK$'+fmt(Math.abs(markFloat)*HKD_USD,0)+'），完</td>'
+    +'<td class="small">最平嘅收檔；代價＝放棄反彈全數 $'+fmt(credit,0)+'。或平一半（−$662，義務減半至 31%）</td></tr>'
+    +'<tr><td><b>D Roll down</b></td><td>平 P200＋沽 P150×2（10-30 @4.43）</td><td class="r">−$5,448</td>'
+    +'<td class="small">新腿 ≥150 +$886／145 打和／130 −$3,114；合計（連平舊倉 −1,324）≥150 −$438／130 −$4,438</td>'
+    +'<td class="small"><b style="color:#dc2626">🔴 紅燈唔好做</b>——全簿義務 $90k=138% 照爆 100% 線；IV 96% 收 $886 對 $30k 義務，爛賠率</td></tr>'
+    +'</tbody></table></div>'
+    +'<div class="small muted" style="margin-top:6px">mark／hedge／roll 價＝'+B.ref+'（bridge 週刊鏈 mid，已核實數）；現價欄 live。到期情景＝內在值口徑，唔計剩餘時間值。純顯示制——唔接落單系統，全部要你手動執行。</div>';
+  el.innerHTML=h;
+  const mt=$('nbisPbMeta');if(mt)mt.textContent='鏈價 @ '+B.ref+' · 現價 live · 純顯示制';
+}
 function renderDecisions(){
   const el=$('decBody');if(!el)return;
   const posAll=((rec&&rec.positions)||[]).filter(x=>x.status==='open');
@@ -2536,6 +2608,7 @@ function renderDecisions(){
     hh+='</tbody></table></div>';
   }
   el.innerHTML=hh;
+  renderNbisPlaybook();
 }
 async function skipTrade(tk,exp,K){
   recordDecision('skips',tk,exp,K);
