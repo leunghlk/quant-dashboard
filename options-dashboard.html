@@ -177,6 +177,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 <!-- kill-radar-banner v1 (2026-10-16)：殺倉預警雷達。資料=kill_radar_status.json（launchd 僅 level 變化 git push）。TG 同步推送，此處只顯示 -->
 <div id="killRadarBanner" style="display:none;margin:0 0 10px;cursor:pointer" onclick="switchPane('killradar')" title="撳一下去殺倉雷達 tab"></div>
 <div id="staleBoardBanner" style="display:none;margin:0 0 10px"></div>
+<span id="renderErrBadge" style="display:none;position:fixed;right:12px;bottom:12px;background:#dc2626;color:#fff;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;z-index:99;box-shadow:0 2px 8px rgba(0,0,0,.25)"></span>
 <script>
 (function(){
   'use strict';
@@ -1151,7 +1152,15 @@ function renderAll(){
   /* ⭐ 09-15 手術：v4_balanced 分岔退役——單一方法論（全家桶 L_mom×W_wr）＝單一 render path。
      每月進度條照 08-28 修（呢度直接 call，唔經舊 v4 renderOverview）；⭐09-14 +renderWinRank——單腿股表兩帶合併顯示。
      統一證券組合卡（renderUnified）由 loadReal 鏈負責，唔行呢度。 */
-  _renderStaleGate();renderOverview();renderBest();renderWinRank();renderPositions();renderDecisions();renderMethod();renderAlarm();renderAdvice();renderTopPick();renderEarnings();if(activeTk)renderDetail();if(rec)updateMonthlyProgress();if(typeof renderW320Live==='function')renderW320Live();
+  /* ⭐10-17 逐卡 try/catch：一張卡 JS 壞唔准炸冧後面所有卡（10-17 事故：卡全空白唔知邊個炸）——
+     壞咗就右下角紅 chip 列名，其餘卡照 render。 */
+  [renderOverview,renderBest,renderWinRank,renderPositions,renderDecisions,renderMethod,renderAlarm,renderAdvice,renderTopPick,renderEarnings].forEach(function(f){
+    try{f();}catch(e){console.warn('[render] '+f.name+' 壞咗：',e);
+      const b=$('renderErrBadge');if(b){b.style.display='inline-block';b.textContent=(b.textContent?b.textContent+' ':'⚠ ')+'卡壞：'+f.name;}
+    }});
+  if(activeTk)try{renderDetail();}catch(e){console.warn('[render] detail 壞咗：',e);}
+  if(rec)try{updateMonthlyProgress();}catch(e){}
+  if(typeof renderW320Live==='function')try{renderW320Live();}catch(e){}
 }
 /* ⭐ 出場警報：engine actions／熔斷 → 頁面頂部紅 bar + 標題閃 + 提示音（Telegram 已由 engine 即時推送） */
 const BASE_TITLE=document.title;
@@ -2600,11 +2609,21 @@ function renderNbisPlaybook(){
 function renderDecisions(){
   const el=$('decBody');if(!el)return;
   const posAll=((rec&&rec.positions)||[]).filter(x=>x.status==='open');
-  const realPos=posAll.filter(x=>x.real);
-  let hh='<div class="muted">Hybrid 60/40 視圖只追蹤真倉 —— 所有紙上倉已於 2026-08-23 清除。</div>';
-  if(realPos.length){
-    hh+='<div style="font-weight:700;margin:8px 0 6px">🔴 現有真倉（'+realPos.length+'）</div><div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">盈虧平衡</th><th class="r">未實現</th></tr></thead><tbody>';
-    realPos.forEach(p=>{hh+='<tr><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+money(p.pnl_hkd)+'</td></tr>';});
+  const recReal=posAll.filter(x=>x.real);
+  let hh='';
+  /* ⭐10-17 真倉（Futu 即時）——engine rec 凍結（kill switch）照 show：/real_positions 直出，
+     同 總覽 統一卡同源。期權 price 欄係 cost fallback 唔可靠 → 唔出 mark 欄，出市值/浮動。 */
+  if(typeof realPos!=='undefined'&&realPos&&realPos.length){
+    const _op=realPos.filter(p=>p.kind==='option'), _st=realPos.filter(p=>p.kind!=='option');
+    hh+='<div style="font-weight:700;margin:2px 0 6px">🟢 真倉（Futu 即時 · bridge 直出，唔經 engine rec）</div><div class="table-scroll"><table class="utable"><thead><tr><th>類</th><th>代號／腿</th><th class="r">數量</th><th class="r">入場</th><th class="r">市值 HKD</th><th class="r">浮動 HKD</th></tr></thead><tbody>';
+    _op.forEach(p=>{hh+='<tr><td>期權</td><td><b>'+esc(p.ticker||'')+'</b> <span class="muted small">'+esc(String(p.name||'').replace(/^\S+\s/,''))+'</span></td><td class="r">'+p.shares+'</td><td class="r">'+px2(p.avg_cost)+'</td><td class="r">'+fmt(p.mkt_val_hkd,0)+'</td><td class="r" style="color:'+(p.pnl_hkd>=0?'#16a34a':'#dc2626')+'">'+money(p.pnl_hkd)+'</td></tr>';});
+    _st.forEach(p=>{hh+='<tr><td>正股</td><td><b>'+esc(p.ticker||'')+'</b></td><td class="r">'+p.shares+'</td><td class="r">'+px2(p.avg_cost)+'</td><td class="r">'+fmt(p.mkt_val_hkd,0)+'</td><td class="r" style="color:'+(p.pnl_hkd>=0?'#16a34a':'#dc2626')+'">'+money(p.pnl_hkd)+'</td></tr>';});
+    hh+='</tbody></table></div>';
+  }
+  hh+='<div class="muted" style="margin-top:8px">Hybrid 60/40 視圖只追蹤真倉 —— 所有紙上倉已於 2026-08-23 清除。</div>';
+  if(recReal.length){
+    hh+='<div style="font-weight:700;margin:8px 0 6px">🔴 engine rec 倉（凍結板 · 僅供核對）</div><div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>到期</th><th class="r">張數</th><th class="r">盈虧平衡</th><th class="r">未實現</th></tr></thead><tbody>';
+    recReal.forEach(p=>{hh+='<tr><td><b>'+p.ticker+'</b></td><td class="r">$'+p.strike+'</td><td>'+p.expiry+'</td><td class="r">'+p.contracts+'</td><td class="r">'+beCell(p)+'</td><td class="r">'+money(p.pnl_hkd)+'</td></tr>';});
     hh+='</tbody></table></div>';
   }
   el.innerHTML=hh;
