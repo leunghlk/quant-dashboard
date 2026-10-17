@@ -718,12 +718,23 @@ function _lastETSessionISO(){
 function _recBoardStale(){
   if(!rec||!rec.date)return null;
   const last=_lastETSessionISO();
+  const baS=(rec.board_asof||'');
+  const ba=baS?new Date(baS):null;
+  const lastCloseMs=new Date(last+'T20:00:00Z').getTime();   /* 16:00 ET 收市 */
+  const baH=ba?Math.max((Date.now()-ba.getTime())/3600000,0):null;
+  const meta={recDate:rec.date,lastET:last,ba:baS?baS.slice(0,16).replace('T',' ')+' HKT':'不詳',ageH:baH};
+  /* ⭐10-17 兩級：板 build 已過最近 ET 收市＝refresher 重算過（amber）；否則舊板（red） */
+  if(ba&&ba.getTime()>=lastCloseMs){
+    if(rec.date>=last)return null;
+    return Object.assign({tier:'amber'},meta);
+  }
   if(rec.date>=last)return null;
-  const ba=(rec.board_asof||'');
-  const baH=ba?Math.max((Date.now()-new Date(ba).getTime())/3600000,0):null;
-  return {recDate:rec.date,lastET:last,ba:ba?ba.slice(0,16).replace('T',' ')+' HKT':'不詳',ageH:baH};
+  return Object.assign({tier:'red'},meta);
 }
 function _staleBoardBannerHTML(s){
+  if(s.tier==='amber'){
+    return '<div style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:10px 14px;border-radius:8px;font-size:13.5px;font-weight:700;line-height:1.6">🟡 <b>引擎仍停機，板已由唯讀 refresher 重算（build '+s.ba+'）</b>——單腿股表＋最佳交易卡係新數（live chain）。候選名單／閘旗／倉位上下文仍係 '+s.recDate+' 舊資料，睇唔好跟。</div>';
+  }
   const days=s.ageH!=null?(s.ageH>=48?Math.round(s.ageH/24)+' 日':s.ageH.toFixed(1)+' 小時'):'?';
   return '<div style="background:#7f1d1d;color:#fff;padding:10px 14px;border-radius:8px;font-size:13.5px;font-weight:700;line-height:1.6">🛑 <b>建議板係舊快照（'+s.recDate+' ET session · build '+s.ba+' · 已 '+days+' 冇重算）</b>——引擎停機，最近 ET session（'+s.lastET+'）冇出過新板。全部接貨K／到期／收入／年化／可開已失效，<u>唔好照板落單</u>；要睇 live 價，撳行入個股詳情頁用 live chain 重揀 K。</div>';
 }
@@ -1683,7 +1694,7 @@ function renderWinRank(){
      局部 const（唔上 window）——防 window.X 撞函數自身 binding（09-14 _uniMapHTML 亂碼事故教訓） */
   const wfHTML='<div style="margin:0 0 6px;padding:6px 10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:8px;font-size:12px;line-height:1.8">'
    +'<b style="color:#1a73e8">🧭 落手流程：</b>跟 <b>✓正選</b> 行（同 TG Top5 一源；可否＝閘，揀邊隻＝wr，POP/贏錢＝讀數）→ 點列入<b>詳情頁</b>核 live 價（揀邊個 K＝<b>年化收入 best-ay</b>）→ 過 <b>P7 六問卡</b>先落手。想再穩陣啲就 <b>XSP</b>。</div>';
-  let h=gw+rg+wfHTML+chips+_uniMapHTML()+(_st?'<div class="small" style="margin:0 0 4px;color:#b91c1c;font-weight:700">⚠ 成表係 '+rec.date+' 快照（見頁頂紅橫額）——K／收入／可開全部過時，只作宇宙參考，唔好照落單</div>':'')+'<div class="table-scroll"'+(_st?' style="opacity:.55"':'')+'><table class="utable"><thead><tr>'
+  let h=gw+rg+wfHTML+chips+_uniMapHTML()+(_st&&_st.tier==='red'?'<div class="small" style="margin:0 0 4px;color:#b91c1c;font-weight:700">⚠ 成表係 '+rec.date+' 快照（見頁頂紅橫額）——K／收入／可開全部過時，只作宇宙參考，唔好照落單</div>':'')+'<div class="table-scroll"'+(_st&&_st.tier==='red'?' style="opacity:.55"':'')+'><table class="utable"><thead><tr>'
    +'<th class="c" title="✓N＝wr 正選序（同 TG Top5：TG 推頭 5、dashboard 列頭 10）">#</th><th>標的</th><th class="c">帶</th>'
    +thS('wr','r','wr＝年化收入×(0.5+IV_rank/100)——09-14 L_mom×W_wr 當周腿排序 key（A/B wr 誠實口徑 +27.52%/−6.45% vs mom +16.42%/−6.70%）','wr')
    +thS('mom','c','MOM＝worker 動量-質素分（qscore 0-1；回測長腿 mom_score 同方向唔同源，僅排序參考——長 tenor 腿拍板留 mom）','MOM')
