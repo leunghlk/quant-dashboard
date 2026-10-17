@@ -416,6 +416,29 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
     <div class="card" style="border:1.5px solid #1a73e8"><div class="card-h"><span class="t">🗣️ 白話解讀</span><span class="meta">一句總結＋而家咩情況＋re-entry rule 情況 · 自動跟住塊板更新（唔係人手寫死）</span></div>
       <div class="card-b" id="krInterpret"><div class="muted small">載入中…</div></div></div>
 
+    <!-- 燈響→動作（2026-10-18 三研究定案；純顯示制） -->
+    <div class="card" style="border:1.5px solid #0f766e"><div class="card-h"><span class="t">🚦 燈響→動作（正股層＋CSP 層）</span><span class="meta">2026-10-18 三 agent 回測定案（~/quant_model/cashvsinvest_20261018/）· 純顯示制零落單</span></div>
+      <div class="card-b">
+        <div id="krActStatus" style="margin-bottom:10px"><div class="muted small">載入中…</div></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px">
+          <div style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px"><b>📈 正股／beta 層：走人變現金，綁回補</b>
+            <ul class="small" style="margin:6px 0 0 18px;line-height:1.65">
+              <li>🟡／🔴 任一腿響 → <b>次日收市全走</b>（有義務簿：🟡 截 score≥4、🔴 連 score3）</li>
+              <li>尾聲三確認 <b>2/3 → 次日收市補回</b>；補後只有 🔴 先再走</li>
+              <li>中途見 GREEN 唔好急返場（狀態制實測每窗多輸 4-8pts）</li>
+              <li class="muted">三窗 net：C +18.4%／A +4.8%（mdd −29→0）／B至今 −1.1%；照揸三窗複合 +63.8%&gt;規則 +18.9%＝回撤保險唔係 alpha</li>
+            </ul></div>
+          <div style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px"><b>💵 CSP 收息層：唔停手——縮深＋禁單名</b>
+            <ul class="small" style="margin:6px 0 0 18px;line-height:1.65">
+              <li><b>🔴期 單名 CSP 禁開</b>：紅日開倉 avg −$1,509/張 vs 非紅日 +$675；實倉反事實 +$11,730（連你兩腿）</li>
+              <li><b>🔴期 δ 0.22→0.12 照寫</b>：10/10 格贏或平；窗B 接貨 22→2 張（排入解封清單）</li>
+              <li>唔好全停／停寫（三窗 −$21k~−$120k）；唔好尾聲復寫（PF 1.58、接貨 45%）</li>
+              <li class="muted">最貴模式＝止蝕後同鏈翻兜（WDC −560→−4,075）——止蝕嗰鏈當日列黑名</li>
+            </ul></div>
+        </div>
+        <div class="small muted" style="margin-top:8px">⚠️ 限制：n=3 窗一年、窗B未完冇反彈頂、VULN 名單 point-in-time 倒推（上限數）、窗B停寫結論 premium 敏感（真實成交=模型 44-50%，縮深臂穩）。尾聲 2/3 實測只窗A fire 過一次（08-03 真底+3td）。</div>
+      </div></div>
+
     <!-- 手動持倉 -->
     <div class="card" id="krHoldCard" style="display:none;border:1.5px solid #dc2626"><div class="card-h"><span class="t">⚠️ 手動持倉 <span class="method-badge bt" style="background:#fee2e2;color:#b91c1c">系統唔管理</span></span><span class="meta">富途 app 手動腿（kill switch 未解，引擎 bootout）· TG 盯倉 com.kathy.manual-watch 每 5 分鐘 · 到期自動出卡</span></div>
       <div class="card-b"><div class="table-scroll"><table class="utable">
@@ -4984,6 +5007,24 @@ function krRenderHist(){
   }).join('');
 }
 krSetWin('B');
+/* 燈響→動作卡：狀態行由 KR_STATUS 自動計（純顯示） */
+function krActRender(){
+  var el=document.getElementById('krActStatus');if(!el)return;
+  var S=KR_STATUS;
+  if(!S){el.innerHTML='<div class="muted small">載入中…</div>';return;}
+  var lv=S.level||'GREEN',tw=S.tailwind||{},n=tw.n||0,sk=S.streak||{};
+  var h='';
+  if(n>=2){
+    h='<span style="font-weight:700;color:#166534;font-size:13.5px">🟢 尾聲 '+n+'/3 響——正股：次日收市補回；CSP：回復正常（之後只 🔴 再走）</span>';
+  }else if(lv==='GREEN'){
+    h='<span style="font-weight:700;color:#166534;font-size:13.5px">⚪ 燈靜——正股照揸；CSP 照寫（δ0.22 正常）</span>';
+  }else{
+    var col=lv==='RED'?'#b91c1c':'#92400e';
+    h='<span style="font-weight:700;color:'+col+';font-size:13.5px">'+(lv==='RED'?'🔴':'🟡')+' 燈響中（紅 '+(sk.red||0)+'td）——正股：應喺現金（等尾聲 '+n+'/3）；CSP：🔴閘——單名禁開＋δ0.12 照寫</span>';
+  }
+  el.innerHTML=h;
+}
+setInterval(krActRender,5000);krActRender();
 </script>
 <script>
 /* ═══════════ Long Put 手冊 tab（2026-10-17 四研究定案；唯讀零落單）═══════════
