@@ -1,14 +1,14 @@
 {
  "version": 2,
- "level": "YEL",
+ "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 308,
-  "red": 154
+  "yel": 309,
+  "red": 155
  },
  "reasons": [
   "10y 5.15 水平閘 Y",
-  "HY OAS 400.00（5日 +0.00）"
+  "HY OAS 3.33（5日 +0.17）"
  ],
  "legs": {
   "A": {
@@ -32,9 +32,9 @@
   },
   "D": {
    "name": "HY OAS",
-   "val": "400.00（5日 +0.00，    <link href=\"https://fonts.googleapis.com/css?family=Open+Sans:300）",
+   "val": "3.33（5日 +0.17，2026-10-20）",
    "thr": "≥3.20 或 5日 +15bp🔴",
-   "state": "Y"
+   "state": "R"
   },
   "E": {
    "name": "POW/QQQ",
@@ -78,7 +78,7 @@
   "c2": false,
   "c3": false,
   "n": 0,
-  "detail": "n/a"
+  "detail": "oas_offpeak 0bp"
  },
  "vuln_top": [
   {
@@ -628,7 +628,7 @@
   "vix": 16.68,
   "tnx": 5.146,
   "move": 101.7,
-  "oas": 400.0,
+  "oas": 3.33,
   "blood": 0,
   "deep20": 20,
   "stale_names": [
@@ -643,7 +643,7 @@
   ],
   "name_fails": []
  },
- "as_of": "10-22 12:18 HKT",
- "updated": 1792642736352,
+ "as_of": "10-22 12:49 HKT",
+ "updated": 1792644547924,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
