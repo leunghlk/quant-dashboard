@@ -176,7 +176,30 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 <div style="background:#dc2626;color:#fff;padding:9px 14px;border-radius:8px;margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:.3px">🔴 市況兇險期（至 10-30）：開任何 CSP 前望實接貨燈 —— 🔴 接唔起（單腿＞50% equity／全簿＞100%）嘅，唔好做</div>
 <!-- kill-radar-banner v1 (2026-10-16)：殺倉預警雷達。資料=kill_radar_status.json（launchd 僅 level 變化 git push）。TG 同步推送，此處只顯示 -->
 <div id="killRadarBanner" style="display:none;margin:0 0 10px;cursor:pointer" onclick="switchPane('killradar')" title="撳一下去殺倉雷達 tab"></div>
+<div id="cspLightsBanner" style="display:none;margin:0 0 10px;cursor:pointer" onclick="switchPane('csplights')" title="撳一下去 CSP技術燈 tab"></div>
 <div id="staleBoardBanner" style="display:none;margin:0 0 10px"></div>
+<script>
+/* CSP技術燈 banner： worst light 著色，click 入 tab（2026-10-23） */
+(function(){
+  'use strict';
+  var LV={red:['#fee2e2','#dc2626','#991b1b','🔴'],yellow:['#fef3c7','#d97706','#92400e','🟡'],green:['#f0fdf4','#16a34a','#166534','🟢']};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  fetch('csp_lights_status.json',{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(j){
+    if(!j||!j.positions||!j.positions.length)return;
+    var rank={red:2,yellow:1,green:0,nodata:0},worst='green';
+    j.positions.forEach(function(p){if((rank[p.light]||0)>rank[worst])worst=p.light;});
+    if(worst==='green')return; /* 全綠唔/banner，免噪 */
+    var c=LV[worst],el=document.getElementById('cspLightsBanner');
+    var lines=j.positions.filter(function(p){return p.light===worst;}).map(function(p){
+      return p.ticker+' P'+p.strike+'×'+p.qty+'（dte '+p.dte+'）— '+p.action;});
+    var age=j.updated?Math.max(0,Math.round((Date.now()-j.updated)/60000)):null;
+    el.style.display='block';
+    el.style.background=c[0];el.style.border='1px solid '+c[1];el.style.borderLeft='4px solid '+c[1];
+    el.style.borderRadius='8px';el.style.padding='10px 14px';el.style.color=c[2];el.style.fontSize='12.5px';el.style.lineHeight='1.55';
+    el.innerHTML=c[3]+' <b>CSP技術燈 '+esc(worst==='red'?'紅燈':'黃燈')+' '+lines.length+' 張</b><br>• '+lines.map(esc).join('<br>• ')+'<br><span style="font-weight:400;opacity:.75">'+esc(j.as_of||'')+(age!=null?('｜'+age+' 分鐘前更新'):'')+'｜TG 已同步推送｜撳入 tab 着詳情</span>';
+  }).catch(function(){});
+})();
+</script>
 <span id="renderErrBadge" style="display:none;position:fixed;right:12px;bottom:12px;background:#dc2626;color:#fff;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;z-index:99;box-shadow:0 2px 8px rgba(0,0,0,.25)"></span>
 <script>
 (function(){
@@ -205,6 +228,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
 <div class="tabs">
   <button data-pane="overview">📊 總覽</button>
   <button data-pane="killradar">🧭 殺倉雷達</button>
+  <button data-pane="csplights">🚦 CSP技術燈</button>
   <span class="tab-group">期權</span>
   <button data-pane="best" class="active">🎯 今日最佳交易</button>
   <button data-pane="detail">📈 個股詳情</button>
@@ -404,6 +428,42 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
     <div class="card"><div class="card-h"><span class="t">📅 清倉日曆（每 6 個月 · 1 月／7 月頭）</span><span class="meta" id="w320CalMeta">載入中…</span></div>
       <div class="card-b" id="w320Cal"><div class="muted">載入中…</div></div></div>
   </div>
+
+  <!-- ═══════════ CSP技術燈（v1.1.1，2026-10-23 回測定案；唯讀零落單） ═══════════ -->
+  <div class="pane" id="pane-csplights">
+    <div class="card" style="border:1.5px solid #b45309"><div class="card-h"><span class="t">⚠️ 純顯示制（零落單）</span><span class="meta">唯讀燈制，唔接 engine（kill switch 未解）· launchd 30 分鐘掃 open CSP＋TG 推（🚨升燈即時／📋07:00 晨報）</span></div>
+      <div class="card-b small muted">燈制 v1.1.1（回測 14 名×224 張，~/quant_model/csp_lights_research/）：🟡＝任一 fresh 訊號（S1 MA5↓MA10／S2 MA10↓MA20／S3 MACD死叉／S4 MTM死叉／S5 downvol≥0.70）；🔴＝熊排列（MA5&lt;MA10&lt;MA20）／MACD死叉+零下／崩潰型（close&lt;MA20−2×ATR14）。<b>回測判決：燈制冇方向預測力（🟡 5日edge +1.4pp），價值＝止蝕紀律（黃燈平 3.7× 好過坐到尾）；紅燈日有 mean-revert 傾向 → 平倉行下個開市段，唔追同日恐慌 close；唔准做入場過濾。</b></div></div>
+    <div class="card"><div class="card-h"><span class="t">🚦 Open CSP 燈號</span><span class="meta" id="cslAsof"></span><span style="margin-left:auto"><button class="btn btn-ghost" onclick="cslLoad(true)">🔄 刷新</button></span></div>
+      <div class="card-b"><div class="table-scroll"><table id="cslTable" style="width:100%;font-size:12.5px;border-collapse:collapse"></table></div><div id="cslEmpty" class="muted small" style="display:none;padding:8px">冇 open CSP（或 bridge 未開）</div></div></div>
+  </div>
+  <script>
+  function cslLoad(force){
+    fetch('csp_lights_status.json',{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(j){
+      var tb=document.getElementById('cslTable'),empty=document.getElementById('cslEmpty');
+      if(!j||!j.positions||!j.positions.length){if(tb)tb.innerHTML='';if(empty)empty.style.display='block';var a=document.getElementById('cslAsof');if(a)a.textContent='';return;}
+      if(empty)empty.style.display='none';
+      var a=document.getElementById('cslAsof');if(a)a.textContent=(j.as_of||'')+'（數據：日線收市指標＋live spot）';
+      var LM={green:['🟢','綠'],yellow:['🟡','黃'],red:['🔴','紅'],nodata:['⚪','無數據']};
+      var h='<thead><tr style="text-align:left;border-bottom:1.5px solid #ddd"><th>標的</th><th>腿</th><th>現價</th><th>OTM%</th><th>dte</th><th>燈</th><th>今日新觸發／指標</th><th>建議動作</th></tr></thead><tbody>';
+      j.positions.forEach(function(p){
+        var m=LM[p.light]||LM.nodata,d=p.detail||{};
+        var fresh=(d.fresh&&d.fresh.length)?d.fresh.join('＋'):'—';
+        var ind=d.ma5?('MA5 '+d.ma5.toFixed(1)+'／MA10 '+d.ma10.toFixed(1)+'／MA20 '+d.ma20.toFixed(1)+'｜dif '+d.dif.toFixed(1)+' vs dea '+d.dea.toFixed(1)+'｜downvol '+d.downvol):'';
+        var bc=p.light==='red'?'#fef2f2':(p.light==='yellow'?'#fffbeb':'');
+        h+='<tr style="border-bottom:1px solid #eee;'+(bc?'background:'+bc+';':'')+'">'+
+          '<td><b>'+p.ticker+'</b></td>'+
+          '<td>P'+p.strike+'×'+p.qty+'<br><span class="muted small">至'+p.expiry+'</span></td>'+
+          '<td>'+(p.spot!=null?p.spot:'—')+'</td>'+
+          '<td>'+(p.otm_pct!=null?p.otm_pct+'%':'—')+'</td>'+
+          '<td>'+p.dte+'</td>'+
+          '<td style="font-size:15px">'+m[0]+'</td>'+
+          '<td class="small">'+fresh+'<br><span class="muted">'+ind+'</span></td>'+
+          '<td class="small">'+p.action+'</td></tr>';
+      });
+      h+='</tbody>';tb.innerHTML=h;
+    }).catch(function(){/* 靜默 */});
+  }
+  </script>
 
   <!-- ═══════════ 殺倉雷達（v2 六腿，2026-10-16 四研究定案；唯讀零落單） ═══════════ -->
   <div class="pane" id="pane-killradar">
@@ -3702,6 +3762,7 @@ function switchPane(id){
   if(id==='earnings')renderEarnings();
   if(id==='wheel320')loadWheel320(false);
   if(id==='killradar')krLoad(false);
+  if(id==='csplights')cslLoad(false);
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>switchPane(b.dataset.pane)));
 /* ⭐ 08-16 fix：tabs sticky top 實際 = appbar 高度（appbar .sub 換行會高於 53px →
