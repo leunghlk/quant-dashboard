@@ -1,0 +1,70 @@
+{
+ "version": 1,
+ "as_of": "2026-10-22 13:42 ET",
+ "updated": 1792690979670,
+ "config": {
+  "downvol_yellow": 0.7,
+  "mtm_n": 10,
+  "mtm_sig": 6,
+  "atr_break_mult": 2.0
+ },
+ "positions": [
+  {
+   "ticker": "NBIS",
+   "strike": 200.0,
+   "expiry": "2026-10-23",
+   "qty": 2.0,
+   "code": "US.NBIS261023P200000",
+   "spot": 157.57,
+   "dte": 1,
+   "otm_pct": -21.22,
+   "light": "red",
+   "detail": {
+    "fresh": [],
+    "st_ma510": true,
+    "st_ma1020": true,
+    "st_dif_neg": true,
+    "ma5": 170.61200256347655,
+    "ma10": 189.677001953125,
+    "ma20": 213.86875076293944,
+    "dif": -15.541208905778689,
+    "dea": -7.938551989025545,
+    "mtm": -79.65998840332031,
+    "mtm_sig": -65.24833170572917,
+    "downvol": 0.352,
+    "close": 157.49000549316406
+   },
+   "action": "🔴 深 ITM：下個開市段即刻比較 買返 vs 接貨（接貨＝揸股決策，過 kill-study）"
+  },
+  {
+   "ticker": "MRNA",
+   "strike": 200.0,
+   "expiry": "2026-10-30",
+   "qty": 3.0,
+   "code": "US.MRNA261030P200000",
+   "spot": 186.75,
+   "dte": 8,
+   "otm_pct": -6.62,
+   "light": "green",
+   "detail": {
+    "fresh": [
+     "S3 MACD死叉",
+     "S4 MTM死叉"
+    ],
+    "st_ma510": false,
+    "st_ma1020": false,
+    "st_dif_neg": false,
+    "ma5": 221.81661987304688,
+    "ma10": 218.73731079101563,
+    "ma20": 207.0241569519043,
+    "dif": 16.545096845872365,
+    "dea": 19.191469345129292,
+    "mtm": -10.87689208984375,
+    "mtm_sig": 29.452181498209637,
+    "downvol": 0.475,
+    "close": 185.6031036376953
+   },
+   "action": "✅ 持有"
+  }
+ ]
+}
