@@ -452,7 +452,7 @@ th.sort-sec.desc::after{content:' ▼';font-size:9px;color:#0d9488}
         var bc=p.light==='red'?'#fef2f2':(p.light==='yellow'?'#fffbeb':'');
         h+='<tr style="border-bottom:1px solid #eee;'+(bc?'background:'+bc+';':'')+'">'+
           '<td><b>'+p.ticker+'</b></td>'+
-          '<td>P'+p.strike+'×'+p.qty+'<br><span class="muted small">至'+p.expiry+'</span></td>'+
+          '<td>'+(p.right||'P')+p.strike+'×'+p.qty+(p.covered?'<span class="muted small">c</span>':'')+'<br><span class="muted small">至'+p.expiry+'</span></td>'+
           '<td>'+(p.spot!=null?p.spot:'—')+'</td>'+
           '<td>'+(p.otm_pct!=null?p.otm_pct+'%':'—')+'</td>'+
           '<td>'+p.dte+'</td>'+
