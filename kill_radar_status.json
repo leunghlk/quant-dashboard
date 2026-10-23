@@ -3,7 +3,7 @@
  "level": "YEL",
  "level_since": null,
  "streak": {
-  "yel": 360,
+  "yel": 361,
   "red": 198
  },
  "reasons": [
@@ -38,14 +38,14 @@
   },
   "E": {
    "name": "POW/QQQ",
-   "val": "ratio 0.643（20d低 0.591，緩衝 +8.8%）",
+   "val": "ratio 0.628（20d低 0.591，緩衝 +6.3%）",
    "thr": "破20d低🟡／40d新低🔴／👑主trigger",
    "state": "off",
-   "ratio": 0.643,
+   "ratio": 0.628,
    "lo20": 0.591,
    "lo40": 0.591,
-   "buf20": 8.8,
-   "buf40": 8.8,
+   "buf20": 6.3,
+   "buf40": 6.3,
    "detail": ""
   },
   "F": {
@@ -87,7 +87,7 @@
    "beta": 5.55,
    "vol": 0.78,
    "mcap": 51.0,
-   "corr": 15.37,
+   "corr": 15.63,
    "debt": 9.7,
    "hold": "⚠️手動 P200×2 BE174.95 至10-23"
   },
@@ -97,7 +97,7 @@
    "beta": 5.51,
    "vol": 0.86,
    "mcap": 38.0,
-   "corr": 15.43,
+   "corr": 15.58,
    "debt": 77.6,
    "hold": null
   },
@@ -107,7 +107,7 @@
    "beta": 4.77,
    "vol": 0.73,
    "mcap": 23.0,
-   "corr": 15.54,
+   "corr": 15.36,
    "debt": 38.0,
    "hold": null
   },
@@ -117,7 +117,7 @@
    "beta": 4.64,
    "vol": 0.92,
    "mcap": 49.0,
-   "corr": 17.14,
+   "corr": 17.04,
    "debt": 7.2,
    "hold": null
   },
@@ -127,7 +127,7 @@
    "beta": 5.55,
    "vol": 1.08,
    "mcap": 1.0,
-   "corr": 13.81,
+   "corr": 14.64,
    "debt": 131.0,
    "hold": null
   },
@@ -137,7 +137,7 @@
    "beta": 5.71,
    "vol": 0.71,
    "mcap": 52.0,
-   "corr": 16.29,
+   "corr": 16.1,
    "debt": 0.0,
    "hold": null
   },
@@ -147,7 +147,7 @@
    "beta": 4.65,
    "vol": 0.67,
    "mcap": 301.0,
-   "corr": 15.26,
+   "corr": 14.81,
    "debt": 10.5,
    "hold": null
   },
@@ -157,8 +157,18 @@
    "beta": 4.04,
    "vol": 0.58,
    "mcap": 11.0,
-   "corr": 15.5,
+   "corr": 15.23,
    "debt": 14.3,
+   "hold": null
+  },
+  {
+   "t": "TER",
+   "score": 4,
+   "beta": 3.54,
+   "vol": 0.67,
+   "mcap": 54.0,
+   "corr": 15.5,
+   "debt": 0.5,
    "hold": null
   },
   {
@@ -167,18 +177,8 @@
    "beta": 3.58,
    "vol": 0.64,
    "mcap": 119.0,
-   "corr": 16.13,
+   "corr": 16.46,
    "debt": 7.9,
-   "hold": null
-  },
-  {
-   "t": "CRDO",
-   "score": 4,
-   "beta": 4.8,
-   "vol": 0.87,
-   "mcap": 34.0,
-   "corr": 16.35,
-   "debt": 0.1,
    "hold": null
   }
  ],
@@ -455,7 +455,7 @@
    "blood": false,
    "deep20": true,
    "stale": true,
-   "score": 3,
+   "score": 4,
    "hold": null
   },
   {
@@ -488,7 +488,7 @@
    "blood": false,
    "deep20": true,
    "stale": true,
-   "score": 3,
+   "score": 4,
    "hold": null
   },
   {
@@ -576,7 +576,7 @@
    "blood": false,
    "deep20": false,
    "stale": true,
-   "score": 0,
+   "score": 1,
    "hold": null
   },
   {
@@ -587,7 +587,7 @@
    "blood": false,
    "deep20": false,
    "stale": true,
-   "score": 2,
+   "score": 3,
    "hold": null
   },
   {
@@ -616,11 +616,11 @@
    "t": "APP",
    "last": 264.2799987792969,
    "chg1d": null,
-   "dd20": -0.1616812092647204,
+   "dd20": -0.15422281260007675,
    "blood": false,
    "deep20": false,
    "stale": true,
-   "score": 0,
+   "score": 1,
    "hold": null
   }
  ],
@@ -643,7 +643,7 @@
   ],
   "name_fails": []
  },
- "as_of": "10-23 14:27 HKT",
- "updated": 1792736846206,
+ "as_of": "10-23 14:57 HKT",
+ "updated": 1792738656364,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
