@@ -235,14 +235,14 @@ function mgChip(){return '<span class="pill" style="background:#fee2e2;color:#b9
   <button data-pane="killradar">🧭 殺倉雷達</button>
   <button data-pane="csplights">🚦 CSP技術燈</button>
   <span class="tab-group">期權</span>
-  <button data-pane="best" class="active">🎯 今日最佳交易</button>
+  <button data-pane="best" class="active">🎯 今日觀察倉（紙上）</button>
   <button data-pane="detail">📈 個股詳情</button>
   <button data-pane="positions">📋 持倉管理</button>
   <button data-pane="longput">🩳 Long Put 手冊</button>
   <button data-pane="method">❓ Hybrid 60/40 方法論</button>
   <span class="tab-group">正股</span>
   <button data-pane="advice">🎯 執倉建議</button>
-  <button data-pane="toppick">⭐ 最優先部署</button>
+  <button data-pane="toppick">📈 toppick（紙上觀察）</button>
   <button data-pane="earnings">📅 業績日曆</button>
   <span class="tab-group">模型</span>
   <button data-pane="wheel320">🔄 wheel320（CSP 75k · 每 6 個月清倉）</button>
@@ -286,7 +286,7 @@ function mgChip(){return '<span class="pill" style="background:#fee2e2;color:#b9
   <div class="pane active" id="pane-best">
     <div class="card" style="border:2px solid #1a73e8"><div class="card-h"><span class="t">🧭 而家做咩（風險管理＋賺錢機會匯總）</span><span class="meta" id="nowMeta">自動跟市況計 · 純顯示制</span></div>
       <div class="card-b" id="nowBody"><div class="muted">計緊…</div></div></div>
-    <div class="card"><div class="card-h"><span class="t">🎯 今日最佳交易</span><span class="meta">點「執行」下單（真倉記賬）· 點行開個股詳情</span></div>
+    <div class="card"><div class="card-h"><span class="t">🎯 今日觀察倉（紙上 · 非建議）</span><span class="meta">觀察倉 · 清場期唔好落單 · 點行開個股詳情</span></div>
       <div class="card-b" id="bestCard"></div></div>
     <div class="card"><div class="card-h"><span class="t">🛂 P7 Pre-flight 六問卡</span><span class="meta" id="pfMeta">落單前 30 秒——bridge /preflight 一次過問六問（跟榜→接貨→σ距→Event→按金→市寬）</span></div>
       <div class="card-b" id="pfBody">
@@ -307,8 +307,7 @@ function mgChip(){return '<span class="pill" style="background:#fee2e2;color:#b9
       <div class="card-b" id="winrankBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">📝 決定記錄</span><span class="meta">真倉持倉一覽 · 以及「今日不做」</span></div>
       <div class="card-b" id="decBody"></div></div>
-    <div class="card" id="nbisPbCard"><div class="card-h"><span class="t">🛡 NBIS CSP 對策模擬（短 P200×2 · 2026-10-23 到期）</span><span class="meta" id="nbisPbMeta"></span></div>
-      <div class="card-b" id="nbisPbBody"></div></div>
+    <!-- nbisPbCard 退役（2026-10-25 審計 REMOVE #16：腿 10-23 已結案）。nbCcRefresh 保留（而家做咩卡 C165 mid 數據源） -->
     <div class="card"><div class="card-h"><span class="t">已排除</span><span class="meta">業績窗口 / signal veto（momentum-only，同回測公式；槓桿 ETF 已按你要求列入單腿股表掃描）</span></div>
       <div class="card-b small muted" id="notesBody"></div></div>
     <div class="card" id="washoutCard"><div class="card-h"><span class="t">🧪 洗倉雷達 <span style="font-size:10.5px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:99px;padding:1px 8px;font-weight:700;vertical-align:2px">未 seal · 研究訊號</span></span><span class="meta">洗倉狀態＝dd20 ≤ −8%（較20日收市高位）· 純顯示制，唔接落單系統 · <a href="washout-radar.html" target="_blank">全單／出手紀律 →</a></span><span class="meta" id="washoutAsof"></span></div>
@@ -323,7 +322,7 @@ function mgChip(){return '<span class="pill" style="background:#fee2e2;color:#b9
 
   <!-- ═══════════ 持倉管理 ═══════════ -->
   <div class="pane" id="pane-positions">
-    <div class="card" id="actCard" style="display:none"><div class="card-h"><span class="t">🔔 Engine 建議動作（出場訊號）</span><span class="meta">PT 50% · cut-before-assignment · roll · 熔斷 —— 照著做 = 貼近回測路徑</span></div>
+    <div class="card" id="actCard" style="display:none"><div class="card-h"><span class="t">🔔 Engine 建議動作（出場訊號）</span><span class="meta">PT 50% 主力 · 首響淺走（S1-S4首響＋MA20上）· S5 唔單獨 · 日內 backstop · 紅燈下開市市價 fill —— 照著做 = 貼近回測路徑</span></div>
       <div class="card-b" id="actBody"></div></div>
     <div class="card"><div class="card-h"><span class="t">📋 開倉位</span><span class="meta">PT 50% 平倉 · cut 止損 · 業績日必平 · 可手動平倉</span></div>
       <div class="card-b" id="posBody"></div></div>
@@ -390,7 +389,7 @@ function mgChip(){return '<span class="pill" style="background:#fee2e2;color:#b9
 
   <!-- ═══════════ 最優先部署（正股） ═══════════ -->
   <div class="pane" id="pane-toppick">
-    <div class="card" style="border:1.5px solid #7c3aed"><div class="card-h"><span class="t">📈 策略交易台（正股 quant model）</span><span class="meta">活體回測決策 · 同 quant dashboard 同一 table · long-only top-5 · HKD 10,000/倉 · 🎯 今日最佳交易 top-3</span></div>
+    <div class="card" style="border:1.5px solid #7c3aed"><div class="card-h"><span class="t">📈 策略交易台（正股 quant model）</span><span class="meta">紙上觀察（10-25 審計降級）· 活體回測決策 · long-only top-5 · HKD 10,000/倉</span></div>
       <div class="card-b" id="toppickBody"><div class="muted">載入中…</div></div></div>
   </div>
 
@@ -438,7 +437,7 @@ function mgChip(){return '<span class="pill" style="background:#fee2e2;color:#b9
   <div class="pane" id="pane-csplights">
     <div class="card" style="border:1.5px solid #b45309"><div class="card-h"><span class="t">⚠️ 純顯示制（零落單）</span><span class="meta">唯讀燈制，唔接 engine（kill switch 未解）· launchd 30 分鐘掃 open CSP＋TG 推（🚨升燈即時／📋07:00 晨報）</span></div>
       <div class="card-b small muted">燈制 v1.1.1（回測 14 名×224 張，~/quant_model/csp_lights_research/）：🟡＝任一 fresh 訊號（S1 MA5↓MA10／S2 MA10↓MA20／S3 MACD死叉／S4 MTM死叉／S5 downvol≥0.70）；🔴＝熊排列（MA5&lt;MA10&lt;MA20）／MACD死叉+零下／崩潰型（close&lt;MA20−2×ATR14）。<b>回測判決：燈制冇方向預測力（🟡 5日edge +1.4pp），價值＝止蝕紀律（黃燈平 3.7× 好過坐到尾）；紅燈日有 mean-revert 傾向 → 平倉行下個開市段，唔追同日恐慌 close；唔准做入場過濾。</b></div></div>
-    <div class="card"><div class="card-h"><span class="t">🚦 Open CSP 燈號</span><span class="meta" id="cslAsof"></span><span style="margin-left:auto"><button class="btn btn-ghost" onclick="cslLoad(true)">🔄 刷新</button></span></div>
+    <div class="card" style="border:1.5px solid #1a73e8"><div class="card-h"><span class="t">⭐ v1.2 出場改制（10-25 二輪回測定案）</span><span class="meta">首響淺走 · S5 降級 · 日內 backstop</span></div><div class="card-b small">訊號平倉＝<b>首響淺走</b>：S1-S4 <b>首次</b>響＋close&gt;MA20＋非紅＋非 S5 單獨 → 當日收市平。<b>S5 唔准單獨觸發</b>（走啱率 41.7%、訊號家族 sumPnL −$446.9 全場最差）。紅燈照下開市段市價 fill。日內破結構位（MA20−2×ATR／swing low）由 5-min watcher 出 backstop 警報。PT+50% 照舊主力（PT50 主導 181/243 離場）。<br><span class="muted">舊 v1.1.1 any-fresh 燈即走被回測否決：E1 −$371.82 vs 首響淺走 +$220.86（退出後 5日 drift +7.8% vs +0.86%）。</span></div></div><div class="card"><div class="card-h"><span class="t">🚦 Open CSP 燈號</span><span class="meta" id="cslAsof"></span><span style="margin-left:auto"><button class="btn btn-ghost" onclick="cslLoad(true)">🔄 刷新</button></span></div>
       <div class="card-b"><div class="table-scroll"><table id="cslTable" style="width:100%;font-size:12.5px;border-collapse:collapse"></table></div><div id="cslEmpty" class="muted small" style="display:none;padding:8px">冇 open CSP（或 bridge 未開）</div></div></div>
   </div>
   <script>
@@ -498,7 +497,7 @@ function mgChip(){return '<span class="pill" style="background:#fee2e2;color:#b9
           <div style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 12px"><b>💵 CSP 收息層：唔停手——縮深＋禁單名</b>
             <ul class="small" style="margin:6px 0 0 18px;line-height:1.65">
               <li><b>🔴期 單名 CSP 禁開</b>：紅日開倉 avg −$1,509/張 vs 非紅日 +$675；實倉反事實 +$11,730（連你兩腿）</li>
-              <li><b>🔴期 δ 0.22→0.12 照寫</b>：10/10 格贏或平；窗B 接貨 22→2 張（排入解封清單）</li>
+              <li><b>🔴期 δ 0.22→0.12 照寫</b>（重啟後先適用；清場期零新倉覆蓋）：10/10 格贏或平；窗B 接貨 22→2 張（排入解封清單）</li>
               <li>唔好全停／停寫（三窗 −$21k~−$120k）；唔好尾聲復寫（PF 1.58、接貨 45%）</li>
               <li class="muted">最貴模式＝止蝕後同鏈翻兜（WDC −560→−4,075）——止蝕嗰鏈當日列黑名</li>
             </ul></div>
@@ -1819,7 +1818,7 @@ function renderWinRank(){
   /* ⭐09-16 落手流程（B 卡退役後更新）——正選行 → 詳情頁核 live 價（揀 K＝best-ay 年化最大）→ P7 先落手；再穩陣＝XSP。
      局部 const（唔上 window）——防 window.X 撞函數自身 binding（09-14 _uniMapHTML 亂碼事故教訓） */
   const wfHTML='<div style="margin:0 0 6px;padding:6px 10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:8px;font-size:12px;line-height:1.8">'
-   +'<b style="color:#1a73e8">🧭 落手流程：</b>跟 <b>✓正選</b> 行（同 TG Top5 一源；可否＝閘，揀邊隻＝wr，POP/贏錢＝讀數）→ 點列入<b>詳情頁</b>核 live 價（揀邊個 K＝<b>年化收入 best-ay</b>）→ 過 <b>P7 六問卡</b>先落手。想再穩陣啲就 <b>XSP</b>。</div>';
+   +((window.mgBlocked&&mgBlocked())?'<b style="color:#b91c1c">⛔ 清場期（至 10-30）：呢張表只供觀察——唔好落手，重入後先照下面流程。</b><br>':'')+'<b style="color:#1a73e8">🧭 落手流程：</b>跟 <b>✓正選</b> 行（同 TG Top5 一源；可否＝閘，揀邊隻＝wr，POP/贏錢＝讀數）→ 點列入<b>詳情頁</b>核 live 價（揀邊個 K＝<b>年化收入 best-ay</b>）→ 過 <b>P7 六問卡</b>先落手。想再穩陣啲就 <b>XSP</b>。</div>';
   let h=gw+rg+wfHTML+chips+_uniMapHTML()+(_st&&_st.tier==='red'?'<div class="small" style="margin:0 0 4px;color:#b91c1c;font-weight:700">⚠ 成表係 '+rec.date+' 快照（見頁頂紅橫額）——K／收入／可開全部過時，只作宇宙參考，唔好照落單</div>':'')+'<div class="table-scroll"'+(_st&&_st.tier==='red'?' style="opacity:.55"':'')+'><table class="utable"><thead><tr>'
    +'<th class="c" title="✓N＝wr 正選序（同 TG Top5：TG 推頭 5、dashboard 列頭 10）">#</th><th>標的</th><th class="c">帶</th>'
    +thS('wr','r','wr＝年化收入×(0.5+IV_rank/100)——09-14 L_mom×W_wr 當周腿排序 key（A/B wr 誠實口徑 +27.52%/−6.45% vs mom +16.42%/−6.70%）','wr')
@@ -2765,7 +2764,7 @@ function renderDecisions(){
     hh+='</tbody></table></div>';
   }
   el.innerHTML=hh;
-  renderNbisPlaybook();
+  /* renderNbisPlaybook() 退役 2026-10-25（審計 REMOVE #16）：對策模擬卡腿已結案 */
 }
 async function skipTrade(tk,exp,K){
   recordDecision('skips',tk,exp,K);
@@ -2861,7 +2860,7 @@ function renderAdvice(){
       else if(qp&&qp.exit_trigger){action='觸發退出：模型離場條件已觸發（'+sig+' · Decel '+decel+'）';cls='sell';}
       else if(decel<=-3){action='強制沽出：動量減速崩損 Decel='+decel+'（不論盈虧）';cls='sell';}
       else if(sig==='SELL'||sig==='REDUCE'){action='減持：信號轉弱 '+sig;cls='reduce';}
-      else if(sig==='BUY'&&decel>=-1){action='可加倉：信號 BUY · Decel '+decel+' 正常';cls='buy';}
+      else if(sig==='BUY'&&decel>=-1){if(window.mgBlocked&&mgBlocked()){action='清場期觀察：信號 BUY · Decel '+decel+'（唔加倉）';cls='hold';}else{action='可加倉：信號 BUY · Decel '+decel+' 正常';cls='buy';}}
       else{action='續持：信號 '+sig+' · Decel '+decel+(qp?' · 未實現 '+(qp.unreal_pct!=null?qp.unreal_pct+'%':'—'):'');cls='hold';}
     }
     const aCol=cls==='sell'||cls==='reduce'?'#dc2626':cls==='buy'?'#16a34a':'#475569';
@@ -2921,7 +2920,7 @@ function renderTopPick(){
   bestPool.sort((a,b)=>((b.o.score||0)-(a.o.score||0))||((a.kind==='buy'?0:1)-(b.kind==='buy'?0:1)));
   const bestN=bestPool.slice(0,3), bestMedal=['🥇','🥈','🥉'];
   h+='<div style="border:1.5px solid #d97706;background:#fffbeb;border-radius:10px;padding:10px 12px;margin:0 0 4px">';
-  h+='<div style="font-weight:800;font-size:13.5px">🎯 今日最佳交易（正股 · top '+bestN.length+'）</div>';
+  h+='<div style="font-weight:800;font-size:13.5px">🎯 今日觀察倉（正股 · 紙上 top '+bestN.length+'）</div>';
   if(window.mgBlocked&&mgBlocked())h+='<div style="background:#fee2e2;color:#b91c1c;font-weight:700;border-radius:8px;padding:6px 10px;margin:0 0 6px;font-size:12px">⛔ '+MASTER_GATE.why+'</div>';
   h+='<div style="font-size:11px;color:#92400e;margin:2px 0 8px">🟢 可入新倉 ＋ 🔁 可翻倉 合併計（score ↓ · 同分新倉優先）· 每格 HKD '+notional.toLocaleString()+' · 執行＝下個交易日開市（模型建議，非已執行）</div>';
   if(!bestN.length){
@@ -3863,7 +3862,7 @@ function renderMethod(){
   $('methodSize').innerHTML=
     '<p><b>配倉（兩腿獨立）：</b>每腿獨立嘅按金預算（單股 70%、XSP 90%——08-27 Path A 回測口徑；⭐09-15 起 live 單股＝mu 0.25＋硬閘 US$20,959，見上規格表）。XSP 腿單倉大（≤90%、每倉≤2張）因為指數無單股風險＋現金結算 tail 有界。</p>'+
     '<p style="margin-top:8px"><b>金 sleeve（09-08 加）：</b>按金預算 <b>US$'+fmt(GOLD_BT.budget_usd)+'</b>（US$10k sleeve × 30% · 上限 '+GOLD_BT.max_contracts+' 張試倉）· <b>RV20&gt;'+GOLD_BT.rv20_max+'% 唔開新倉</b>（現有倉照管理）。IAU 真倉經 options_income engine 記賬，出場跟引擎 PT50%／到期規則；IAU 價差闊，落單 limit 貼 bid。</p>'+
-    '<p style="margin-top:8px"><b>出場規則（真倉全自動，09-12 口徑）：</b></p>'+
+    '<p style="margin-top:8px"><b>出場規則（真倉全自動；⭐ 10-25 二輪回測改制，engine 重啟時生效——訊號平倉＝首響淺走（S1-S4 首響＋close&gt;MA20＋非紅非S5）、S5 唔准單獨觸發、日內結構位 backstop；PT50 不變）：</b></p>'+
     '<ol style="margin:4px 0 0 18px;line-height:1.9">'+
     '<li>權利金收到 <b>50%</b> → 真倉自動 buy-to-close 鎖利（DAY limit，3 次重試；回測 141/153 PT 倉原本會 OTM——但資金循環＋12 次救接貨令 PT 仍然 net 好）</li>'+
     '<li><b>Break-glass 真趨勢穿自動止蝕</b>：S&lt;K ＋ S&lt;0.95×MA50 ＋ dte≥5 → 即市 ask 側自動平倉、未成交下個 cycle 重掛。4.6 年回測 4 槍全真跌穿、零殺錯——全策略唯一 mark 類自動平倉'+tip('cut')+'</li>'+
@@ -5088,10 +5087,10 @@ function krActRender(){
   if(n>=2){
     h='<span style="font-weight:700;color:#166534;font-size:13.5px">🟢 尾聲 '+n+'/3 響——正股：次日收市補回；CSP：回復正常（之後只 🔴 再走）</span>';
   }else if(lv==='GREEN'){
-    h='<span style="font-weight:700;color:#166534;font-size:13.5px">⚪ 燈靜——正股照揸；CSP 照寫（δ0.22 正常）</span>';
+    h='<span style="font-weight:700;color:#166534;font-size:13.5px">⚪ 燈靜——正股照揸；CSP 照寫（δ0.22 正常）· 清場期覆蓋：新倉一律唔開，只管理現有倉</span>';
   }else{
     var col=lv==='RED'?'#b91c1c':'#92400e';
-    h='<span style="font-weight:700;color:'+col+';font-size:13.5px">'+(lv==='RED'?'🔴':'🟡')+' 燈響中（紅 '+(sk.red||0)+'td）——正股：應喺現金（等尾聲 '+n+'/3）；CSP：🔴閘——單名禁開＋δ0.12 照寫</span>';
+    h='<span style="font-weight:700;color:'+col+';font-size:13.5px">'+(lv==='RED'?'🔴':'🟡')+' 燈響中（紅 '+(sk.red||0)+'td）——正股：應喺現金（等尾聲 '+n+'/3）；CSP：🔴閘——單名禁開＋δ0.12 照寫（重啟後先適用；清場期零新倉覆蓋）</span>';
   }
   el.innerHTML=h;
 }
