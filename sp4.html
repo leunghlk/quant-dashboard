@@ -229,7 +229,7 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
       <h4>Sizing Laws（法律層 — 引擎 hard-code，喺決策迴路之外）</h4>
       <li>CORE 75%／SAT 25%，比例唔因「好彩」調整</li>
       <li>衛星：max 8 並行名；單名 ≤20% 衛星抵押；單板塊 ≤30%；<b>半注 tier（β≥1.2）max 2 並行、注 ×0.5</b></li>
-      <li>紅燈法律：任何一腿到期義務 &gt;50% 全簿 → 唔好做（permanent）</li>
+      <li>紅燈法律：任何<b>實股交收</b>腿到期義務 &gt;50% 全簿 → 唔好做（permanent）。CORE 指數腿＝歐式現金結算冇接貨 — 唔入呢條，用「按金 ≤ CORE 75% sleeve」做閘</li>
       <li>高β kill-signature：β(1y)&gt;3 <b>且</b> vol252&gt;0.6 <b>且</b> cap&lt;$60B → 禁入</li>
       <li>新高後加注冷靜期 1 個月；加注只跟日曆，永遠唔跟 P&L</li>
     </div></details>
@@ -515,13 +515,13 @@ function renderPF(){
 }
 function renderPFTotals(){
   var el=document.getElementById('pfTotals');if(!el||!PQ||!D)return;
-  var P=pfInputs(),inc=0,mg=0,maxLeg=0,nLegs=0;
+  var P=pfInputs(),inc=0,mg=0,maxLeg=0,nLegs=0,coreMg=0;
   var X=PQ['^XSP'];
   if(PQ_SELS['^XSP']&&X&&X.ladder){
     var lad=X.ladder.filter(function(o){return o.strike<=X.spot}),pick=null;
     for(var i=0;i<lad.length;i++){if(lad[i].collat<=P.core){pick=lad[i];break;}}
     if(!pick&&lad.length)pick=lad[lad.length-1];
-    if(pick){inc+=pick.mid*100*(D.core.mult||1);mg+=pick.collat;maxLeg=Math.max(maxLeg,pick.collat);nLegs++;}
+    if(pick){inc+=pick.mid*100*(D.core.mult||1);mg+=pick.collat;coreMg=pick.collat;nLegs++;}
   }
   D.eligible_full.concat(D.eligible_half).forEach(function(s){
     if(!PQ_SELS[s])return;var q=PQ[s];if(!q||!q.sat)return;
@@ -536,10 +536,11 @@ function renderPFTotals(){
     var capS=P.sat*P.cap*(D.eligible_half.indexOf(s)>=0?0.5:1);
     var n=Math.floor(capS/q.sat.collat);if(n<1)return;sMg+=q.sat.collat*n;
   });
-  var red=maxLeg>0.5*P.usd;
+  var red=maxLeg>0.5*P.usd; // 紅燈只計實股交收衛星腿；CORE 係歐式現金結算冇接貨，用 sleeve cap 管
   el.innerHTML='<div class="'+(red?'red-note':'action-big')+'" style="margin-top:10px">'
    +(nLegs?'已剔 <b>'+nLegs+' 腿</b>：收入 <b>'+$k(inc)+'</b>（≈ HKD '+$k(inc*P.fx)+'）/cycle · 按金 <b>'+$k(mg)+'</b>（HKD '+$k(mg*P.fx)+'）· 做完剩流動性 <b>'+$k(rem)+'</b>（HKD '+$k(rem*P.fx)+'，全放 T-bills 收息）· 衛星池淨 '+$k(P.sat-sMg)
-   +'　'+(red?'🔴 <b>紅燈：單腿義務 &gt;50% 全簿 — 唔好做</b>':'✓ 紅燈檢查過（最大腿 '+Math.round(maxLeg/P.usd*100)+'% ≤ 50%）')
+   +(coreMg?' · CORE $'+Math.round(coreMg/P.usd*100)+'% 全簿（歐式現金結算，冇接貨）':'')
+   +'　'+(red?'🔴 <b>紅燈：衛星腿義務 &gt;50% 全簿 — 唔好做</b>':'✓ 紅燈檢查過（最大衛星腿 '+Math.round(maxLeg/P.usd*100)+'% ≤ 50%）')
    :'剔上面 ☑ 揀想做嘅腿 — 自動計收入／按金／剩餘流動性')
    +'</div>';
 }
