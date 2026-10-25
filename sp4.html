@@ -124,6 +124,7 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
   <button onclick="showSec('scen',this)">🎬 情景劇本</button>
   <button onclick="showSec('spec',this)">📜 策略 Spec</button>
   <button onclick="showSec('perf',this)">📈 業績</button>
+  <button onclick="showSec('paper',this)">📄 Paper Book</button>
 </div>
 
 <div class="main">
@@ -286,6 +287,11 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
       <p><b>已知盲區（誠實申報）</b>：2022-26 窗無 volmageddon/2020 型事件；fundamentals 靜態 backcast（survivorship 偏強，衛星 alpha 係上限）；衛星 premium 係 BS(RV20×1.15) 模型價非真 quote；wheel path 樣本薄。<b>證偽條件</b>：滾動 2 年跑輸 T-bills；或 crash 年 MDD 穿 −30% 預算 → 停用重檢。</p>
     </div></details>
   </div>
+</div>
+
+<!-- ═══ Paper Book ═══ -->
+<div class="sec" id="sec-paper">
+  <div id="paper-body"><div class="card"><div class="muted">載入中…</div></div></div>
 </div>
 
 <!-- ═══ 業績 ═══ -->
@@ -573,7 +579,99 @@ function doCheck(){
   });
 }
 
+/* ── 全域自繪 tooltip：native title 唔可靠（部分環境唔浮出）— hover 任何 [title] 用 fixed box 顯示；暫時抽走 title 防雜 tooltip ── */
+(function(){
+  var box=document.createElement('div');
+  box.style.cssText='position:fixed;z-index:9999;max-width:360px;background:#1e2430;color:#e8ecf3;padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.5;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.35);display:none;white-space:pre-wrap';
+  document.body.appendChild(box);
+  function move(e){
+    var w=box.offsetWidth,h=box.offsetHeight,x=e.clientX+14,y=e.clientY+16;
+    if(x+w>window.innerWidth-8)x=e.clientX-w-12;
+    if(y+h>window.innerHeight-8)y=e.clientY-h-12;
+    box.style.left=x+'px';box.style.top=y+'px';
+  }
+  document.addEventListener('mouseover',function(e){
+    var el=e.target&&e.target.closest?e.target.closest('[title]'):null;
+    if(!el)return;
+    el.dataset.tip=el.getAttribute('title');
+    el.removeAttribute('title');
+    box.textContent=el.dataset.tip;
+    box.style.display='block';
+    move(e);
+  });
+  document.addEventListener('mousemove',function(e){if(box.style.display==='block')move(e);});
+  document.addEventListener('mouseout',function(e){
+    var el=e.target&&e.target.closest?e.target.closest('[title]'):null;
+    if(!el)return;
+    if(el.dataset&&el.dataset.tip){el.setAttribute('title',el.dataset.tip);delete el.dataset.tip;}
+    box.style.display='none';
+  });
+})();
+
+/* ── 📄 Paper Book（sp4_paper.json，launchd 07:55/23:30 寫）── */
+var P=null;
+function fmt0(n){return Math.round(n||0).toLocaleString('en-US')}
+function fmt2(n){return (n||0).toFixed(2)}
+function renderPaper(){
+  var el=document.getElementById('paper-body');
+  if(!el)return;
+  if(!P){el.innerHTML='<div class="card"><h3>📄 SP4 模擬倉</h3><div class="muted">sp4_paper.json 未就緒 — 引擎 07:55 HKT 首跑會寫</div></div>';return}
+  var b=P.book||{},cfg=P.config||{};
+  var cyc=P.cycle_state==='in_window'?'<b style="color:var(--good)">入場窗開</b>':P.cycle_state==='managed'?'管理中（本 cycle 已過入場窗）':'等入場窗';
+  var h='';
+  h+='<div class="card"><h3>📄 SP4 模擬倉 — Stage 0 paper <span class="pill grey">'+esc(P.updated_hk||P.asof)+' HKT</span><span class="pill teal" title="'+esc(cfg.quote_layer||'')+'">報價：Futu OpenD 實時→Yahoo→BS</span></h3>';
+  h+='<div class="kv" style="max-width:660px">'
+    +'<b>Cycle</b><span>'+cyc+' · 到期 '+(P.next_expiry||'—')+'（'+(P.cycle_dte!=null?P.cycle_dte:'—')+' DTE）</span>'
+    +'<b>下一個入場</b><span><b>'+(P.next_entry||'—')+'</b>（入場窗 28-35 DTE）</span>'
+    +'<b>模擬帳戶</b><span>$'+fmt0(b.account_usd)+' USD ≈ HK$'+fmt0((b.account_usd||0)*7.8)+'</span>'
+    +'<b>按金佔用</b><span>$'+fmt0(b.collateral_usd)+'（'+(b.account_usd?Math.round(b.collateral_usd/b.account_usd*100):0)+'%）</span>'
+    +'<b>已實現 P&amp;L</b><span style="color:'+(b.realized_pl>=0?'var(--good)':'var(--bad)')+'">'+(b.realized_pl>=0?'+':'−')+'$'+fmt2(Math.abs(b.realized_pl))+'</span>'
+    +'<b>未實現 P&amp;L</b><span>'+(b.unrealized_pl>=0?'+':'−')+'$'+fmt2(Math.abs(b.unrealized_pl))+'</span>'
+    +'<b>vs T-bills</b><span>'+(b.vs_tbill>=0?'+':'−')+'$'+fmt2(Math.abs(b.vs_tbill))+'（rf '+(b.rf_ann!=null?(b.rf_ann*100).toFixed(1):'4.3')+'%）</span>'
+    +'</div>';
+  h+='<div class="muted" style="font-size:11.5px;margin-top:6px">⚠️ 全模擬：成交=mid 預 slippage（CORE 0.5%／SAT 2.5%）；mark=Futu OpenD 實時 bid/ask mid → Yahoo 鏈 → BS(iv×1.15) 尾備。launchd 07:55 全跑（入場+管理+監察）＋23:30 mark；🔴 即時 TG。倉後監察 8 規則照行 — 就算係模擬倉。</div></div>';
+  h+='<div class="card"><h3>🟢 未平腿</h3>';
+  if(!(P.positions||[]).length){h+='<div class="muted">暫時零持倉'+(P.cycle_state!=='in_window'&&P.next_entry?' — 下一 cycle '+P.next_entry+' 開窗自動入':'')+'</div>'}
+  else{
+    h+='<div class="table-scroll"><table class="gates" style="min-width:820px"><tr><th style="text-align:left">腿</th><th style="text-align:left">Sym</th><th>K</th><th>到期</th><th>DTE</th><th>張</th><th>credit</th><th title="mark=Futu OpenD 實時 bid/ask mid；Yahoo 鏈 last；尾備 BS(iv×1.15)">mark</th><th>src</th><th title="(spot−K)/(IV×spot×√T)：&lt;0.5=🔴 assignment 帶、&lt;1.0=🟡">σ距</th><th>浮動 P&amp;L</th><th title="P(OTM)=入場時唔接貨機率">P(OTM)</th></tr>';
+    (P.positions||[]).forEach(function(p){
+      var pl=(p.entry_credit-(p.mark!=null?p.mark:p.entry_credit))*100*(p.ct||1);
+      h+='<tr><td class="l">'+(p.layer==='CORE'?'<span class="pill teal">CORE</span>':'<span class="pill blue">SAT</span>')+'</td>'
+        +'<td class="l"><b>'+esc(p.sym)+'</b></td><td>'+p.K+'</td><td>'+esc(p.exp)+'</td><td>'+p.dte+'</td><td>'+p.ct+'</td>'
+        +'<td>$'+fmt2(p.entry_credit)+'</td><td>$'+fmt2(p.mark)+' <span class="muted" style="font-size:10px">'+esc(p.mark_src||'')+'</span></td>'
+        +'<td>'+gp(p.sigma_dist!=null&&p.sigma_dist>=1?p.sigma_dist>=0.5?true:false:null)+' '+(p.sigma_dist!=null?p.sigma_dist:'—')+'</td>'
+        +'<td style="color:'+(pl>=0?'var(--good)':'var(--bad)')+'">'+(pl>=0?'+':'−')+'$'+fmt2(Math.abs(pl))+'</td>'
+        +'<td>'+(p.otm_prob!=null?Math.round(p.otm_prob*100)+'%':'—')+'</td></tr>';
+    });
+    h+='</table></div>';
+  }
+  h+='</div>';
+  h+='<div class="card"><h3>📦 接貨 lot（CC wheel）</h3>';
+  var lots=(P.assigned_lots||[]).filter(function(l){return l.status!=='disposed'});
+  if(!lots.length)h+='<div class="muted">未有接貨 — SAT 腿到期 ITM 先會入（研究判決：2/2 情形預寫接貨劇本）</div>';
+  else{lots.forEach(function(l){h+='<div class="kv" style="max-width:520px"><b>'+esc(l.sym)+'</b><span>basis $'+fmt0(l.basis)+' · '+(l.cc?'CC K'+l.cc.K+' @'+l.cc.exp+' δ'+(l.cc.delta!=null?l.cc.delta:'—')+' credit $'+fmt2(l.cc.credit):'CC 待開')+'</span></div>'})}
+  h+='</div>';
+  h+='<div class="card"><h3>✅ 已完結（最近 20）</h3>';
+  if(!(P.closed||[]).length)h+='<div class="muted">暫時冇記錄</div>';
+  else{h+='<div class="table-scroll"><table class="gates" style="min-width:560px"><tr><th>日期</th><th style="text-align:left">Sym</th><th>K</th><th style="text-align:left">原因</th><th>P&amp;L</th></tr>';
+    (P.closed||[]).slice(0,20).forEach(function(c){h+='<tr><td>'+esc(c.close_date)+'</td><td class="l">'+esc(c.sym)+'</td><td>'+c.K+'</td><td class="l">'+esc(c.close_reason)+'</td><td style="color:'+((c.pl||0)>=0?'var(--good)':'var(--bad)')+'">'+((c.pl||0)>=0?'+':'−')+'$'+fmt2(Math.abs(c.pl||0))+'</td></tr>'});
+    h+='</table></div>'}
+  h+='</div>';
+  h+='<div class="card"><h3>🚨 監察 alerts（最近 30）</h3>';
+  if(!(P.alerts||[]).length)h+='<div class="muted">零 alert — 8 規則全部安靜</div>';
+  else{(P.alerts||[]).slice(0,30).forEach(function(a){h+='<div style="margin:3px 0"><span class="pill '+(a.level==='red'?'red':'amber')+'">'+esc(a.ts)+'</span> '+esc(a.msg)+'</div>'})}
+  h+='</div>';
+  el.innerHTML=h;
+}
+function loadPaper(){
+  fetch('sp4_paper.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){P=j;renderPaper()}).catch(function(e){
+    P=null;
+    var el=document.getElementById('paper-body');
+    if(el)el.innerHTML='<div class="card"><h3>📄 SP4 模擬倉</h3><div class="muted">sp4_paper.json 讀唔到（'+e+'）— launchd 07:55 HKT 會寫＋push</div></div>';
+  });
+}
 loadAll();
+loadPaper();
 </script>
 </body>
 </html>
