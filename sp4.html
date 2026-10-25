@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShortPut Spec 台 · v4g</title>
+<style>
+:root{
+  --bg:#eef2f6; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+  --blue:#1a73e8; --blue-deep:#1557b0; --blue-tint:#e8f0fe;
+  --teal:#0d9488; --teal-deep:#115e59; --teal-tint:#ccfbf1;
+  --good:#16a34a; --bad:#dc2626; --warn:#d97706;
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:'PingFang HK',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+/* ── leungkathy 品牌 header / footer（跟 main dashboard 一致，⭐ 已定型不要再改）── */
+.lk-bar{background:linear-gradient(135deg,#1a73e8 0%,#1557b0 100%);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.18);margin-bottom:12px}
+.lk-logo{width:38px;height:38px;background:#fff;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:300;font-style:italic;color:#1a73e8;transform:rotate(-6deg);font-family:'Brush Script MT','Segoe Script',cursive,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.lk-name{font-size:19px;font-weight:700;letter-spacing:.2px;line-height:1}
+.lk-sub{font-size:11.5px;opacity:.9;margin-top:3px}
+.lk-prod{margin-left:auto;font-size:12.5px;opacity:.92;text-align:right;line-height:1.5}
+.appbar{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:10px 0;margin-bottom:14px}
+.appbar-in{max-width:1280px;margin:0 auto;padding:0 22px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.appbar h1{font-size:18px;font-weight:800;letter-spacing:.2px}
+.appbar .sub{font-size:11px;color:var(--muted);margin-top:1px}
+.status-bar{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--muted)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--good);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.btn-primary{background:var(--blue);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all .15s}
+.btn-primary:hover{background:var(--blue-deep)}
+.btn-primary.loading{opacity:.6;pointer-events:none}
+.tabs{position:sticky;top:53px;z-index:120;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:8px;padding:10px 22px;flex-wrap:wrap}
+.tabs button{background:#fff;border:1px solid #cbd5e1;color:#475569;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.tabs button:hover{border-color:var(--teal);color:var(--teal-deep)}
+.tabs button.active{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:0 2px 6px rgba(13,148,136,.25)}
+.main{max-width:1280px;margin:0 auto;padding:0 22px 30px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);margin-bottom:12px}
+.card h3{font-size:14px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.muted{color:var(--muted)}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700}
+.pill.teal{background:var(--teal-tint);color:var(--teal-deep)}
+.pill.blue{background:var(--blue-tint);color:var(--blue-deep)}
+.pill.red{background:#fee2e2;color:#b91c1c}
+.pill.amber{background:#fef3c7;color:#b45309}
+.pill.grey{background:#f1f5f9;color:#475569}
+.pill.green{background:#dcfce7;color:#15803d}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px}
+.kv b{color:var(--muted);font-weight:600;white-space:nowrap}
+.action-big{background:var(--teal-tint);border:1px solid #99f6e4;border-radius:10px;padding:10px 12px;font-size:13.5px;font-weight:700;color:var(--teal-deep);margin-top:8px}
+.warn-note{background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600}
+.red-note{background:#fee2e2;border:1px solid #fecaca;color:#b91c1c;border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:700}
+/* ── 閘表 ── */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid var(--line)}
+table.gates{border-collapse:collapse;font-size:12px;min-width:980px;width:100%}
+table.gates th{background:#f8fafc;color:#475569;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:7px 8px;border-bottom:2px solid var(--line);text-align:center;white-space:nowrap;position:sticky;top:0}
+table.gates td{padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:center;white-space:nowrap}
+table.gates td.l{text-align:left;font-weight:700}
+table.gates tr.ok{background:#f0fdf4}
+table.gates tr:hover td{background:#f1f5f9}
+table.gates tr.ok:hover td{background:#dcfce7}
+.gp{display:inline-flex;width:20px;height:20px;border-radius:6px;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;margin:0 1px}
+.gp.y{background:#dcfce7;color:#15803d}
+.gp.n{background:#fee2e2;color:#b91c1c}
+.gp.u{background:#f1f5f9;color:#94a3b8}
+.gp.legend{width:auto;padding:0 7px}
+/* ── checker ── */
+.chk-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chk-row input{flex:1;min-width:180px;max-width:320px;padding:9px 12px;border:1px solid #cbd5e1;border-radius:9px;font-size:15px;font-weight:700;text-transform:uppercase;font-family:inherit;letter-spacing:.05em}
+.chk-row input:focus{outline:2px solid var(--teal);border-color:var(--teal)}
+.gategrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.gatecell{border:1px solid var(--line);border-radius:9px;padding:7px 9px;font-size:12px}
+.gatecell b{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px}
+.gatecell.pass{background:#f0fdf4;border-color:#bbf7d0}
+.gatecell.fail{background:#fef2f2;border-color:#fecaca}
+/* ── spec ── */
+details.spec{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:#fff}
+details.spec>summary{cursor:pointer;padding:10px 14px;font-weight:800;font-size:13.5px;color:var(--blue-deep);list-style:none}
+details.spec>summary::before{content:'▸ ';color:var(--muted)}
+details.spec[open]>summary::before{content:'▾ '}
+details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
+.spec-body h4{font-size:12.5px;margin:10px 0 4px;color:var(--ink)}
+.spec-body table{border-collapse:collapse;width:100%;margin:6px 0;font-size:12px}
+.spec-body th,.spec-body td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+.spec-body th{background:#f8fafc}
+.spec-body li{margin:2px 0 2px 18px}
+.spec-body p{margin:5px 0}
+/* ── tabs sections ── */
+.sec{display:none}
+.sec.active{display:block}
+.foot{text-align:center;color:#94a3b8;font-size:11px;padding:14px 0 0}
+.name-chip{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 10px;margin:3px 4px 3px 0;font-weight:800;font-size:12.5px}
+.name-chip small{color:var(--muted);font-weight:600}
+</style>
+</head>
+<body>
+<div class="lk-bar">
+  <div class="lk-logo">k</div>
+  <div>
+    <div class="lk-name">leungkathy</div>
+    <div class="lk-sub">All-in-One Financial Dashboard Suite</div>
+  </div>
+  <div class="lk-prod">ShortPut Spec 台 · STRATEGY_SPEC_2026Q4-2028</div>
+</div>
+<div class="appbar"><div class="appbar-in">
+  <div><h1>🎯 ShortPut Spec 台（v4g）</h1><div class="sub">現金抵押短 put 收息 program · CORE 75%（SPX put-write）＋ SATELLITE 25%（CSP）· <strong>獨立於 w320 系統，零共狀態</strong> · 誠實預期 T-bills＋150-400bp/cycle</div></div>
+  <div class="appbar-right">
+    <button class="btn-primary" onclick="loadAll()">🔄 刷新</button>
+    <div class="status-bar"><span class="live-dot"></span><span id="liveBadge">載入中...</span></div>
+  </div>
+</div></div>
+
+<div id="staleBanner" class="warn-note" style="display:none;margin:0 22px 10px;max-width:1236px"></div>
+<div id="rampBanner" class="card" style="border-left:4px solid var(--warn);margin-bottom:12px">
+  <b> ramp 提示：</b>本台係 <b>advisory</b>（策略跟 STRATEGY_SPEC_2026Q4-2028 §8）。kill switch 恢復後要行 <b>Stage 0 paper ≥8-13 週</b>（過一個業績季＋一次 VIX&gt;25）先返 live micro — 本台數據照日更新，paper 跟蹤就係 Stage 0 功課。接貨 31 日 ban 要喺 <code>~/shortput_research/v2_broad_universe/state/bans.json</code> 登記。
+</div>
+
+<div class="tabs">
+  <button class="active" onclick="showSec('desk',this)">📋 策略台</button>
+  <button onclick="showSec('univ',this)">🧹 Universe 閘表</button>
+  <button onclick="showSec('chk',this)">🔍 Stock Checker</button>
+  <button onclick="showSec('scen',this)">🎬 情景劇本</button>
+  <button onclick="showSec('spec',this)">📜 策略 Spec</button>
+  <button onclick="showSec('perf',this)">📈 業績</button>
+</div>
+
+<div class="main">
+
+<!-- ═══ 策略台 ═══ -->
+<div class="sec active" id="sec-desk">
+  <div id="deskBody"><div class="card muted">載入 sp4_screen.json...</div></div>
+</div>
+
+<!-- ═══ Universe ═══ -->
+<div class="sec" id="sec-univ">
+  <div class="card">
+    <h3>🧹 每日 Universe 閘表 <span class="pill grey" id="univAsof"></span></h3>
+    <div class="muted" style="font-size:12px;margin-bottom:8px">
+      閘 legend：<span class="gp legend y">cap</span>≥$20B　<span class="gp legend y">lev</span>D/EBITDA≤2.5　<span class="gp legend y">F</span>Piotroski≥6　<span class="gp legend y">fcf</span>FY FCF&gt;0　<span class="gp legend y">β</span>&lt;1.20全注/2.50半注　<span class="gp legend y">iv%</span>自己-history IV 百分位≥60　<span class="gp legend y">earn</span>倉期唔橫跨業績日　<span class="gp legend y">kill</span>無 β&gt;3+vol&gt;.6+&lt;$60B 簽名　<span class="gp legend y">ban</span>非 31 日 ban<br>
+      動態 universe：<b>今個 cycle 唔過＝今個月唔做，下月重驗</b>（唔係永久剔除）。全過九閘先可以做 CSP。
+    </div>
+    <div id="univBody"></div>
+  </div>
+</div>
+
+<!-- ═══ Checker ═══ -->
+<div class="sec" id="sec-chk">
+  <div class="card">
+    <h3>🔍 Stock Checker — 打 code 過全閘</h3>
+    <div class="muted" style="font-size:12px;margin-bottom:8px">任意 US code（universe 內外都得）。閘數學同 v4g 回測引擎 bit-一致：β=剔 flat SPX 日 252/756 混合、IV%=自己 RV20 剔極端日 252 日百分位、業績 span 用真日曆。Cache 6 小時。</div>
+    <div class="chk-row">
+      <input id="chkInput" placeholder="e.g. ORCL / AAPL / NVDA" maxlength="10" onkeydown="if(event.key==='Enter')doCheck()">
+      <button class="btn-primary" id="chkBtn" onclick="doCheck()">過閘</button>
+      <span class="muted" id="chkStatus" style="font-size:12px"></span>
+    </div>
+    <div id="chkBody" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ 情景 ═══ -->
+<div class="sec" id="sec-scen">
+  <div id="scenNow"></div>
+  <div class="card">
+    <h3>🎬 四情景劇本（2026Q4–2028）</h3>
+    <div class="table-scroll"><table class="gates" style="min-width:760px">
+      <tr><th style="text-align:left">情景</th><th style="text-align:left">觸發訊號</th><th style="text-align:left">策略行為</th><th style="text-align:left">預期</th></tr>
+      <tr><td class="l" id="s1row"><b>S1 AI 繁榮持續</b><br><span class="muted">基準</span></td><td class="l">QQQ 高位橫行（&gt;高位−10%）、VIX 14-22、AI 名 FCF 健康</td><td class="l">照行：CORE 全注收 VRP；半注 tier 收 AI premium；<b>咩都唔使做係正確行為</b></td><td class="l">年化 10-13%</td></tr>
+      <tr><td class="l" id="s2row"><b>S2 AI 消化／修正</b><br><span class="muted">−15~−25%</span></td><td class="l">QQQ 距高位 −10%+；ORCL/Meta 型 FCF flip（T1 季度捉）；VIX 25-32</td><td class="l">CORE 照 roll（×1.0）；衛星閘自然收緊（IV% 閘放行高 IV＝補償最大時候，earn span＋ban 管住單名）；wheel 只限 A 級</td><td class="l">MDD −12~−18%；2022 樣本 +7.2% vs SPX −18.1%</td></tr>
+      <tr><td class="l" id="s3row"><b>S3 Vol 事件</b><br><span class="muted">volmageddon 型</span></td><td class="l">VIX&gt;32；VIX&gt;VIX3M 倒掛；OTM put 零 bid</td><td class="l">CORE 自動 ×0.25；衛星 &gt;32 全停；<b>頭一個鐘唔好掂 book</b>（2024-08-05 marks 係小說）；唔准 discretionary 加倉；現金抵押＝零強平</td><td class="l">設計 MDD 預算 −25~−30%</td></tr>
+      <tr><td class="l" id="s4row"><b>S4 息率衝擊／滯脹</b></td><td class="l">長息再暴走（TNX&gt;4.7 且 20 日升）、通脹反彈</td><td class="l">抵押息升＝順風；defensives（β&lt;1.2 主簿）相對贏；照寫。2022 樣本已示範 +7.2%</td><td class="l">年化 6-9%</td></tr>
+    </table></div>
+    <div class="muted" style="font-size:11.5px;margin-top:8px">結構性監察（T3 hook）：AI-capex 名 FCF 季報自動捉（T1）；short-gamma 擁擠只影響 mark 唔影響生存（本係現金抵押無強平）。</div>
+  </div>
+</div>
+
+<!-- ═══ Spec ═══ -->
+<div class="sec" id="sec-spec">
+  <div class="card">
+    <h3>📜 完整策略 Spec（fund-manager 級・自足版）<span class="pill grey">v4g 正選</span></h3>
+    <div class="muted" style="font-size:11.5px;margin-bottom:8px">權威文本 = <code>~/shortput_research/v2_broad_universe/STRATEGY_SPEC_2026Q4-2028.md</code>；以下係同內容 dashboard 版。改 §2 法律或 §5 checklist 要寫 decisions log＋下一個 T2 年度審先生效。</div>
+    <details class="spec" open><summary>0. 一頁摘要</summary><div class="spec-body">
+      <p><b>呢個係咩</b>：現金抵押短 put 收息 program。75% 本做 SPX 月度 ATM put-write（CBOE PUT 指數正版做法）＋25% 本做高質單一名字 CSP。全現金抵押、<b>永遠唔掂 margin</b>。</p>
+      <p><b>誠實預期</b>：T-bills＋每 cycle 150-400bp。基準情景年化 8-11%（含 ~4% 抵押息），Sharpe 0.7-0.85，正常年 MDD −10~−12%，<b>crash 年設計預算 −25~−30%</b>（CBOE PUT 自己 2007 起 maxDD −32.7%）。任何聲稱「Sharpe&gt;1 穩定」嘅版本都係 overfit。</p>
+      <p><b>三條法律（永不改）</b>：①唔掂 margin ②單腿義務 &gt;50% 本＝紅燈唔好做 ③kill switch 恢復只可以由本人明言。</p>
+    </div></details>
+    <details class="spec"><summary>1. Mandate ＆ 2. Sizing Laws</summary><div class="spec-body">
+      <table><tr><th>項目</th><th>規格</th></tr>
+      <tr><td>目標</td><td>美股被動收入 overlay：現金抵押期權費收入，資本保存優先</td></tr>
+      <tr><td>資本</td><td>US$700k 重基（CORE 420k／SAT 280k 目標 split）；% 全部照用</td></tr>
+      <tr><td>槓桿</td><td><b>零。全現金抵押。任何借貸購買力＝T6 即時歸零</b></td></tr>
+      <tr><td>Benchmark</td><td>CBOE PUT（core）＋60/40（整體）。唔追 SPX — 牛市跑輸係設計</td></tr>
+      <tr><td>Kill criteria</td><td>滾動 2 年跑輸 T-bills → 停用重檢；任何 tripwire 兩觸 → 返 Stage 0</td></tr></table>
+      <h4>Sizing Laws（法律層 — 引擎 hard-code，喺決策迴路之外）</h4>
+      <li>CORE 75%／SAT 25%，比例唔因「好彩」調整</li>
+      <li>衛星：max 8 並行名；單名 ≤20% 衛星抵押；單板塊 ≤30%；<b>半注 tier（β≥1.2）max 2 並行、注 ×0.5</b></li>
+      <li>紅燈法律：任何一腿到期義務 &gt;50% 全簿 → 唔好做（permanent）</li>
+      <li>高β kill-signature：β(1y)&gt;3 <b>且</b> vol252&gt;0.6 <b>且</b> cap&lt;$60B → 禁入</li>
+      <li>新高後加注冷靜期 1 個月；加注只跟日曆，永遠唔跟 P&L</li>
+    </div></details>
+    <details class="spec"><summary>3. Universe（動態）— 八閘＋四層 refresh</summary><div class="spec-body">
+      <p><b>Pool</b>：NDX100 ∪ ELN170 ∪ PIMCO I&G ∪ Schroders MAGI（去重）。現時 66 名：46 全注＋20 半注。</p>
+      <p><b>Static（membership，T1 季度刷新）</b>：①cap ≥ $20B ②D/EBITDA ≤2.5×（金融 D/E≤250%；金融股整體剔）③Piotroski F ≥ 6 ④FY FCF &gt; 0</p>
+      <p><b>Dynamic（每次開倉逐腿驗，一條唔過＝嗰腿嗰 cycle 唔做）</b>：</p>
+      <li>⑤ Rolling β &lt;1.20（全注）／&lt;2.50（半注）— 剔 flat SPX 日＋0.5×β252+0.5×β756</li>
+      <li>⑥ <b>業績 span 閘</b>：倉期（entry→expiry 含到期日）橫跨下一個業績日 → 剔。真日曆。日期未知 → fail-closed 唔做</li>
+      <li>⑦ <b>IV 百分位閘</b>：嗰名自己 RV20（剔極端日）rolling 252 日百分位 ≥60 先賣</li>
+      <li>⑧ kill-signature（β1y&gt;3＋vol&gt;.6＋&lt;$60B）＋ 31 日接貨 ban</li>
+      <h4>Refresh 四層</h4>
+      <li><b>T0 每日</b>：β/vol/cap rolling 重算＋閘驗證（本台每一天做嘅嘢）</li>
+      <li><b>T1 季度跟 filing</b>：10-Q（~40d）／10-K（~60d）後 TTM 重算 static；fundamentals cache TTL 100d</li>
+      <li><b>T2 每年 12 月</b>：重審篩法定義＋閾值＋universe 定義＋backtest probe；防偷改</li>
+      <li><b>T3 連續 event kill</b>（override 全部）：業績日曆／profit warning 8-K／SEC 行動／降評／M&amp;A／停息／審計師辭任 → 中招名現有腿預設早平。ORCL 案（β1.94/D-E 4.9×/FCF −23.7B/F=4 四篩 12 個月內全爆）係本閘存在嘅理由</li>
+    </div></details>
+    <details class="spec"><summary>4. CORE 75% SOP（SPX put-write）</summary><div class="spec-body">
+      <li>每月 3rd Friday expiry 執一腿：SPX ATM put（XSP-equiv 碎張），價照 CBOE PUT methodology（11:00 ET 前最近 print 找平），SOQ 結算，持到到期<b>唔止賺</b></li>
+      <li>抵押全放 T-bills／現金寶（息係回報一部份）</li>
+      <li><b>VIX 閘（GATE_MODE=a 定案）</b>：VIX 14-32 → ×1.0；<b>&lt;14 唔罰</b>（FM 實測 +29bp，低 VIX VRP 最肥）；&gt;32 → ×0.25（衛星全停）</li>
+      <li><b>期限倒掛規則（live-only）</b>：VIX &gt; VIX3M → 注 ×0.5。零成本保險（樣本內 51 roll 日零觸發測唔到）</li>
+      <li>入窗：<b>28-35 DTE</b>，一 cycle 一入</li>
+    </div></details>
+    <details class="spec"><summary>5. SATELLITE 25% SOP — 開倉六問＋倉內管理</summary><div class="spec-body">
+      <p><b>Tenor</b>：月度 roll 28-35 DTE。<b>Strike</b>：0.97×spot 落行，行到 |δ|≤0.20。</p>
+      <p><b>開倉前六問（全部 ✓ 先准落單）</b>：</p>
+      <li>1. static 四篩過冇（最新 T1 數據）？</li>
+      <li>2. 今日 rolling β 過 1.20／2.50 閘冇？</li>
+      <li>3. 倉期會唔會橫跨業績日（真日曆）？</li>
+      <li>4. IV 百分位 ≥60 冇？</li>
+      <li>5. kill-signature 爆唔爆？ban 中唔中？</li>
+      <li>6. 落呢腿後：單名 ≤20%／板塊 ≤30%／max 8 名／半注 ≤2／單腿義務 ≤50% — 過冇？</li>
+      <p><b>倉內</b>：option 價 ≤ 入場 credit 50% → 止賺；21 DTE 未 tested → 平倉；ITM 到期 → 接貨。</p>
+      <p><b>接貨劇本（wheel 係 opt-in）</b>：接貨嗰刻<b>預寫</b> exit 入 ledger（CC strike = basis×1.02 最好 δ≤0.35，否則 0.97S；<b>CC 止蝕 = δ0.32 牆</b>，唔准「等返家鄉」）；<b>kill switch：該名 31 日禁新 CSP，時鐘喺 dispose 日重啟</b>。</p>
+    </div></details>
+    <details class="spec"><summary>7. Operations（日/週/月檢）</summary><div class="spec-body">
+      <li><b>日檢</b>：①數據鏈綠燈 ②未平腿 obligation-at-spot vs 紅燈 ③業績日曆 48h 撞期 ④ban 狀態 ⑤cash-secured 不變量</li>
+      <li><b>週檢</b>：T0 閾值爆變 act-review；slippage vs 模型（0.5%/2.5%）；override log 應該係空的</li>
+      <li><b>月報</b>：premium vs tail-carry 分解；book skew/kurt；obligation-at-stress（−8%/−15%/−30% gap 重演）；vs PUT/60-40</li>
+      <li><b>夜更</b>：scenario replay（2018-02-05／2020-03／2024-08-05 打而家本書）</li>
+    </div></details>
+    <details class="spec"><summary>8. Re-trust Ramp（Stage 0-3＋tripwire T1-T8）</summary><div class="spec-body">
+      <table><tr><th>Stage</th><th>規模</th><th>期限／出口</th></tr>
+      <tr><td><b>0 Paper</b></td><td>全 paper，正選 v4g 規則</td><td>≥8-13 週，必含一個業績季＋一次 VIX&gt;25；零 override、零對數 break；出口=書面 memo</td></tr>
+      <tr><td><b>1 Micro</b></td><td>5-10% 目標注；A 級名 ≤2；單腿 ≤5% NAV</td><td>≥2 個月度 cycle；每 fill 對 mid 記 slippage</td></tr>
+      <tr><td><b>2 Half</b></td><td>50%；單腿 ≤10%</td><td>≥3 cycle <b>且</b>經歷一次 ≥5% drawdown 照規則行完</td></tr>
+      <tr><td><b>3 Full</b></td><td>420/280 split</td><td>50% 紅燈永不放寬</td></tr></table>
+      <p><b>Tripwires（一觸降一級；90 日兩觸歸零）</b>：T1 單腿虧 &gt;2× 回測同 archetype 最壞｜T2 未預註冊 override｜T3 對數 break &gt;24h｜T4 stale marks 做決策｜T5 回撤 &gt;10% 降級／&gt;15% 歸零｜<b>T6 任何 unsecured=即時歸零</b>｜T7 哨兵斷線時落決策｜T8 post-mortem 72h 冇寫。</p>
+      <p><b>temperament</b>：連續 near-miss → 自動縮 δ 一檔唔係放寬；near-miss 全部入 register。</p>
+    </div></details>
+    <details class="spec"><summary>9. 業績申報＋10. Governance</summary><div class="spec-body">
+      <p>見「📈 業績」tab。變更治理：改任何 §2 法律或 §5 checklist 要寫入 decisions log＋下一個 T2 年度審先生效。</p>
+      <p><b>已知盲區（誠實申報）</b>：2022-26 窗無 volmageddon/2020 型事件；fundamentals 靜態 backcast（survivorship 偏強，衛星 alpha 係上限）；衛星 premium 係 BS(RV20×1.15) 模型價非真 quote；wheel path 樣本薄。<b>證偽條件</b>：滾動 2 年跑輸 T-bills；或 crash 年 MDD 穿 −30% 預算 → 停用重檢。</p>
+    </div></details>
+  </div>
+</div>
+
+<!-- ═══ 業績 ═══ -->
+<div class="sec" id="sec-perf">
+  <div class="card">
+    <h3>📈 v4g 回測業績 <span class="pill grey">2022-01 → 2026-10 · $1M 起 · rf-adjusted</span></h3>
+    <div class="kv" style="max-width:520px">
+      <b>CAGR</b><span><b style="color:var(--good);font-size:15px">12.67%</b>（含 ~4% 抵押息；剝走=期權真 edge ~8-9%）</span>
+      <b>Sharpe / Sortino</b><span><b>0.83 / 1.01</b>（全窗誠實數；子窗 trailing 1Y/3Y 更高）</span>
+      <b>α vs SPX TR / β</b><span>+5.14% / 0.38（月度）</span>
+      <b>MDD</b><span>−11.11%（<b style="color:var(--bad)">好窗。crash 年預算 −25~−30%</b>）</span>
+      <b>終值</b><span>$1,762,998</span>
+      <b>月勝率</b><span>~79%</span>
+      <b>逐年</b><span>+7.2 / +11.1 / +13.4 / +15.7 / +10.7（2022-26）— 年年 &gt; CBOE PUT、&gt; 60/40</span>
+      <b>衛星接貨</b><span>DELL 2024-08 ×2（−$782）→ kill switch 即禁 31 日 ✓</span>
+    </div>
+  </div>
+  <div class="card">
+    <h3>⚠️ 誠實申報（跟 spec §9，唔准刪）</h3>
+    <li>2022-26 窗<b>冇</b> volmageddon／2020 型事件 — −11% MDD 係好窗，唔係結構</li>
+    <li>fundamentals 靜態 backcast（survivorship 偏強）— 衛星 alpha 係上限</li>
+    <li>衛星 premium 係 BS(RV20×1.15) 模型價，唔係真 quote</li>
+    <li>作為 claim Sharpe 0.83 冇 PM 會收 — 誠實 pitch 係「<b>T-bills＋150-400bp/cycle</b>」</li>
+    <li><b>證偽條件</b>：滾動 2 年跑輸 T-bills → 停用重檢；crash 年 MDD 穿 −30% 預算 → 同樣</li>
+  </div>
+</div>
+
+<div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · ShortPut Spec 台 — STRATEGY_SPEC_2026Q4-2028 · v4g 正選（GATE_MODE=a · IVPCT 0.6 · 動態 universe 66）· 獨立於 w320 · 期權賣方有 tail risk · 非投資建議</div>
+</div>
+
+<script>
+var API='https://quant-api.leunghlk.workers.dev/api';
+var D=null;
+function showSec(id,btn){
+  document.querySelectorAll('.sec').forEach(function(s){s.classList.remove('active')});
+  document.querySelectorAll('.tabs button').forEach(function(b){b.classList.remove('active')});
+  document.getElementById('sec-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+function gp(ok){return ok===true?'<span class="gp y">✓</span>':ok===false?'<span class="gp n">✗</span>':'<span class="gp u">?</span>'}
+function esc(s){return String(s==null?'':s)}
+
+function loadAll(){
+  fetch('sp4_screen.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
+    D=j; renderDesk(); renderUniv(); renderScen();
+    // stale check：asof >5 日 → amber
+    var days=(Date.now()-new Date(j.asof+'T00:00:00Z'))/864e5;
+    var sb=document.getElementById('staleBanner');
+    if(days>5){sb.style.display='block';sb.innerHTML='⚠️ sp4_screen.json 已 '+Math.floor(days)+' 日無更新（asof '+j.asof+'）— 檢查 launchd com.kathy.sp4-screen／git push';}
+    document.getElementById('liveBadge').textContent='asof '+j.asof+' · '+j.config;
+  }).catch(function(){
+    document.getElementById('deskBody').innerHTML='<div class="card red-note">❌ sp4_screen.json 載入失敗 — 檢查 gh-pages 部署</div>';
+    document.getElementById('liveBadge').textContent='離線';
+  });
+}
+
+function renderDesk(){
+  var j=D, h='';
+  var sc=j.regime.scenario, scCol={S1:'green',S2:'amber',S3:'red',S4:'blue'}[sc]||'grey';
+  h+='<div class="grid2">';
+  // CORE
+  h+='<div class="card"><h3>🏛️ CORE 75% — SPX put-write <span class="pill '+scCol+'">'+sc+'</span></h3>';
+  h+='<div class="kv"><b>VIX / VIX3M</b><span>'+j.core.vix+' / '+j.core.vix3m+(j.core.ts_invert?' <span class="pill red">倒掛 ×0.5</span>':' <span class="pill grey">contango</span>')+'</span>';
+  h+='<b>T-bill (^IRX)</b><span>'+j.core.irx+'%（抵押息）</span>';
+  h+='<b>今注倍數</b><span style="font-size:16px;font-weight:800;color:var(--teal-deep)">×'+j.core.mult+'</span>（GATE_MODE=a：14-32 全注、&lt;14 唔罰、&gt;32 ×0.25）</span>';
+  h+='<b>到期</b><span>'+j.expiry+'（'+j.dte+' DTE）｜下個 '+j.expiry2+'</span></div>';
+  h+='<div class="action-big">'+esc(j.core.action)+'</div>';
+  h+='<div class="muted" style="font-size:11px;margin-top:6px">ATM put · SOQ 持到到期唔止賺 · 抵押全放 T-bills</div></div>';
+  // regime
+  h+='<div class="card"><h3>🧭 市況定位 <span class="pill '+scCol+'">情景 '+sc+'</span></h3>';
+  h+='<div class="kv"><b>QQQ 距 252d 高</b><span>'+(j.regime.qqq_off_high*100).toFixed(1)+'%</span>';
+  h+='<b>10Y (TNX)</b><span>'+j.regime.tnx+'%</span>';
+  h+='<b>判斷</b><span>'+esc(j.regime.why)+'</span></div>';
+  h+='<div style="margin-top:8px"><button class="btn-primary" style="background:var(--blue)" onclick="showSec(\'scen\',document.querySelectorAll(\'.tabs button\')[3])">睇四情景劇本 →</button></div></div>';
+  h+='</div>';
+  // satellite
+  h+='<div class="card"><h3>🛰️ SATELLITE 25% — 今日可做（全過九閘） <span class="pill teal">'+(j.counts.full_ok+j.counts.half_ok)+' 隻</span></h3>';
+  if(!(j.eligible_full.length+j.eligible_half.length)){
+    h+='<div class="warn-note">今日零隻全過閘 — <b>咩都唔做係正確行為</b>（IV%/earn span 閘收緊係設計）。下個入窗見 CORE action。</div>';
+  }else{
+    h+='<div style="margin-bottom:6px"><b>全注（β&lt;1.20）：</b>';
+    j.eligible_full.forEach(function(s){h+='<span class="name-chip">'+s+' <small>'+ivOf(s)+'</small></span>'});
+    h+='</div><div><b>半注（β 1.20-2.50，注 ×0.5，max 2）：</b>';
+    j.eligible_half.forEach(function(s){h+='<span class="name-chip" style="border-color:#fde68a;background:#fffbeb">'+s+' <small>'+ivOf(s)+'</small></span>'});
+    h+='</div>';
+  }
+  h+='<div class="muted" style="font-size:11.5px;margin-top:8px">入場：0.97×spot 落行 walk 到 |δ|≤0.20 · 28-35 DTE · PT 50% · 21 DTE 管理 · 業績 span＋六問卡照過（spec §5）</div>';
+  if(bansList().length){h+='<div class="red-note" style="margin-top:8px">🚫 31 日 ban 中：'+bansList().join('、')+'（接貨後禁新 CSP）</div>';}
+  h+='</div>';
+  document.getElementById('deskBody').innerHTML=h;
+}
+function ivOf(sym){
+  var all=D.full.concat(D.half);
+  for(var i=0;i<all.length;i++){if(all[i].sym===sym)return 'IV~'+Math.round((all[i].iv_est||0)*100)+'%';}
+  return '';
+}
+function bansList(){
+  var out=[];D.full.concat(D.half).forEach(function(r){if(r.ban_until)out.push(r.sym+'（至 '+r.ban_until+'）')});
+  return out;
+}
+
+function renderUniv(){
+  var j=D;
+  document.getElementById('univAsof').textContent='asof '+j.asof+' · full '+j.counts.full_ok+'/'+j.counts.full+' 過';
+  function tbl(rows,title){
+    var h='<h4 style="margin:10px 0 6px;font-size:13px">'+title+' <span class="pill grey">'+rows.filter(function(r){return r.eligible}).length+'/'+rows.length+' 全過</span></h4>';
+    h+='<div class="table-scroll"><table class="gates"><tr><th style="text-align:left">Sym</th><th>Sector</th><th>Cap $B</th><th>β</th><th>Vol</th><th>IV%</th><th>D/E</th><th>F</th><th>FCF $B</th><th>Next Earn</th><th>cap</th><th>lev</th><th>F</th><th>fcf</th><th>β</th><th>iv%</th><th>earn</th><th>kill</th><th>ban</th><th>裁定</th></tr>';
+    rows.slice().sort(function(a,b){return (b.eligible?1:0)-(a.eligible?1:0)||a.sym.localeCompare(b.sym)}).forEach(function(r){
+      var g=r.gates;
+      h+='<tr'+(r.eligible?' class="ok"':'')+'><td class="l">'+r.sym+(r.ban_until?' 🚫':'')+'</td><td style="text-align:left;color:var(--muted)">'+esc(r.sector).slice(0,14)+'</td>';
+      h+='<td>'+r.cap_bn+'</td><td>'+(r.beta!=null?r.beta.toFixed(2):'—')+'</td><td>'+(r.vol252!=null?(r.vol252*100).toFixed(0)+'%':'—')+'</td><td>'+(r.ivpct!=null?Math.round(r.ivpct*100):'—')+'</td><td>'+(r.debtebitda!=null?r.debtebitda:'—')+'</td><td>'+(r.F!=null?r.F:'—')+'</td><td>'+(r.fcf_bn!=null?r.fcf_bn:'—')+'</td>';
+      h+='<td style="text-align:left;font-size:11px">'+(r.next_earn?r.next_earn.slice(5):'未知')+'</td>';
+      h+='<td>'+gp(g.g_cap)+'</td><td>'+gp(g.g_lev)+'</td><td>'+gp(g.g_F)+'</td><td>'+gp(g.g_fcf)+'</td><td>'+gp(g.g_beta)+'</td><td>'+gp(g.g_ivpct)+'</td><td>'+gp(g.g_earn)+'</td><td>'+gp(g.g_killsig)+'</td><td>'+gp(g.g_ban)+'</td>';
+      h+='<td>'+(r.eligible?'<span class="pill green">✓ 可做</span>':'<span class="pill grey">今 cycle 停</span>')+'</td></tr>';
+    });
+    return h+'</table></div>';
+  }
+  document.getElementById('univBody').innerHTML=tbl(D.full,'全注 tier（β&lt;1.20）')+tbl(D.half,'半注 tier（β 1.20-2.50 · 注 ×0.5 · max 2）');
+}
+
+function renderScen(){
+  var sc=D.regime.scenario;
+  ['S1','S2','S3','S4'].forEach(function(s){
+    var el=document.getElementById(s.toLowerCase()+'row');
+    if(el&&s===sc){el.style.background='#f0fdf4';el.style.outline='2px solid var(--teal)';}
+  });
+  document.getElementById('scenNow').innerHTML='<div class="card" style="border-left:4px solid '+(sc==='S1'?'var(--good)':sc==='S3'?'var(--bad)':'var(--warn)')+'"><h3>今日定位：<span class="pill '+({S1:'green',S2:'amber',S3:'red',S4:'blue'}[sc])+'">'+sc+'</span>　'+esc(D.regime.why)+'</h3><div class="muted" style="font-size:12px">QQQ 距 252d 高 '+(D.regime.qqq_off_high*100).toFixed(1)+'% · VIX '+D.core.vix+' · TNX '+D.regime.tnx+'%（自動判斷，行情突變以人手覆核）· asof '+D.asof+'</div></div>';
+}
+
+function doCheck(){
+  var s=document.getElementById('chkInput').value.trim().toUpperCase();
+  if(!s)return;
+  var btn=document.getElementById('chkBtn'),st=document.getElementById('chkStatus'),body=document.getElementById('chkBody');
+  btn.classList.add('loading');st.textContent='過閘中（fetch Yahoo + 計 β/IV%）...';body.innerHTML='';
+  fetch(API+'/sp-gates?s='+encodeURIComponent(s)).then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j}})}).then(function(o){
+    btn.classList.remove('loading');
+    if(!o.ok||o.j.error){st.textContent='';body.innerHTML='<div class="red-note">❌ '+(o.j.error||'HTTP '+(!o.ok?o.status:''))+'</div>';return;}
+    st.textContent='';
+    var g=o.j.gates,pass=o.j.PASS;
+    var h='<div class="card" style="border:1px solid '+(pass?'#bbf7d0':'#fecaca')+'">';
+    h+='<h3>'+o.j.sym+' <span class="pill '+(pass?'green':'red')+'">'+(pass?'✓ 九閘全過 — 可以做 CSP（跟六問卡）':'✗ 唔過：'+(o.j.fail_reason||[]).join('、'))+'</span> <span class="pill grey">'+(o.j.tier==='half'?'半注 tier（β≥1.2）':'全注 tier')+'</span></h3>';
+    h+='<div class="kv" style="max-width:560px;margin-top:6px"><b>Cap</b><span>$'+o.j.cap_bn+'B</span><b>β(混合)/β1y</b><span>'+o.j.beta+' / '+o.j.beta1y+'</span><b>Vol252</b><span>'+(o.j.vol252*100).toFixed(0)+'%</span><b>IV 百分位</b><span>'+(o.j.ivpct!=null?Math.round(o.j.ivpct*100)+'%':'未知')+'</span><b>D/EBITDA</b><span>'+(o.j.debtebitda!=null?o.j.debtebitda:'—')+'</span><b>Piotroski F</b><span>'+(o.j.F!=null?o.j.F:'—')+'</span><b>FY FCF</b><span>'+(o.j.fcf_bn!=null?'$'+o.j.fcf_bn+'B':'—')+'</span><b>Next earn</b><span>'+(o.j.next_earn||'未知')+'｜到期 '+o.j.expiry+'</span></div>';
+    h+='<div class="gategrid">';
+    [['cap','Cap ≥$20B',g.cap],['lev','D/EBITDA ≤2.5',g.lev],['F','Piotroski ≥6',g.F],['fcf','FCF &gt;0',g.fcf],['beta','β &lt;'+(o.j.tier==='half'?'2.50':'1.20'),g.beta],['ivpct','IV% ≥60',g.ivpct],['earn_span','業績 span 過',g.earn_span],['killsig','無 kill-sig',g.killsig]].forEach(function(x){
+      h+='<div class="gatecell '+(x[2]?'pass':'fail')+'"><b>'+x[0]+'</b>'+(x[2]?'✓':'✗')+' '+x[1]+'</div>';
+    });
+    h+='</div>';
+    if(o.j.stale)h+='<div class="warn-note" style="margin-top:8px">⚠️ x-stale：上游失敗，回 lastgood（'+o.j.cached_at+'）</div>';
+    h+='<div class="muted" style="font-size:11px;margin-top:8px">asof '+o.j.asof+' · 靜態四篩數據 TTL 100d（T1 季度）· fail-closed：業績日期未知＝唔做</div></div>';
+    body.innerHTML=h;
+  }).catch(function(e){
+    btn.classList.remove('loading');st.textContent='';
+    body.innerHTML='<div class="red-note">❌ worker endpoint 失敗：'+e+' — 檢查 quant-api /api/sp-gates 部署</div>';
+  });
+}
+
+loadAll();
+</script>
+</body>
+</html>
