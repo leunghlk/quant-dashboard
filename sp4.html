@@ -105,7 +105,7 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
   <div class="lk-prod">ShortPut Spec 台 · STRATEGY_SPEC_2026Q4-2028</div>
 </div>
 <div class="appbar"><div class="appbar-in">
-  <div><h1>🎯 ShortPut Spec 台（v4g）</h1><div class="sub">現金抵押短 put 收息 program · CORE 75%（SPX put-write）＋ SATELLITE 25%（CSP）· <strong>獨立於 w320 系統，零共狀態</strong> · 誠實預期 T-bills＋150-400bp/cycle</div></div>
+  <div><h1>🎯 ShortPut Spec 台（v4g）</h1><div class="sub">現金抵押短 put · Sharpe <strong>0.83</strong>／Sortino <strong>1.01</strong>／CAGR 12.67% · 獨立於 w320</div></div>
   <div class="appbar-right">
     <button class="btn-primary" onclick="loadAll()">🔄 刷新</button>
     <div class="status-bar"><span class="live-dot"></span><span id="liveBadge">載入中...</span></div>
@@ -131,6 +131,36 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
 <!-- ═══ 策略台 ═══ -->
 <div class="sec active" id="sec-desk">
   <div id="deskBody"><div class="card muted">載入 sp4_screen.json...</div></div>
+  <div class="card">
+    <h3>💰 Portfolio 計算機 <span class="pill teal">fund-manager 注碼</span><span class="pill grey" id="pfWin"></span></h3>
+    <div class="chk-row" style="margin-bottom:8px;font-size:12.5px">
+      <label>戶口 HKD <input id="pfHKD" value="700000" style="width:92px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;font-weight:700;font-family:inherit" oninput="renderPF()"></label>
+      <label>USD/HKD <input id="pfFX" value="7.80" style="width:66px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;font-weight:700;font-family:inherit" oninput="renderPF()"></label>
+      <label>單名上限 <select id="pfCap" onchange="renderPF()" style="padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-weight:700"><option value="0.20">20%（spec §2 法律）</option><option value="0.50">50%（⚠️override — 要記 decisions log）</option></select></label>
+      <span id="pfSplit" class="muted"></span>
+      <button class="btn-primary" onclick="loadPortfolio()">🔄 重抓報價</button>
+    </div>
+    <div id="pfBody" class="muted">等 screen 數據載入…</div>
+    <div class="muted" style="font-size:11px;margin-top:8px">
+      排序＝唔接貨機會率 P(OTM)（BS）由高至低 · strike＝0.97×spot 落行行到 |δ|≤0.20 · 收入=credit mid（Yahoo 鏈；⚠️BS＝冇盤用 BS 反推）· 實落單預 slippage ~0.5% ·
+      <b>XSP 喺 Futu 有冇得交易未驗證</b> — 落 CORE 前先開 Futu 搜 XSP 期權鏈確認 · 業績 span／九閘以今日 screen 為準，落單朝早重跑 Checker · 非投資建議
+    </div>
+  </div>
+  <div class="card">
+    <h3>👁️ 倉後監察 — 8 條規則實證 <span class="pill grey">224 腿逐日重演 · research_monitoring.md</span></h3>
+    <div class="table-scroll"><table class="gates" style="min-width:720px">
+      <tr><th style="text-align:left">觸發</th><th>級</th><th style="text-align:left">動作（實證判決）</th></tr>
+      <tr><td class="l">mark ≥ 2× credit</td><td><span class="pill amber">🟡 alert</span></td><td class="l"><b>唔准機械平</b> — 21 fire 19 次復原（90%），auto 平 CF −$6,706。即時 TG＋開執行窗 watch（再跌 −30%／0.85× credit re-arm 升紅）。兩單 assignment（DELL/PAYX）都係 2× 先捉到 — 訊號有價值，機械執行係毒</td></tr>
+      <tr><td class="l">首次 close &lt; strike</td><td><span class="pill amber">🟡 alert</span></td><td class="l">得 3.6% 腿去到呢度、7/8 復原，auto 平 CF −$2,512 — 唔使掣肘</td></tr>
+      <tr><td class="l">close &lt; 0.95×strike</td><td><span class="pill red">🔴 人手</span></td><td class="l">樣本內 2/2 接貨 — <b>強制人手決策</b>：即刻平倉 OR 預寫接貨劇本（exit 預寫入 ledger）。路徑兩極：DELL 穿 −22.9% 收復／PAYX 直落 −$2.4k</td></tr>
+      <tr><td class="l">σ-距離 &lt;1σ（dte≤14）</td><td>🟡／🔴</td><td class="l">只喺最後 14 日 monitor：&lt;1.0 黃、&lt;0.5 紅 — 2 腿全中＝兩單 assignment，0 假警報（&lt;1σ 全期 monitor 係 99% 假警報）</td></tr>
+      <tr><td class="l">帳戶義務比例</td><td>🟡／🔴</td><td class="l">單腿 ≥10% 黃／≥25% 紅停新倉；全腿合計 ≥30% 黃／≥50% 紅；<b>50% 紅燈永不放寬</b>。回測 max 4.08% — 風險主體係 pv 跌令比例靜靜升，唔係開太大</td></tr>
+      <tr><td class="l">組合 open premium ≥2.5-3×</td><td><span class="pill amber">🟡 降級</span></td><td class="l">FM 建議嘅「強制 de-risk」捉唔到最差情境（最傷 −9.23% 唔喺觸發日後）— 降級做黃 alert＋<b>嗰週停新倉</b>；VIX&gt;28/32 用現有 gate backstop</td></tr>
+      <tr><td class="l">IV spike</td><td><span class="pill grey">唔使理</span></td><td class="l">高 IV 係補償唔係訊號（1 fire、CF −$306）— 賣方要嘅就係 IV 高</td></tr>
+      <tr><td class="l">PT 50%／21 DTE</td><td><span class="pill green">✅ KEEP</span></td><td class="l">實證再確認：PT50 hold-CF −$11,295／21 DTE −$3,785（17 DTE 變體更差）。全簿 66% PT／33% MANAGE／0.9% 接貨 — 「坐到到期」已係例外態</td></tr>
+    </table></div>
+    <div class="muted" style="font-size:11.5px;margin-top:8px">Alert 節奏：<b>紅＝即時 TG</b>（走現有 CSP 燈 daemon 鏈）· <b>黃＝07:30 sp4 daily digest</b> · <b>綠＝週檢</b>。同現行判決零矛盾（PT50 KEEP／止蝕 alert-only／break-glass 保留）；唯一改動＝FM de-risk 降級。</div>
+  </div>
 </div>
 
 <!-- ═══ Universe ═══ -->
@@ -138,8 +168,9 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
   <div class="card">
     <h3>🧹 每日 Universe 閘表 <span class="pill grey" id="univAsof"></span></h3>
     <div class="muted" style="font-size:12px;margin-bottom:8px">
-      閘 legend：<span class="gp legend y">cap</span>≥$20B　<span class="gp legend y">lev</span>D/EBITDA≤2.5　<span class="gp legend y">F</span>Piotroski≥6　<span class="gp legend y">fcf</span>FY FCF&gt;0　<span class="gp legend y">β</span>&lt;1.20全注/2.50半注　<span class="gp legend y">iv%</span>自己-history IV 百分位≥60　<span class="gp legend y">earn</span>倉期唔橫跨業績日　<span class="gp legend y">kill</span>無 β&gt;3+vol&gt;.6+&lt;$60B 簽名　<span class="gp legend y">ban</span>非 31 日 ban<br>
-      動態 universe：<b>今個 cycle 唔過＝今個月唔做，下月重驗</b>（唔係永久剔除）。全過九閘先可以做 CSP。
+      閘 legend（<u>hover 表頭都有詳細 criteria</u>）：<span class="gp legend y" title="市值 ≥ $20B（static 四篩，T1 季度跟 filing 刷新）">cap</span>≥$20B　<span class="gp legend y" title="Debt/EBITDA ≤ 2.5×（static；金融股整體剔，用 D/E≤250%）">lev</span>D/EBITDA≤2.5　<span class="gp legend y" title="Piotroski F-Score ≥ 6（static；金融門檻 ≥5）">F</span>Piotroski≥6　<span class="gp legend y" title="最近財年 Free Cash Flow > 0（static）">fcf</span>FY FCF&gt;0　<span class="gp legend y" title="Rolling β：全注 &lt;1.20／半注 &lt;2.50。計法＝剔 |SPX ret|&lt;2bp flat 日＋0.5×β(252d)+0.5×β(756d) 混合">β</span>&lt;1.20全注/2.50半注　<span class="gp legend y" title="IV 百分位：嗰名自己 RV20（剔極端日）rolling 252 日百分位 ≥60 先賣 — 唔同大市比較，同自己歷史比">iv%</span>自己-history IV 百分位≥60　<span class="gp legend y" title="業績 span 閘：倉期（entry→expiry 含到期日）唔橫跨下一個業績日。真日曆；日期未知＝fail-closed 唔做">earn</span>倉期唔橫跨業績日　<span class="gp legend y" title="kill-signature：β(1y)&gt;3 且 vol252&gt;0.6 且 cap&lt;$60B → 禁入（2025-26 crash cohort 簽名）">kill</span>無 β&gt;3+vol&gt;.6+&lt;$60B 簽名　<span class="gp legend y" title="31 日 ban：接貨後該名 31 日禁新 CSP，時鐘喺 dispose 日重啟（state/bans.json）">ban</span>非 31 日 ban<br>
+      動態 universe：<b>今個 cycle 唔過＝今個月唔做，下月重驗</b>（唔係永久剔除）。全過九閘先可以做 CSP。<br>
+      <b>「cycle」</b>＝月度期權到期週期：每月 <b>3rd Friday</b> 結算一次（今期 2026-11-20，約 4-5 週一個）。入窗 = 距到期 28-35 日嗰段時間。「今 cycle 停」＝呢個月呢隻唔做，下個月開窗時九閘重新驗過。
     </div>
     <div id="univBody"></div>
   </div>
@@ -149,7 +180,8 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
 <div class="sec" id="sec-chk">
   <div class="card">
     <h3>🔍 Stock Checker — 打 code 過全閘</h3>
-    <div class="muted" style="font-size:12px;margin-bottom:8px">任意 US code（universe 內外都得）。閘數學同 v4g 回測引擎 bit-一致：β=剔 flat SPX 日 252/756 混合、IV%=自己 RV20 剔極端日 252 日百分位、業績 span 用真日曆。Cache 6 小時。</div>
+    <div class="muted" style="font-size:12px;margin-bottom:8px">任意 US code（universe 內外都得）。閘數學同 v4g 回測引擎 bit-一致：β=剔 flat SPX 日 252/756 混合、IV%=自己 RV20 剔極端日 252 日百分位、業績 span 用真日曆。Cache 6 小時。<br>
+    打錯 code／退市／未上市 → 會話你知「冇價格歷史」；新上市（&lt;300 交易日）→ 會話你知「歷史太短計唔到 β」— 呢啲係正常，唔係壞機。</div>
     <div class="chk-row">
       <input id="chkInput" placeholder="e.g. ORCL / AAPL / NVDA" maxlength="10" onkeydown="if(event.key==='Enter')doCheck()">
       <button class="btn-primary" id="chkBtn" onclick="doCheck()">過閘</button>
@@ -166,12 +198,14 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
     <h3>🎬 四情景劇本（2026Q4–2028）</h3>
     <div class="table-scroll"><table class="gates" style="min-width:760px">
       <tr><th style="text-align:left">情景</th><th style="text-align:left">觸發訊號</th><th style="text-align:left">策略行為</th><th style="text-align:left">預期</th></tr>
-      <tr><td class="l" id="s1row"><b>S1 AI 繁榮持續</b><br><span class="muted">基準</span></td><td class="l">QQQ 高位橫行（&gt;高位−10%）、VIX 14-22、AI 名 FCF 健康</td><td class="l">照行：CORE 全注收 VRP；半注 tier 收 AI premium；<b>咩都唔使做係正確行為</b></td><td class="l">年化 10-13%</td></tr>
-      <tr><td class="l" id="s2row"><b>S2 AI 消化／修正</b><br><span class="muted">−15~−25%</span></td><td class="l">QQQ 距高位 −10%+；ORCL/Meta 型 FCF flip（T1 季度捉）；VIX 25-32</td><td class="l">CORE 照 roll（×1.0）；衛星閘自然收緊（IV% 閘放行高 IV＝補償最大時候，earn span＋ban 管住單名）；wheel 只限 A 級</td><td class="l">MDD −12~−18%；2022 樣本 +7.2% vs SPX −18.1%</td></tr>
+      <tr><td class="l" id="s1row"><b>S1 AI 繁榮持續</b><br><span class="muted">基準</span></td><td class="l">QQQ 高位橫行（&gt;高位−10%）、VIX 14-22、AI 名 FCF 健康</td><td class="l" title="VRP = Volatility Risk Premium（波幅風險溢價）：期權引伸波幅(IV) 減 之後實現波幅(RV) 嘅差 — 即係保險公司收嘅「保費貴過實際賠率」嗰截。賣 put 收嘅就係呢筆。">照行：CORE 全注收 <u title="VRP = Volatility Risk Premium：期權引伸波幅(IV) − 之後實現波幅(RV) 嘅差 = 賣保險收嘅溢價。長期 IV 高估 RV，所以賣方收正期望——但 crash 時會一次過賠返出">VRP</u>；半注 tier 收 AI premium；<b>咩都唔使做係正確行為</b></td><td class="l">年化 10-13%</td></tr>
+      <tr><td class="l" id="s2row"><b>S2 AI 消化／修正</b><br><span class="muted">−15~−25%</span></td><td class="l">QQQ 距高位 −10%+；ORCL/Meta 型 FCF flip（T1 季度捉）；VIX 25-32<br><span class="pill amber" title="研究判決（research_s2_buffer.md，14 段 episode 實測）：AMBER 帶年化 +16.77% ≈ NORMAL；×0.5 縮注買 0.00pp MDD 護＝白畀錢；79% AMBER 5 日內去到 −10%">🟠 −8% 預警帶</span> <span class="muted" style="font-size:11px">−8%（且 VIX&lt;25）＝AMBER：<b>行為照 v4g 全注唔縮注</b>，只推通知＋前檢清單；−10% 或 VIX≥25 先升 S2</span></td><td class="l">CORE 照 roll（×1.0）；衛星閘自然收緊（IV% 閘放行高 IV＝補償最大時候，earn span＋ban 管住單名）；wheel 只限 A 級</td><td class="l">MDD −12~−18%；2022 樣本 +7.2% vs SPX −18.1%</td></tr>
       <tr><td class="l" id="s3row"><b>S3 Vol 事件</b><br><span class="muted">volmageddon 型</span></td><td class="l">VIX&gt;32；VIX&gt;VIX3M 倒掛；OTM put 零 bid</td><td class="l">CORE 自動 ×0.25；衛星 &gt;32 全停；<b>頭一個鐘唔好掂 book</b>（2024-08-05 marks 係小說）；唔准 discretionary 加倉；現金抵押＝零強平</td><td class="l">設計 MDD 預算 −25~−30%</td></tr>
       <tr><td class="l" id="s4row"><b>S4 息率衝擊／滯脹</b></td><td class="l">長息再暴走（TNX&gt;4.7 且 20 日升）、通脹反彈</td><td class="l">抵押息升＝順風；defensives（β&lt;1.2 主簿）相對贏；照寫。2022 樣本已示範 +7.2%</td><td class="l">年化 6-9%</td></tr>
     </table></div>
-    <div class="muted" style="font-size:11.5px;margin-top:8px">結構性監察（T3 hook）：AI-capex 名 FCF 季報自動捉（T1）；short-gamma 擁擠只影響 mark 唔影響生存（本係現金抵押無強平）。</div>
+    <div class="muted" style="font-size:11.5px;margin-top:8px">結構性監察（T3 hook）：AI-capex 名 FCF 季報自動捉（T1）；short-gamma 擁擠只影響 mark 唔影響生存（本係現金抵押無強平）。<br>
+    <b>名詞解釋</b>：<u title="Volatility Risk Premium：期權引伸波幅(IV) 減 之後實現波幅(RV) 嘅差。保險保費長期貴過實際賠率，賣方收呢筆溢價——代價係 crash 時一次過賠返">VRP</u>（Volatility Risk Premium）＝IV − 之後 RV 嘅差，賣 put 收嘅就係呢筆「保險溢價」。<br>
+    <b>「咩都唔使做係正確行為」</b>＝唔好 discretionary 加減倉／擇時／換名。S1 基準下系統設計就係照 roll：你一郁手 override（F Desire 嗰下），統計優勢就壞 — spec §8 T2 tripwire 专治呢樣。</div>
   </div>
 </div>
 
@@ -185,7 +219,7 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
       <p><b>誠實預期</b>：T-bills＋每 cycle 150-400bp。基準情景年化 8-11%（含 ~4% 抵押息），Sharpe 0.7-0.85，正常年 MDD −10~−12%，<b>crash 年設計預算 −25~−30%</b>（CBOE PUT 自己 2007 起 maxDD −32.7%）。任何聲稱「Sharpe&gt;1 穩定」嘅版本都係 overfit。</p>
       <p><b>三條法律（永不改）</b>：①唔掂 margin ②單腿義務 &gt;50% 本＝紅燈唔好做 ③kill switch 恢復只可以由本人明言。</p>
     </div></details>
-    <details class="spec"><summary>1. Mandate ＆ 2. Sizing Laws</summary><div class="spec-body">
+    <details class="spec" open><summary>1. Mandate ＆ 2. Sizing Laws</summary><div class="spec-body">
       <table><tr><th>項目</th><th>規格</th></tr>
       <tr><td>目標</td><td>美股被動收入 overlay：現金抵押期權費收入，資本保存優先</td></tr>
       <tr><td>資本</td><td>US$700k 重基（CORE 420k／SAT 280k 目標 split）；% 全部照用</td></tr>
@@ -199,7 +233,7 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
       <li>高β kill-signature：β(1y)&gt;3 <b>且</b> vol252&gt;0.6 <b>且</b> cap&lt;$60B → 禁入</li>
       <li>新高後加注冷靜期 1 個月；加注只跟日曆，永遠唔跟 P&L</li>
     </div></details>
-    <details class="spec"><summary>3. Universe（動態）— 八閘＋四層 refresh</summary><div class="spec-body">
+    <details class="spec" open><summary>3. Universe（動態）— 八閘＋四層 refresh</summary><div class="spec-body">
       <p><b>Pool</b>：NDX100 ∪ ELN170 ∪ PIMCO I&G ∪ Schroders MAGI（去重）。現時 66 名：46 全注＋20 半注。</p>
       <p><b>Static（membership，T1 季度刷新）</b>：①cap ≥ $20B ②D/EBITDA ≤2.5×（金融 D/E≤250%；金融股整體剔）③Piotroski F ≥ 6 ④FY FCF &gt; 0</p>
       <p><b>Dynamic（每次開倉逐腿驗，一條唔過＝嗰腿嗰 cycle 唔做）</b>：</p>
@@ -213,14 +247,14 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
       <li><b>T2 每年 12 月</b>：重審篩法定義＋閾值＋universe 定義＋backtest probe；防偷改</li>
       <li><b>T3 連續 event kill</b>（override 全部）：業績日曆／profit warning 8-K／SEC 行動／降評／M&amp;A／停息／審計師辭任 → 中招名現有腿預設早平。ORCL 案（β1.94/D-E 4.9×/FCF −23.7B/F=4 四篩 12 個月內全爆）係本閘存在嘅理由</li>
     </div></details>
-    <details class="spec"><summary>4. CORE 75% SOP（SPX put-write）</summary><div class="spec-body">
+    <details class="spec" open><summary>4. CORE 75% SOP（SPX put-write）</summary><div class="spec-body">
       <li>每月 3rd Friday expiry 執一腿：SPX ATM put（XSP-equiv 碎張），價照 CBOE PUT methodology（11:00 ET 前最近 print 找平），SOQ 結算，持到到期<b>唔止賺</b></li>
       <li>抵押全放 T-bills／現金寶（息係回報一部份）</li>
       <li><b>VIX 閘（GATE_MODE=a 定案）</b>：VIX 14-32 → ×1.0；<b>&lt;14 唔罰</b>（FM 實測 +29bp，低 VIX VRP 最肥）；&gt;32 → ×0.25（衛星全停）</li>
       <li><b>期限倒掛規則（live-only）</b>：VIX &gt; VIX3M → 注 ×0.5。零成本保險（樣本內 51 roll 日零觸發測唔到）</li>
       <li>入窗：<b>28-35 DTE</b>，一 cycle 一入</li>
     </div></details>
-    <details class="spec"><summary>5. SATELLITE 25% SOP — 開倉六問＋倉內管理</summary><div class="spec-body">
+    <details class="spec" open><summary>5. SATELLITE 25% SOP — 開倉六問＋倉內管理</summary><div class="spec-body">
       <p><b>Tenor</b>：月度 roll 28-35 DTE。<b>Strike</b>：0.97×spot 落行，行到 |δ|≤0.20。</p>
       <p><b>開倉前六問（全部 ✓ 先准落單）</b>：</p>
       <li>1. static 四篩過冇（最新 T1 數據）？</li>
@@ -232,13 +266,13 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
       <p><b>倉內</b>：option 價 ≤ 入場 credit 50% → 止賺；21 DTE 未 tested → 平倉；ITM 到期 → 接貨。</p>
       <p><b>接貨劇本（wheel 係 opt-in）</b>：接貨嗰刻<b>預寫</b> exit 入 ledger（CC strike = basis×1.02 最好 δ≤0.35，否則 0.97S；<b>CC 止蝕 = δ0.32 牆</b>，唔准「等返家鄉」）；<b>kill switch：該名 31 日禁新 CSP，時鐘喺 dispose 日重啟</b>。</p>
     </div></details>
-    <details class="spec"><summary>7. Operations（日/週/月檢）</summary><div class="spec-body">
+    <details class="spec" open><summary>7. Operations（日/週/月檢）</summary><div class="spec-body">
       <li><b>日檢</b>：①數據鏈綠燈 ②未平腿 obligation-at-spot vs 紅燈 ③業績日曆 48h 撞期 ④ban 狀態 ⑤cash-secured 不變量</li>
       <li><b>週檢</b>：T0 閾值爆變 act-review；slippage vs 模型（0.5%/2.5%）；override log 應該係空的</li>
       <li><b>月報</b>：premium vs tail-carry 分解；book skew/kurt；obligation-at-stress（−8%/−15%/−30% gap 重演）；vs PUT/60-40</li>
       <li><b>夜更</b>：scenario replay（2018-02-05／2020-03／2024-08-05 打而家本書）</li>
     </div></details>
-    <details class="spec"><summary>8. Re-trust Ramp（Stage 0-3＋tripwire T1-T8）</summary><div class="spec-body">
+    <details class="spec" open><summary>8. Re-trust Ramp（Stage 0-3＋tripwire T1-T8）</summary><div class="spec-body">
       <table><tr><th>Stage</th><th>規模</th><th>期限／出口</th></tr>
       <tr><td><b>0 Paper</b></td><td>全 paper，正選 v4g 規則</td><td>≥8-13 週，必含一個業績季＋一次 VIX&gt;25；零 override、零對數 break；出口=書面 memo</td></tr>
       <tr><td><b>1 Micro</b></td><td>5-10% 目標注；A 級名 ≤2；單腿 ≤5% NAV</td><td>≥2 個月度 cycle；每 fill 對 mid 記 slippage</td></tr>
@@ -247,7 +281,7 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
       <p><b>Tripwires（一觸降一級；90 日兩觸歸零）</b>：T1 單腿虧 &gt;2× 回測同 archetype 最壞｜T2 未預註冊 override｜T3 對數 break &gt;24h｜T4 stale marks 做決策｜T5 回撤 &gt;10% 降級／&gt;15% 歸零｜<b>T6 任何 unsecured=即時歸零</b>｜T7 哨兵斷線時落決策｜T8 post-mortem 72h 冇寫。</p>
       <p><b>temperament</b>：連續 near-miss → 自動縮 δ 一檔唔係放寬；near-miss 全部入 register。</p>
     </div></details>
-    <details class="spec"><summary>9. 業績申報＋10. Governance</summary><div class="spec-body">
+    <details class="spec" open><summary>9. 業績申報＋10. Governance</summary><div class="spec-body">
       <p>見「📈 業績」tab。變更治理：改任何 §2 法律或 §5 checklist 要寫入 decisions log＋下一個 T2 年度審先生效。</p>
       <p><b>已知盲區（誠實申報）</b>：2022-26 窗無 volmageddon/2020 型事件；fundamentals 靜態 backcast（survivorship 偏強，衛星 alpha 係上限）；衛星 premium 係 BS(RV20×1.15) 模型價非真 quote；wheel path 樣本薄。<b>證偽條件</b>：滾動 2 年跑輸 T-bills；或 crash 年 MDD 穿 −30% 預算 → 停用重檢。</p>
     </div></details>
@@ -296,7 +330,7 @@ function esc(s){return String(s==null?'':s)}
 
 function loadAll(){
   fetch('sp4_screen.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
-    D=j; renderDesk(); renderUniv(); renderScen();
+    D=j; renderDesk(); renderUniv(); renderScen(); loadPortfolio();
     // stale check：asof >5 日 → amber
     var days=(Date.now()-new Date(j.asof+'T00:00:00Z'))/864e5;
     var sb=document.getElementById('staleBanner');
@@ -334,7 +368,7 @@ function renderDesk(){
   }else{
     h+='<div style="margin-bottom:6px"><b>全注（β&lt;1.20）：</b>';
     j.eligible_full.forEach(function(s){h+='<span class="name-chip">'+s+' <small>'+ivOf(s)+'</small></span>'});
-    h+='</div><div><b>半注（β 1.20-2.50，注 ×0.5，max 2）：</b>';
+    h+='</div><div><b>半注（β 1.20-2.50，注 ×0.5，<u title="max 2＝全簿同一時間最多 2 張半注倉並行；每張按金上限 = 單名 20% cap 再 ×0.5 = 衛星池 10%">max 2 張並行</u>）：</b>';
     j.eligible_half.forEach(function(s){h+='<span class="name-chip" style="border-color:#fde68a;background:#fffbeb">'+s+' <small>'+ivOf(s)+'</small></span>'});
     h+='</div>';
   }
@@ -358,7 +392,17 @@ function renderUniv(){
   document.getElementById('univAsof').textContent='asof '+j.asof+' · full '+j.counts.full_ok+'/'+j.counts.full+' 過';
   function tbl(rows,title){
     var h='<h4 style="margin:10px 0 6px;font-size:13px">'+title+' <span class="pill grey">'+rows.filter(function(r){return r.eligible}).length+'/'+rows.length+' 全過</span></h4>';
-    h+='<div class="table-scroll"><table class="gates"><tr><th style="text-align:left">Sym</th><th>Sector</th><th>Cap $B</th><th>β</th><th>Vol</th><th>IV%</th><th>D/E</th><th>F</th><th>FCF $B</th><th>Next Earn</th><th>cap</th><th>lev</th><th>F</th><th>fcf</th><th>β</th><th>iv%</th><th>earn</th><th>kill</th><th>ban</th><th>裁定</th></tr>';
+    h+='<div class="table-scroll"><table class="gates"><tr><th style="text-align:left">Sym</th><th>Sector</th><th>Cap $B</th><th>β</th><th>Vol</th><th>IV%</th><th>D/E</th><th>F</th><th>FCF $B</th><th>Next Earn</th>'
+     +'<th title="市值 ≥ $20B（static 四篩，T1 季度刷新）">cap</th>'
+     +'<th title="Debt/EBITDA ≤ 2.5×（static；金融整體剔）">lev</th>'
+     +'<th title="Piotroski F-Score ≥ 6（static；金融門檻 ≥5）">F</th>'
+     +'<th title="最近 FY Free Cash Flow > 0（static）">fcf</th>'
+     +'<th title="Rolling β &lt;1.20 全注／&lt;2.50 半注 — 剔 flat-SPX 日＋252/756 混合">β</th>'
+     +'<th title="IV 百分位：自己 RV20（剔極端日）252 日百分位 ≥60 — 同自己歷史比，唔同大市比">iv%</th>'
+     +'<th title="業績 span：倉期（entry→expiry 含到期日）唔橫跨下一個業績日；日期未知=fail-closed">earn</th>'
+     +'<th title="kill-signature：β1y&gt;3 且 vol252&gt;0.6 且 cap&lt;$60B → 禁入">kill</th>'
+     +'<th title="接貨 31 日 ban（dispose 日重啟時鐘）">ban</th>'
+     +'<th>裁定</th></tr>';
     rows.slice().sort(function(a,b){return (b.eligible?1:0)-(a.eligible?1:0)||a.sym.localeCompare(b.sym)}).forEach(function(r){
       var g=r.gates;
       h+='<tr'+(r.eligible?' class="ok"':'')+'><td class="l">'+r.sym+(r.ban_until?' 🚫':'')+'</td><td style="text-align:left;color:var(--muted)">'+esc(r.sector).slice(0,14)+'</td>';
@@ -378,8 +422,128 @@ function renderScen(){
     var el=document.getElementById(s.toLowerCase()+'row');
     if(el&&s===sc){el.style.background='#f0fdf4';el.style.outline='2px solid var(--teal)';}
   });
-  document.getElementById('scenNow').innerHTML='<div class="card" style="border-left:4px solid '+(sc==='S1'?'var(--good)':sc==='S3'?'var(--bad)':'var(--warn)')+'"><h3>今日定位：<span class="pill '+({S1:'green',S2:'amber',S3:'red',S4:'blue'}[sc])+'">'+sc+'</span>　'+esc(D.regime.why)+'</h3><div class="muted" style="font-size:12px">QQQ 距 252d 高 '+(D.regime.qqq_off_high*100).toFixed(1)+'% · VIX '+D.core.vix+' · TNX '+D.regime.tnx+'%（自動判斷，行情突變以人手覆核）· asof '+D.asof+'</div></div>';
+  document.getElementById('scenNow').innerHTML='<div class="card" style="border-left:4px solid '+(sc==='S1'?'var(--good)':sc==='S3'?'var(--bad)':'var(--warn)')+'"><h3>今日定位：<span class="pill '+({S1:'green',S2:'amber',S3:'red',S4:'blue'}[sc])+'">'+sc+'</span>　'+esc(D.regime.why)+'</h3><div class="muted" style="font-size:12px">QQQ 距 252d 高 '+(D.regime.qqq_off_high*100).toFixed(1)+'% · VIX '+D.core.vix+' · TNX '+D.regime.tnx+'%（自動判斷，行情突變以人手覆核）· asof '+D.asof+'</div>'
+   +((D.regime.qqq_off_high<=-0.08&&D.regime.qqq_off_high>-0.10&&D.core.vix<25)?'<div class="warn-note" style="margin-top:8px">🟠 AMBER 預警帶（−8~−10% 且 VIX&lt;25）：行為照 v4g 全注唔縮注 — 只做前檢清單：obligation／kill-radar／wheel A 級 shortlist／業績日曆。−10% 或 VIX≥25 先升 S2。AMBER 響咗 ≠ 要做嘢（V 型反彈 9/27）。</div>':'')
+   +'</div>';
 }
+
+// ═══ 💰 Portfolio 計算機（注碼／按金／流動性）═══
+var PQ=null,PQ_SELS={};
+function pfInputs(){
+  var hk=parseFloat(document.getElementById('pfHKD').value)||700000;
+  var fx=parseFloat(document.getElementById('pfFX').value)||7.80;
+  var capPct=parseFloat(document.getElementById('pfCap').value)||0.20;
+  return {hk:hk,fx:fx,usd:hk/fx,core:0.75*hk/fx,sat:0.25*hk/fx,cap:capPct};
+}
+function $k(x){return '$'+Math.round(x).toLocaleString('en-US');}
+function thirdFriday(afterDate){var d=new Date(afterDate+'T00:00:00Z');do{d.setUTCDate(d.getUTCDate()+1);}while(!(d.getUTCDay()===5&&d.getUTCDate()>=15&&d.getUTCDate()<=21));return d.toISOString().slice(0,10);}
+function pfToggle(sym,el){
+  if(el.checked){
+    var halfSel=0,tot=0;
+    for(var k in PQ_SELS){if(PQ_SELS[k]&&k!=='^XSP'){tot++;if(D.eligible_half.indexOf(k)>=0)halfSel++;}}
+    if(sym!=='^XSP'&&D.eligible_half.indexOf(sym)>=0&&halfSel>=2){el.checked=false;alert('半注 max 2 張並行（spec §2）— 已有 '+halfSel+' 張');return;}
+    if(sym!=='^XSP'&&tot>=8){el.checked=false;alert('衛星 max 8 並行名（spec §2）');return;}
+    PQ_SELS[sym]=true;
+  }else PQ_SELS[sym]=false;
+  renderPFTotals();
+}
+function loadPortfolio(){
+  if(!D)return;
+  var syms=['^XSP'].concat(D.eligible_full,D.eligible_half);
+  var body=document.getElementById('pfBody');
+  body.innerHTML='報價載入中（'+syms.join('、')+'）…';
+  fetch(API+'/sp-quotes?s='+encodeURIComponent(syms.join(','))).then(function(r){return r.json()}).then(function(j){
+    PQ=j;PQ_SELS={};renderPF();
+  }).catch(function(e){body.innerHTML='<div class="red-note">❌ sp-quotes 失敗：'+e+' — 檢查 worker /api/sp-quotes</div>';});
+}
+function renderPF(){
+  var body=document.getElementById('pfBody');if(!PQ||!D)return;
+  var P=pfInputs();
+  document.getElementById('pfSplit').textContent='＝ USD '+$k(P.usd)+'　CORE 75% '+$k(P.core)+'　SAT 25% '+$k(P.sat);
+  // 入窗狀態
+  var today=new Date().toISOString().slice(0,10);
+  var exp=thirdFriday(today);
+  var dte=Math.round((new Date(exp+'T00:00:00Z')-new Date(today+'T00:00:00Z'))/864e5);
+  var winEl=document.getElementById('pfWin');
+  if(dte>=28&&dte<=35){winEl.innerHTML='<span class="pill green">入窗中（'+exp+' · '+dte+' DTE）</span>';winEl.title='28-35 DTE 窗：可以入腿';}
+  else if(dte>35){var opens=new Date();opens.setUTCDate(opens.getUTCDate()+(dte-35));winEl.innerHTML='<span class="pill grey">未開窗（'+exp+' · 入窗 '+opens.toISOString().slice(5,10)+' 起）</span>';winEl.title='28-35 DTE 先准入 — 而家太早';}
+  else{winEl.innerHTML='<span class="pill amber">過咗窗（'+exp+' · '+dte+' DTE）— 等下個 cycle</span>';winEl.title='入窗 28-35 DTE 已過；下個 3rd Friday cycle 開窗時先再入';}
+  var h='';
+  // ── CORE 腿 ──
+  var X=PQ['^XSP'];
+  h+='<div class="table-scroll"><table class="gates" style="min-width:1040px"><tr>'
+   +'<th style="text-align:left">腿</th><th>spot</th><th>strike</th><th>mid</th><th>|δ|</th><th>P(OTM)</th><th>年化%</th><th>張數</th><th>按金</th><th>收入</th><th title="剔選要做嘅腿">做?</th><th>備註</th></tr>';
+  if(X&&!X.error&&X.ladder){
+    var lad=X.ladder.filter(function(o){return o.strike<=X.spot});
+    var pick=null;for(var i=0;i<lad.length;i++){if(lad[i].collat<=P.core){pick=lad[i];break;}}
+    if(!pick&&lad.length)pick=lad[lad.length-1];
+    if(pick){
+      PQ_SELS['^XSP']=PQ_SELS['^XSP']!==false;
+      var mult=(D.core.mult!=null?D.core.mult:1);
+      var incC=pick.mid*100*mult;
+      h+='<tr class="ok"><td class="l">🏛️ CORE ^XSP <span class="pill blue">×'+mult+' VIX 閘</span></td><td>'+X.spot+'</td><td><b>'+pick.strike+'</b></td><td>'+pick.mid+(pick.bs?' <span class="pill amber" title="Yahoo 冇盤，BS 反推估價">BS</span>':'')+'</td><td>'+pick.delta+'</td><td>'+Math.round(pick.otmProb*100)+'%</td><td>'+pick.annPct+'</td><td>1</td><td>'+$k(pick.collat)+'</td><td>'+$k(incC)+'</td>'
+       +'<td><input type="checkbox" '+(PQ_SELS['^XSP']?'checked':'')+' onchange="pfToggle(\'^XSP\',this)"></td>'
+       +'<td style="text-align:left;font-size:11px">'+(pick.strike<X.spot*0.99?'按金受 sleeve 限（ATM 要 '+$k(X.atm.collat)+'>'+$k(P.core)+'）':'ATM')+' · 到期 '+X.expiry+'（'+X.dte+' DTE）· ⚠️Futu XSP 未驗證</td></tr>';
+    }else{
+      h+='<tr><td class="l">🏛️ CORE ^XSP</td><td colspan="11" style="text-align:left;color:var(--bad)"><b>XSP 鏈攞唔到／全部 strike 超出 CORE sleeve — 檢查 XSP 期權權限</b></td></tr>';
+    }
+  }else{
+    h+='<tr><td class="l">🏛️ CORE ^XSP</td><td colspan="11" style="text-align:left;color:var(--bad)">❌ '+((X&&X.error)||'無數據')+'</td></tr>';
+  }
+  // ── 衛星行（P(OTM) 高→低）──
+  var rows=[];
+  D.eligible_full.forEach(function(s){var q=PQ[s];if(q&&q.sat)rows.push({sym:s,tier:'full',q:q});else rows.push({sym:s,tier:'full',q:q||{}});});
+  D.eligible_half.forEach(function(s){var q=PQ[s];if(q&&q.sat)rows.push({sym:s,tier:'half',q:q});else rows.push({sym:s,tier:'half',q:q||{}});});
+  rows.sort(function(a,b){return ((b.q.sat||{}).otmProb||0)-((a.q.sat||{}).otmProb||0);});
+  rows.forEach(function(r){
+    var q=r.q;
+    if(!q.sat){h+='<tr><td class="l">🛰️ '+r.sym+' <span class="pill '+(r.tier==='half'?'amber':'grey')+'">'+(r.tier==='half'?'半注':'全注')+'</span></td><td colspan="11" style="text-align:left;color:var(--bad)">'+(q.error||'chain 攞唔到 — 呢名今 cycle 唔計')+'</td></tr>';return;}
+    var capS=P.sat*P.cap*(r.tier==='half'?0.5:1);
+    var n=Math.floor(capS/q.sat.collat);
+    var note='';
+    if(n===0)note='<span class="pill red" title="一張合約按金都要 $'+Math.round(q.sat.collat/1000)+'k，超過單名上限 $'+Math.round(capS/1000)+'k — 呢個係 700k 戶口嘅結構性限制，唔係 bug">0 張：一張都要 $'+Math.round(q.sat.collat/1000)+'k &gt; 上限 $'+Math.round(capS/1000)+'k</span>';
+    h+='<tr'+(n>0?' class="ok"':'')+'><td class="l">🛰️ '+r.sym+' <span class="pill '+(r.tier==='half'?'amber':'grey')+'">'+(r.tier==='half'?'半注 ×0.5':'全注')+'</span></td>'
+     +'<td>'+q.spot+'</td><td><b>'+q.sat.strike+'</b>（0.97 walk）</td><td>'+q.sat.mid+'</td><td>'+q.sat.delta+'</td><td><b>'+Math.round(q.sat.otmProb*100)+'%</b></td><td>'+q.sat.annPct+'</td>'
+     +'<td>'+n+'</td><td>'+(n>0?$k(q.sat.collat*n):$k(q.sat.collat)+'/張')+'</td><td>'+(n>0?$k(q.sat.mid*100*n):'—')+'</td>'
+     +'<td>'+(n>0?'<input type="checkbox" '+(PQ_SELS[r.sym]?'checked':'')+' onchange="pfToggle(\''+r.sym+'\',this)">':'')+'</td>'
+     +'<td style="text-align:left;font-size:11px">'+note+' 到期 '+q.expiry+'（'+q.dte+' DTE）</td></tr>';
+  });
+  h+='</table></div>';
+  h+='<div id="pfTotals"></div>';
+  body.innerHTML=h;
+  renderPFTotals();
+}
+function renderPFTotals(){
+  var el=document.getElementById('pfTotals');if(!el||!PQ||!D)return;
+  var P=pfInputs(),inc=0,mg=0,maxLeg=0,nLegs=0;
+  var X=PQ['^XSP'];
+  if(PQ_SELS['^XSP']&&X&&X.ladder){
+    var lad=X.ladder.filter(function(o){return o.strike<=X.spot}),pick=null;
+    for(var i=0;i<lad.length;i++){if(lad[i].collat<=P.core){pick=lad[i];break;}}
+    if(!pick&&lad.length)pick=lad[lad.length-1];
+    if(pick){inc+=pick.mid*100*(D.core.mult||1);mg+=pick.collat;maxLeg=Math.max(maxLeg,pick.collat);nLegs++;}
+  }
+  D.eligible_full.concat(D.eligible_half).forEach(function(s){
+    if(!PQ_SELS[s])return;var q=PQ[s];if(!q||!q.sat)return;
+    var capS=P.sat*P.cap*(D.eligible_half.indexOf(s)>=0?0.5:1);
+    var n=Math.floor(capS/q.sat.collat);if(n<1)return;
+    inc+=q.sat.mid*100*n;mg+=q.sat.collat*n;maxLeg=Math.max(maxLeg,q.sat.collat*n);nLegs++;
+  });
+  var rem=P.usd-mg;
+  // satellite-only margin
+  var sMg=0;D.eligible_full.concat(D.eligible_half).forEach(function(s){
+    if(!PQ_SELS[s])return;var q=PQ[s];if(!q||!q.sat)return;
+    var capS=P.sat*P.cap*(D.eligible_half.indexOf(s)>=0?0.5:1);
+    var n=Math.floor(capS/q.sat.collat);if(n<1)return;sMg+=q.sat.collat*n;
+  });
+  var red=maxLeg>0.5*P.usd;
+  el.innerHTML='<div class="'+(red?'red-note':'action-big')+'" style="margin-top:10px">'
+   +(nLegs?'已剔 <b>'+nLegs+' 腿</b>：收入 <b>'+$k(inc)+'</b>（≈ HKD '+$k(inc*P.fx)+'）/cycle · 按金 <b>'+$k(mg)+'</b>（HKD '+$k(mg*P.fx)+'）· 做完剩流動性 <b>'+$k(rem)+'</b>（HKD '+$k(rem*P.fx)+'，全放 T-bills 收息）· 衛星池淨 '+$k(P.sat-sMg)
+   +'　'+(red?'🔴 <b>紅燈：單腿義務 &gt;50% 全簿 — 唔好做</b>':'✓ 紅燈檢查過（最大腿 '+Math.round(maxLeg/P.usd*100)+'% ≤ 50%）')
+   :'剔上面 ☑ 揀想做嘅腿 — 自動計收入／按金／剩餘流動性')
+   +'</div>';
+}
+
 
 function doCheck(){
   var s=document.getElementById('chkInput').value.trim().toUpperCase();
