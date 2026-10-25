@@ -1,5 +1,5 @@
 {
- "asof": "2026-10-25",
+ "asof": "2026-10-26",
  "inception": "2026-10-25",
  "config": {
   "account_hkd": 700000.0,
@@ -31,9 +31,9 @@
   "tbill_ref": 10.57,
   "rf_ann": 0.043
  },
- "updated_hk": "2026-10-25 23:30",
+ "updated_hk": "2026-10-26 07:55",
  "next_expiry": "2026-11-20",
- "cycle_dte": 26,
+ "cycle_dte": 25,
  "cycle_state": "managed",
  "next_entry": "2026-11-13"
 }
