@@ -105,7 +105,7 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
   <div class="lk-prod">ShortPut Spec 台 · STRATEGY_SPEC_2026Q4-2028</div>
 </div>
 <div class="appbar"><div class="appbar-in">
-  <div><h1>🎯 ShortPut Spec 台（v4g）</h1><div class="sub">現金抵押短 put · Sharpe <strong>0.83</strong>／Sortino <strong>1.01</strong>／CAGR 12.67% · 獨立於 w320</div></div>
+  <div><h1>🎯 ShortPut Spec 台（v4g）</h1><div class="sub">現金抵押短 put · Sharpe <strong>0.70</strong>／Sortino <strong>0.76</strong>／CAGR 10.24%（修正版）· 獨立於 w320</div></div>
   <div class="appbar-right">
     <button class="btn-primary" onclick="loadAll()">🔄 刷新</button>
     <div class="status-bar"><span class="live-dot"></span><span id="liveBadge">載入中...</span></div>
@@ -291,16 +291,15 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
 <!-- ═══ 業績 ═══ -->
 <div class="sec" id="sec-perf">
   <div class="card">
-    <h3>📈 v4g 回測業績 <span class="pill grey">2022-01 → 2026-10 · $1M 起 · rf-adjusted</span></h3>
+    <h3>📈 v4g 回測業績 <span class="pill grey">2022-01 → 2026-10 · $1M 起 · rf-adjusted</span><span class="pill amber" title="2026-10-25 假期結算修正：原引擎到期日撞假期（2022-04-15／2025-04-18／2026-06-19）嗰三張腿從未結算、被下月靜默覆寫。修正引擎 backtest_700k.py 照真實規則將到期移去前一交易日。原 12.67%/0.83/1.01/−11.11% 係漏結算美化。">⚠️ 修正版</span></h3>
     <div class="kv" style="max-width:520px">
-      <b>CAGR</b><span><b style="color:var(--good);font-size:15px">12.67%</b>（含 ~4% 抵押息；剝走=期權真 edge ~8-9%）</span>
-      <b>Sharpe / Sortino</b><span><b>0.83 / 1.01</b>（全窗誠實數；子窗 trailing 1Y/3Y 更高）</span>
-      <b>α vs SPX TR / β</b><span>+5.14% / 0.38（月度）</span>
-      <b>MDD</b><span>−11.11%（<b style="color:var(--bad)">好窗。crash 年預算 −25~−30%</b>）</span>
-      <b>終值</b><span>$1,762,998</span>
-      <b>月勝率</b><span>~79%</span>
-      <b>逐年</b><span>+7.2 / +11.1 / +13.4 / +15.7 / +10.7（2022-26）— 年年 &gt; CBOE PUT、&gt; 60/40</span>
+      <b>CAGR</b><span><b style="color:var(--good);font-size:15px">10.24%</b>（premium-only；引擎唔計現金利息，T-bill 息喺所有數之上）</span>
+      <b>Sharpe / Sortino</b><span><b>0.70 / ~0.76</b>（修正版全窗；原 0.83/1.01 = 漏結算美化）</span>
+      <b>MDD</b><span>−12.08%（<b style="color:var(--bad)">好窗。crash 年預算 −25~−30%</b>）</span>
+      <b>逐年</b><span>−0.8 / +10.2 / +15.7 / +12.3 / +11.9（2022-26）— <b>年年 &gt; CBOE PUT、&gt; 60/40 保得住</b>（PUT 2022 −7.7%）</span>
+      <b>2022 年</b><span>−0.8%（原報 +7.2% — 2022-04 嗰張 ATM put 實際 04-14 到期蝕一大筆）</span>
       <b>衛星接貨</b><span>DELL 2024-08 ×2（−$782）→ kill switch 即禁 31 日 ✓</span>
+      <b>對照</b><span>CBOE PUT 同窗 Sharpe 0.44／全期（2007-26）0.52／MDD −32.7%；v4g 修正版仍全面佔優，但「0.83」唔可以再做任何階段及格線</span>
     </div>
   </div>
   <div class="card">
@@ -308,12 +307,13 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
     <li>2022-26 窗<b>冇</b> volmageddon／2020 型事件 — −11% MDD 係好窗，唔係結構</li>
     <li>fundamentals 靜態 backcast（survivorship 偏強）— 衛星 alpha 係上限</li>
     <li>衛星 premium 係 BS(RV20×1.15) 模型價，唔係真 quote</li>
-    <li>作為 claim Sharpe 0.83 冇 PM 會收 — 誠實 pitch 係「<b>T-bills＋150-400bp/cycle</b>」</li>
+    <li>作為 claim 修正版 Sharpe 0.70 都冇 PM 會收 — 誠實 pitch 係「<b>T-bills＋150-400bp/cycle</b>」</li>
+    <li>⚠️ 假期結算修正（10-25）：原引擎三張撞假期腿從未結算（2022-04-15／2025-04-18／2026-06-19），原 12.67%/0.83/1.01 報細咗 2022-04 大蝕嗰張 — 修正後 10.24%/0.70/−12.08%；權威引擎 = <code>scripts/backtest_700k.py</code></li>
     <li><b>證偽條件</b>：滾動 2 年跑輸 T-bills → 停用重檢；crash 年 MDD 穿 −30% 預算 → 同樣</li>
   </div>
 </div>
 
-<div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · ShortPut Spec 台 — STRATEGY_SPEC_2026Q4-2028 · v4g 正選（GATE_MODE=a · IVPCT 0.6 · 動態 universe 66）· 獨立於 w320 · 期權賣方有 tail risk · 非投資建議</div>
+<div class="foot"><span style="color:#1a73e8;font-weight:700">leungkathy</span> · ShortPut Spec 台 — STRATEGY_SPEC_2026Q4-2028 · v4g 正選（GATE_MODE=a · IVPCT 0.6 · 動態 universe 66 · 假期結算修正版）· 獨立於 w320 · 期權賣方有 tail risk · 非投資建議</div>
 </div>
 
 <script>
