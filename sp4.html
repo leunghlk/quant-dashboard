@@ -483,7 +483,7 @@ function renderPF(){
       var incC=pick.mid*100*mult;
       h+='<tr class="ok"><td class="l">🏛️ CORE ^XSP <span class="pill blue">×'+mult+' VIX 閘</span></td><td>'+X.spot+'</td><td><b>'+pick.strike+'</b></td><td>'+pick.mid+(pick.bs?' <span class="pill amber" title="Yahoo 冇盤，BS 反推估價">BS</span>':'')+'</td><td>'+pick.delta+'</td><td>'+Math.round(pick.otmProb*100)+'%</td><td>'+pick.annPct+'</td><td>1</td><td>'+$k(pick.collat)+'</td><td>'+$k(incC)+'</td>'
        +'<td><input type="checkbox" '+(PQ_SELS['^XSP']?'checked':'')+' onchange="pfToggle(\'^XSP\',this)"></td>'
-       +'<td style="text-align:left;font-size:11px">'+(pick.strike<X.spot*0.99?'按金受 sleeve 限（ATM 要 '+$k(X.atm.collat)+'>'+$k(P.core)+'）':'ATM')+' · 到期 '+X.expiry+'（'+X.dte+' DTE）· ⚠️Futu XSP 未驗證</td></tr>';
+       +'<td style="text-align:left;font-size:11px">'+(pick.strike<X.spot*0.99?'按金受 sleeve 限（ATM 要 '+$k((X.atm&&X.atm.collat)||0)+'>'+$k(P.core)+'）':'ATM')+' · 到期 '+X.expiry+'（'+X.dte+' DTE）· ⚠️Futu XSP 未驗證</td></tr>';
     }else{
       h+='<tr><td class="l">🏛️ CORE ^XSP</td><td colspan="11" style="text-align:left;color:var(--bad)"><b>XSP 鏈攞唔到／全部 strike 超出 CORE sleeve — 檢查 XSP 期權權限</b></td></tr>';
     }
