@@ -993,7 +993,7 @@ function loadStage0(){
     try{(window.LIGHTS.pool_radar.lit||[]).forEach(function(x){pm[x.sym]=x})}catch(e){}
     var SCREEN8={AVGO:{g:'5/6',fail:'iv%',earn:'12-09'},DELL:{g:'6/6',fail:'',earn:'11-27'},NVDA:{g:'0',fail:'唔喺品質池',earn:'11-17⚠️到埗確認'},AMD:{g:'0',fail:'唔喺品質池',earn:'—'},MU:{g:'0',fail:'唔喺品質池',earn:'—'},MRVL:{g:'0',fail:'唔喺品質池',earn:'—'},WDC:{g:'0',fail:'唔喺品質池',earn:'—'},ANET:{g:'0',fail:'唔喺品質池',earn:'—'}};
     var npass=0,h='<div class="table-scroll"><table class="gates" style="min-width:1240px">';
-    h+='<tr><th>揀</th><th style="text-align:left">名</th><th>SPOT</th><th style="text-align:left">STRIKE（賣／買）</th><th>MID</th><th>|Δ|</th><th>P(OTM)</th><th>年化%</th><th>張數</th><th>按金</th><th>收入</th><th>做?</th><th style="text-align:left">池／閘</th><th style="text-align:left">備註</th></tr>';
+    h+='<tr><th style="text-align:left">名</th><th>SPOT</th><th style="text-align:left">STRIKE（賣／買）</th><th>MID</th><th>|Δ|</th><th>P(OTM)</th><th>年化%</th><th>張數</th><th>按金</th><th>收入</th><th>做?</th><th style="text-align:left">池／閘</th><th style="text-align:left">備註</th></tr>';
     rows.forEach(function(o){
       var ok=!isNaN(o.ra)&&o.ra>=0.9;if(ok)npass++;
       var width=(!isNaN(o.kS)&&!isNaN(o.kL))?(o.kS-o.kL):NaN;
@@ -1001,23 +1001,23 @@ function loadStage0(){
       var px=pm[o.name],sc=SCREEN8[o.name]||{};
       var cell='<td style="text-align:left;font-size:10.5px">';
       cell+=px?'<span style="color:#c0392b;font-weight:700">🔴地雷亮</span> β'+px.beta63+'・vol'+px.vol63:'<span style="color:#1a7f37">🟢地雷淨</span>';
-      cell+='<br>品質六閘：'+(sc.g==='6/6'?'<span style="color:#1a7f37;font-weight:700">✅6/6</span>':sc.g==='5/6'?'<span style="color:#b45309;font-weight:700">5/6（fail '+sc.fail+'）</span>':'<span style="color:#c0392b">⛔唔喺品質池</span>');
       if(sc.earn&&sc.earn!=='—')cell+='<br>業績 '+sc.earn;
+      cell+='<br>品質書對照：'+(sc.g==='6/6'?'<span style="color:#1a7f37;font-weight:700">✅6/6 兩書都收</span>':sc.g==='5/6'?'<span style="color:#b45309;font-weight:700">5/6（fail '+sc.fail+'）</span>':'<span style="color:#c0392b">✗ β&gt;1.20 入唔到</span>');
       cell+='</td>';
-      h+='<tr><td><input type="checkbox" data-k="'+pbKey(o)+'" '+(S0SEL[pbKey(o)]?'checked':'')+' onchange="s0Tick(this)" style="transform:scale(1.3)"></td>'
-        +'<td style="text-align:left"><b>'+o.name+'</b></td>'
+      h+='<tr><td style="text-align:left"><b>'+o.name+'</b></td>'
         +'<td>'+_f(o.spot,1)+'</td>'
         +'<td style="text-align:left">'+(isNaN(o.kS)?(o.src==='NO_QUOTE'?'— 無鏈價':'—'):(o.kS+' P／'+o.kL+' P'))+'</td>'
         +'<td><b>'+_f(o.cr,2)+'</b></td><td>≈0.45</td><td>≈55%</td>'
         +'<td>'+_f(ann,0)+'%</td><td>1</td>'
         +'<td>'+(!isNaN(width)?('$'+(width*100).toFixed(0)):'—')+'</td>'
         +'<td>'+(!isNaN(o.cr)?('$'+(o.cr*100).toFixed(0)):'—')+'</td>'
-        +'<td>'+(ok?'<span style="color:#1a7f37;font-weight:800">✓ paper</span>':'<span style="color:#c0392b;font-weight:800">✗</span>')+'</td>'
+        +'<td>'+(ok?'<span style="color:#1a7f37;font-weight:800">✓</span>':'<span style="color:#c0392b;font-weight:800">✗</span>')
+        +'<br><input type="checkbox" data-k="'+pbKey(o)+'" '+(S0SEL[pbKey(o)]?'checked':'')+' onchange="s0Tick(this)" style="transform:scale(1.35);margin-top:3px"></td>'
         +cell
         +'<td style="text-align:left;font-size:11px">模型 '+_f(o.cm,2)+' · 真價比 '+_f(o.ra,3)+' · '+(o.expiry||'').slice(5)+' '+o.dte+'d · '+o.src+'</td></tr>';
     });
     h+='</table></div>';
-    h+='<div class="muted" style="font-size:11px;margin-top:5px"><b>呢 8 隻＝AI 進取池（mom63 動量揀名），唔係品質六閘池</b>：過嘅閘＝避雷五件套（kill-signature β&gt;3+vol&gt;0.6+cap&lt;$60B 禁入・m2x 止蝕・業績前 3td 禁新・名 12%/seg 30% 硬頂・地雷亮＝禁 naked 正股，spr10 有保護照 spec 可開）。品質六閘（cap≥$20B／D-E≤2.5×／F≥6／FCF&gt;0／β&lt;1.20／IV%≥60）得 DELL 全過、AVGO 5/6——高 β AI 名入唔到品質池係 spec 本意唔係漏。⚠️ MRVL β3.53×vol0.76 已過 kill-signature 兩條門檻，cap&lt;$60B 唔確認＝fail-closed 留意。品質池版面＝📋 策略台（重新出發期 tab）。<br>數據日 '+d+' · 過真價閘 '+npass+'/'+rows.length+' · MID＝兩腿淨收 credit · |Δ|≈0.45／P(OTM)≈55% 賣腿設計值 · 年化%=credit÷按金×365÷dte · 按金=width×100 券商口徑</div>';
+    h+='<div class="muted" style="font-size:11px;margin-top:5px">排序＝真價比由高至低（收價最足行先；G1 閘視角，唔係推薦次序）。<b>呢 8 隻＝AI 進取池（mom63 動量揀名），唔係品質六閘池</b>：呢個台嘅准入閘＝避雷五件套（kill-signature β&gt;3+vol&gt;0.6+cap&lt;$60B 禁入・m2x 止蝕・業績前 3td 禁新・名 12%/seg 30% 硬頂・地雷亮＝禁 naked 正股，spr10 有保護照 spec 可開）。「品質書對照」欄純粹話你知：同一隻名喺品質書（重新出發期 📋 策略台個池）有冇資格——只有 DELL 兩本書都收、AVGO 差 IV% 一閘；其餘 6 隻 β&gt;1.20 根本入唔到品質池＝<b>進取池專用。唔過品質閘≠唔做得進取腿（兩本書兩個宇宙）；過咗品質閘亦唔自動等於品質書會開佢（仲要過 IV% 等全部閘）</b>。⚠️ MRVL β3.53×vol0.76 已過 kill-signature 兩條門檻，cap&lt;$60B 唔確認＝fail-closed 留意。品質池版面＝📋 策略台（重新出發期 tab）。<br>數據日 '+d+' · 過真價閘 '+npass+'/'+rows.length+' · MID＝兩腿淨收 credit · |Δ|≈0.45／P(OTM)≈55% 賣腿設計值 · 年化%=credit÷按金×365÷dte · 按金=width×100 券商口徑</div>';
     h+='<div id="s0Totals" style="margin-top:8px;padding:9px 12px;border:1px dashed #cbd5e1;border-radius:10px;font-size:13px"></div>';
     el.innerHTML=h;
     s0Totals();renderBook();
