@@ -1,0 +1,1255 @@
+{
+ "generated_at": "2026-10-27 00:06:02 HKT",
+ "light": "YELLOW",
+ "state": "CALM",
+ "yellow_flags": [
+  "Y1 金絲雀破位（NVDA<50DMA＋20日動量<0）",
+  "Y4 QQQ 年內回撤 -7.3% 貼 −8% 閘",
+  "Y5 VVIX 過自身一年 80 分位（恐慌的恐慌偏高）"
+ ],
+ "official": {
+  "date": "2026-10-23",
+  "state": "CALM",
+  "state_prev": "CALM",
+  "days_in_state": 22,
+  "signals": {
+   "spx": 7623.68,
+   "qqq": 704.4,
+   "nvda": 210.96,
+   "vix": 19.45,
+   "vix3m": 20.48,
+   "ts_spread": -1.03,
+   "vvix": 109.7,
+   "corr_ai": 0.6,
+   "breadth200": 66.7,
+   "breadth200_chg20": 4.6,
+   "dd252": -0.025,
+   "qqq_dd252": -0.0727,
+   "mom20": -0.0155,
+   "spx_gt_sma200": true,
+   "hyg_lqd_20d": -0.0166,
+   "rsp_spx_20d": 0.041,
+   "any2_cnt": 0,
+   "f_gap3": false,
+   "f_vixjump": false,
+   "f_nvda_brk": true,
+   "gap10": false,
+   "credit_dn": false,
+   "c_any2": false,
+   "f_vvix_hi": true,
+   "nvda_sma50": 222.48,
+   "nvda_20d": -0.0627
+  },
+  "prev": {
+   "vix": 19.03,
+   "vix3m": 20.12,
+   "breadth200": 64.4,
+   "dd252": -0.0199,
+   "qqq_dd252": -0.0727,
+   "nvda": 212.21,
+   "hyg_lqd_20d": null,
+   "vvix": null
+  }
+ },
+ "actions": {
+  "csp": "【單名凍結】AI 池所有單名（naked/衛星）禁新倉；指數腿（XSP/SPX spread）照開但 δ≤0.30",
+  "hedge": "對沖就位檢查：XSP 3% 寬 put spread（0.97/0.94）報價備妥",
+  "book": "回本簿唔加正股；已持貨照揸"
+ },
+ "core5_radar": [
+  {
+   "name": "NVDA",
+   "ok": true,
+   "close": 210.96,
+   "date": "2026-10-23",
+   "beta63": 2.04,
+   "vol63": 0.36,
+   "mom_turn": true,
+   "any_mine": true,
+   "conds": [
+    "破50DMA+20d動量<0"
+   ]
+  },
+  {
+   "name": "PLTR",
+   "ok": true,
+   "close": 196.75,
+   "date": "2026-10-23",
+   "beta63": 2.45,
+   "vol63": 0.7,
+   "mom_turn": false,
+   "any_mine": false,
+   "conds": []
+  },
+  {
+   "name": "APP",
+   "ok": true,
+   "close": 260.25,
+   "date": "2026-10-23",
+   "beta63": 0.91,
+   "vol63": 0.62,
+   "mom_turn": true,
+   "any_mine": true,
+   "conds": [
+    "破50DMA+20d動量<0"
+   ]
+  },
+  {
+   "name": "MSTR",
+   "ok": true,
+   "close": 146.01,
+   "date": "2026-10-23",
+   "beta63": 2.86,
+   "vol63": 0.84,
+   "mom_turn": false,
+   "any_mine": true,
+   "conds": [
+    "β63>2.5",
+    "vol63>0.8"
+   ]
+  },
+  {
+   "name": "AMD",
+   "ok": true,
+   "close": 516.79,
+   "date": "2026-10-23",
+   "beta63": 3.23,
+   "vol63": 0.63,
+   "mom_turn": true,
+   "any_mine": true,
+   "conds": [
+    "β63>2.5",
+    "破50DMA+20d動量<0"
+   ]
+  }
+ ],
+ "pool_radar": {
+  "pool_n": 141,
+  "evaluated": 141,
+  "mode": "freshyahoo",
+  "asof": "2026-10-23",
+  "lit_n": 100,
+  "lit": [
+   {
+    "sym": "AAOI",
+    "beta63": 6.35,
+    "vol63": 1.19,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "ACMR",
+    "beta63": 2.45,
+    "vol63": 0.82,
+    "mom_turn": true,
+    "conds": [
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "ALAB",
+    "beta63": 5.34,
+    "vol63": 0.92,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "AMAT",
+    "beta63": 2.39,
+    "vol63": 0.62,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "AMBA",
+    "beta63": 2.06,
+    "vol63": 0.61,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "AMD",
+    "beta63": 3.23,
+    "vol63": 0.63,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "AMZN",
+    "beta63": 1.82,
+    "vol63": 0.41,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "ANET",
+    "beta63": 2.67,
+    "vol63": 0.51,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "APH",
+    "beta63": 1.88,
+    "vol63": 0.41,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "APLD",
+    "beta63": 4.95,
+    "vol63": 0.89,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "APP",
+    "beta63": 0.91,
+    "vol63": 0.62,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "ARM",
+    "beta63": 4.6,
+    "vol63": 0.81,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "ASML",
+    "beta63": 1.59,
+    "vol63": 0.4,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "ASX",
+    "beta63": 3.42,
+    "vol63": 0.65,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "AUR",
+    "beta63": 3.39,
+    "vol63": 0.66,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "AVGO",
+    "beta63": 1.92,
+    "vol63": 0.38,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "BBAI",
+    "beta63": 3.35,
+    "vol63": 0.59,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "BE",
+    "beta63": 4.73,
+    "vol63": 0.98,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "CCJ",
+    "beta63": 2.33,
+    "vol63": 0.42,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "CDNS",
+    "beta63": 1.46,
+    "vol63": 0.39,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "CEG",
+    "beta63": 1.73,
+    "vol63": 0.48,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "CIEN",
+    "beta63": 3.92,
+    "vol63": 0.85,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "CIFR",
+    "beta63": 0.71,
+    "vol63": 1.16,
+    "mom_turn": true,
+    "conds": [
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "COHR",
+    "beta63": 4.53,
+    "vol63": 1.03,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "CORZ",
+    "beta63": 3.79,
+    "vol63": 0.81,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "CRDO",
+    "beta63": 4.56,
+    "vol63": 1.0,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "CRWV",
+    "beta63": 5.38,
+    "vol63": 1.03,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "CSCO",
+    "beta63": 1.23,
+    "vol63": 0.34,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "DASH",
+    "beta63": 1.22,
+    "vol63": 0.41,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "DELL",
+    "beta63": 4.35,
+    "vol63": 0.78,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "DLR",
+    "beta63": 1.21,
+    "vol63": 0.27,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "DUOL",
+    "beta63": 0.45,
+    "vol63": 0.6,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "ENTG",
+    "beta63": 4.09,
+    "vol63": 0.75,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "EQIX",
+    "beta63": 1.28,
+    "vol63": 0.27,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "ETN",
+    "beta63": 2.57,
+    "vol63": 0.46,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "FN",
+    "beta63": 3.29,
+    "vol63": 0.83,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "GEV",
+    "beta63": 2.09,
+    "vol63": 0.51,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "GFS",
+    "beta63": 2.14,
+    "vol63": 0.56,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "GLW",
+    "beta63": 3.21,
+    "vol63": 0.74,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "GOOGL",
+    "beta63": 1.22,
+    "vol63": 0.29,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "HPE",
+    "beta63": 2.95,
+    "vol63": 0.67,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "HUBB",
+    "beta63": 1.49,
+    "vol63": 0.29,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "HUT",
+    "beta63": 3.44,
+    "vol63": 1.01,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "INTC",
+    "beta63": 3.48,
+    "vol63": 0.67,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "IONQ",
+    "beta63": 4.35,
+    "vol63": 0.78,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "IREN",
+    "beta63": 5.16,
+    "vol63": 1.01,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "IRM",
+    "beta63": 1.37,
+    "vol63": 0.3,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "KLAC",
+    "beta63": 2.11,
+    "vol63": 0.56,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "LEU",
+    "beta63": 2.99,
+    "vol63": 0.76,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "LITE",
+    "beta63": 3.63,
+    "vol63": 0.94,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "LRCX",
+    "beta63": 3.17,
+    "vol63": 0.69,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "LTBR",
+    "beta63": 2.61,
+    "vol63": 0.65,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "MBLY",
+    "beta63": 1.47,
+    "vol63": 0.42,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "META",
+    "beta63": 1.31,
+    "vol63": 0.47,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "MOD",
+    "beta63": 2.21,
+    "vol63": 0.71,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "MPWR",
+    "beta63": 2.16,
+    "vol63": 0.54,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "MRVL",
+    "beta63": 3.53,
+    "vol63": 0.76,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "MU",
+    "beta63": 3.14,
+    "vol63": 0.69,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "NBIS",
+    "beta63": 5.69,
+    "vol63": 1.17,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "NNE",
+    "beta63": 4.14,
+    "vol63": 0.77,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "NVDA",
+    "beta63": 2.04,
+    "vol63": 0.36,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "NVT",
+    "beta63": 2.78,
+    "vol63": 0.59,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "NVTS",
+    "beta63": 4.26,
+    "vol63": 0.83,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "OKLO",
+    "beta63": 3.22,
+    "vol63": 0.81,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "ON",
+    "beta63": 2.36,
+    "vol63": 0.53,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "ONTO",
+    "beta63": 3.9,
+    "vol63": 0.85,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "ORCL",
+    "beta63": 3.29,
+    "vol63": 0.54,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "POET",
+    "beta63": 4.66,
+    "vol63": 0.82,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "PONY",
+    "beta63": 1.21,
+    "vol63": 0.53,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "POWL",
+    "beta63": 2.21,
+    "vol63": 0.6,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "PWR",
+    "beta63": 2.48,
+    "vol63": 0.53,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "QBTS",
+    "beta63": 3.52,
+    "vol63": 0.78,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "QCOM",
+    "beta63": 1.92,
+    "vol63": 0.45,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "QUBT",
+    "beta63": 3.53,
+    "vol63": 0.62,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "RBLX",
+    "beta63": 0.55,
+    "vol63": 0.84,
+    "mom_turn": false,
+    "conds": [
+     "vol"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "RGTI",
+    "beta63": 4.28,
+    "vol63": 0.74,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "RPD",
+    "beta63": 0.15,
+    "vol63": 0.91,
+    "mom_turn": false,
+    "conds": [
+     "vol"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "SERV",
+    "beta63": 2.32,
+    "vol63": 0.74,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "SITM",
+    "beta63": 4.18,
+    "vol63": 0.94,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "SMCI",
+    "beta63": 4.69,
+    "vol63": 0.81,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "SMR",
+    "beta63": 2.76,
+    "vol63": 0.86,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "SNDK",
+    "beta63": 3.83,
+    "vol63": 0.97,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "SNOW",
+    "beta63": 2.17,
+    "vol63": 0.54,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "SOUN",
+    "beta63": 2.28,
+    "vol63": 0.62,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "STM",
+    "beta63": 2.46,
+    "vol63": 0.51,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "STX",
+    "beta63": 1.08,
+    "vol63": 0.71,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "TEL",
+    "beta63": 1.47,
+    "vol63": 0.3,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "TEM",
+    "beta63": 1.23,
+    "vol63": 0.93,
+    "mom_turn": true,
+    "conds": [
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "TER",
+    "beta63": 3.21,
+    "vol63": 0.74,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "TSEM",
+    "beta63": 4.09,
+    "vol63": 0.87,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "TSM",
+    "beta63": 1.89,
+    "vol63": 0.33,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "U",
+    "beta63": 1.72,
+    "vol63": 0.58,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "UBER",
+    "beta63": 0.48,
+    "vol63": 0.34,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "UCTT",
+    "beta63": 2.13,
+    "vol63": 0.91,
+    "mom_turn": true,
+    "conds": [
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "UEC",
+    "beta63": 2.65,
+    "vol63": 0.64,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "UMC",
+    "beta63": 2.1,
+    "vol63": 0.61,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "VICR",
+    "beta63": 4.42,
+    "vol63": 1.02,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "VRT",
+    "beta63": 2.75,
+    "vol63": 0.68,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "WDC",
+    "beta63": 1.43,
+    "vol63": 0.75,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-10-23"
+   },
+   {
+    "sym": "WULF",
+    "beta63": 3.95,
+    "vol63": 0.91,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-10-23"
+   }
+  ],
+  "suspect_n": 0,
+  "suspect": [],
+  "stale_n": 0,
+  "stale": [],
+  "missing_n": 0,
+  "missing": [],
+  "note": "any_mine 係狀態旗（base rate 59%）唔係 trigger；用途＝naked 資格開關＋m2x_lit 止蝕。數據可疑=63日窗內有單日|move|>45%，多數係 split 裂數，唔入亮名"
+ },
+ "live_ref": {
+  "asof": "2026-10-26",
+  "is_completed": false,
+  "official_matches": true,
+  "values": {
+   "spx": 7674.97021484375,
+   "vix": 17.959999084472656,
+   "vix3m": 19.700000762939453,
+   "vvix": 100.88999938964844,
+   "qqq": 712.3499755859375,
+   "nvda": 215.24000549316406,
+   "hyg": 77.24500274658203,
+   "lqd": 104.15499877929688,
+   "ts_spread": -1.74
+  },
+  "chg_vs_official": {
+   "^GSPC": 0.0067,
+   "^VIX": -1.07,
+   "^VIX3M": -0.42,
+   "QQQ": 0.0113,
+   "NVDA": 0.0203
+  },
+  "canary": {
+   "nvda_live": 215.24000549316406,
+   "vs_sma50_official": -0.0325,
+   "note": "SMA50 用 10-23 值（未重算）；要收市價企返 50 日線先算金絲雀修復"
+  },
+  "extended": null,
+  "note": "10-26 即市報價係盤前/即市數，唔作官方判燈；官方判燈只用完成收市"
+ },
+ "rules_note": "常數=scripts_e/regime_state.py P；行為映射=AGGRESSIVE_SPEC.md §3-§5；判燈規格=daily_monitor_spec.md"
+}

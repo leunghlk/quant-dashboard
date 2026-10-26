@@ -113,9 +113,7 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
 </div></div>
 
 <div id="staleBanner" class="warn-note" style="display:none;margin:0 22px 10px;max-width:1236px"></div>
-<div id="rampBanner" class="card" style="border-left:4px solid var(--warn);margin-bottom:12px">
-  <b> ramp 提示：</b>本台係 <b>advisory</b>（策略跟 STRATEGY_SPEC_2026Q4-2028 §8）。kill switch 恢復後要行 <b>Stage 0 paper ≥8-13 週</b>（過一個業績季＋一次 VIX&gt;25）先返 live micro — 本台數據照日更新，paper 跟蹤就係 Stage 0 功課。接貨 31 日 ban 要喺 <code>~/shortput_research/v2_broad_universe/state/bans.json</code> 登記。
-</div>
+<div id="lightsBanner" class="card" style="border-left:4px solid var(--warn);margin-bottom:12px"><b>🚥 洗倉監察：</b><span class="muted">載入 lights_today.json…（生成：scripts_g/lights_daily.py → push）</span></div>
 
 <div class="tabs">
   <button class="active" onclick="showSec('desk',this)">📋 策略台</button>
@@ -125,9 +123,55 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
   <button onclick="showSec('spec',this)">📜 策略 Spec</button>
   <button onclick="showSec('perf',this)">📈 業績</button>
   <button onclick="showSec('paper',this)">📄 Paper Book</button>
+  <button onclick="showSec('phases',this)">🗓️ 兩期計劃</button>
 </div>
 
 <div class="main">
+
+<!-- ═══ 兩期計劃 ═══ -->
+<div class="sec" id="sec-phases">
+  <div class="muted" style="font-size:11.5px;margin-bottom:8px">數據基準 2026-10-26/27（bridge／真鏈實核）· 來源：recovery_plan.md／allweather_spec.md／research_qg.md（~/shortput_research/ai_era_v1/）· 🔴kill switch 未解封：以下全部只係計劃＋paper，唔構成落單 · 非投資建議</div>
+
+  <div class="card">
+    <h3>⏱️ 第一期：回本期（2026-10-26 → 12-31）</h3>
+    <div class="table-scroll"><table class="gates" style="min-width:680px">
+      <tr><th style="text-align:left">實況（10-26 直核）</th><th style="text-align:left">數字</th></tr>
+      <tr><td style="text-align:left">帳戶淨值</td><td style="text-align:left"><b>$58,639 ≈ 457,382 HKD</b>（基金 217k 高騰 WeValue＋證券 240k）</td></tr>
+      <tr><td style="text-align:left">洞 −233k 拆解</td><td style="text-align:left">已實現 ~161k＋未實現 ~72k（NBIS 佢 −75.2k）</td></tr>
+      <tr><td style="text-align:left">NBIS 現況</td><td style="text-align:left">200 股 @200（10-26 盤中 163.12，20 日 −29.7%）＋short 2× C165 11-06（credit $9.85，mid $10.12，delta 0.504＝五五波接貨）</td></tr>
+      <tr><td style="text-align:left">回本標尺</td><td style="text-align:left">457k 本、41 個交易日 <b>+51%</b>（每交易日 +1.0% 連續六週）</td></tr>
+    </table></div>
+    <div class="table-scroll"><table class="gates" style="min-width:680px;margin-top:8px">
+      <tr><th style="text-align:left">分層</th><th style="text-align:left">內容</th><th style="text-align:left">期望／最壞</th></tr>
+      <tr><td style="text-align:left"><b>Tier 0 防失血</b></td><td style="text-align:left">紅燈紀律＋kill switch 未解封＋NBIS 11-06 決策（見下盒）</td><td style="text-align:left">防再爆 −29%</td></tr>
+      <tr><td style="text-align:left"><b>Tier 1 旗艦書 85-90%</b></td><td style="text-align:left">spr10 δ0.45＋mom63 揀名＋避雷五件套＋regime</td><td style="text-align:left">46td 期望 +2.8%／最壞 −4.0%</td></tr>
+      <tr><td style="text-align:left"><b>Tier 2 進取 lane 10-15%</b></td><td style="text-align:left">lane B 無 regime 捕獲＋lane A naked 細注</td><td style="text-align:left">+3.9~4.0%（全書口徑）／最壞 −10.7%</td></tr>
+      <tr><td style="text-align:left"><b>Tier 3 方向 sleeve ≤12.5%</b></td><td style="text-align:left">正股 AI 名追本錢——<b>硬規則：輸咗唔追加唔攤平</b></td><td style="text-align:left">好尾 ~+30k／全輸 −37k／書 −15% 機率 &lt;1%</td></tr>
+    </table></div>
+    <div class="muted" style="font-size:11.5px;margin-top:6px">組合期望（85% T1＋12.5% T3）：中位 <b>+3.4%</b>。誠實欄：12-31 全數回本（+51%/41td）有紀律組合 P≈0（2026-only bootstrap）；唯一 &gt;1% 路徑＝100%+ 槓桿重注＋紅利延續＋唔爆倉三重夾擊＝10-15 爆倉同一劑量。刻度放 2027 Q1-Q2。</div>
+    <div class="warn-note" style="margin-top:8px"><b>🔶 NBIS 11-06 決策盒（要你自己落單）：</b>
+      <div class="table-scroll"><table class="gates" style="min-width:600px;margin-top:6px">
+        <tr><th style="text-align:left">選項</th><th style="text-align:left">數學（165C mid $10.12／ask $10.35）</th><th style="text-align:left">判斷</th></tr>
+        <tr><td style="text-align:left"><b>留</b>（等 11-06 到期）</td><td style="text-align:left">NBIS&gt;165→200 股被贖走，NBIS 總損鎖 ~−39.2k HKD＋收齊 $1,970；&lt;165→收齊 premium 股照坐</td><td style="text-align:left">delta 0.504＝五五波；再反彈即觸發</td></tr>
+        <tr><td style="text-align:left"><b>拆</b>（買返兩張）</td><td style="text-align:left">2× ask 10.35＝$2,070，vs credit $1,970 → <b>淨使 ~US$100 解除 165 封頂</b></td><td style="text-align:left">想保留完整反彈空間＝最平方法；代價＝放棄 premium 剩餘 decay</td></tr>
+        <tr><td style="text-align:left"><b>加沽 165P？</b></td><td style="text-align:left">mid $12.22（IV 103%）收入 ~$1,222，義務 $16,500（equity 28%）</td><td style="text-align:left">⚠️唔係「解封頂」，係再加 NBIS 注碼：黃燈單名凍結＋kill radar 否決名＋一隻股集中度爆 cap——唔建議</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🚀 第二期：重新出發期（Stage 0 paper 由 10-26 起；live 2027-01 起）</h3>
+    <div class="muted" style="font-size:12px;margin-bottom:6px">All-weather v2（線性權重：綠態進取書 → 紅態滑落防守書）· <b>$90k 整張版 INT90_V2：CAGR 8.96%／Sharpe 1.50／MDD −2.34%／月勝率 86.2%／滾動 1Y 雙&gt;1 佔 84.4% 窗</b>· 逐年 +2.1/+10.2/+15.4/+9.4%（2022-25 全正）· CRISIS 全清＋25→50→100 階梯重入</div>
+    <div class="table-scroll"><table class="gates" style="min-width:680px">
+      <tr><th style="text-align:left">Stage</th><th style="text-align:left">日期</th><th style="text-align:left">金額</th><th style="text-align:left">畢業條件</th></tr>
+      <tr><td style="text-align:left"><b>0 paper</b></td><td style="text-align:left">2026-10-26→12-24</td><td style="text-align:left">$0</td><td style="text-align:left">≥80% 報價達模型價 90%＋燈號 30 日零斷報＋<b>你明言解封 kill switch</b></td></tr>
+      <tr><td style="text-align:left"><b>1 micro</b></td><td style="text-align:left">2027-01-04→03-31</td><td style="text-align:left">$5-9k</td><td style="text-align:left">≥40 張、實收 ≥85% 模型、滑價 ≤15%</td></tr>
+      <tr><td style="text-align:left"><b>2 half</b></td><td style="text-align:left">2027-04→09</td><td style="text-align:left">$45k</td><td style="text-align:left">實現 Sharpe&gt;0、MDD&lt;3%</td></tr>
+      <tr><td style="text-align:left"><b>3 full</b></td><td style="text-align:left">2027-10 起</td><td style="text-align:left">全套</td><td style="text-align:left">—</td></tr>
+    </table></div>
+    <div class="muted" style="font-size:11.5px;margin-top:6px">降級 tripwire：實收 &lt;75-80% 模型／MDD 超標／bridge 斷 &gt;2 日／紅燈 &gt;10 日。<b>HAIR85 警告</b>：premium 收唔足（&lt;85-90% 模型價）＝全線 Sharpe 轉負 → 淨行防守書＋現金。<br>Checklist：🟢已有＝bridge／按金試算／名 cap／TG／runner；🟡半done＝燈號（本 banner）／bans.json／宇宙過時閘；🔴未有＝解封＋真價閘＋paper 4-8 週。三紅全清先准 Stage 1。</div>
+  </div>
+</div>
 
 <!-- ═══ 策略台 ═══ -->
 <div class="sec active" id="sec-desk">
@@ -670,8 +714,53 @@ function loadPaper(){
     if(el)el.innerHTML='<div class="card"><h3>📄 SP4 模擬倉</h3><div class="muted">sp4_paper.json 讀唔到（'+e+'）— launchd 07:55 HKT 會寫＋push</div></div>';
   });
 }
+var LIGHTS_CRITERIA='<details style="margin-top:8px"><summary style="cursor:pointer;font-size:12.5px;font-weight:700">📋 判燈 criteria 全列（12 訊號＋四態閾＋行動表）</summary>'+
+'<div class="table-scroll"><table class="gates" style="min-width:820px;margin-top:6px"><tr><th>#</th><th style="text-align:left">訊號</th><th style="text-align:left">白話</th><th>現值</th><th>🟡黃閾</th><th>🔴紅閾</th></tr>'+
+'<tr><td>1</td><td style="text-align:left">VIX 恐慌指數</td><td style="text-align:left">大戶買股市保險嘅價，愈高愈驚</td><td><b>19.45</b></td><td>≥20</td><td>≥22（≥28 危機）</td></tr>'+
+'<tr><td>2</td><td style="text-align:left">VIX 期限結構</td><td style="text-align:left">短期保險貴過三個月期＝有急事</td><td><b>−1.03</b>（健康）</td><td>≥0 倒掛</td><td>≥2</td></tr>'+
+'<tr><td>3</td><td style="text-align:left">廣度 %&gt;200DMA</td><td style="text-align:left">幾多 % 大股企穩一年線上</td><td><b>66.7%</b></td><td>&lt;60%</td><td>&lt;50%</td></tr>'+
+'<tr><td>4</td><td style="text-align:left">SPX 年內回撤</td><td style="text-align:left">大市距一年高位幾多 %</td><td><b>−2.5%</b></td><td>≤−5%</td><td>≤−10%／−20%</td></tr>'+
+'<tr><td>5</td><td style="text-align:left">QQQ 年內回撤</td><td style="text-align:left">AI 大盤距頂（洗倉佢先跌）</td><td><b>−7.3%</b></td><td>≤−6%</td><td>≤−8%</td></tr>'+
+'<tr><td>6</td><td style="text-align:left">信用 HYG/LQD 20日</td><td style="text-align:left">垃圾債對投資級表現，信用腳軟行先</td><td><b>−1.7%</b>（企穩）</td><td>≤−3%</td><td>—</td></tr>'+
+'<tr><td>7</td><td style="text-align:left">急殺事件旗</td><td style="text-align:left">「今日已急殺」記錄（事後確認唔係預測）</td><td><b>OFF</b></td><td>—</td><td>觸發</td></tr>'+
+'<tr><td>8</td><td style="text-align:left">五項計數 any2</td><td style="text-align:left">五個危險訊號齊幾多個（1+2+3+4+6）；8/8 歷史覆蓋、lead 中位 4 日</td><td><b>0/5</b></td><td>=1 警戒</td><td>≥2</td></tr>'+
+'<tr><td>9</td><td style="text-align:left">趨勢 mom20＋200日線</td><td style="text-align:left">近月方向＋牛熊分界</td><td><b>−1.6%；線上</b></td><td>mom20&lt;0</td><td>穿 200 日線</td></tr>'+
+'<tr><td>10</td><td style="text-align:left">NVDA 金絲雀</td><td style="text-align:left">AI 一哥穿 50 日線＋月動量負＝鏈洗倉先兆（23 例 78% 命中）</td><td><b>ON</b>（自 10-15）</td><td>ON=Y1</td><td>—</td></tr>'+
+'<tr><td>11</td><td style="text-align:left">單名地雷 141 池</td><td style="text-align:left">高β／高波動／破線轉弱（any_mine）；lead 40-130 日</td><td><b>100/141 亮</b></td><td>亮名禁 naked</td><td>—</td></tr>'+
+'<tr><td>12</td><td style="text-align:left">VVIX 80 分位</td><td style="text-align:left">恐慌嘅恐慌——買 VIX 保險嘅價都貴</td><td><b>ON</b></td><td>ON=Y5</td><td>—</td></tr></table></div>'+
+'<div class="muted" style="font-size:11.5px;margin-top:6px"><b>四態引擎</b>：CRISIS＝VIX≥28 或（SPX 距頂 −20%＋VIX≥26）或（10 日急跌＋VIX≥26）；緊急＝單日 −3%＋距頂 −10%＋VIX≥22 免確認。STRESS＝五項計數≥2 或 VIX≥22。TREND＝SPX&gt;200 日線＋月動量正＋廣度≥60＋金絲雀未破。<br>'+
+'<b>行動映射</b>：🟢綠＝照常。🟡黃＝單名凍結禁新、指數腿 δ≤0.30 照開、m2x_lit 止蝕啟用（mark≥2×credit＋地雷亮即平）、對沖備妥。🔴STRESS＝單名禁新＋指數 δ≤0.15＋擔保 ≤60%＋對沖 5% NAV。🔴CRISIS＝首個收市全平＋對沖 10%＋擔保 ≤30%；CRISIS→STRESS 企穩 3 日後 25%→50%→滿配階梯重入（唔接刀）。<br>'+
+'品質六閘書（本台 v4g）另有判決：綠燈照行、黃燈 Y1 禁新（TG＋24h 確認，唔覆＝照行）、紅燈唔自動全平（照 roll＋凍平倉建議）。詳：daily_monitor_spec.md／research_qg.md</div></details>';
+
+function loadLights(){
+  fetch('lights_today.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
+    var el=document.getElementById('lightsBanner');if(!el)return;
+    var emo={GREEN:'🟢',YELLOW:'🟡',RED:'🔴'}[j.light]||'⚪';
+    var lab={GREEN:'綠燈 — 照常',YELLOW:'黃燈 — 單名凍結・指數腿細 δ 照開',RED:'紅燈 — 防守'}[j.light]||j.light;
+    var col={GREEN:'#1a7f37',YELLOW:'#b45309',RED:'#c0392b'}[j.light]||'#888';
+    var o=j.official||{},lr=(j.live_ref||{}),lv=lr.values||{},pr=j.pool_radar||{};
+    function fx(v,d){return (v==null||isNaN(v))?'—':Number(v).toFixed(d);}
+    var h='<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">';
+    h+='<div style="font-size:34px;line-height:1">'+emo+'</div><div style="flex:1;min-width:260px">';
+    h+='<div style="font-weight:800;font-size:15px;color:'+col+'">🚥 洗倉監察：'+lab+'</div>';
+    h+='<div class="muted" style="font-size:11.5px">官方讀數 '+o.date+'（美國收市）· 引擎 '+o.state+'（企咗 '+o.days_in_state+' 日）· 生成 '+j.generated_at+'</div>';
+    (j.yellow_flags||[]).forEach(function(f){h+='<div style="font-size:12.5px;margin-top:3px">⚑ '+f+'</div>';});
+    var a=j.actions||{};
+    if(a.csp)h+='<div style="font-size:12.5px;margin-top:5px"><b>CSP：</b>'+a.csp+'</div>';
+    if(a.hedge)h+='<div style="font-size:12.5px"><b>對沖：</b>'+a.hedge+'</div>';
+    if(a.book)h+='<div style="font-size:12.5px"><b>持倉：</b>'+a.book+'</div>';
+    h+='<div class="muted" style="font-size:11.5px;margin-top:5px">池雷達 '+pr.lit_n+'/'+pr.evaluated+' 亮（常年 ~59%）· 即市参考 '+lr.asof+'：SPX '+fx(lv.spx,0)+'／VIX '+fx(lv.vix,2)+'／QQQ '+fx(lv.qqq,1)+'／NVDA '+fx(lv.nvda,1)+'（官方讀數先作判燈）</div>';
+    h+='</div></div>'+LIGHTS_CRITERIA;
+    el.style.borderLeftColor=col;
+    el.innerHTML=h;
+  }).catch(function(e){
+    var el=document.getElementById('lightsBanner');
+    if(el)el.innerHTML='<b>🚥 洗倉監察：</b><span class="muted">lights_today.json 讀唔到（'+e+'）— 本地跑 ~/shortput_research/ai_era_v1/scripts_g/lights_daily.py 再 push</span>';
+  });
+}
 loadAll();
 loadPaper();
+loadLights();
 </script>
 </body>
 </html>
