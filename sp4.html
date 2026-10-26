@@ -173,6 +173,17 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
     <div class="muted" style="font-size:11.5px;margin-bottom:6px"><b>指數腿規格（aw 防守書，跟 spec）</b>：XSP put <b>5% spread · 賣腿 δ0.20</b> · 21-30 DTE · 21 曆日 roll · VIX 百分位 ≤50 先開。XSP＝mini-SPX（1/10 規模、<b>現金結算＋歐式＝冇接貨冇早行使</b>）。width margin ≈$3.6k/張；cash-secured 口徑 $73k/張（$90k 戶口都食不起）→ <b>指數腿 Stage 2（$45k＋margin 批文）先上</b>。黃燈規則「指數腿 δ≤0.30」係上限——書常態 0.20 本來就過。</div>
     <div id="stage0Table" class="muted">載入 stage0_quotes.csv…</div>
   </div>
+  <div class="card" id="card-pbook">
+    <h3>📒 Paper Book（回本期 · Stage 0） <span class="pill teal">$0 真錢</span><span class="pill grey" id="pbStat"></span></h3>
+    <div class="muted" style="font-size:11.5px;margin-bottom:6px">上面台剔選 → 「✍️ 開 paper 倉」→ 倉位入簿（存本機 localStorage；⬇️匯出 CSV 可備份／交我入 repo 持久化）。機器日日 mark-to-market：現價＝同 K 鏈 bid/ask；過到期自動用 spot 結算。m2x 旗＝mark≥2×credit（倉後監察第一條）。<b>呢本簿＝G1「paper 8-13 週」嘅證據</b>。</div>
+    <div id="pbOpen"></div>
+    <div id="pbClosed"></div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-primary" onclick="pbExport()">⬇️ 匯出 CSV</button>
+      <label class="btn-primary" style="cursor:pointer">⬆️ 匯入 CSV<input type="file" accept=".csv" style="display:none" onchange="pbImport(this)"></label>
+      <button class="btn-primary" onclick="pbClear()" style="background:#c0392b">🗑️ 清空重來</button>
+    </div>
+  </div>
   <div class="card">
     <h3>💰 回本 sleeve 試算（G1 過咗先開） <span class="pill grey">硬頂 12.5%</span></h3>
     <div class="table-scroll"><table class="gates" style="min-width:640px">
@@ -955,33 +966,159 @@ function loadStage0(){
   fetch('stage0_quotes.csv',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(t){
     var el=document.getElementById('stage0Table');if(!el)return;
     var L=t.trim().split('\n');L.shift();
-    var by={};
-    L.forEach(function(l){var c=l.split(',');if(c.length<15)return;(by[c[0]]=by[c[0]]||[]).push(c);});
+    var by={},all=[];
+    L.forEach(function(l){var c=l.split(',');if(c.length<15)return;
+      var o={date:c[0],name:c[1],expiry:c[2],dte:parseInt(c[3]),spot:parseFloat(c[4]),kS:parseFloat(c[5]),kL:parseFloat(c[6]),bidS:parseFloat(c[7]),askS:parseFloat(c[8]),bidL:parseFloat(c[9]),askL:parseFloat(c[10]),cr:parseFloat(c[11]),cm:parseFloat(c[12]),ra:parseFloat(c[13]),src:c[14]};
+      if(o.name){all.push(o);(by[o.date]=by[o.date]||[]).push(o);}});
+    window.S0=all;
     var ds=Object.keys(by).sort(),d=ds[ds.length-1];
-    var rows=(by[d]||[]).sort(function(a,b){return (parseFloat(b[13])||-1)-(parseFloat(a[13])||-1);});
-    var npass=0,h='<div class="table-scroll"><table class="gates" style="min-width:980px">';
-    h+='<tr><th>SPOT</th><th style="text-align:left">STRIKE（賣／買）</th><th>MID</th><th>|Δ|</th><th>P(OTM)</th><th>年化%</th><th>張數</th><th>按金</th><th>收入</th><th>做?</th><th style="text-align:left">備註</th></tr>';
-    rows.forEach(function(r){
-      var spot=parseFloat(r[4]),kS=parseFloat(r[5]),kL=parseFloat(r[6]),cr=parseFloat(r[11]),cm=parseFloat(r[12]),ra=parseFloat(r[13]),dte=parseInt(r[3]);
-      var width=(!isNaN(kS)&&!isNaN(kL))?(kS-kL):NaN;
-      var ann=(!isNaN(cr)&&!isNaN(width)&&width>0&&!isNaN(dte)&&dte>0)?(cr/width*365/dte*100):NaN;
-      var ok=!isNaN(ra)&&ra>=0.9;if(ok)npass++;
-      h+='<tr><td>'+_f(spot,1)+'</td>'
-        +'<td style="text-align:left">'+(isNaN(kS)?(r[14]==='NO_QUOTE'?'— 無鏈價':'—'):(kS+' P／'+kL+' P'))+'</td>'
-        +'<td><b>'+_f(cr,2)+'</b></td>'
-        +'<td>≈0.45</td><td>≈55%</td>'
-        +'<td>'+_f(ann,0)+'%</td>'
-        +'<td>1</td>'
+    var rows=(by[d]||[]).sort(function(a,b){return (b.ra||-1)-(a.ra||-1);});
+    var T={};rows.forEach(function(o){T[pbKey(o)]=o});window.S0TODAY=T;
+    var npass=0,h='<div class="table-scroll"><table class="gates" style="min-width:1080px">';
+    h+='<tr><th>揀</th><th>SPOT</th><th style="text-align:left">STRIKE（賣／買）</th><th>MID</th><th>|Δ|</th><th>P(OTM)</th><th>年化%</th><th>張數</th><th>按金</th><th>收入</th><th>做?</th><th style="text-align:left">備註</th></tr>';
+    rows.forEach(function(o){
+      var ok=!isNaN(o.ra)&&o.ra>=0.9;if(ok)npass++;
+      var width=(!isNaN(o.kS)&&!isNaN(o.kL))?(o.kS-o.kL):NaN;
+      var ann=(!isNaN(o.cr)&&!isNaN(width)&&width>0&&o.dte>0)?(o.cr/width*365/o.dte*100):NaN;
+      h+='<tr><td><input type="checkbox" data-k="'+pbKey(o)+'" '+(S0SEL[pbKey(o)]?'checked':'')+' onchange="s0Tick(this)" style="transform:scale(1.3)"></td>'
+        +'<td>'+_f(o.spot,1)+'</td>'
+        +'<td style="text-align:left">'+(isNaN(o.kS)?(o.src==='NO_QUOTE'?'— 無鏈價':'—'):(o.kS+' P／'+o.kL+' P'))+'</td>'
+        +'<td><b>'+_f(o.cr,2)+'</b></td><td>≈0.45</td><td>≈55%</td>'
+        +'<td>'+_f(ann,0)+'%</td><td>1</td>'
         +'<td>'+(!isNaN(width)?('$'+(width*100).toFixed(0)):'—')+'</td>'
-        +'<td>'+(!isNaN(cr)?('$'+(cr*100).toFixed(0)):'—')+'</td>'
+        +'<td>'+(!isNaN(o.cr)?('$'+(o.cr*100).toFixed(0)):'—')+'</td>'
         +'<td>'+(ok?'<span style="color:#1a7f37;font-weight:800">✓ paper</span>':'<span style="color:#c0392b;font-weight:800">✗</span>')+'</td>'
-        +'<td style="text-align:left;font-size:11px">模型 '+_f(cm,2)+' · 真價比 '+_f(ra,3)+' · '+(r[2]||'').slice(5)+' '+dte+'d · '+r[14]+'</td></tr>';
+        +'<td style="text-align:left;font-size:11px">模型 '+_f(o.cm,2)+' · 真價比 '+_f(o.ra,3)+' · '+(o.expiry||'').slice(5)+' '+o.dte+'d · '+o.src+'</td></tr>';
     });
     h+='</table></div>';
-    h+='<div class="muted" style="font-size:11.5px;margin-top:4px">數據日 '+d+' · 過真價閘（ratio≥0.90）'+npass+'/'+rows.length+' · MID＝兩腿淨收 credit（spr10＝賣 δ0.45 put＋買其 90% K put 保護）· |Δ|≈0.45／P(OTM)≈1−|Δ|≈55% 係賣腿設計值 · 年化%＝credit÷按金×365÷dte · 按金＝spread width×100（券商口徑）· 做?＝G1 真價閘判決 — 全部 paper $0，過 G1 先變真</div>';
+    h+='<div class="muted" style="font-size:11.5px;margin-top:4px">數據日 '+d+' · 過真價閘（ratio≥0.90）'+npass+'/'+rows.length+' · MID＝兩腿淨收 credit（spr10＝賣 δ0.45 put＋買其 90% K put 保護）· |Δ|≈0.45／P(OTM)≈1−|Δ|≈55% 係賣腿設計值 · 年化%＝credit÷按金×365÷dte · 按金＝spread width×100（券商口徑）</div>';
+    h+='<div id="s0Totals" style="margin-top:8px;padding:9px 12px;border:1px dashed #cbd5e1;border-radius:10px;font-size:13px"></div>';
     el.innerHTML=h;
+    s0Totals();renderBook();
   }).catch(function(e){var el=document.getElementById('stage0Table');if(el)el.innerHTML='<span class="muted">stage0_quotes.csv 未同步（'+e+'）— 08:15 日更會推上 gh-pages</span>';});
 }
+var PB_KEY='aw_paperbook_v1',S0SEL={},S0_CAP=7200;
+function pbKey(o){return o.name+'|'+o.expiry+'|'+o.kS+'|'+o.kL}
+function pbLoad(){try{var b=JSON.parse(localStorage.getItem(PB_KEY));if(b&&b.open&&b.closed)return b}catch(e){}return{open:[],closed:[]}}
+function pbSave(x){try{localStorage.setItem(PB_KEY,JSON.stringify(x))}catch(e){}}
+function pbMargin(b){return b.open.reduce(function(s,p){return s+p.width*100},0)}
+function s0Tick(cb){var k=cb.getAttribute('data-k');if(cb.checked)S0SEL[k]=1;else delete S0SEL[k];s0Totals()}
+function s0Totals(){
+  var el=document.getElementById('s0Totals');if(!el)return;
+  var n=0,inc=0,mg=0,b=pbLoad(),used=pbMargin(b),k;
+  for(k in S0SEL){if(!S0SEL[k])continue;var o=(window.S0TODAY||{})[k];if(!o||isNaN(o.cr))continue;n++;inc+=o.cr*100;mg+=(o.kS-o.kL)*100;}
+  var room=S0_CAP-used,over=(mg>room&&n>0);
+  var h='揀咗 <b>'+n+'</b> 張 · Σ收入 <b>$'+inc.toFixed(0)+'</b> · Σ按金 <b>$'+mg.toFixed(0)+'</b> · 已開倉佔用 $'+used.toFixed(0)+'／sleeve 硬頂 $'+S0_CAP+'（剩 '+Math.max(room,0).toFixed(0)+'）';
+  h+='　<button class="btn-primary" style="padding:6px 12px" onclick="pbOpenSel()">✍️ 開 paper 倉</button> <span id="s0Msg" style="font-size:12px;font-weight:700"></span>';
+  el.style.color=over?'#c0392b':'';
+  el.innerHTML=(over?'🚫 超額：':'')+h;
+}
+function pbOpenSel(){
+  var b=pbLoad(),adds=[],dup=0,mg=0,k;
+  for(k in S0SEL){if(!S0SEL[k])continue;
+    var o=(window.S0TODAY||{})[k];if(!o||isNaN(o.cr))continue;
+    var dupf=false;
+    b.open.concat(adds).forEach(function(p){if(p.name===o.name&&p.expiry===o.expiry&&p.kS===o.kS&&p.kL===o.kL)dupf=true});
+    if(dupf){dup++;continue}
+    adds.push({id:o.date+'_'+o.name+'_'+b.open.length+'_'+adds.length,name:o.name,expiry:o.expiry,kS:o.kS,kL:o.kL,credit:o.cr,width:o.kS-o.kL,src:o.src,open_date:o.date});
+    mg+=(o.kS-o.kL)*100;}
+  var msg=document.getElementById('s0Msg');
+  if(!adds.length){if(msg)msg.textContent='冇揀到（或全部重複）';return}
+  if(pbMargin(b)+mg>S0_CAP){if(msg)msg.textContent='🚫 超 sleeve $'+S0_CAP+' 硬頂 — 唔准開（紙上都要練紀律）';return}
+  b.open=b.open.concat(adds);pbSave(b);S0SEL={};
+  document.querySelectorAll('#stage0Table input[type=checkbox]').forEach(function(c){c.checked=false});
+  if(msg)msg.textContent='✓ 開咗 '+adds.length+' 張 paper'+(dup?'（'+dup+' 張重複略過）':'');
+  s0Totals();renderBook();
+}
+function pbMark(p){
+  var rows=(window.S0||[]).filter(function(o){return o.name===p.name&&o.kS===p.kS&&o.kL===p.kL&&o.date>=p.open_date&&!isNaN(o.askS)&&!isNaN(o.bidL)});
+  if(!rows.length)return null;
+  var o=rows[rows.length-1],cost=o.askS-o.bidL,pnl=(p.credit-cost)*100;
+  return{date:o.date,cost:cost,pnl:pnl,pct:pnl/(p.width*100)*100,m2x:cost>=2*p.credit};
+}
+function _pbdays(a,b2){return (new Date(b2)-new Date(a))/864e5}
+function pbSettle(){
+  var b=pbLoad(),today=new Date().toISOString().slice(0,10),ch=false;
+  for(var i=b.open.length-1;i>=0;i--){var p=b.open[i];
+    if(today<=p.expiry)continue;
+    var cand=(window.S0||[]).filter(function(o){return o.name===p.name&&!isNaN(o.spot)&&o.date>=p.expiry}).sort(function(x,y){return x.date<y.date?-1:1});
+    if(!cand.length||_pbdays(p.expiry,cand[0].date)>5)continue;
+    var spot=cand[0].spot,iv=Math.max(p.kS-spot,0)-Math.max(p.kL-spot,0);
+    p.close_date=cand[0].date;p.settle_spot=spot;p.pnl=(p.credit-iv)*100;p.how='到期結算';
+    b.open.splice(i,1);b.closed.push(p);ch=true;}
+  if(ch)pbSave(b);
+}
+function pbCloseMan(id){
+  var b=pbLoad(),i=-1;
+  b.open.forEach(function(p,idx){if(p.id===id)i=idx});
+  if(i<0)return;
+  var p=b.open[i],m=pbMark(p),today=new Date().toISOString().slice(0,10);
+  p.close_date=today;p.how='手動平倉';p.pnl=m?m.pnl:0;p.settle_spot=null;
+  b.open.splice(i,1);b.closed.push(p);pbSave(b);renderBook();
+}
+function renderBook(){
+  pbSettle();
+  var b=pbLoad(),st=document.getElementById('pbStat'),op=document.getElementById('pbOpen'),cl=document.getElementById('pbClosed');
+  var today=new Date().toISOString().slice(0,10),wins=0,cum=0;
+  b.closed.forEach(function(p){if(p.pnl>0)wins++;cum+=p.pnl||0});
+  b.open.forEach(function(p){var m=pbMark(p);if(m)cum+=m.pnl});
+  var wk=Infinity;
+  b.open.concat(b.closed).forEach(function(p){var d=_pbdays(p.open_date,today)/7;if(d<wk)wk=d});
+  if(!isFinite(wk))wk=0;
+  if(st)st.textContent='未平 '+b.open.length+' · 已平 '+b.closed.length+' · 勝率 '+(b.closed.length?Math.round(wins/b.closed.length*100)+'%':'—')+' · 累計 P&L $'+cum.toFixed(0)+' · 按金佔用 $'+pbMargin(b).toFixed(0)+'／$'+S0_CAP+' · paper '+wk.toFixed(1)+' 週（G1 要 8-13）';
+  var h='';
+  if(b.open.length){
+    h='<div class="table-scroll"><table class="gates" style="min-width:900px"><tr><th style="text-align:left">名</th><th>到期</th><th style="text-align:left">K賣/K買</th><th>開倉日</th><th>entry credit</th><th>現價（平倉使）</th><th>浮動 P&L</th><th>按金</th><th style="text-align:left">旗</th><th></th></tr>';
+    b.open.forEach(function(p){
+      var m=pbMark(p),dleft=Math.round(_pbdays(today,p.expiry)),flags=[];
+      if(m&&m.m2x)flags.push('🟡 m2x mark≥2×credit');
+      if(dleft<=9)flags.push('🟡 尾聲 '+dleft+'d');
+      h+='<tr><td style="text-align:left"><b>'+p.name+'</b></td><td>'+p.expiry.slice(5)+'（'+dleft+'d）</td><td style="text-align:left">'+p.kS+'/'+p.kL+'</td><td>'+p.open_date.slice(5)+'</td><td>'+Number(p.credit).toFixed(2)+'</td>'
+        +'<td>'+(m?Number(m.cost).toFixed(2)+'（'+m.date.slice(5)+' mark）':'—')+'</td>'
+        +(m?'<td style="color:'+(m.pnl>=0?'#1a7f37':'#c0392b')+';font-weight:800">'+(m.pnl>=0?'+':'')+m.pnl.toFixed(0)+'（'+(m.pct>=0?'+':'')+m.pct.toFixed(0)+'%）</td>':'<td>—</td>')
+        +'<td>$'+(p.width*100).toFixed(0)+'</td><td style="text-align:left;font-size:11px">'+(flags.join('・')||'—')+'</td>'
+        +'<td><button class="btn-primary" style="padding:4px 10px;font-size:11px" onclick="pbCloseMan(\''+p.id+'\')">平倉</button></td></tr>';
+    });
+    h+='</table></div>';
+  }else h='<div class="muted">未開倉 — 上面台剔選想要嘅腿（睇實「做?」欄＝真價閘 verdict），撳「✍️ 開 paper 倉」入簿。</div>';
+  if(op)op.innerHTML=h;
+  var h2='';
+  if(b.closed.length){
+    h2='<div class="table-scroll"><table class="gates" style="min-width:700px;margin-top:8px"><tr><th style="text-align:left">名</th><th>開倉→平倉</th><th style="text-align:left">K賣/K買</th><th>P&L</th><th>結算 spot</th><th>方法</th><th>勝?</th></tr>';
+    b.closed.slice().reverse().forEach(function(p){
+      h2+='<tr><td style="text-align:left"><b>'+p.name+'</b></td><td>'+p.open_date.slice(5)+'→'+(p.close_date||'').slice(5)+'</td><td style="text-align:left">'+p.kS+'/'+p.kL+'</td><td style="color:'+(p.pnl>=0?'#1a7f37':'#c0392b')+';font-weight:800">'+(p.pnl>=0?'+':'')+Number(p.pnl).toFixed(0)+'</td><td>'+(p.settle_spot!=null?Number(p.settle_spot).toFixed(1):'—')+'</td><td>'+(p.how||'')+'</td><td>'+(p.pnl>0?'✓':'✗')+'</td></tr>';
+    });
+    h2+='</table></div>';
+  }
+  if(cl)cl.innerHTML=h2;
+}
+function pbExport(){
+  var b=pbLoad(),L=['type,name,expiry,kS,kL,credit,width,src,open_date,close_date,pnl,how,settle_spot'];
+  function row(t,p){return [t,p.name,p.expiry,p.kS,p.kL,p.credit,p.width,p.src,p.open_date,p.close_date||'',(p.pnl==null?'':p.pnl),p.how||'',(p.settle_spot==null?'':p.settle_spot)].join(',')}
+  b.open.forEach(function(p){L.push(row('open',p))});
+  b.closed.forEach(function(p){L.push(row('closed',p))});
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(L.join('\n'));
+  a.download='aw_paperbook.csv';a.click();
+}
+function pbImport(inp){
+  var f=inp.files[0];if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(){try{
+    var L=rd.result.trim().split('\n');L.shift();
+    var b={open:[],closed:[]};
+    L.forEach(function(l){var c=l.split(',');if(c.length<9)return;
+      var p={name:c[1],expiry:c[2],kS:parseFloat(c[3]),kL:parseFloat(c[4]),credit:parseFloat(c[5]),width:parseFloat(c[6]),src:c[7],open_date:c[8],close_date:c[9]||'',how:c[11]||''};
+      if(c[10]!=='')p.pnl=parseFloat(c[10]);
+      if(c[12]!=='')p.settle_spot=parseFloat(c[12]);
+      p.id=p.open_date+'_'+p.name+'_'+b.open.length+'_'+b.closed.length;
+      (c[0]==='open'?b.open:b.closed).push(p);});
+    pbSave(b);renderBook();
+  }catch(e){alert('匯入失敗：'+e)}};
+  rd.readAsText(f);inp.value='';
+}
+function pbClear(){if(!confirm('清空成本 paper book（未平＋已平）？唔可以返轉頭。'))return;pbSave({open:[],closed:[]});renderBook()}
+syncTabs();
 syncTabs();
 loadAll();
 loadAll();
