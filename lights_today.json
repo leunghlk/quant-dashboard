@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-27 00:40:27 HKT",
+ "generated_at": "2026-10-27 00:59:51 HKT",
  "light": "YELLOW",
  "state": "CALM",
  "yellow_flags": [
@@ -1226,30 +1226,40 @@
   "is_completed": false,
   "official_matches": true,
   "values": {
-   "spx": 7676.10986328125,
-   "vix": 18.350000381469727,
-   "vix3m": 19.8700008392334,
-   "vvix": 102.69999694824219,
-   "qqq": 712.4199829101562,
-   "nvda": 215.42300415039062,
-   "hyg": 77.2249984741211,
-   "lqd": 104.13999938964844,
-   "ts_spread": -1.52
+   "spx": 7677.89990234375,
+   "vix": 18.559999465942383,
+   "vix3m": 20.0,
+   "vvix": 104.08000183105469,
+   "qqq": 712.9149780273438,
+   "nvda": 215.8249969482422,
+   "hyg": 77.19499969482422,
+   "lqd": 104.09500122070312,
+   "ts_spread": -1.44
   },
   "chg_vs_official": {
-   "^GSPC": 0.0069,
-   "^VIX": -0.68,
-   "^VIX3M": -0.25,
-   "QQQ": 0.0114,
-   "NVDA": 0.0212
+   "^GSPC": 0.0071,
+   "^VIX": -0.47,
+   "^VIX3M": -0.12,
+   "QQQ": 0.0121,
+   "NVDA": 0.0231
   },
   "canary": {
-   "nvda_live": 215.42300415039062,
-   "vs_sma50_official": -0.0317,
+   "nvda_live": 215.8249969482422,
+   "vs_sma50_official": -0.0299,
    "note": "SMA50 用 10-23 值（未重算）；要收市價企返 50 日線先算金絲雀修復"
   },
   "extended": null,
   "note": "10-26 即市報價係盤前/即市數，唔作官方判燈；官方判燈只用完成收市"
  },
- "rules_note": "常數=scripts_e/regime_state.py P；行為映射=AGGRESSIVE_SPEC.md §3-§5；判燈規格=daily_monitor_spec.md"
+ "rules_note": "常數=scripts_e/regime_state.py P；行為映射=AGGRESSIVE_SPEC.md §3-§5；判燈規格=daily_monitor_spec.md",
+ "nbis_cc": {
+  "expiry": "2026-11-06",
+  "k": 165.0,
+  "spot": 161.7126,
+  "mid": 12.5,
+  "bid": 12.2,
+  "ask": 12.8,
+  "delta": 0.5121,
+  "asof": "2026-10-27"
+ }
 }
