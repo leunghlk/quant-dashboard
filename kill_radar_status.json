@@ -3,8 +3,8 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 499,
-  "red": 323
+  "yel": 500,
+  "red": 324
  },
  "reasons": [
   "MOVE 103 ≥100（regime 標記）",
@@ -61,7 +61,7 @@
    "pos": "200股＋2×C165 @9.85",
    "be": 165.1,
    "exp": "2026-11-06",
-   "days": 12,
+   "days": 11,
    "note": "出口結構：被埋＝全 trade 打和離場；未埋→δ0.32 牆 roll down 跟價"
   }
  ],
@@ -635,7 +635,7 @@
   ],
   "name_fails": []
  },
- "as_of": "10-26 11:49 HKT",
- "updated": 1792986584765,
+ "as_of": "10-26 12:19 HKT",
+ "updated": 1792988394030,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
