@@ -987,7 +987,9 @@ function loadStage0(){
       if(o.name){all.push(o);(by[o.date]=by[o.date]||[]).push(o);}});
     window.S0=all;
     var ds=Object.keys(by).sort(),d=ds[ds.length-1];
-    var rows=(by[d]||[]).sort(function(a,b){return (b.ra||-1)-(a.ra||-1);});
+    var seen={},rk=[];
+    (by[d]||[]).slice().reverse().forEach(function(o){if(!seen[o.name]){seen[o.name]=1;rk.push(o)}});
+    var rows=rk.sort(function(a,b){return (b.ra||-1)-(a.ra||-1);});
     var T={};rows.forEach(function(o){T[pbKey(o)]=o});window.S0TODAY=T;
     var pm={};
     try{(window.LIGHTS.pool_radar.lit||[]).forEach(function(x){pm[x.sym]=x})}catch(e){}
