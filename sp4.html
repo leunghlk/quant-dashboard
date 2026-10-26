@@ -173,6 +173,35 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
     <div class="muted" style="font-size:11.5px;margin-bottom:6px"><b>指數腿規格（aw 防守書，跟 spec）</b>：XSP put <b>5% spread · 賣腿 δ0.20</b> · 21-30 DTE · 21 曆日 roll · VIX 百分位 ≤50 先開。XSP＝mini-SPX（1/10 規模、<b>現金結算＋歐式＝冇接貨冇早行使</b>）。width margin ≈$3.6k/張；cash-secured 口徑 $73k/張（$90k 戶口都食不起）→ <b>指數腿 Stage 2（$45k＋margin 批文）先上</b>。黃燈規則「指數腿 δ≤0.30」係上限——書常態 0.20 本來就過。</div>
     <div id="stage0Table" class="muted">載入 stage0_quotes.csv…</div>
   </div>
+  <div class="card" id="card-legs">
+    <h3>🧩 腿結構＋Bull put spread payoff 圖 <span class="pill grey">spread 定裸 put＝睇「想唔想接貨」</span></h3>
+    <div class="table-scroll"><table class="gates" style="min-width:720px">
+      <tr><th style="text-align:left">腿</th><th style="text-align:left">結構</th><th style="text-align:left">點解</th></tr>
+      <tr><td style="text-align:left"><b>指數腿 XSP</b></td><td style="text-align:left"><b>Bull put spread（永遠）</b>：賣 δ0.20 put＋買 5% 低 strike put</td><td style="text-align:left">XSP 現金結算冇貨接；spread 按金＝width ≈$3.6k/張（cash-secured 口徑 $73k/張，$90k 戶口食唔起）→ Stage 2（$45k＋margin 批文）先上。</td></tr>
+      <tr><td style="text-align:left"><b>aw 單名腿</b><br><span class="muted">Stage 0 呢張台</span></td><td style="text-align:left"><b>spr10 bull put spread</b>：賣 δ0.45 put＋買 90%×K put</td><td style="text-align:left">高 β AI 名唔想接飛刀；max loss 鎖死＝width−credit、按金＝width；naked 高 δ holdexp MDD −71~−86%／NK_HAIR85 −31.6% 實測否決裸書。</td></tr>
+      <tr><td style="text-align:left"><b>v4g 品質書單名腿</b></td><td style="text-align:left"><b>Cash-secured 裸 put</b>：δ0.20・0.97×spot</td><td style="text-align:left">低 β 大價品質名：接貨＝開價買好公司（wheel 前半）；PT50＋31 日 ban 控風險；10.24%/0.70/−12%。</td></tr>
+    </table></div>
+    <div class="muted" style="font-size:11.5px;margin:8px 0 4px"><b>Bull put spread 點樣賺蝕</b>（今日 WDC 真數：賣 355 P mid 24.5、買 320 P mid 10.18 → 淨收 <b>$1,432</b>；按金＝width $3,500）：</div>
+    <svg viewBox="0 0 640 296" style="width:100%;max-width:660px;background:#fafbfc;border:1px solid #e3e7ea;border-radius:8px">
+      <line x1="46" y1="119.1" x2="616" y2="119.1" stroke="#8a8f98" stroke-width="1" stroke-dasharray="4 4"/>
+      <polygon points="46,119.1 46,249.7 208.9,249.7 377.2,119.1" fill="#c0392b" opacity="0.08"/>
+      <polygon points="377.2,119.1 493.9,28.6 616,28.6 616,119.1" fill="#1a7f37" opacity="0.09"/>
+      <polyline points="46,249.7 208.9,249.7 493.9,28.6 616,28.6" fill="none" stroke="#2c5f8a" stroke-width="2.5" stroke-linejoin="round"/>
+      <line x1="503.1" y1="26" x2="503.1" y2="258" stroke="#2c5f8a" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>
+      <text x="503.1" y="16" text-anchor="middle" font-size="11" fill="#2c5f8a">而家 spot 356.1</text>
+      <circle cx="377.2" cy="119.1" r="4.5" fill="#b45309"/>
+      <text x="377.2" y="140" text-anchor="middle" font-size="11.5" font-weight="700" fill="#b45309">打和 340.7</text>
+      <text x="42" y="32" text-anchor="end" font-size="10.5" fill="#1a7f37">+$1,432</text>
+      <text x="42" y="123" text-anchor="end" font-size="10.5" fill="#666">0</text>
+      <text x="42" y="253" text-anchor="end" font-size="10.5" fill="#c0392b">−$2,068</text>
+      <text x="208.9" y="276" text-anchor="middle" font-size="11" fill="#555">320 買K（以下全蝕）</text>
+      <text x="493.9" y="276" text-anchor="middle" font-size="11" fill="#555">355 賣K（以上全賺）</text>
+      <text x="612" y="46" text-anchor="end" font-size="11.5" font-weight="700" fill="#1a7f37">最大賺 +$1,432＝credit</text>
+      <text x="54" y="242" font-size="11.5" font-weight="700" fill="#c0392b">最大蝕 −$2,068＝width−credit</text>
+      <text x="616" y="290" text-anchor="end" font-size="10" fill="#888">到期價 S →</text>
+    </svg>
+    <div class="muted" style="font-size:11px;margin-top:4px">白話：到期 WDC 收喺 <b>355 以上</b>→兩邊都變廢紙，袋晒 $1,432；跌穿 <b>340.7（打和）</b>開始蝕，每跌 $1 蝕多 $1；跌到 <b>320 以下</b>全蝕 $2,068＝width−credit，唔會蝕多過（320 張 long put 頂住）。指數腿 XSP spr5 係同一條線，窄啲、δ 低啲。</div>
+  </div>
   <div class="card" id="card-pbook">
     <h3>📒 Paper Book（回本期 · Stage 0） <span class="pill teal">$0 真錢</span><span class="pill grey" id="pbStat"></span></h3>
     <div class="muted" style="font-size:11.5px;margin-bottom:6px">上面台剔選 → 「✍️ 開 paper 倉」→ 倉位入簿（存本機 localStorage；⬇️匯出 CSV 可備份／交我入 repo 持久化）。機器日日 mark-to-market：現價＝同 K 鏈 bid/ask；過到期自動用 spot 結算。m2x 旗＝mark≥2×credit（倉後監察第一條）。<b>呢本簿＝G1「paper 8-13 週」嘅證據</b>。</div>
@@ -983,7 +1012,7 @@ function loadStage0(){
     var L=t.trim().split('\n');L.shift();
     var by={},all=[];
     L.forEach(function(l){var c=l.split(',');if(c.length<15)return;
-      var o={date:c[0],name:c[1],expiry:c[2],dte:parseInt(c[3]),spot:parseFloat(c[4]),kS:parseFloat(c[5]),kL:parseFloat(c[6]),bidS:parseFloat(c[7]),askS:parseFloat(c[8]),bidL:parseFloat(c[9]),askL:parseFloat(c[10]),cr:parseFloat(c[11]),cm:parseFloat(c[12]),ra:parseFloat(c[13]),src:c[14]};
+      var o={date:c[0],name:c[1],expiry:c[2],dte:parseInt(c[3]),spot:parseFloat(c[4]),kS:parseFloat(c[5]),kL:parseFloat(c[6]),bidS:parseFloat(c[7]),askS:parseFloat(c[8]),bidL:parseFloat(c[9]),askL:parseFloat(c[10]),cr:parseFloat(c[11]),cm:parseFloat(c[12]),ra:parseFloat(c[13]),src:c[14],mS:parseFloat(c[15]),mL:parseFloat(c[16])};
       if(o.name){all.push(o);(by[o.date]=by[o.date]||[]).push(o);}});
     window.S0=all;
     var ds=Object.keys(by).sort(),d=ds[ds.length-1];
@@ -995,7 +1024,7 @@ function loadStage0(){
     try{(window.LIGHTS.pool_radar.lit||[]).forEach(function(x){pm[x.sym]=x})}catch(e){}
     var SCREEN8={AVGO:{g:'5/6',fail:'iv%',earn:'12-09'},DELL:{g:'6/6',fail:'',earn:'11-27'},NVDA:{g:'0',fail:'唔喺品質池',earn:'11-17⚠️到埗確認'},AMD:{g:'0',fail:'唔喺品質池',earn:'—'},MU:{g:'0',fail:'唔喺品質池',earn:'—'},MRVL:{g:'0',fail:'唔喺品質池',earn:'—'},WDC:{g:'0',fail:'唔喺品質池',earn:'—'},ANET:{g:'0',fail:'唔喺品質池',earn:'—'}};
     var npass=0,h='<div class="table-scroll"><table class="gates" style="min-width:1240px">';
-    h+='<tr><th style="text-align:left">名</th><th>SPOT</th><th style="text-align:left">STRIKE（賣／買）</th><th>MID</th><th>|Δ|</th><th>P(OTM)</th><th>年化%</th><th>張數</th><th>按金</th><th>收入</th><th>做?</th><th style="text-align:left">池／閘</th><th style="text-align:left">備註</th></tr>';
+    h+='<tr><th style="text-align:left">名</th><th>SPOT</th><th style="text-align:left">STRIKE（賣／買）· 鏈 bid/ask＋模型</th><th>MID</th><th>|Δ|</th><th>P(OTM)</th><th>年化%</th><th>張數</th><th>按金</th><th>收入</th><th>做?</th><th style="text-align:left">池／閘</th><th style="text-align:left">備註</th></tr>';
     rows.forEach(function(o){
       var ok=!isNaN(o.ra)&&o.ra>=0.9;if(ok)npass++;
       var width=(!isNaN(o.kS)&&!isNaN(o.kL))?(o.kS-o.kL):NaN;
@@ -1008,7 +1037,7 @@ function loadStage0(){
       cell+='</td>';
       h+='<tr><td style="text-align:left"><b>'+o.name+'</b></td>'
         +'<td>'+_f(o.spot,1)+'</td>'
-        +'<td style="text-align:left">'+(isNaN(o.kS)?(o.src==='NO_QUOTE'?'— 無鏈價':'—'):(o.kS+' P／'+o.kL+' P'))+'</td>'
+        +(function(){if(isNaN(o.kS))return '<td style="text-align:left">'+(o.src==='NO_QUOTE'?'— 無鏈價':'—')+'</td>';var a='<b>賣</b> '+o.kS+' P<span class="muted"> 鏈</span> '+_f(o.bidS,2)+'/'+_f(o.askS,2)+'<span class="muted">·模型</span> '+_f(o.mS,2);var b='<b>買</b> '+o.kL+' P<span class="muted"> 鏈</span> '+_f(o.bidL,2)+'/'+_f(o.askL,2)+'<span class="muted">·模型</span> '+_f(o.mL,2);return '<td style="text-align:left;font-size:10.5px">'+a+'<br>'+b+'</td>'})()
         +'<td><b>'+_f(o.cr,2)+'</b></td><td>≈0.45</td><td>≈55%</td>'
         +'<td>'+_f(ann,0)+'%</td><td>1</td>'
         +'<td>'+(!isNaN(width)?('$'+(width*100).toFixed(0)):'—')+'</td>'
