@@ -4052,7 +4052,7 @@ function pfSyncDatalist(){
   try{((rec&&rec.candidates)||[]).forEach(function(c){const t=c.ticker;if(t&&!seen[t]){seen[t]=1;out.push(t);}});}catch(e){}
   dl.innerHTML=out.map(function(t){return '<option value="'+esc(t)+'">';}).join('');
 }
-async /* ═══ 🧮 按金計算器（任意 code 即查）2026-10-28 ═══ */
+/* ═══ 🧮 按金計算器（任意 code 即查）2026-10-28 ═══ */
 var MG={spot:null,rows:[],expiry:null,src:'',sym:''};
 /* 靠頁面現有常數：BRIDGE_PROXY（/live proxy）＋BRIDGE_SECRET（行 632）＋QUANT_API */
 function mgDte(e){try{var t=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));var d=new Date(e+'T16:00:00');return Math.max(0,Math.round((d-t)/864e5));}catch(err){return 0;}}
@@ -4152,7 +4152,7 @@ function mgCalc(){
   h+=spr+'</div>';
   res.innerHTML=h;
 }
-function runPreflight(){
+async function runPreflight(){
   const tkEl=$('pfTicker'), stEl=$('pfStrike');
   const box=$('pfResult'), meta=$('pfMeta');
   if(!box)return;
