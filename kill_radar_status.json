@@ -3,11 +3,10 @@
  "level": "YEL",
  "level_since": null,
  "streak": {
-  "yel": 540,
+  "yel": 541,
   "red": 343
  },
  "reasons": [
-  "新深20 3 隻：AMD,MRVL,MU",
   "MOVE 102 ≥100（regime 標記）",
   "HY OAS 3.38（5日 +0.07）"
  ],
@@ -20,9 +19,9 @@
   },
   "B": {
    "name": "新深20",
-   "val": "3 隻（現 deep20 24）",
+   "val": "0 隻（現 deep20 24）",
    "thr": "≥3🟡/≥6🔴",
-   "state": "Y"
+   "state": "off"
   },
   "C": {
    "name": "10y 水平",
@@ -636,7 +635,7 @@
   ],
   "name_fails": []
  },
- "as_of": "10-27 08:26 HKT",
- "updated": 1793060786807,
+ "as_of": "10-27 08:56 HKT",
+ "updated": 1793062597077,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
