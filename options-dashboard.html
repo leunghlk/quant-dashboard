@@ -311,7 +311,7 @@ function mgChip(){return '<span class="pill" style="background:#fee2e2;color:#b9
           <datalist id="mgExpList"></datalist>
           <select id="mgStrike" onchange="mgCalc()" style="padding:5px 4px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px"><option>— strike —</option></select>
           <span class="small muted">張數</span><input id="mgQty" type="number" min="1" value="1" onchange="mgCalc()" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:58px" title="張數">
-          <span class="small muted">帳戶$</span><input id="mgEq" type="number" value="58639" step="100" onchange="mgCalc()" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:92px" title="帳戶 equity US$">
+          <span class="small muted">帳戶$</span><input id="mgEq" type="number" value="58639" step="100" onchange="mgCalc()" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:92px" title="帳戶 equity US$"><span id="mgEqNote" class="small muted"></span>
           <span id="mgSpot" class="small muted"></span>
         </div>
         <div id="mgResult" style="margin-top:8px"><div class="small muted">打 code → 🔍查鏈（expiry/strike 自動填，預設 0.97×spot 最近 strike）→ 改張數即計。紅燈閘＝單腿義務 ≤50% 帳戶。</div></div>
@@ -4085,6 +4085,7 @@ function mgLoad(){
     (d.expiries||[d.expiry]).forEach(function(e){var o=document.createElement('option');o.value=e;dl.appendChild(o);});
     document.getElementById('mgExpiry').value=d.expiry;
     mgFillStrikes();
+    mgEqLive();
   }).catch(function(){res.innerHTML='<div class="small" style="color:#b91c1c">查唔到 '+sym+'——code 啱唔啱？（Futu 鏈＋Yahoo ladder 都冇）</div>';});
 }
 function mgExpChange(){
@@ -4105,6 +4106,19 @@ function mgFillStrikes(){
   mgCalc();
 }
 function mgRow(){var k=Number(document.getElementById('mgStrike').value),r=null;MG.rows.forEach(function(x){if(Number(x.strike)===k)r=x;});return r;}
+function mgEqLive(){
+  var base=(typeof activeBridge!=='undefined'&&activeBridge)||BRIDGE_PROXY;
+  fetch(base+'/real_funds?secret='+encodeURIComponent(BRIDGE_SECRET),{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+    if(!d)return;
+    var usd=Number(d.equity_usd)||0;
+    if(!usd&&Number(d.total_hkd))usd=Math.round(Number(d.total_hkd)/7.8);
+    if(!usd)return;
+    document.getElementById('mgEq').value=usd;
+    var n=document.getElementById('mgEqNote');
+    if(n)n.textContent='←live'+(d.total_hkd?' '+Math.round(Number(d.total_hkd)).toLocaleString()+' HKD':'');
+    mgCalc();
+  }).catch(function(){});
+}
 function mgCalc(){
   if(!MG.spot)return;
   var S=Number(MG.spot),K=Number(document.getElementById('mgStrike').value),qty=Math.max(1,Math.round(Number(document.getElementById('mgQty').value)||1));
