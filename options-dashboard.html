@@ -310,8 +310,8 @@ function mgChip(){return '<span class="pill" style="background:#fee2e2;color:#b9
           <input id="mgExpiry" list="mgExpList" placeholder="YYYY-MM-DD" onchange="mgExpChange()" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:118px">
           <datalist id="mgExpList"></datalist>
           <select id="mgStrike" onchange="mgCalc()" style="padding:5px 4px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px"><option>— strike —</option></select>
-          <input id="mgQty" type="number" min="1" value="1" onchange="mgCalc()" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:58px" title="張數">
-          <input id="mgEq" type="number" value="58639" step="100" onchange="mgCalc()" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:92px" title="帳戶 equity US$">
+          <span class="small muted">張數</span><input id="mgQty" type="number" min="1" value="1" onchange="mgCalc()" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:58px" title="張數">
+          <span class="small muted">帳戶$</span><input id="mgEq" type="number" value="58639" step="100" onchange="mgCalc()" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:92px" title="帳戶 equity US$">
           <span id="mgSpot" class="small muted"></span>
         </div>
         <div id="mgResult" style="margin-top:8px"><div class="small muted">打 code → 🔍查鏈（expiry/strike 自動填，預設 0.97×spot 最近 strike）→ 改張數即計。紅燈閘＝單腿義務 ≤50% 帳戶。</div></div>
