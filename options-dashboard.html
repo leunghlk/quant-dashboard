@@ -302,6 +302,20 @@ function mgChip(){return '<span class="pill" style="background:#fee2e2;color:#b9
         </div>
         <div id="pfResult" style="margin-top:8px"><div class="small muted">填 ticker＋strike（expiry 空＝下一個周五）→ 跑六問。❓＝該項數據攞唔到，唔好當 pass。</div></div>
       </div></div>
+    <div class="card" style="border:2px solid #0f766e"><div class="card-h"><span class="t">🧮 按金計算器（任意 code 即查）</span><span class="meta">打 code → 揀 expiry/strike/張數 → 按金兩口徑＋夠唔夠＋紅燈閘＋spr 替代 · 數據＝Futu 真鏈（/live proxy）→ Yahoo ladder 後備 · 純計數零落單</span></div>
+      <div class="card-b">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+          <input id="mgSym" placeholder="CODE（如 NET）" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:110px;text-transform:uppercase">
+          <button class="btn btn-go" onclick="mgLoad()">🔍 查鏈</button>
+          <input id="mgExpiry" list="mgExpList" placeholder="YYYY-MM-DD" onchange="mgExpChange()" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:118px">
+          <datalist id="mgExpList"></datalist>
+          <select id="mgStrike" onchange="mgCalc()" style="padding:5px 4px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px"><option>— strike —</option></select>
+          <input id="mgQty" type="number" min="1" value="1" onchange="mgCalc()" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:58px" title="張數">
+          <input id="mgEq" type="number" value="58639" step="100" onchange="mgCalc()" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:92px" title="帳戶 equity US$">
+          <span id="mgSpot" class="small muted"></span>
+        </div>
+        <div id="mgResult" style="margin-top:8px"><div class="small muted">打 code → 🔍查鏈（expiry/strike 自動填，預設 0.97×spot 最近 strike）→ 改張數即計。紅燈閘＝單腿義務 ≤50% 帳戶。</div></div>
+      </div></div>
     <div class="card" id="candCard"><div class="card-h"><span class="t" id="candTitle">候選名單（h6040 v5 池快照 · wr 排序 · mom 只做閘）</span><span class="meta" id="candMeta"></span></div>
       <div class="card-b" id="candBody"></div></div>
     <div class="card" id="winrankCard"><div class="card-h"><span class="t">🎯 單腿股表（合併兩帶）</span><span class="meta">兩帶（當周 5-7D×Δ0.20-0.25＝<b>W_wr</b> ／ 長帶 8-14D×Δ0.25-0.30＝<b>L_mom</b> 僅參考，09-23 起 10-14→8-14 補帶隙）· 預設排名＝<b>wr 正選序（同 TG Top5 一源，✓正選#1–10）</b>· ⭐<b>撳欄位標題即排序</b>（倒序↓↔順序↑↔預設）· 落單前過 P7 六問卡 · 金額欄 US$</span><span class="meta" id="wrAsof"></span></div>
@@ -4038,7 +4052,107 @@ function pfSyncDatalist(){
   try{((rec&&rec.candidates)||[]).forEach(function(c){const t=c.ticker;if(t&&!seen[t]){seen[t]=1;out.push(t);}});}catch(e){}
   dl.innerHTML=out.map(function(t){return '<option value="'+esc(t)+'">';}).join('');
 }
-async function runPreflight(){
+async /* ═══ 🧮 按金計算器（任意 code 即查）2026-10-28 ═══ */
+var MG={spot:null,rows:[],expiry:null,src:'',sym:''};
+/* 靠頁面現有常數：BRIDGE_PROXY（/live proxy）＋BRIDGE_SECRET（行 632）＋QUANT_API */
+function mgDte(e){try{var t=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));var d=new Date(e+'T16:00:00');return Math.max(0,Math.round((d-t)/864e5));}catch(err){return 0;}}
+function mgFetchChain(sym,exp){
+  var u=BRIDGE_PROXY+'/options/chain?code=US.'+encodeURIComponent(sym)+(exp?('&expiry='+exp):'')+'&secret='+encodeURIComponent(BRIDGE_SECRET);
+  return fetch(u,{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+    if(!(d&&d.ok&&d.spot&&d.expiries&&d.expiries.length))throw 0;
+    var e=exp?(d.expiries.filter(function(x){return x.expiry===exp;})[0]||d.expiries[0]):d.expiries[0];
+    var rows=(e.rows||[]).filter(function(r){return String(r.type||'').toUpperCase().indexOf('PUT')===0;});
+    if(!rows.length)throw 0;
+    return {spot:Number(d.spot),expiry:e.expiry,rows:rows,src:'futu',expiries:d.expiries.map(function(x){return x.expiry;})};
+  });
+}
+function mgFallback(sym){
+  return fetch(QUANT_API+'/sp-quotes?s='+encodeURIComponent(sym),{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+    var q=(d||{})[sym]||{};
+    if(!q.spot||!(q.ladder||[]).length)throw 0;
+    return {spot:Number(q.spot),expiry:q.expiry,rows:q.ladder.map(function(o){return {strike:o.strike,bid:o.bid,ask:o.ask,mid:o.mid,iv:o.iv,delta:o.delta,type:'PUT'};}),src:'yahoo',expiries:[q.expiry]};
+  });
+}
+function mgLoad(){
+  var sym=(document.getElementById('mgSym').value||'').trim().toUpperCase().replace(/\.(US|USD)$/,'');
+  var res=document.getElementById('mgResult');
+  if(!sym){res.innerHTML='<div class="small muted">打 stock code 先。</div>';return;}
+  res.innerHTML='<div class="small muted">查 '+sym+' 鏈…</div>';
+  mgFetchChain(sym,null).catch(function(){return mgFallback(sym);}).then(function(d){
+    MG=d;MG.sym=sym;
+    document.getElementById('mgSpot').textContent=sym+' spot '+d.spot.toFixed(2)+'（'+d.src+'）';
+    var dl=document.getElementById('mgExpList');dl.innerHTML='';
+    (d.expiries||[d.expiry]).forEach(function(e){var o=document.createElement('option');o.value=e;dl.appendChild(o);});
+    document.getElementById('mgExpiry').value=d.expiry;
+    mgFillStrikes();
+  }).catch(function(){res.innerHTML='<div class="small" style="color:#b91c1c">查唔到 '+sym+'——code 啱唔啱？（Futu 鏈＋Yahoo ladder 都冇）</div>';});
+}
+function mgExpChange(){
+  var exp=(document.getElementById('mgExpiry').value||'').trim();
+  if(!MG.sym||!/\d{4}-\d{2}-\d{2}/.test(exp))return;
+  document.getElementById('mgResult').innerHTML='<div class="small muted">載入 '+exp+' 鏈…</div>';
+  mgFetchChain(MG.sym,exp).then(function(d){MG.spot=d.spot;MG.rows=d.rows;MG.expiry=d.expiry;MG.src=d.src;document.getElementById('mgSpot').textContent=MG.sym+' spot '+d.spot.toFixed(2)+'（'+d.src+'）';mgFillStrikes();}).catch(function(){document.getElementById('mgResult').innerHTML='<div class="small" style="color:#b91c1c">'+exp+' 呢個 expiry 攞唔到鏈——揀返 dropdown 有嘅日期。</div>';});
+}
+function mgFillStrikes(){
+  var S=MG.spot,sel=document.getElementById('mgStrike');sel.innerHTML='';
+  var ks=MG.rows.map(function(r){return Number(r.strike);}).filter(function(k){return k>0.55*S&&k<1.05*S;}).sort(function(a,b){return b-a;});
+  if(!ks.length)ks=MG.rows.map(function(r){return Number(r.strike);}).filter(function(k){return k>0;}).sort(function(a,b){return b-a;});
+  ks.forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent='P '+k;sel.appendChild(o);});
+  var want=Math.round(0.97*S),best=ks[0];
+  ks.forEach(function(k){if(k<=want&&(best>want||Math.abs(k-want)<Math.abs(best-want)))best=k;});
+  if(best>want)ks.forEach(function(k){if(Math.abs(k-want)<Math.abs(best-want))best=k;});
+  sel.value=best;
+  mgCalc();
+}
+function mgRow(){var k=Number(document.getElementById('mgStrike').value),r=null;MG.rows.forEach(function(x){if(Number(x.strike)===k)r=x;});return r;}
+function mgCalc(){
+  if(!MG.spot)return;
+  var S=Number(MG.spot),K=Number(document.getElementById('mgStrike').value),qty=Math.max(1,Math.round(Number(document.getElementById('mgQty').value)||1));
+  var eq=Number(document.getElementById('mgEq').value)||58639;
+  var r=mgRow(),res=document.getElementById('mgResult');
+  if(!r||!K){return;}
+  var bid=Number(r.bid)||0,ask=Number(r.ask)||0,mid=Number(r.mid)||((bid>0&&ask>0)?(bid+ask)/2:0);
+  var iv=Number(r.iv)||0,dl=(r.delta!==undefined&&r.delta!==null)?Math.abs(Number(r.delta)):null;
+  var dte=mgDte((document.getElementById('mgExpiry').value||'').trim());
+  if(!mid){res.innerHTML='<div class="small" style="color:#b91c1c">P'+K+' 冇價（bid/ask 都係 0）——揀隔籬個 strike。</div>';return;}
+  var recvM=mid*100*qty,recvLo=bid*100*qty,collat=K*100*qty;
+  var futuM=(Math.max(0.20*S-Math.max(K-S,0),0.10*S)*100+mid*100)*qty;
+  var ann=collat>0?(mid/K*365/Math.max(dte,1)*100):0;
+  var legPct=collat/eq;
+  var bad=[],warn=[];
+  var today=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  if(today<=new Date('2026-10-30T23:59:00'))bad.push('🔴 接貨紅燈期（至 10-30）——條款生效中：唔好開新真倉');
+  if(legPct>0.5)bad.push('單腿義務 $'+Math.round(collat).toLocaleString()+' = '+(legPct*100).toFixed(0)+'% 帳戶（紅燈閘 50%）');
+  if(legPct>1)bad.push('義務超過成個帳戶——100% 全簿閘都爆');
+  if(futuM>eq)bad.push('Futu 按金 $'+Math.round(futuM).toLocaleString()+' > equity——根本開唔出');
+  if(dte>0&&dte<=7)warn.push('⚠️ '+dte+'d 到期＝γ 風險帶：一個裂口就 ITM、冇時間反應（10-15 爆倉驗屍 94% 死於裂口）');
+  if(dl!==null&&dl>0.30)warn.push('δ '+dl.toFixed(2)+' > 0.30——唔係品質書帶（v4g δ0.20；高 δ 只准 spr 結構內做）');
+  if(iv>=1)warn.push('IV '+(iv*100).toFixed(0)+'%＝event 級定價，premium 肥係因為市場驚，唔係派錢');
+  if(K>0.97*S)warn.push('strike 高過 0.97×spot——太貼價');
+  warn.push('現金寶唔係 Futu 空頭期權認可抵押品（美元購買力雙軌）——按金要證券戶口現金');
+  warn.push('Stage 0 G1 未過：真倉鎖住，呢度純計數');
+  var k2=0;MG.rows.map(function(x){return Number(x.strike);}).sort(function(a,b){return a-b;}).forEach(function(k){if(k<=Math.round(0.90*K)&&k>K*0.5)k2=Math.max(k2,k);});
+  var spr='';
+  if(k2>0&&k2<K){
+    var r2=null;MG.rows.forEach(function(x){if(Number(x.strike)===k2)r2=x;});
+    var m2=r2?(Number(r2.mid)||((Number(r2.bid)>0&&Number(r2.ask)>0)?(Number(r2.bid)+Number(r2.ask))/2:0)):0;
+    if(m2>0){
+      var cr=mid-m2,w=K-k2;
+      spr='<div style="margin-top:8px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.7"><b>🧩 Spr 替代（賣 '+K+'／買 '+k2+'——按金細好多）</b><br>淨收 ~$'+(cr*100*qty).toFixed(0)+'（'+cr.toFixed(2)+'/股）· 按金＝width $'+(w*100*qty).toLocaleString()+' · 最大蝕 $'+((w-cr)*100*qty).toFixed(0)+' · 年化 '+Math.round(cr/w*365/Math.max(dte,1)*100)+'%</div>';
+    }
+  }
+  var chip=bad.length?'<span style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:99px;padding:2px 10px;font-weight:800">🔴 唔好做</span>':(warn.length>2?'<span style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:99px;padding:2px 10px;font-weight:800">🟡 過閘但睇清楚</span>':'<span style="background:#ccfbf1;color:#0f766e;border:1px solid #99f6e4;border-radius:99px;padding:2px 10px;font-weight:800">🟢 過閘</span>');
+  var h='<div style="font-size:12.5px;line-height:1.8">'+chip+' <b>'+MG.sym+' P'+K+' · '+(document.getElementById('mgExpiry').value||'').trim()+'（'+dte+'d）× '+qty+' 張</b><br>'
+    +'spot '+S.toFixed(2)+' · bid/ask '+bid.toFixed(2)+'/'+ask.toFixed(2)+'（mid '+mid.toFixed(2)+'）· δ '+(dl!==null?dl.toFixed(2):'❓')+' · IV '+(iv>0?(iv*100).toFixed(0)+'%':'❓')+'<br>'
+    +'💰 淨收 <b>$'+recvM.toFixed(0)+'</b>（保守 bid 口徑 $'+recvLo.toFixed(0)+'）· 年化 '+Math.round(ann)+'%<br>'
+    +'🏦 Cash-secured 義務 <b>$'+collat.toLocaleString()+'</b>＝帳戶 '+(legPct*100).toFixed(0)+'%（紅燈閘 50%）<br>'
+    +'🏛 Futu Reg-T 按金估算 <b>$'+futuM.toLocaleString()+'</b>（max(20%S−OTM，10%S)＋premium）<br>';
+  if(bad.length)h+='<div style="margin-top:6px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.7;color:#7f1d1d">'+bad.map(function(x){return '· '+x;}).join('<br>')+'</div>';
+  if(warn.length)h+='<div style="margin-top:6px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.7;color:#78350f">'+warn.map(function(x){return '· '+x;}).join('<br>')+'</div>';
+  h+=spr+'</div>';
+  res.innerHTML=h;
+}
+function runPreflight(){
   const tkEl=$('pfTicker'), stEl=$('pfStrike');
   const box=$('pfResult'), meta=$('pfMeta');
   if(!box)return;
