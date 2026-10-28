@@ -315,6 +315,16 @@ function mgChip(){return '<span class="pill" style="background:#fee2e2;color:#b9
           <span id="mgSpot" class="small muted"></span>
         </div>
         <div id="mgResult" style="margin-top:8px"><div class="small muted">打 code → 🔍查鏈（expiry/strike 自動填，預設 0.97×spot 最近 strike）→ 改張數即計。紅燈閘＝單腿義務 ≤50% 帳戶。</div></div>
+        <details style="margin-top:8px"><summary class="small muted" style="cursor:pointer;user-select:none">📋 按金使用率警戒線（四級，撳開）</summary>
+          <table style="margin-top:6px;border-collapse:collapse;font-size:12px;width:100%">
+            <tr style="background:#f1f5f9"><th style="border:1px solid #e2e8f0;padding:4px 8px;text-align:left">帶</th><th style="border:1px solid #e2e8f0;padding:4px 8px;text-align:left">比率（init margin÷equity）</th><th style="border:1px solid #e2e8f0;padding:4px 8px;text-align:left">意思</th></tr>
+            <tr><td style="border:1px solid #e2e8f0;padding:4px 8px">🟢 健康</td><td style="border:1px solid #e2e8f0;padding:4px 8px">&lt;50%</td><td style="border:1px solid #e2e8f0;padding:4px 8px">本書常態，正常開倉</td></tr>
+            <tr><td style="border:1px solid #e2e8f0;padding:4px 8px">🟡 警戒</td><td style="border:1px solid #e2e8f0;padding:4px 8px">50-65%</td><td style="border:1px solid #e2e8f0;padding:4px 8px">唔好開計劃以外新倉，留 headroom 食 gap</td></tr>
+            <tr><td style="border:1px solid #e2e8f0;padding:4px 8px">🟠 只平唔開</td><td style="border:1px solid #e2e8f0;padding:4px 8px">65-75%</td><td style="border:1px solid #e2e8f0;padding:4px 8px">淨准平倉／到期，唔准加新腿</td></tr>
+            <tr><td style="border:1px solid #e2e8f0;padding:4px 8px">🔴 減倉區</td><td style="border:1px solid #e2e8f0;padding:4px 8px">&gt;75%</td><td style="border:1px solid #e2e8f0;padding:4px 8px">即刻減，降返落 65% 以下，唔好等 margin call</td></tr>
+          </table>
+          <div class="small muted" style="margin-top:4px">真正懸崖＝equity &lt; 維持保證金（強平線）。維持 ≈ init 嘅 85% → 用率 75% 時 equity 跌 ~15-18% 就掂，一個裂口日就夠。義務口徑（單腿 ≤50%／全簿 ≤100%）係另一條閘，兩個都要過。</div>
+        </details>
       </div></div>
     <div class="card" id="candCard"><div class="card-h"><span class="t" id="candTitle">候選名單（h6040 v5 池快照 · wr 排序 · mom 只做閘）</span><span class="meta" id="candMeta"></span></div>
       <div class="card-b" id="candBody"></div></div>
