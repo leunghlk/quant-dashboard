@@ -4110,6 +4110,7 @@ function mgEqLive(){
   var base=(typeof activeBridge!=='undefined'&&activeBridge)||BRIDGE_PROXY;
   fetch(base+'/real_funds?secret='+encodeURIComponent(BRIDGE_SECRET),{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
     if(!d)return;
+    MG.funds=d;
     var usd=Number(d.equity_usd)||0;
     if(!usd&&Number(d.total_hkd))usd=Math.round(Number(d.total_hkd)/7.8);
     if(!usd)return;
@@ -4160,7 +4161,15 @@ function mgCalc(){
     +'spot '+S.toFixed(2)+' · bid/ask '+bid.toFixed(2)+'/'+ask.toFixed(2)+'（mid '+mid.toFixed(2)+'）· δ '+(dl!==null?dl.toFixed(2):'❓')+' · IV '+(iv>0?(iv*100).toFixed(0)+'%':'❓')+'<br>'
     +'💰 淨收 <b>$'+recvM.toFixed(0)+'</b>（保守 bid 口徑 $'+recvLo.toFixed(0)+'）· 年化 '+Math.round(ann)+'%<br>'
     +'🏦 Cash-secured 義務 <b>$'+collat.toLocaleString()+'</b>＝帳戶 '+(legPct*100).toFixed(0)+'%（紅燈閘 50%）<br>'
-    +'🏛 Futu Reg-T 按金估算 <b>$'+futuM.toLocaleString()+'</b>（max(20%S−OTM，10%S)＋premium）<br>';
+    +'🏛 Futu Reg-T 按金估算 <b>$'+futuM.toLocaleString()+'</b>（max(20%S−OTM，10%S)＋premium）<br>'
+    +(function(){
+      var f=MG.funds,im=f?Number(f.init_margin_hkd):0,tot=f?Number(f.total_hkd):0,mm=f?Number(f.maint_margin_hkd):0;
+      if(!(im>0&&tot>0))return '';
+      var u=im/tot*100;
+      var z=u>=75?'<b style="color:#b91c1c">🔴 減倉區（>75%）</b>':(u>=65?'<b style="color:#c2410c">🟠 只平唔開（65-75%）</b>':(u>=50?'<b style="color:#b45309">🟡 警戒（50-65%）</b>':'<b style="color:#0f766e">🟢 健康（<50%）</b>'));
+      var buf=mm>0?Math.round((tot-mm)/tot*100):null;
+      return '📊 全戶按金使用率 <b>'+u.toFixed(0)+'%</b> '+z+'——init '+Math.round(im).toLocaleString()+'／equity '+Math.round(tot).toLocaleString()+' HKD'+(buf!==null?'；強平緩衝＝equity 再跌 '+buf+'% 先掂維持保證金（short option 需求會跟跌勢膨脹，實際更近）':'')+'<br>';
+    })();
   if(bad.length)h+='<div style="margin-top:6px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.7;color:#7f1d1d">'+bad.map(function(x){return '· '+x;}).join('<br>')+'</div>';
   if(warn.length)h+='<div style="margin-top:6px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.7;color:#78350f">'+warn.map(function(x){return '· '+x;}).join('<br>')+'</div>';
   h+=spr+'</div>';
