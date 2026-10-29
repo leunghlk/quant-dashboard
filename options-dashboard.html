@@ -702,6 +702,11 @@ function money(n){return (n>0?'+':'')+fmt(n);}
 function hkd(n){return 'HKD '+fmt(n);}
 function px2(v){return (v==null||isNaN(v))?'—':Number(v).toFixed(2);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+/* ⭐ 10-30 書面語正規化：引擎／bridge 舊版字串（close_reason／preflight detail）渲染前統一轉書面語；
+   源頭（futu_bridge.py）已同步改，此層兜底歷史資料＋未重啟 bridge 期間的舊字串。 */
+function shu(t){return String(t==null?'':t)
+  .replace(/攞唔到/g,'無法取得').replace(/唔使/g,'無需').replace(/唔會/g,'不會')
+  .replace(/唔係/g,'不是').replace(/呢腿/g,'本腿').replace(/冇/g,'無').replace(/嘅/g,'的');}
 /* ⭐ 08-25：盈虧平衡（沽 put=K−權利金；沽 call=K+權利金）——user 要求真倉寫上 breakeven */
 function breakevenOf(p){
   const K=Number(p.strike),prem=Number(p.entry_prem);
@@ -1666,7 +1671,7 @@ function ledTable(led){
   // ⭐ 2026-10-02：加「開 → 平」欄（user 拍板）＋ w320 引擎簿腿標記
   let h='<div class="table-scroll"><table class="utable"><thead><tr><th>股票</th><th class="r">行使價</th><th>張數</th><th>開 → 平</th><th>原因</th><th class="r">P&amp;L (USD)</th><th class="r">P&amp;L (HKD)</th></tr></thead><tbody>';
   rows.forEach(t=>{
-    h+='<tr><td><b>'+esc(t.ticker)+'</b>'+(t.__w320?' <span class="pill b" style="font-size:9px;vertical-align:middle">⚙️w320</span>':'')+'</td><td class="r">$'+t.strike+'</td><td class="r">'+(t.contracts||1)+'</td><td class="small muted" style="white-space:nowrap">'+esc(ledSpan(t))+'</td><td>'+esc(t.close_reason)+'</td><td class="r">'+money(ledPnlU(t))+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
+    h+='<tr><td><b>'+esc(t.ticker)+'</b>'+(t.__w320?' <span class="pill b" style="font-size:9px;vertical-align:middle">⚙️w320</span>':'')+'</td><td class="r">$'+t.strike+'</td><td class="r">'+(t.contracts||1)+'</td><td class="small muted" style="white-space:nowrap">'+esc(ledSpan(t))+'</td><td>'+shu(t.close_reason)+'</td><td class="r">'+money(ledPnlU(t))+'</td><td class="r">'+money(t.pnl_hkd)+'</td></tr>';
   });
   // ⭐ 09-03：Σ row —— 張數＋P&L 兩幣加總（行使價/原因沒有 sum 意義留空）；call site 有 led.length guard
   const sC=rows.reduce((s,t)=>s+(Number(t.contracts)||1),0);
@@ -2661,7 +2666,7 @@ async function confirmExec(tk,exp,K,n,premium){
     const fails=(pf.checks||[]).filter(function(x){return x.status==='fail';});
     if(fails.length){
       const why=prompt('🛂 P7 六問有 '+fails.length+' 個 ❌，逆 model 開倉要 override＋理由留底：\n\n'
-        +fails.map(function(x){return '❌ '+x.label+'：'+(x.detail||'');}).join('\n')
+        +fails.map(function(x){return '❌ '+x.label+'：'+shu(x.detail||'');}).join('\n')
         +'\n\n輸入 override 理由（取消／空白＝不開）：');
       if(!why||!why.trim()){toast('🛂 已取消——P7 紅燈要 override+reason 先開得');return;}
       ovFlag=true;ovReason=why.trim();
@@ -3197,7 +3202,7 @@ async function w320Confirm(){
     const fails=(pf.checks||[]).filter(function(x){return x.status==='fail';});
     if(fails.length){
       const why=prompt('🛂 w320 檢查卡有 '+fails.length+' 個 ❌，逆 model 開倉要 override＋理由留底：\n\n'
-        +fails.map(function(x){return '❌ '+x.label+'：'+(x.detail||'');}).join('\n')
+        +fails.map(function(x){return '❌ '+x.label+'：'+shu(x.detail||'');}).join('\n')
         +'\n\n輸入 override 理由（取消／空白＝不開）：');
       if(!why||!why.trim()){toast('🛂 已取消——紅燈要 override+reason 先開得');return;}
       ovFlag=true;ovReason=why.trim();
@@ -3509,7 +3514,7 @@ function renderWheel320(){
             const nP=chk.filter(c=>c.pass).length;
             const fails=chk.filter(c=>!c.pass).map(c=>String(c.label||'').slice(0,2));
             const tip='<b>'+esc(l.ticker)+' 檢查（bridge preflight）</b><br>'
-              +chk.map(c=>(c.pass?'✅':'❌')+' '+esc(c.label||'')+'：'+esc(c.detail||'')).join('<br>')
+              +chk.map(c=>(c.pass?'✅':'❌')+' '+esc(c.label||'')+'：'+shu(c.detail||'')).join('<br>')
               +'<br><small>接貨義務 US$'+w320n(liveq.assign_usd,0)+' · all_pass='+(liveq.all_pass?'true':'false')+'</small>';
             return '<span class="pill '+(nP===chk.length?'g':(nP>=chk.length-2?'w':'r'))+'" data-tip="'+esc(tip)+'">'+nP+'/'+chk.length+' ✓</span>'
               +(fails.length?('<br><span class="small" style="color:var(--bad)">'+esc(fails.join(' '))+'</span>'):'');
@@ -4083,7 +4088,7 @@ async function runPreflight(){
   if(!activeBridge){await detectBridge();}
   if(!activeBridge){box.innerHTML='<div class="small" style="color:#dc2626">bridge 未連接。</div>';return;}
   if(meta)meta.textContent='六問計算中…（'+esc(tk)+' '+esc(st)+'）';
-  box.innerHTML='<div class="small muted">🛂 問緊六問（首次 ~2-6s；之後 120s cache 即時）…</div>';
+  box.innerHTML='<div class="small muted">🛂 正在查詢六問（首次 ~2-6s；之後 120s cache 即時）…</div>';
   let d=null;
   try{
     const r=await fetchTimeout(activeBridge+'/preflight?ticker='+encodeURIComponent(tk)+'&strike='+encodeURIComponent(st)
@@ -4118,7 +4123,7 @@ async function runPreflight(){
     h+='<div style="display:flex;gap:8px;align-items:baseline;padding:5px 2px;border-top:1px solid #f1f5f9;font-size:13px">'
       +'<span style="width:20px;text-align:center">'+pfIcon(c.status)+'</span>'
       +'<span style="min-width:78px;font-weight:700;color:'+pfColor(c.status)+'">'+esc(c.label)+'</span>'
-      +'<span style="flex:1;color:'+pfColor(c.status)+'">'+esc(c.detail||'')+'</span></div>';
+      +'<span style="flex:1;color:'+pfColor(c.status)+'">'+shu(c.detail||'')+'</span></div>';
   });
   h+='<div class="small muted" style="margin-top:6px">跟榜＝engine 今日候選榜；接貨＝K×100×張 vs 戶口 equity（接不起＝即日 margin call）；σ距＝(S−K)/S÷(IV×√(DTE/252))，<0.7 紅／<1.0 黃；Event＝FOMC/CPI/PPI 撞到期或持有期；按金＝model 按金×1.255 vs USD 購買力；市寬＝engine universe breadth（<50%＝閘關）。❓＝該項數據拿不到（不要當 pass）。</div>';
   box.innerHTML=h;
