@@ -1,0 +1,39 @@
+{
+  "backtest_period": {
+    "start": "2022-01-01",
+    "end": "2026-08-26",
+    "days": 1698
+  },
+  "portfolio": {
+    "initial_size": 320000,
+    "final_value": 320000,
+    "total_return": 0.0,
+    "annualized_return": 0.0
+  },
+  "risk_metrics": {
+    "max_drawdown": 0.0,
+    "sharpe_ratio": 0,
+    "sortino_ratio": 0
+  },
+  "trade_statistics": {
+    "total_trades": 0,
+    "winning_trades": 0,
+    "losing_trades": 0,
+    "win_rate": 0,
+    "profit_factor": 0,
+    "avg_win": 0,
+    "avg_loss": 0
+  },
+  "strategy_parameters": {
+    "position_size_pct": 0.1,
+    "max_positions": 4,
+    "monthly_target_return": 0.25,
+    "annual_target_return": 0.3,
+    "win_rate_target": 0.7,
+    "max_loss_per_trade": 0.15,
+    "profit_target": 0.4,
+    "stop_loss": 0.8,
+    "min_dte": 7,
+    "max_dte": 21
+  }
+}
