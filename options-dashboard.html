@@ -706,7 +706,7 @@ function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'
    源頭（futu_bridge.py）已同步改，此層兜底歷史資料＋未重啟 bridge 期間的舊字串。 */
 function shu(t){return String(t==null?'':t)
   .replace(/攞唔到/g,'無法取得').replace(/唔使/g,'無需').replace(/唔會/g,'不會')
-  .replace(/唔係/g,'不是').replace(/呢腿/g,'本腿').replace(/冇/g,'無').replace(/嘅/g,'的');}
+  .replace(/唔係/g,'不是').replace(/呢腿/g,'本腿').replace(/唔擋/g,'不擋').replace(/唔入得/g,'不得開倉').replace(/冇/g,'無').replace(/嘅/g,'的');}
 /* ⭐ 08-25：盈虧平衡（沽 put=K−權利金；沽 call=K+權利金）——user 要求真倉寫上 breakeven */
 function breakevenOf(p){
   const K=Number(p.strike),prem=Number(p.entry_prem);
