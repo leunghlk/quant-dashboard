@@ -1923,7 +1923,7 @@ function renderWinRank(){
         collateral:x.collateral,margin1:x.margin1,premium_source:x.premium_source,stale_days:x.stale_days,mid_suspect:!!x.mid_suspect,band:x.band,excluded:!!x.excluded,fromWinRank:true};
     }
     h+='<tr class="rowlink"'+(_wf.fits===false?' style="background:#fef2f2"':'')+' onclick="showDetail(\''+x.ticker+'\')">'
-      +'<td class="c">'+((x.__wrPos!=null&&x.__wrPos<10)?'<b style="color:#15803d" title="wr 正選序（同 TG Top5）——落單 K＝詳情頁 best-ay 年化最大">✓'+(x.__wrPos+1)+'</b>':'<span style="color:#94a3b8">'+(i+1)+'</span>')+'</td><td><b>'+esc(x.ticker)+'</b>'+una+' '+assignLight(x.strike)+'</td>'
+      +'<td class="c">'+((x.__wrPos!=null&&x.__wrPos<10)?'<b style="color:#15803d" title="wr 正選序（同 TG Top5）——落單 K＝詳情頁 best-ay 年化最大">✓'+(x.__wrPos+1)+'</b>':'<span style="color:#94a3b8">'+(i+1)+'</span>')+'</td><td><b>'+(x.excluded||_wf.fits===false?'<span style="color:#b91c1c" title="不入正式候選／帳戶層開不到">⛔</span> ':(_wf.fits==null?'<span style="color:#d97706" title="帳戶層數據缺，未能判定">⏳</span> ':(_wf.fits?'<span style="color:#15803d" title="帳戶層可開">✅</span> ':'')))+esc(x.ticker)+'</b>'+una+' '+assignLight(x.strike)+'</td>'
       +'<td class="c" style="white-space:nowrap">'+bandPill+excPill+'</td>'
       +'<td class="r"><b style="color:#1a73e8">'+_wrWr(x).toFixed(2)+'</b></td>'
       +'<td class="c">'+(x.qscore!=null?Number(x.qscore).toFixed(2):'<span class="muted">—</span>')+'</td>'
@@ -3488,10 +3488,10 @@ function renderWheel320(){
            懸停看義務數＋% equity；結論跟 preflight ⑨ 一字一致。 */
         +(function(){const gm=l.gate;if(!gm)return '';
           const tip=esc(gm.note||'');
-          if(gm.ok===true)return ' <span class="pill g" data-tip="'+tip+'" style="cursor:help">✅閘</span>';
+          if(gm.ok===true)return ' <span class="pill g" data-tip="'+tip+'" style="cursor:help">✅ 可開</span>';
           if(gm.ok===false){const m=String(gm.note||'').match(/閘[ABC]/);
-            return ' <span class="pill" data-tip="'+tip+'" style="cursor:help;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca">❌'+esc(m?m[0]:'閘')+'</span>';}
-          return ' <span class="pill" data-tip="'+tip+'" style="cursor:help;background:#f1f5f9;color:#64748b">？閘</span>';})()+'</td>'
+            return ' <span class="pill" data-tip="'+tip+'" style="cursor:help;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca">⛔ 開不得'+esc(m?'（'+m[0]+'）':'')+'</span>';}
+          return ' <span class="pill" data-tip="'+tip+'" style="cursor:help;background:#f1f5f9;color:#64748b">⏳ 待核</span>';})()+'</td>'
         +'<td class="r"'+(l.score!=null?(' data-tip="<b>模型分數</b><br>vrp_gate rank_key = max 12 週 RV z-score：<b>'+w320n(l.score,2)+'</b><br><small>模型就是用這個分數排 top_n=4；分數越高＝premium 相對歷史波動越肥</small>"'):'')+'>'
           +(l.score!=null?w320n(l.score,2):'<span class="muted">—</span>')+'</td>'
         +'<td class="r">'+(hasLive
@@ -4795,7 +4795,7 @@ bootMode();
 (function(){
   function esc(x){return String(x==null?'':x).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function col(v){ if(typeof v!=='string')return null; if(v.indexOf('+')===0)return '#0f766e'; if(v.indexOf('-')===0)return '#b91c1c'; return null; }
-  function td(v,r){ var o=(v!==null&&typeof v==='object')?v:{v:v}; var txt=(o.v==null)?'':String(o.v); var c=o.c||col(txt); var h='<td'+(r?' class="r"':'')+'>'; if(c)h+='<span style="color:'+c+'">'; h+=esc(txt); if(c)h+='</span>'; return h+'</td>'; }
+  function td(v,r){ var o=(v!==null&&typeof v==='object')?v:{v:v}; var txt=(o.v==null)?'':String(o.v); var c=o.c||col(txt); var h='<td'+(r?' class="r"':'')+(o.bg?' style="background:'+o.bg+'"':'')+'>'; if(c)h+='<span style="color:'+c+'">'; h+=esc(txt); if(c)h+='</span>'; return h+'</td>'; }
   function tbl(head,rows,ridx){ var h='<div class="table-scroll"><table class="utable" style="width:100%;font-size:12px;border-collapse:collapse"><thead><tr>'; head.forEach(function(t,i){h+='<th'+(ridx.indexOf(i)>=0?' class="r"':'')+'>'+esc(t)+'</th>';}); h+='</tr></thead><tbody>'; rows.forEach(function(r){h+='<tr>'; r.forEach(function(v,i){h+=td(v,ridx.indexOf(i)>=0);}); h+='</tr>';}); return h+'</tbody></table></div>'; }
   var d_changed=[];
   function secT(key,t,sub){ var nw=(d_changed.indexOf(key)>=0)?'<span style="background:#dbeafe;color:#1d4ed8;border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:700;margin-left:6px;vertical-align:1px">🆕 有更新</span>':''; return '<div style="font-weight:700;margin:12px 0 4px;font-size:13px;border-top:1px dashed #e2e8f0;padding-top:8px">'+esc(t)+nw+(sub?' <span class="muted" style="font-weight:400">'+esc(sub)+'</span>':'')+'</div>'; }
@@ -4848,8 +4848,15 @@ bootMode();
     var sp=d.shortput||{};
     h+=secT('shortput','④ 短賣 Put 機會排行榜（Δ≈0.30 檔，年化排序）');
     if(sp.note) h+='<div class="small muted" style="margin-bottom:4px">'+esc(sp.note)+'</div>';
-    if(sp.rows&&sp.rows.length) h+=tbl(['代號','到期','DTE','行使價','Δ目標','mid','年化','IV','義務','佔帳戶','閘','源'],
-      sp.rows.map(function(r){ var g={v:r[10],c:r[10]==='過閘'?'#0f766e':'#b91c1c'}; return [r[0],r[1],r[2],r[3],r[4],r[5],{v:r[6]},r[7],r[8],r[9],g,r[11]]; }),[2,5,6,7,8,9]);
+    if(sp.rows&&sp.rows.length){ /* ⭐10-30 剔符號制：✅可開/⏳候補/⛔不宜——can 欄由 generator 計（義務閘＋業績閘），✓組排最前 */
+      var _CAN={'✓':{t:'✅ 可開',c:'#0f766e',bg:'#f0fdf4'},'⏳':{t:'⏳ 候補',c:'#b45309',bg:'#fffbeb'},'✕':{t:'⛔ 不宜',c:'#b91c1c',bg:null}};
+      var _crk={'✓':0,'⏳':1,'✕':2};
+      var _rows=sp.rows.slice().sort(function(a,b){return (_crk[a[13]]!=null?_crk[a[13]]:2)-(_crk[b[13]]!=null?_crk[b[13]]:2)||parseFloat(b[6])-parseFloat(a[6]);});
+      h+=tbl(['判定','代號','到期','行使價','mid','年化','IV','佔帳戶'],
+        _rows.map(function(r){ var k=_CAN[r[13]]||_CAN['✕'];
+          return [{v:k.t,c:k.c,bg:k.bg}, {v:r[0],bg:k.bg}, {v:r[1]+' · '+r[2]+'日',bg:k.bg}, {v:r[3],bg:k.bg}, {v:r[5],bg:k.bg}, {v:r[6],bg:k.bg}, {v:r[7],bg:k.bg}, {v:r[9],bg:k.bg}]; }),[4,5,6,7]);
+      h+='<div class="small muted" style="margin:4px 0 2px">✅ 可開＝義務閘＋業績閘均過；⏳ 候補＝7 日內有業績（績後重掃）或義務閘查不到；⛔ 不宜＝單腿義務 >50% 帳戶。全戶按金使用率 >65% 或 VIX 在閘外時，就算 ✅ 也只准平倉——見⑤部署時機。IV 特別高＝事件溢價，回補風險大。</div>';
+    }
 
     // ⑤ 部署時機
     h+=secT('deploy','⑤ 部署時機');
