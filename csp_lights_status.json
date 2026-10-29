@@ -1,7 +1,7 @@
 {
  "version": 2,
- "as_of": "2026-10-29 15:23 ET",
- "updated": 1793301802941,
+ "as_of": "2026-10-29 15:53 ET",
+ "updated": 1793303607223,
  "config": {
   "downvol_yellow": 0.7,
   "mtm_n": 10,
@@ -17,9 +17,9 @@
    "qty": 3.0,
    "code": "US.NET261030P310000",
    "covered": false,
-   "spot": 304.5,
+   "spot": 308.39,
    "dte": 1,
-   "otm_pct": -1.77,
+   "otm_pct": -0.52,
    "light": "green",
    "detail": {
     "fresh": [],
@@ -49,27 +49,12 @@
    "qty": 2.0,
    "code": "US.NBIS261106C165000",
    "covered": true,
-   "spot": 169.94,
+   "spot": 171.94,
    "dte": 8,
-   "otm_pct": 2.99,
-   "light": "red",
+   "otm_pct": 4.21,
+   "light": "nodata",
    "detail": {
-    "fresh": [],
-    "fresh_s1234": [],
-    "s5_only": false,
-    "above_ma20": false,
-    "st_ma510": true,
-    "st_ma1020": true,
-    "st_dif_neg": true,
-    "ma5": 166.952001953125,
-    "ma10": 167.26600189208983,
-    "ma20": 193.35900115966797,
-    "dif": -15.310401792575988,
-    "dea": -14.185312285582727,
-    "mtm": -18.470001220703125,
-    "mtm_sig": -39.698333740234375,
-    "downvol": 0.559,
-    "close": 169.94000244140625
+    "reason": "kline空"
    },
    "action": "🔴 續瀉：roll down 跟價優先；股每 $1 你食 −$100/張，CC 租只補一部分"
   }
