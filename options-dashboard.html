@@ -4790,9 +4790,10 @@ bootMode();
 (function(){
   function esc(x){return String(x==null?'':x).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function col(v){ if(typeof v!=='string')return null; if(v.indexOf('+')===0)return '#0f766e'; if(v.indexOf('-')===0)return '#b91c1c'; return null; }
-  function td(v,r){ var c=col(String(v)); var h='<td'+(r?' class="r"':'')+'>'; if(c)h+='<span style="color:'+c+'">'; h+=esc(v); if(c)h+='</span>'; return h+'</td>'; }
+  function td(v,r){ var o=(v!==null&&typeof v==='object')?v:{v:v}; var txt=(o.v==null)?'':String(o.v); var c=o.c||col(txt); var h='<td'+(r?' class="r"':'')+'>'; if(c)h+='<span style="color:'+c+'">'; h+=esc(txt); if(c)h+='</span>'; return h+'</td>'; }
   function tbl(head,rows,ridx){ var h='<div class="table-scroll"><table class="utable" style="width:100%;font-size:12px;border-collapse:collapse"><thead><tr>'; head.forEach(function(t,i){h+='<th'+(ridx.indexOf(i)>=0?' class="r"':'')+'>'+esc(t)+'</th>';}); h+='</tr></thead><tbody>'; rows.forEach(function(r){h+='<tr>'; r.forEach(function(v,i){h+=td(v,ridx.indexOf(i)>=0);}); h+='</tr>';}); return h+'</tbody></table></div>'; }
-  function secT(t,sub){ return '<div style="font-weight:700;margin:12px 0 4px;font-size:13px;border-top:1px dashed #e2e8f0;padding-top:8px">'+esc(t)+(sub?' <span class="muted" style="font-weight:400">'+esc(sub)+'</span>':'')+'</div>'; }
+  var d_changed=[];
+  function secT(key,t,sub){ var nw=(d_changed.indexOf(key)>=0)?'<span style="background:#dbeafe;color:#1d4ed8;border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:700;margin-left:6px;vertical-align:1px">🆕 有更新</span>':''; return '<div style="font-weight:700;margin:12px 0 4px;font-size:13px;border-top:1px dashed #e2e8f0;padding-top:8px">'+esc(t)+nw+(sub?' <span class="muted" style="font-weight:400">'+esc(sub)+'</span>':'')+'</div>'; }
   function chip(ok,txt){ return '<span style="display:inline-block;background:'+(ok?'#dcfce7;color:#166534':'#fee2e2;color:#b91c1c')+';border-radius:99px;padding:2px 10px;font-weight:700;font-size:12px;margin-right:6px">'+(ok?'🟢':'🔴')+' '+esc(txt)+'</span>'; }
 
   async function loadBrief(force){
@@ -4809,6 +4810,7 @@ bootMode();
 
   function renderBrief(d){
     var b=document.getElementById('briefBody'); if(!b)return;
+    d_changed=(d.changed||[]);
     var today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Hong_Kong'});
     var h='';
     if(d.asof!==today) h+='<div style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:8px;padding:6px 10px;margin-bottom:8px;font-weight:700">⚠ 此簡報生成於 '+esc(d.asof)+'（今日為 '+esc(today)+'）——數據可能已過時，請等待每日 08:05 自動更新或人工重跑生成器。</div>';
@@ -4817,20 +4819,20 @@ bootMode();
     if(d.meta&&d.meta.stage) h+='<div class="small muted" style="margin-bottom:4px">'+esc(d.meta.stage)+'</div>';
 
     // ① 大市概況
-    h+=secT('① 大市概況','（'+esc(d.gen_at||d.asof)+' 生成）');
+    h+=secT('market','① 大市概況','（'+esc(d.gen_at||d.asof)+' 生成）');
     (d.market&&d.market.lines||[]).forEach(function(L){ h+='<div class="small" style="margin:2px 0">· '+esc(L)+'</div>'; });
     if(d.market&&d.market.verdict) h+='<div class="small" style="margin:6px 0;padding:6px 10px;background:#eff6ff;border-radius:6px;font-weight:600">判決：'+esc(d.market.verdict)+'</div>';
 
     // ② 板塊輪動
     var sc=d.sectors||{};
-    h+=secT('② 板塊輪動（標普 11 板塊）');
+    h+=secT('sectors','② 板塊輪動（標普 11 板塊）');
     if(sc.leaders) h+='<div class="small">'+esc(sc.leaders)+'</div>';
     if(sc.laggards) h+='<div class="small">'+esc(sc.laggards)+'</div>';
     if(sc.rows&&sc.rows.length) h+=tbl(['代號','板塊','近一月','近三月'], sc.rows.map(function(r){return [r[0],r[1],{v:r[2]}, {v:r[3]}];}),[2,3]);
 
     // ③ 買入訊號
     var sg=d.signals||{};
-    h+=secT('③ 買入訊號（本系統口徑：站上 20 天線＋KDJ 金叉或 MACD 翻紅＝喘定；站上 50 天線且 20>50＝轉強）');
+    h+=secT('signals','③ 買入訊號（本系統口徑：站上 20 天線＋KDJ 金叉或 MACD 翻紅＝喘定；站上 50 天線且 20>50＝轉強）');
     if(sg.rows&&sg.rows.length){
       var vc={'轉強':'#0f766e','喘定':'#b45309','轉弱':'#b91c1c','中性':'#64748b'};
       h+=tbl(['代號','收市','評定','20天線','50天線','200天線','MACD','KDJ','日%','5日%','月%','備註'],
@@ -4839,13 +4841,13 @@ bootMode();
 
     // ④ 短賣 Put 機會
     var sp=d.shortput||{};
-    h+=secT('④ 短賣 Put 機會排行榜（Δ≈0.30 檔，年化排序）');
+    h+=secT('shortput','④ 短賣 Put 機會排行榜（Δ≈0.30 檔，年化排序）');
     if(sp.note) h+='<div class="small muted" style="margin-bottom:4px">'+esc(sp.note)+'</div>';
     if(sp.rows&&sp.rows.length) h+=tbl(['代號','到期','DTE','行使價','Δ目標','mid','年化','IV','義務','佔帳戶','閘','源'],
       sp.rows.map(function(r){ var g={v:r[10],c:r[10]==='過閘'?'#0f766e':'#b91c1c'}; return [r[0],r[1],r[2],r[3],r[4],r[5],{v:r[6]},r[7],r[8],r[9],g,r[11]]; }),[2,5,6,7,8,9]);
 
     // ⑤ 部署時機
-    h+=secT('⑤ 部署時機');
+    h+=secT('deploy','⑤ 部署時機');
     if(dp.system_light) h+='<div class="small" style="margin:3px 0">'+chip(dp.system_light.ok,'制度面')+esc(dp.system_light.txt)+'</div>';
     if(dp.market_light) h+='<div class="small" style="margin:3px 0">'+chip(dp.market_light.ok,'市場面')+esc(dp.market_light.txt)+'</div>';
     if(dp.verdict) h+='<div class="small" style="margin:6px 0;padding:6px 10px;background:#eff6ff;border-radius:6px;font-weight:600">判決：'+esc(dp.verdict)+'</div>';
@@ -4854,10 +4856,10 @@ bootMode();
       dp.actions.forEach(function(a){ h+='<div class="small" style="margin:2px 0"><b>'+esc(a.date)+'</b>——'+esc(a.text)+'</div>'; });
     }
     var gt=d.gates||[];
-    if(gt.length){ h+=tbl(['閘門','現值','說明'], gt.map(function(g){ return [{v:g.name,}, {v:(g.ok?'✅ ':'⛔ ')+g.val, c:g.ok?'#0f766e':'#b91c1c'}, {v:g.desc}]; }),[1]); }
+    if(gt.length){ h+=secT('gates','閘門對照（四套閘門現值）'); h+=tbl(['閘門','現值','說明'], gt.map(function(g){ return [{v:g.name,}, {v:(g.ok?'✅ ':'⛔ ')+g.val, c:g.ok?'#0f766e':'#b91c1c'}, {v:g.desc}]; }),[1]); }
 
     // 備註
-    if(d.notes&&d.notes.length){ h+=secT('備註（人工維護）'); d.notes.forEach(function(x){ h+='<div class="small muted" style="margin:2px 0">· '+esc(x)+'</div>'; }); }
+    if(d.notes&&d.notes.length){ h+=secT('notes','備註（人工維護）'); d.notes.forEach(function(x){ h+='<div class="small muted" style="margin:2px 0">· '+esc(x)+'</div>'; }); }
     b.innerHTML=h;
   }
   setTimeout(loadBrief,1500);
