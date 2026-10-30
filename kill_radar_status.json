@@ -1,14 +1,12 @@
 {
  "version": 2,
- "level": "YEL",
+ "level": "GREEN",
  "level_since": null,
  "streak": {
-  "yel": 707,
-  "red": 346
+  "yel": 0,
+  "red": 0
  },
- "reasons": [
-  "10y 4.99 水平閘 Y"
- ],
+ "reasons": [],
  "legs": {
   "A": {
    "name": "廣度血",
@@ -24,9 +22,9 @@
   },
   "C": {
    "name": "10y 水平",
-   "val": "4.99",
+   "val": "4.92",
    "thr": "≥5.00🟡/≥5.15🔴/<4.95解除",
-   "state": "Y",
+   "state": "off",
    "detail": "MOVE 94"
   },
   "D": {
@@ -616,8 +614,8 @@
   }
  ],
  "context": {
-  "vix": 18.65,
-  "tnx": 4.989,
+  "vix": 18.68,
+  "tnx": 4.921,
   "move": 93.5,
   "oas": 3.14,
   "blood": 0,
@@ -634,7 +632,7 @@
   ],
   "name_fails": []
  },
- "as_of": "10-30 20:05 HKT",
- "updated": 1793361925966,
+ "as_of": "10-30 20:35 HKT",
+ "updated": 1793363735670,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
