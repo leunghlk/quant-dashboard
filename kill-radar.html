@@ -288,8 +288,18 @@ function render(){
   document.getElementById('twbar').style.width=((tw.n||0)/3*100)+'%';
   document.getElementById('twgrid').innerHTML=['c1','c2','c3'].map(function(k){
     const on=!!tw[k];
+    let sub=(on?'✅ 已確認':'未確認');
+    if(k==='c3'&&on){
+      const crw=(tw.crwv_px!=null&&tw.crwv_sma20)?('CRWV '+tw.crwv_px+' vs sma20 '+tw.crwv_sma20+'（'+(tw.crwv_px>=tw.crwv_sma20?'上':'下')+'）'):null;
+      if(tw.c3_mode==='oas'){
+        sub='✅ 後備亮（OAS 距峰 '+(tw.oas_offpeak_bp!=null?tw.oas_offpeak_bp:'?')+'bp）';
+        if(crw) sub+='<br><span style="color:#b45309">'+crw+'——本體未收回</span>';
+      } else {
+        sub='✅ 本體確認'+(crw?'（'+crw+'）':'——CRWV 已收返 sma20');
+      }
+    }
     return '<div class="tw" style="'+(on?'background:var(--teal-tint);border-color:#99f6e4':'')+'">'+
-      '<div class="nm">'+names[k]+'</div><div class="dt">'+(on?'✅ 已確認':'未確認')+'</div></div>';
+      '<div class="nm">'+names[k]+'</div><div class="dt">'+sub+'</div></div>';
   }).join('');
   document.getElementById('twstatus').innerHTML=(tw.n||0)>=2
     ?'✅ <b>2/3 齊——re-entry 窗口 armed</b>（旗鮮 5td，聽日落注原則）'

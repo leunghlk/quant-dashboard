@@ -5054,9 +5054,18 @@ function krRender(){
   document.getElementById('krTwN').textContent=(tw.n||0)+'/3'+((tw.n||0)>=2?' ✅窗口':'');
   document.getElementById('krTwBar').style.width=((tw.n||0)/3*100)+'%';
   document.getElementById('krTwGrid').innerHTML=['c1','c2','c3'].map(function(k){
-    var on=!!tw[k];
+    var on=!!tw[k],sub=(on?'✅ 已確認':'未確認');
+    if(k==='c3'&&on){
+      var crw=(tw.crwv_px!=null&&tw.crwv_sma20)?('CRWV '+tw.crwv_px+' vs sma20 '+tw.crwv_sma20+'（'+(tw.crwv_px>=tw.crwv_sma20?'上':'下')+'）'):null;
+      if(tw.c3_mode==='oas'){
+        sub='✅ 後備亮（OAS 距峰 '+(tw.oas_offpeak_bp!=null?tw.oas_offpeak_bp:'?')+'bp）';
+        if(crw) sub+='<br><span style="color:#b45309">'+crw+'——本體未收回</span>';
+      } else {
+        sub='✅ 本體確認'+(crw?'（'+crw+'）':'——CRWV 已收返 sma20');
+      }
+    }
     return '<div style="background:'+(on?'#ccfbf1':'#f8fafc')+';border:1px solid '+(on?'#99f6e4':'var(--line)')+';border-radius:10px;padding:10px 12px">'+
-      '<b style="font-size:12.5px">'+names[k]+'</b><div class="small muted" style="margin-top:3px">'+(on?'✅ 已確認':'未確認')+'</div></div>';
+      '<b style="font-size:12.5px">'+names[k]+'</b><div class="small muted" style="margin-top:3px">'+sub+'</div></div>';
   }).join('');
   document.getElementById('krTwStatus').innerHTML=(tw.n||0)>=2
     ?'✅ <b>2/3 齊——re-entry 窗口 armed</b>（旗鮮 5td，聽日落注原則）'
