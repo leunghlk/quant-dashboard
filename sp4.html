@@ -252,10 +252,10 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
     <h3>🚀 重新出發期 · 當前＝Stage 0 paper（2026-10-27 開波，$0 真錢）</h3>
     <div class="table-scroll"><table class="gates" style="min-width:680px">
       <tr><th style="text-align:left">G1 畢業閘</th><th style="text-align:left">條件</th><th style="text-align:left">現況</th></tr>
-      <tr><td style="text-align:left">真價閘</td><td style="text-align:left">spr10 實收 credit ≥90% 模型價，≥80% 樣本</td><td style="text-align:left">⬜ 收集中（stage0_quotes.csv 每日 08:15）</td></tr>
-      <tr><td style="text-align:left">燈號穩定</td><td style="text-align:left">🚥 監察 30 日零斷報</td><td style="text-align:left">1/30 日（10-27 起）</td></tr>
+      <tr><td style="text-align:left">真價閘</td><td style="text-align:left">spr10 實收 credit ≥90% 模型價，≥80% 樣本</td><td style="text-align:left" id="g1Price">⬜ 收集中（stage0_quotes.csv 每日 08:15）</td></tr>
+      <tr><td style="text-align:left">燈號穩定</td><td style="text-align:left">🚥 監察 30 日零斷報</td><td style="text-align:left" id="g1Lights">載入中…</td></tr>
       <tr><td style="text-align:left">解封</td><td style="text-align:left">用戶明言</td><td style="text-align:left">✅ 2026-10-27</td></tr>
-      <tr><td style="text-align:left">paper 時長</td><td style="text-align:left">≥8-13 週（含一個業績季＋一次 VIX&gt;25）</td><td style="text-align:left">⬜ 0 週</td></tr>
+      <tr><td style="text-align:left">paper 時長</td><td style="text-align:left">≥8-13 週（含一個業績季＋一次 VIX&gt;25）</td><td style="text-align:left" id="g1Weeks">⬜ 計算中…</td></tr>
     </table></div>
     <div class="muted" style="font-size:11.5px;margin-top:4px">書本＝all-weather v2 線性權重（綠態進取書→紅態滑落防守書；CRISIS 全清＋25→50→100 ladder）· <b>$90k 整張版 INT90_V2：CAGR 8.96%／Sharpe 1.50／MDD −2.34%／月勝 86.2%／滾動 1Y 雙&gt;1 佔 84.4% 窗</b>· 2022-25 逐年 +2.1/+10.2/+15.4/+9.4%</div>
   </div>
@@ -333,7 +333,7 @@ details.spec .spec-body{padding:0 14px 12px;font-size:12.5px}
     <div class="table-scroll"><table class="gates" style="min-width:760px">
       <tr><th style="text-align:left">期</th><th style="text-align:left">狀態</th><th style="text-align:left">而家要做</th><th style="text-align:left">唔好做</th><th>去台</th></tr>
       <tr><td style="text-align:left"><b>⏱️ 回本期</b></td><td style="text-align:left">🟠 行緊（洞 −233k／457k 本）</td><td style="text-align:left">每日睇 🚥 燈；NBIS 11-06 決策；Stage 0 paper 照行；kill switch 🟢 已解封（live 仍鎖 G1）</td><td style="text-align:left">黃燈開單名；加槓桿追 12-31；sleeve&gt;12.5%；bear put spread 做主力</td><td><button class="btn-primary" onclick="phaseGo('ph1',document.getElementById('phbtn-ph1'))">⏱️ 去回本期台</button></td></tr>
-      <tr><td style="text-align:left"><b>🚀 重新出發期</b></td><td style="text-align:left">🔵 Stage 0 paper（10-27 開波）</td><td style="text-align:left">G1 四閘收數（真價 day-2 0.945 PASS／燈號 2/30）；v4g 品質書 paper 照跑；工具台喺呢期先用</td><td style="text-align:left">未過 G1 落任何真錢；HAIR85 收不足照開倉</td><td><button class="btn-primary" onclick="phaseGo('ph2',document.getElementById('phbtn-ph2'))">🚀 去重新出發期台</button></td></tr>
+      <tr><td style="text-align:left"><b>🚀 重新出發期</b></td><td style="text-align:left">🔵 Stage 0 paper（10-27 開波）</td><td style="text-align:left">G1 四閘收數（<span id="g1PhaseCells">真價 —／燈號 —</span>，同上面 G1 表自動同步）；v4g 品質書 paper 照跑；工具台喺呢期先用</td><td style="text-align:left">未過 G1 落任何真錢；HAIR85 收不足照開倉</td><td><button class="btn-primary" onclick="phaseGo('ph2',document.getElementById('phbtn-ph2'))">🚀 去重新出發期台</button></td></tr>
     </table></div>
     <div class="muted" style="font-size:11.5px;margin-top:4px">畢業線（G1）：真價 ≥90% 模型（≥80% 樣本）＋燈號 30 日零斷報＋paper ≥8-13 週（含一個業績季＋一次 VIX&gt;25）→ Stage 1 micro $5-9k（2027-01）→ Stage 2 half $45k（XSP 指數腿上場）→ Stage 3 full。tab bar 跟期轉：回本期見 paper 台＋NBIS；v4g 工具（策略台/Universe/Checker/情景/Spec/業績）屬重新出發期。</div>
   </div>
@@ -814,7 +814,7 @@ function doCheck(){
     h+='<h3>'+o.j.sym+' <span class="pill '+(pass?'green':'red')+'">'+(pass?'✓ 九閘全過 — 可以做 CSP（跟六問卡）':'✗ 唔過：'+(o.j.fail_reason||[]).join('、'))+'</span> <span class="pill grey">'+(o.j.tier==='half'?'半注 tier（β≥1.2）':'全注 tier')+'</span></h3>';
     h+='<div class="kv" style="max-width:560px;margin-top:6px"><b>Cap</b><span>$'+o.j.cap_bn+'B</span><b>β(混合)/β1y</b><span>'+o.j.beta+' / '+o.j.beta1y+'</span><b>Vol252</b><span>'+(o.j.vol252*100).toFixed(0)+'%</span><b>IV 百分位</b><span>'+(o.j.ivpct!=null?Math.round(o.j.ivpct*100)+'%':'未知')+'</span><b>D/EBITDA</b><span>'+(o.j.debtebitda!=null?o.j.debtebitda:'—')+'</span><b>Piotroski F</b><span>'+(o.j.F!=null?o.j.F:'—')+'</span><b>FY FCF</b><span>'+(o.j.fcf_bn!=null?'$'+o.j.fcf_bn+'B':'—')+'</span><b>Next earn</b><span>'+(o.j.next_earn||'未知')+'｜到期 '+o.j.expiry+'</span></div>';
     h+='<div class="gategrid">';
-    [['cap','Cap ≥$20B',g.cap],['lev','D/EBITDA ≤2.5',g.lev],['F','Piotroski ≥6',g.F],['fcf','FCF &gt;0',g.fcf],['beta','β &lt;'+(o.j.tier==='half'?'2.50':'1.20'),g.beta],['ivpct','IV% ≥60',g.ivpct],['earn_span','業績 span 過',g.earn_span],['killsig','無 kill-sig',g.killsig]].forEach(function(x){
+    [['cap','Cap ≥$20B',g.cap],['lev','D/EBITDA ≤2.5',g.lev],['F','Piotroski ≥6',g.F],['fcf','FCF &gt;0',g.fcf],['beta','β &lt;'+(o.j.tier==='half'?'2.50':'1.20'),g.beta],['ivpct','IV% ≥60',g.ivpct],['earn_span','業績 span 過',g.earn_span],['killsig','無 kill-sig',g.killsig],['ban','無 ban 令',g.ban]].forEach(function(x){
       h+='<div class="gatecell '+(x[2]?'pass':'fail')+'"><b>'+x[0]+'</b>'+(x[2]?'✓':'✗')+' '+x[1]+'</div>';
     });
     h+='</div>';
@@ -887,7 +887,7 @@ function renderPaper(){
       h+='<tr><td class="l">'+(p.layer==='CORE'?'<span class="pill teal">CORE</span>':'<span class="pill blue">SAT</span>')+'</td>'
         +'<td class="l"><b>'+esc(p.sym)+'</b></td><td>'+p.K+'</td><td>'+esc(p.exp)+'</td><td>'+p.dte+'</td><td>'+p.ct+'</td>'
         +'<td>$'+fmt2(p.entry_credit)+'</td><td>$'+fmt2(p.mark)+' <span class="muted" style="font-size:10px">'+esc(p.mark_src||'')+'</span></td>'
-        +'<td>'+gp(p.sigma_dist!=null&&p.sigma_dist>=1?p.sigma_dist>=0.5?true:false:null)+' '+(p.sigma_dist!=null?p.sigma_dist:'—')+'</td>'
+        +'<td>'+(p.sigma_dist!=null?(p.sigma_dist>=1?gp(true):(p.sigma_dist>=0.5?'<span class="gp" style="background:#fef3c7;color:#92400e">△</span>':gp(false))):gp(null))+' '+(p.sigma_dist!=null?p.sigma_dist:'—')+'</td>'
         +'<td style="color:'+(pl>=0?'var(--good)':'var(--bad)')+'">'+(pl>=0?'+':'−')+'$'+fmt2(Math.abs(pl))+'</td>'
         +'<td>'+(p.otm_prob!=null?Math.round(p.otm_prob*100)+'%':'—')+'</td></tr>';
     });
@@ -918,23 +918,39 @@ function loadPaper(){
     if(el)el.innerHTML='<div class="card"><h3>📄 SP4 模擬倉</h3><div class="muted">sp4_paper.json 讀唔到（'+e+'）— launchd 07:55 HKT 會寫＋push</div></div>';
   });
 }
-var LIGHTS_CRITERIA='<details style="margin-top:8px"><summary style="cursor:pointer;font-size:12.5px;font-weight:700">📋 判燈 criteria 全列（12 訊號＋四態閾＋行動表）</summary>'+
+function lightsCriteriaHTML(){   /* ⭐10-31 現值欄改由 official.signals 綁（原本寫死 10-26 快照，日日靜靜過時） */
+  var j=window.LIGHTS||{},o=j.official||{},s=o.signals||{},pr=j.pool_radar||{};
+  function fx(v,d,suf){return (v==null||isNaN(v))?'—':Number(v).toFixed(d)+(suf||'');}
+  var r1=fx(s.vix,2),r2=s.ts_spread!=null?('<b>'+s.ts_spread.toFixed(2)+'</b>'+(s.ts_spread<0?'（健康）':'（倒掛⚠）')):'—';
+  var r3=s.breadth200!=null?(s.breadth200.toFixed(1)+'%'):'—';
+  var r4=s.dd252!=null?((s.dd252*100).toFixed(1)+'%'):'—';
+  var r5=s.qqq_dd252!=null?((s.qqq_dd252*100).toFixed(1)+'%'):'—';
+  var r6=s.hyg_lqd_20d!=null?((s.hyg_lqd_20d*100).toFixed(1)+'%'+(s.hyg_lqd_20d>-0.03?'（企穩）':'')):'—';
+  var r7=s.f_gap3?'<b>ON</b>':'OFF';
+  var r8=s.any2_cnt!=null?('<b>'+s.any2_cnt+'/5</b>'):'—';
+  var r9=(s.mom20!=null&&s.spx_gt_sma200!=null)?('<b>'+(s.mom20*100).toFixed(1)+'%；'+(s.spx_gt_sma200?'線上':'線下')+'</b>'):'—';
+  var r10=s.f_nvda_brk?'<b>ON</b>':'OFF';
+  var r11=(pr.lit_n!=null&&pr.evaluated)?('<b>'+pr.lit_n+'/'+pr.evaluated+' 亮</b>'):'—';
+  var r12=s.f_vvix_hi?'<b>ON</b>':'OFF';
+  return '<details style="margin-top:8px"><summary style="cursor:pointer;font-size:12.5px;font-weight:700">📋 判燈 criteria 全列（12 訊號＋四態閾＋行動表）</summary>'+
 '<div class="table-scroll"><table class="gates" style="min-width:820px;margin-top:6px"><tr><th>#</th><th style="text-align:left">訊號</th><th style="text-align:left">白話</th><th>現值</th><th>🟡黃閾</th><th>🔴紅閾</th></tr>'+
-'<tr><td>1</td><td style="text-align:left">VIX 恐慌指數</td><td style="text-align:left">大戶買股市保險嘅價，愈高愈驚</td><td><b>19.45</b></td><td>≥20</td><td>≥22（≥28 危機）</td></tr>'+
-'<tr><td>2</td><td style="text-align:left">VIX 期限結構</td><td style="text-align:left">短期保險貴過三個月期＝有急事</td><td><b>−1.03</b>（健康）</td><td>≥0 倒掛</td><td>≥2</td></tr>'+
-'<tr><td>3</td><td style="text-align:left">廣度 %&gt;200DMA</td><td style="text-align:left">幾多 % 大股企穩一年線上</td><td><b>66.7%</b></td><td>&lt;60%</td><td>&lt;50%</td></tr>'+
-'<tr><td>4</td><td style="text-align:left">SPX 年內回撤</td><td style="text-align:left">大市距一年高位幾多 %</td><td><b>−2.5%</b></td><td>≤−5%</td><td>≤−10%／−20%</td></tr>'+
-'<tr><td>5</td><td style="text-align:left">QQQ 年內回撤</td><td style="text-align:left">AI 大盤距頂（洗倉佢先跌）</td><td><b>−7.3%</b></td><td>≤−6%</td><td>≤−8%</td></tr>'+
-'<tr><td>6</td><td style="text-align:left">信用 HYG/LQD 20日</td><td style="text-align:left">垃圾債對投資級表現，信用腳軟行先</td><td><b>−1.7%</b>（企穩）</td><td>≤−3%</td><td>—</td></tr>'+
-'<tr><td>7</td><td style="text-align:left">急殺事件旗</td><td style="text-align:left">「今日已急殺」記錄（事後確認唔係預測）</td><td><b>OFF</b></td><td>—</td><td>觸發</td></tr>'+
-'<tr><td>8</td><td style="text-align:left">五項計數 any2</td><td style="text-align:left">五個危險訊號齊幾多個（1+2+3+4+6）；8/8 歷史覆蓋、lead 中位 4 日</td><td><b>0/5</b></td><td>=1 警戒</td><td>≥2</td></tr>'+
-'<tr><td>9</td><td style="text-align:left">趨勢 mom20＋200日線</td><td style="text-align:left">近月方向＋牛熊分界</td><td><b>−1.6%；線上</b></td><td>mom20&lt;0</td><td>穿 200 日線</td></tr>'+
-'<tr><td>10</td><td style="text-align:left">NVDA 金絲雀</td><td style="text-align:left">AI 一哥穿 50 日線＋月動量負＝鏈洗倉先兆（23 例 78% 命中）</td><td><b>ON</b>（自 10-15）</td><td>ON=Y1</td><td>—</td></tr>'+
-'<tr><td>11</td><td style="text-align:left">單名地雷 141 池</td><td style="text-align:left">高β／高波動／破線轉弱（any_mine）；lead 40-130 日</td><td><b>100/141 亮</b></td><td>亮名禁 naked</td><td>—</td></tr>'+
-'<tr><td>12</td><td style="text-align:left">VVIX 80 分位</td><td style="text-align:left">恐慌嘅恐慌——買 VIX 保險嘅價都貴</td><td><b>ON</b></td><td>ON=Y5</td><td>—</td></tr></table></div>'+
-'<div class="muted" style="font-size:11.5px;margin-top:6px"><b>四態引擎</b>：CRISIS＝VIX≥28 或（SPX 距頂 −20%＋VIX≥26）或（10 日急跌＋VIX≥26）；緊急＝單日 −3%＋距頂 −10%＋VIX≥22 免確認。STRESS＝五項計數≥2 或 VIX≥22。TREND＝SPX&gt;200 日線＋月動量正＋廣度≥60＋金絲雀未破。<br>'+
+'<tr><td>1</td><td style="text-align:left">VIX 恐慌指數</td><td style="text-align:left">大戶買股市保險嘅價，愈高愈驚</td><td><b>'+r1+'</b></td><td>≥20</td><td>≥22（≥28 危機）</td></tr>'+
+'<tr><td>2</td><td style="text-align:left">VIX 期限結構</td><td style="text-align:left">短期保險貴過三個月期＝有急事</td><td>'+r2+'</td><td>≥0 倒掛</td><td>≥2</td></tr>'+
+'<tr><td>3</td><td style="text-align:left">廣度 %&gt;200DMA</td><td style="text-align:left">幾多 % 大股企穩一年線上</td><td><b>'+r3+'</b></td><td>&lt;60%</td><td>&lt;50%</td></tr>'+
+'<tr><td>4</td><td style="text-align:left">SPX 年內回撤</td><td style="text-align:left">大市距一年高位幾多 %</td><td><b>'+r4+'</b></td><td>≤−5%</td><td>≤−10%／−20%</td></tr>'+
+'<tr><td>5</td><td style="text-align:left">QQQ 年內回撤</td><td style="text-align:left">AI 大盤距頂（洗倉佢先跌）</td><td><b>'+r5+'</b></td><td>≤−6%</td><td>≤−8%</td></tr>'+
+'<tr><td>6</td><td style="text-align:left">信用 HYG/LQD 20日</td><td style="text-align:left">垃圾債對投資級表現，信用腳軟行先</td><td><b>'+r6+'</b></td><td>≤−3%</td><td>—</td></tr>'+
+'<tr><td>7</td><td style="text-align:left">急殺事件旗</td><td style="text-align:left">「今日已急殺」記錄（事後確認唔係預測）</td><td>'+r7+'</td><td>—</td><td>觸發</td></tr>'+
+'<tr><td>8</td><td style="text-align:left">五項計數 any2</td><td style="text-align:left">五個危險訊號齊幾多個（1+2+3+4+6）；8/8 歷史覆蓋、lead 中位 4 日</td><td>'+r8+'</td><td>=1 警戒</td><td>≥2</td></tr>'+
+'<tr><td>9</td><td style="text-align:left">趨勢 mom20＋200日線</td><td style="text-align:left">近月方向＋牛熊分界</td><td>'+r9+'</td><td>mom20&lt;0</td><td>穿 200 日線</td></tr>'+
+'<tr><td>10</td><td style="text-align:left">NVDA 金絲雀</td><td style="text-align:left">AI 一哥穿 50 日線＋月動量負＝鏈洗倉先兆（23 例 78% 命中）</td><td>'+r10+'</td><td>ON=Y1</td><td>—</td></tr>'+
+'<tr><td>11</td><td style="text-align:left">單名地雷池</td><td style="text-align:left">高β／高波動／破線轉弱（any_mine）；lead 40-130 日</td><td>'+r11+'</td><td>亮名禁 naked</td><td>—</td></tr>'+
+'<tr><td>12</td><td style="text-align:left">VVIX 80 分位</td><td style="text-align:left">恐慌嘅恐慌——買 VIX 保險嘅價都貴</td><td>'+r12+'</td><td>ON=Y5</td><td>—</td></tr></table></div>'+
+'<div class="muted" style="font-size:11.5px;margin-top:6px">現值欄＝官方讀數 '+(o.date||'—')+'（每日 08:15 隨燈號更新）；live 即市參考以頂頂 🚥 banner 為準。<br>'+
+'<b>四態引擎</b>：CRISIS＝VIX≥28 或（SPX 距頂 −20%＋VIX≥26）或（10 日急跌＋VIX≥26）；緊急＝單日 −3%＋距頂 −10%＋VIX≥22 免確認。STRESS＝五項計數≥2 或 VIX≥22。TREND＝SPX&gt;200 日線＋月動量正＋廣度≥60＋金絲雀未破。<br>'+
 '<b>行動映射</b>：🟢綠＝照常。🟡黃＝單名凍結禁新、指數腿 δ≤0.30 照開、m2x_lit 止蝕啟用（mark≥2×credit＋地雷亮即平）、對沖備妥。🔴STRESS＝單名禁新＋指數 δ≤0.15＋擔保 ≤60%＋對沖 5% NAV。🔴CRISIS＝首個收市全平＋對沖 10%＋擔保 ≤30%；CRISIS→STRESS 企穩 3 日後 25%→50%→滿配階梯重入（唔接刀）。<br>'+
 '品質六閘書（本台 v4g）另有判決：綠燈照行、黃燈 Y1 禁新（TG＋24h 確認，唔覆＝照行）、紅燈唔自動全平（照 roll＋凍平倉建議）。詳：daily_monitor_spec.md／research_qg.md</div></details>';
+}
 
 function loadLights(){
   fetch('lights_today.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
@@ -954,10 +970,10 @@ function loadLights(){
     if(a.hedge)h+='<div style="font-size:12.5px"><b>對沖：</b>'+a.hedge+'</div>';
     if(a.book)h+='<div style="font-size:12.5px"><b>持倉：</b>'+a.book+'</div>';
     h+='<div class="muted" style="font-size:11.5px;margin-top:5px">池雷達 '+pr.lit_n+'/'+pr.evaluated+' 亮（常年 ~59%）· 即市参考 '+lr.asof+'：SPX '+fx(lv.spx,0)+'／VIX '+fx(lv.vix,2)+'／QQQ '+fx(lv.qqq,1)+'／NVDA '+fx(lv.nvda,1)+'（官方讀數先作判燈）</div>';
-    h+='</div></div>'+LIGHTS_CRITERIA;
+    h+='</div></div>'+lightsCriteriaHTML();
     el.style.borderLeftColor=col;
     el.innerHTML=h;
-    window.LIGHTS=j;renderPh1Live();
+    window.LIGHTS=j;renderPh1Live();G1.lightsDay=g1LightsDay();g1Render();
   }).catch(function(e){
     var el=document.getElementById('lightsBanner');
     if(el)el.innerHTML='<b>🚥 洗倉監察：</b><span class="muted">lights_today.json 讀唔到（'+e+'）— 本地跑 ~/shortput_research/ai_era_v1/scripts_g/lights_daily.py 再 push</span>';
@@ -984,14 +1000,20 @@ function renderPh1Live(){
       var mtmImpr=t.mtm10>t.mtm10_prev;
       th+='<div class="table-scroll"><table class="gates" style="min-width:600px;margin-bottom:8px">';
       th+='<tr><th style="text-align:left">NBIS 技術指標（日線，官方讀數前一收市）</th><th style="text-align:left">值／狀態</th></tr>';
-      th+='<tr><td style="text-align:left">平均線</td><td style="text-align:left">收市 <b>'+t.close+'</b>：SMA20 '+t.sma20+'（'+pc('sma20')+'）・SMA50 '+t.sma50+'（'+pc('sma50')+'）・SMA200 '+t.sma200+'（'+pc('sma200')+'）— 全部線下</td></tr>';
+      var nBelow=(t.close<t.sma20?1:0)+(t.close<t.sma50?1:0)+(t.close<t.sma200?1:0);
+      th+='<tr><td style="text-align:left">平均線</td><td style="text-align:left">收市 <b>'+t.close+'</b>：SMA20 '+t.sma20+'（'+pc('sma20')+'）・SMA50 '+t.sma50+'（'+pc('sma50')+'）・SMA200 '+t.sma200+'（'+pc('sma200')+'）— '+(nBelow===3?'全部線下':nBelow===0?'三線全上':((3-nBelow)+'/3 線上'))+'</td></tr>';
       th+='<tr><td style="text-align:left">MACD（12,26,9）</td><td style="text-align:left">hist <b>'+t.macd_hist+'</b>＝'+t.macd_state+'第 '+t.macd_run+' 日'+(macdImpr?'，<span style="color:#1a7f37">收窄中</span>':'，擴闊')+'</td></tr>';
       th+='<tr><td style="text-align:left">KDJ（9,3,3）</td><td style="text-align:left">K '+t.kdj_k+'／D '+t.kdj_d+'／J '+t.kdj_j+'·'+t.kdj_zone+'區<b>'+(t.kdj_cross==='金叉'?'<span style="color:#1a7f37">'+t.kdj_cross+'</span>':t.kdj_cross)+'</b></td></tr>';
       th+='<tr><td style="text-align:left">MTM 動量（10日）</td><td style="text-align:left">'+t.mtm10+'（'+(mtmImpr?'<span style="color:#1a7f37">改善中</span>':'惡化')+'）</td></tr>';
-      th+='<tr><td style="text-align:left">判讀</td><td style="text-align:left">反彈初段（KDJ 超賣金叉＋MACD 收窄），<b>轉勢未確認</b>。確認閘＝收市企返 SMA200 ~'+t.sma200+' 或 MACD hist 轉正；反彈失敗閘＝收市穿 10 日低 '+t.low10+'</td></tr>';
+      var above200=t.close>=t.sma200,macdPos=t.macd_hist>0,below10=t.close<t.low10;
+      var turnTxt=(above200||macdPos)
+        ?('✅ <b>轉勢確認</b>（'+(above200&&macdPos?'SMA200 收返＋MACD hist 轉正':above200?'SMA200 收返':'MACD hist 轉正')+'）')
+        :('<b>轉勢未確認</b>（確認閘兩條都未過：SMA200 '+(t.sma200-t.close>0?'仲差 '+(((t.sma200-t.close)/t.close)*100).toFixed(1)+'%':'已到')+' ＋ MACD hist 未轉正）');
+      var kdjTxt=t.kdj_cross==='金叉'?('KDJ '+t.kdj_zone+'區金叉'):(t.kdj_cross&&t.kdj_cross.indexOf('死')>=0?('KDJ '+t.kdj_zone+'區死叉'):'KDJ 無新叉');
+      th+='<tr><td style="text-align:left">判讀</td><td style="text-align:left">'+kdjTxt+'＋'+(macdImpr?'MACD 收窄':'MACD 擴闊')+'，'+turnTxt+'；反彈失敗閘＝收市穿 10 日低 '+t.low10+(below10?'——<span style="color:#b91c1c;font-weight:700">⚠️ 已穿（失敗閘觸發）</span>':'（未穿）')+'</td></tr>';
       th+='</table></div>';
     }
-    if(!nb.k){box.innerHTML='<span class="muted">NBIS 鏈價未同步（等 08:15 日更）— 昨日參考：credit $9.85/張 · 165C ask $10.35</span>';return;}
+    if(!nb.k){box.innerHTML='<span class="muted">NBIS 鏈價未同步（等 08:15 日更）— 快照參考（10-26 錨，唔係昨日）：credit $9.85/張 · 165C ask $10.35</span>';return;}
     var credit=19.70,buy2=2*(nb.ask||nb.mid||0),net=buy2-credit,room=(165/nb.spot-1)*100;
     var h='<div class="table-scroll"><table class="gates" style="min-width:600px">';
     h+='<tr><th style="text-align:left">NBIS live（'+nb.asof+'）</th><th style="text-align:left">數</th></tr>';
@@ -1006,6 +1028,16 @@ function renderPh1Live(){
   }
 }
 function _f(x,n){return isNaN(x)?'—':x.toFixed(n);}
+/* ⭐10-31 G1 表由靜態寫死改為動態同步：真價閘（stage0 CSV）＋燈號日數（10-27 起）＋paper 週數，三處（G1 表＋期數表）同源 */
+var G1_START='2026-10-27',G1={};
+function g1LightsDay(){try{return Math.max(1,Math.floor((Date.now()-new Date(G1_START+'T00:00:00+08:00').getTime())/864e5)+1);}catch(e){return null;}}
+function g1Render(){
+  var wk=((Date.now()-new Date(G1_START+'T00:00:00+08:00').getTime())/7/864e5);
+  var el3=document.getElementById('g1Weeks');if(el3)el3.textContent='⬜ '+wk.toFixed(1)+' 週（G1 要 8-13）';
+  var lightsTxt=(G1.lightsDay!=null)?('day '+G1.lightsDay+'/30（'+G1_START+' 起）'):'—';
+  var el2=document.getElementById('g1Lights');if(el2)el2.textContent=lightsTxt;
+  var el4=document.getElementById('g1PhaseCells');if(el4)el4.textContent='真價 '+(G1.priceTxt||'—')+'／燈號 '+lightsTxt;
+}
 function loadStage0(){
   fetch('stage0_quotes.csv',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.text()}).then(function(t){
     var el=document.getElementById('stage0Table');if(!el)return;
@@ -1022,18 +1054,24 @@ function loadStage0(){
     var T={};rows.forEach(function(o){T[pbKey(o)]=o});window.S0TODAY=T;
     var pm={};
     try{(window.LIGHTS.pool_radar.lit||[]).forEach(function(x){pm[x.sym]=x})}catch(e){}
-    var SCREEN8={AVGO:{g:'5/6',fail:'iv%',earn:'12-09'},DELL:{g:'6/6',fail:'',earn:'11-27'},NVDA:{g:'0',fail:'唔喺品質池',earn:'11-17⚠️到埗確認'},AMD:{g:'0',fail:'唔喺品質池',earn:'—'},MU:{g:'0',fail:'唔喺品質池',earn:'—'},MRVL:{g:'0',fail:'唔喺品質池',earn:'—'},WDC:{g:'0',fail:'唔喺品質池',earn:'—'},ANET:{g:'0',fail:'唔喺品質池',earn:'—'}};
+    var SCREEN8={AVGO:{earn:'12-09'},DELL:{earn:'11-27'},NVDA:{earn:'11-17⚠️到埗確認'},AMD:{earn:'—'},MU:{earn:'—'},MRVL:{earn:'—'},WDC:{earn:'—'},ANET:{earn:'—'}};   /* ⭐10-31 淨做 earn 後備——品質閘狀態改由 sp4_screen.json（D）live join，唔再用 10-26 快照 */
+    var _srow={};try{(D.full.concat(D.half)).forEach(function(r){_srow[r.sym]=r})}catch(e){}
     var npass=0,h='<div class="table-scroll"><table class="gates" style="min-width:1240px">';
     h+='<tr><th style="text-align:left">名</th><th>SPOT</th><th style="text-align:left">STRIKE（賣／買）· 鏈 bid/ask＋模型</th><th>MID</th><th>|Δ|</th><th>P(OTM)</th><th>年化%</th><th>張數</th><th>按金</th><th>收入</th><th>做?</th><th style="text-align:left">池／閘</th><th style="text-align:left">備註</th></tr>';
     rows.forEach(function(o){
       var ok=!isNaN(o.ra)&&o.ra>=0.9;if(ok)npass++;
       var width=(!isNaN(o.kS)&&!isNaN(o.kL))?(o.kS-o.kL):NaN;
       var ann=(!isNaN(o.cr)&&!isNaN(width)&&width>0&&o.dte>0)?(o.cr/width*365/o.dte*100):NaN;
-      var px=pm[o.name],sc=SCREEN8[o.name]||{};
+      var px=pm[o.name],sc=SCREEN8[o.name]||{},sr=_srow[o.name];
       var cell='<td style="text-align:left;font-size:10.5px">';
       cell+=px?'<span style="color:#c0392b;font-weight:700">🔴地雷亮</span> β'+px.beta63+'・vol'+px.vol63:'<span style="color:#1a7f37">🟢地雷淨</span>';
-      if(sc.earn&&sc.earn!=='—')cell+='<br>業績 '+sc.earn;
-      cell+='<br>品質書對照：'+(sc.g==='6/6'?'<span style="color:#1a7f37;font-weight:700">✅6/6 兩書都收</span>':sc.g==='5/6'?'<span style="color:#b45309;font-weight:700">5/6（fail '+sc.fail+'）</span>':'<span style="color:#c0392b">✗ β&gt;1.20 入唔到</span>');
+      var earnTxt=(sr&&sr.next_earn)?sr.next_earn.slice(5):((sc.earn&&sc.earn!=='—')?sc.earn:null);
+      if(earnTxt)cell+='<br>業績 '+earnTxt;
+      if(sr){var g9=sr.gates||{},fails=[];['cap','lev','F','fcf','beta','ivpct','earn','killsig','ban'].forEach(function(k){if(g9['g_'+k]===false)fails.push(k)});
+        cell+='<br>品質書對照：'+(sr.eligible?'<span style="color:#1a7f37;font-weight:700">✅ 全過（'+(sr.tier==='half'?'半注 tier':'全注 tier')+'）</span>':'<span style="color:#c0392b;font-weight:700">✗ 唔過（fail '+(fails.join('/')||'?')+'）</span>');
+      }else{
+        cell+='<br>品質書對照：'+(typeof D==='undefined'||!D.full?'<span class="muted">載入中…</span>':'<span style="color:#c0392b">✗ 唔喺品質池（β&gt;1.20 或唔喺 universe）</span>');
+      }
       cell+='</td>';
       h+='<tr><td style="text-align:left"><b>'+o.name+'</b></td>'
         +'<td>'+_f(o.spot,1)+'</td>'
@@ -1048,6 +1086,7 @@ function loadStage0(){
         +'<td style="text-align:left;font-size:11px">模型 '+_f(o.cm,2)+' · 真價比 '+_f(o.ra,3)+' · '+(o.expiry||'').slice(5)+' '+o.dte+'d · '+o.src+'</td></tr>';
     });
     h+='</table></div>';
+    G1.priceTxt=ds.length+' 日樣本（最新 '+npass+'/'+rows.length+' ≥90%）';g1Render();
     h+='<div class="muted" style="font-size:11px;margin-top:5px">排序＝真價比由高至低（收價最足行先；G1 閘視角，唔係推薦次序）。<b>呢 8 隻＝AI 進取池（mom63 動量揀名），唔係品質六閘池</b>：呢個台嘅准入閘＝避雷五件套（kill-signature β&gt;3+vol&gt;0.6+cap&lt;$60B 禁入・m2x 止蝕・業績前 3td 禁新・名 12%/seg 30% 硬頂・地雷亮＝禁 naked 正股，spr10 有保護照 spec 可開）。「品質書對照」欄純粹話你知：同一隻名喺品質書（重新出發期 📋 策略台個池）有冇資格——只有 DELL 兩本書都收、AVGO 差 IV% 一閘；其餘 6 隻 β&gt;1.20 根本入唔到品質池＝<b>進取池專用。唔過品質閘≠唔做得進取腿（兩本書兩個宇宙）；過咗品質閘亦唔自動等於品質書會開佢（仲要過 IV% 等全部閘）</b>。⚠️ MRVL β3.53×vol0.76 已過 kill-signature 兩條門檻，cap&lt;$60B 唔確認＝fail-closed 留意。品質池版面＝📋 策略台（重新出發期 tab）。<br><b>真價比（收價）白話</b>：模型用歷史波幅計呢隻 spread「理論上值幾多錢」，市場實際肯派幾多係另一回事——真價比＝實收÷理論價。<b>&gt;100%＝市場派價慷慨過理論（收價最足，賣方最有著數）</b>；90-100%＝照做；&lt;90%＝收唔足（市場唔肯俾咁多＝edge 薄）＝真價閘 ✗ 唔開。<br>數據日 '+d+' · 過真價閘 '+npass+'/'+rows.length+' · MID＝兩腿淨收 credit · |Δ|≈0.45／P(OTM)≈55% 賣腿設計值 · 年化%=credit÷按金×365÷dte · 按金=width×100 券商口徑</div>';
     h+='<div id="s0Totals" style="margin-top:8px;padding:9px 12px;border:1px dashed #cbd5e1;border-radius:10px;font-size:13px"></div>';
     el.innerHTML=h;
@@ -1065,7 +1104,7 @@ function s0Totals(){
   var n=0,inc=0,mg=0,b=pbLoad(),used=pbMargin(b),k;
   for(k in S0SEL){if(!S0SEL[k])continue;var o=(window.S0TODAY||{})[k];if(!o||isNaN(o.cr))continue;n++;inc+=o.cr*100;mg+=(o.kS-o.kL)*100;}
   var room=S0_CAP-used,over=(mg>room&&n>0);
-  var h='揀咗 <b>'+n+'</b> 張 · Σ收入 <b>$'+inc.toFixed(0)+'</b> · Σ按金 <b>$'+mg.toFixed(0)+'</b> · 已開倉佔用 $'+used.toFixed(0)+'／sleeve 硬頂 $'+S0_CAP+'（剩 '+Math.max(room,0).toFixed(0)+'）';
+  var h='揀咗 <b>'+n+'</b> 張 · Σ收入 <b>$'+inc.toFixed(0)+'</b> · Σ按金 <b>$'+mg.toFixed(0)+'</b> · 已開倉佔用 $'+used.toFixed(0)+'／sleeve 硬頂 $'+S0_CAP+'（剩 '+Math.max(room,0).toFixed(0)+'）— 10-26 口徑 12.5%×457,382，重基後要跟改';
   h+='　<button class="btn-primary" style="padding:6px 12px" onclick="pbOpenSel()">✍️ 開 paper 倉</button> <span id="s0Msg" style="font-size:12px;font-weight:700"></span>';
   el.style.color=over?'#c0392b':'';
   el.innerHTML=(over?'🚫 超額：':'')+h;

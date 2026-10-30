@@ -2,8 +2,8 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Price Freshness Diagnostic</title>
+    <meta name="viewport" content="width=device-width,initial=1">
+    <title>Price Freshness Diagnostic（真時戳版）</title>
     <style>
         body {
             font-family: 'PingFang HK', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -21,6 +21,7 @@
         .fresh { color: #16a34a; background: #f0fdf4; padding: 4px 8px; border-radius: 4px; }
         .acceptable { color: #f59e0b; background: #fffbeb; padding: 4px 8px; border-radius: 4px; }
         .stale { color: #dc2626; background: #fef2f2; padding: 4px 8px; border-radius: 4px; }
+        .unknown { color: #64748b; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; }
         table { width: 100%; border-collapse: collapse; font-size: 14px; }
         th, td { padding: 8px; text-align: left; border-bottom: 1px solid #e2e8f0; }
         th { background: #f8fafc; font-weight: 600; }
@@ -30,177 +31,126 @@
         .status-fresh { background: #16a34a; }
         .status-acceptable { background: #f59e0b; }
         .status-stale { background: #dc2626; }
+        .status-unknown { background: #94a3b8; }
         .timestamp { font-family: monospace; font-size: 12px; color: #64748b; }
+        .muted { color: #64748b; font-size: 13px; }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>🔍 Price Freshness Diagnostic</h1>
-        <p>Check if prices in your dashboard are up to date</p>
-        <button class="refresh-btn" onclick="checkPrices()">Check Prices Now</button>
+        <p>驗 dashboard 資料 payload 嘅<b>真時戳</b>（淨計有時戳欄嘅來源——冇時戳嘅嘢呢頁唔會老作）。</p>
+        <p class="muted">⚠️ 呢頁係 orphan 診斷工具，唔喺任何 tab/menu 連出。Bridge 生死／逐隻報價新舊唔喺呢頁驗——睇 options-dashboard 價卡嘅 stale 旗＋watchdog TG。</p>
+        <button class="refresh-btn" onclick="checkPayloads()">Check Payloads Now</button>
     </div>
 
-    <div class="card" id="priceStatus">
-        <h2>Price Status</h2>
+    <div class="card" id="payloadStatus">
+        <h2>Payload 時戳（真數據）</h2>
         <table>
             <thead>
                 <tr>
-                    <th>Symbol</th>
-                    <th>Name</th>
-                    <th>Price</th>
-                    <th>Last Updated</th>
-                    <th>Status</th>
-                    <th>Age</th>
+                    <th>來源</th>
+                    <th>時戳欄</th>
+                    <th>值</th>
+                    <th>齡</th>
+                    <th>狀態</th>
                 </tr>
             </thead>
-            <tbody id="priceTable">
-                <tr>
-                    <td colspan="6" style="text-align: center; color: #64748b;">
-                        Click "Check Prices Now" to analyze freshness
-                    </td>
-                </tr>
+            <tbody id="payloadTable">
+                <tr><td colspan="5" class="muted" style="text-align:center">撳「Check Payloads Now」開始</td></tr>
             </tbody>
         </table>
     </div>
 
     <div class="card" id="systemStatus">
-        <h2>System Status</h2>
-        <div id="bridgeStatus">Bridge: Checking...</div>
-        <div id="marketStatus">Market Hours: Checking...</div>
-        <div id="lastUpdate">Last Update: Never</div>
+        <h2>市場時鐘（DST 正確）</h2>
+        <div id="marketStatus" class="muted">Checking...</div>
+        <div id="lastUpdate" class="muted"></div>
     </div>
 
     <script>
-        const PRICE_FRESHNESS_THRESHOLD = 5 * 60 * 1000; // 5 minutes
-        const MARKET_HOURS = {
-            us: { open: 21 * 60 * 60 * 1000, close: 4 * 60 * 60 * 1000 },
-            hk: { open: 9 * 60 * 60 * 1000, close: 16 * 60 * 60 * 1000 + 10 * 60 * 1000 }
-        };
+        /* ⭐10-31 誠信重寫：舊版 Math.random() 老作時戳＋「Bridge: Active (simulated)」全剷。
+           淨驗真時戳欄：lights generated_at（HKT 文字）／kill_radar updated（epoch ms）／sp4 asof（紅日期）。
+           冇時戳＝顯示「無時間戳可驗」，唔會再 invent。 */
+        var BASE = 'https://leunghlk.github.io/quant-dashboard/';
 
-        function isMarketOpen(market) {
-            const hktTime = new Date().toLocaleString('en-US', {timeZone: 'Asia/Hong_Kong'});
-            const hkTime = new Date(hktTime);
-            const minutes = hkTime.getHours() * 60 + hkTime.getMinutes();
-            const totalMs = minutes * 60 * 1000;
+        var PAYLOADS = [
+            { name: 'lights_today.json（燈號）',   file: 'lights_today.json',      pick: function(d){ return d.generated_at ? { v: d.generated_at, kind: 'hkt' } : null; } },
+            { name: 'kill_radar_status.json（雷達）', file: 'kill_radar_status.json', pick: function(d){ return d.updated ? { v: d.updated, kind: 'epoch' } : null; } },
+            { name: 'sp4_screen.json（品質池）',    file: 'sp4_screen.json',        pick: function(d){ return d.asof ? { v: d.asof, kind: 'date' } : null; } }
+        ];
 
-            if (market === 'us') {
-                return totalMs >= MARKET_HOURS.us.open || totalMs < MARKET_HOURS.us.close;
-            } else if (market === 'hk') {
-                return totalMs >= MARKET_HOURS.hk.open && totalMs < MARKET_HOURS.hk.close;
-            }
-            return false;
-        }
-
-        function getPriceStalenessWarning(timestamp, market = 'us') {
-            const now = Date.now();
-            const age = now - timestamp;
-            const threshold = PRICE_FRESHNESS_THRESHOLD;
-
-            if (age < threshold) return { status: 'fresh', age: age };
-
-            const marketOpen = isMarketOpen(market);
-            const extendedThreshold = marketOpen ? threshold : threshold * 3;
-
-            if (age < extendedThreshold) return { status: 'acceptable', age: age };
-
-            return {
-                status: 'stale',
-                age: age,
-                marketOpen: marketOpen
-            };
-        }
-
-        async function checkPrices() {
-            // Try to fetch from both main dashboard and options dashboard
-            const results = [];
-
-            // Check main dashboard
+        function parseTs(item, d) {
             try {
-                const response = await fetch('https://leunghlk.github.io/quant-dashboard/');
-                const html = await response.text();
-
-                // Extract price information (simplified)
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-
-                // Look for price elements
-                const priceElements = doc.querySelectorAll('[data-live], tr[data-tk]');
-                priceElements.forEach(el => {
-                    const symbol = el.getAttribute('data-live') || el.getAttribute('data-tk');
-                    if (symbol) {
-                        results.push({
-                            symbol: symbol,
-                            name: el.textContent.split('\n')[0]?.trim(),
-                            price: 'N/A',
-                            timestamp: Date.now() - Math.random() * 300000, // Simulate timestamp
-                            market: symbol.includes('HK') ? 'hk' : 'us'
-                        });
-                    }
-                });
-            } catch (e) {
-                console.error('Failed to fetch main dashboard:', e);
-            }
-
-            // Display results
-            displayResults(results);
-            updateSystemStatus();
+                var p = item.pick(d);
+                if (!p) return null;
+                if (p.kind === 'epoch') return { ts: Number(p.v), label: new Date(Number(p.v)).toLocaleString('zh-HK') };
+                if (p.kind === 'hkt')   return { ts: new Date(p.v.replace(' ', 'T') + '+08:00').getTime(), label: p.v + ' HKT' };
+                if (p.kind === 'date')  return { ts: new Date(p.v + 'T00:00:00+08:00').getTime(), label: p.v + '（紅日期）' };
+            } catch (e) {}
+            return null;
         }
 
-        function displayResults(results) {
-            const tbody = document.getElementById('priceTable');
+        function verdict(ts, dateOnly) {
+            var age = Date.now() - ts;
+            if (dateOnly) {
+                var days = Math.floor(age / 86400000);
+                return { cls: days <= 1 ? 'fresh' : days <= 3 ? 'acceptable' : 'stale', tag: days <= 1 ? 'fresh' : days <= 3 ? 'acceptable' : 'stale', ageTxt: days + ' 日' };
+            }
+            var h = age / 3600000;
+            if (h < 24) return { cls: 'fresh', tag: 'fresh', ageTxt: h < 1 ? Math.round(age/60000) + ' min' : h.toFixed(1) + ' hr' };
+            if (h < 72) return { cls: 'acceptable', tag: 'acceptable', ageTxt: h.toFixed(1) + ' hr' };
+            return { cls: 'stale', tag: 'stale', ageTxt: (h / 24).toFixed(1) + ' 日' };
+        }
+
+        async function checkPayloads() {
+            var tbody = document.getElementById('payloadTable');
             tbody.innerHTML = '';
-
-            if (results.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">No price data found</td></tr>';
-                return;
+            for (var i = 0; i < PAYLOADS.length; i++) {
+                (function (item) {
+                    var row = document.createElement('tr');
+                    row.innerHTML = '<td><strong>' + item.name + '</strong></td><td colspan="4" class="muted">載入中…</td>';
+                    tbody.appendChild(row);
+                    fetch(BASE + item.file + '?cb=' + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
+                        var p = parseTs(item, d);
+                        var html;
+                        if (!p) {
+                            html = '<td class="timestamp">—</td><td colspan="2"><span class="unknown">無時間戳可驗</span></td>';
+                        } else {
+                            var v = verdict(p.ts, item.file === 'sp4_screen.json');
+                            html = '<td class="timestamp">' + p.label + '</td><td>' + v.ageTxt + '</td>' +
+                                   '<td><span class="status-indicator status-' + v.cls + '"></span>' + v.tag + '</td>';
+                        }
+                        row.innerHTML = '<td><strong>' + item.name + '</strong></td>' + html;
+                    }).catch(function (e) {
+                        row.innerHTML = '<td><strong>' + item.name + '</strong></td><td colspan="4" class="stale">fetch 失敗：' + e + '</td>';
+                    });
+                })(PAYLOADS[i]);
             }
-
-            results.forEach(item => {
-                const warning = getPriceStalenessWarning(item.timestamp, item.market);
-                const ageMinutes = Math.round(warning.age / 60000);
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><strong>${item.symbol}</strong></td>
-                    <td>${item.name || '-'}</td>
-                    <td>${item.price}</td>
-                    <td class="timestamp">${new Date(item.timestamp).toLocaleString('zh-HK')}</td>
-                    <td><span class="status-indicator status-${warning.status}"></span>${warning.status}</td>
-                    <td>${ageMinutes} min</td>
-                `;
-
-                if (warning.status === 'fresh') {
-                    row.classList.add('fresh');
-                } else if (warning.status === 'acceptable') {
-                    row.classList.add('acceptable');
-                } else {
-                    row.classList.add('stale');
-                }
-
-                tbody.appendChild(row);
-            });
         }
 
-        function updateSystemStatus() {
-            // Update bridge status
-            const bridgeStatus = document.getElementById('bridgeStatus');
-            bridgeStatus.textContent = 'Bridge: Active (simulated)';
-
-            // Update market status
-            const marketStatus = document.getElementById('marketStatus');
-            const usOpen = isMarketOpen('us');
-            const hkOpen = isMarketOpen('hk');
-            marketStatus.innerHTML = `US Market: ${usOpen ? 'Open' : 'Closed'} | HK Market: ${hkOpen ? 'Open' : 'Closed'}`;
-
-            // Update last update time
-            document.getElementById('lastUpdate').textContent = `Last Update: ${new Date().toLocaleString('zh-HK')}`;
+        /* ⭐10-31 市場時鐘改 Intl timezone 數學（舊版 21:00→04:00 HKT 固定偏移，DUT 會走位） */
+        function inWindow(min, a, b) { return min >= a && min < b; }
+        function marketClock() {
+            function parts(tz) {
+                var f = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: 'numeric', hour12: false });
+                var p = f.formatToParts(new Date()), h = +p.find(function (x) { return x.type === 'hour'; }).value % 24,
+                    m = +p.find(function (x) { return x.type === 'minute'; }).value;
+                return h * 60 + m;
+            }
+            var et = parts('America/New_York'), hk = parts('Asia/Hong_Kong');
+            var usOpen = inWindow(et, 9 * 60 + 30, 16 * 60);
+            var hkOpen = inWindow(hk, 9 * 60 + 30, 12 * 60) || inWindow(hk, 13 * 60, 16 * 60);
+            function fmt(min) { return Math.floor(min / 60) + ':' + ('0' + min % 60).slice(-2); }
+            document.getElementById('marketStatus').innerHTML =
+                'US（ET ' + fmt(et) + '）：' + (usOpen ? '<span class="fresh">開市</span>' : '<span class="unknown">收市</span>') +
+                ' ｜ HK（HKT ' + fmt(hk) + '）：' + (hkOpen ? '<span class="fresh">開市</span>' : '<span class="unknown">收市</span>') +
+                '<br><span class="muted">US 09:30–16:00 ET（DST 自動）｜HK 09:30–12:00／13:00–16:00 HKT</span>';
         }
 
-        // Auto-check every minute
-        setInterval(checkPrices, 60000);
-
-        // Initial check
-        checkPrices();
+        marketClock();
+        setInterval(marketClock, 60000);
+        document.getElementById('lastUpdate').textContent = '本頁載入：' + new Date().toLocaleString('zh-HK');
     </script>
 </body>
 </html>
