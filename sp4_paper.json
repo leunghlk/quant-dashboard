@@ -1,5 +1,5 @@
 {
- "asof": "2026-10-30",
+ "asof": "2026-10-31",
  "inception": "2026-10-25",
  "config": {
   "account_hkd": 700000.0,
@@ -16,9 +16,17 @@
  "positions": [],
  "assigned_lots": [],
  "closed": [],
- "alerts": [],
+ "alerts": [
+  {
+   "ts": "10-31 07:55",
+   "level": "red",
+   "msg": "🟠 AMBER 帶（QQQ -9.1%、VIX 19.42）：照 v4g 全注唔縮注，只做前檢清單"
+  }
+ ],
  "realized_pl": 0.0,
- "latch": {},
+ "latch": {
+  "amber": "2026-10-31"
+ },
  "week_stop": false,
  "bans": {},
  "book": {
@@ -27,13 +35,13 @@
   "realized_pl": 0.0,
   "unrealized_pl": 0.0,
   "equity_pl": 0.0,
-  "vs_tbill": -52.86,
-  "tbill_ref": 52.86,
+  "vs_tbill": -63.44,
+  "tbill_ref": 63.44,
   "rf_ann": 0.043
  },
- "updated_hk": "2026-10-30 23:30",
+ "updated_hk": "2026-10-31 07:55",
  "next_expiry": "2026-11-20",
- "cycle_dte": 21,
+ "cycle_dte": 20,
  "cycle_state": "managed",
  "next_entry": "2026-11-13"
 }
