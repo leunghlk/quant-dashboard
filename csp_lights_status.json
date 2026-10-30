@@ -1,7 +1,7 @@
 {
  "version": 2,
- "as_of": "2026-10-30 11:31 ET",
- "updated": 1793374298786,
+ "as_of": "2026-10-30 12:01 ET",
+ "updated": 1793376103048,
  "config": {
   "downvol_yellow": 0.7,
   "mtm_n": 10,
@@ -17,9 +17,9 @@
    "qty": 3.0,
    "code": "US.NET261030P310000",
    "covered": false,
-   "spot": 276.37,
+   "spot": 275.225,
    "dte": 0,
-   "otm_pct": -10.85,
+   "otm_pct": -11.22,
    "light": "green",
    "detail": {
     "fresh": [
@@ -55,9 +55,9 @@
    "qty": 2.0,
    "code": "US.NBIS261106C165000",
    "covered": true,
-   "spot": 158.07,
+   "spot": 157.415,
    "dte": 7,
-   "otm_pct": -4.2,
+   "otm_pct": -4.6,
    "light": "green",
    "detail": {
     "fresh": [],
