@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-01 08:15:27 HKT",
+ "generated_at": "2026-11-02 08:15:32 HKT",
  "light": "YELLOW",
  "state": "CALM",
  "yellow_flags": [
@@ -1327,8 +1327,8 @@
   "mid": null,
   "bid": 4.55,
   "ask": 4.7,
-  "delta": 0.3424,
-  "asof": "2026-11-01"
+  "delta": 0.3422,
+  "asof": "2026-11-02"
  },
  "nbis_tech": {
   "close": 154.14,
