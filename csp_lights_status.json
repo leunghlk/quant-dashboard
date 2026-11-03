@@ -1,7 +1,7 @@
 {
  "version": 2,
- "as_of": "2026-11-03 10:34 ET",
- "updated": 1793716467946,
+ "as_of": "2026-11-03 11:04 ET",
+ "updated": 1793718273006,
  "config": {
   "downvol_yellow": 0.7,
   "mtm_n": 10,
@@ -17,12 +17,31 @@
    "qty": 2.0,
    "code": "US.NBIS261106C165000",
    "covered": true,
-   "spot": null,
+   "spot": 149.645,
    "dte": 3,
-   "otm_pct": null,
-   "light": "nodata",
+   "otm_pct": -9.31,
+   "light": "red",
    "detail": {
-    "reason": "kline空"
+    "fresh": [
+     "S1 MA5↓MA10"
+    ],
+    "fresh_s1234": [
+     "S1 MA5↓MA10"
+    ],
+    "s5_only": false,
+    "above_ma20": false,
+    "st_ma510": true,
+    "st_ma1020": true,
+    "st_dif_neg": true,
+    "ma5": 159.9010009765625,
+    "ma10": 161.27250213623046,
+    "ma20": 179.45775146484374,
+    "dif": -17.489697409713614,
+    "dea": -15.534402187291766,
+    "mtm": -21.80499267578125,
+    "mtm_sig": -19.744166056315105,
+    "downvol": 0.672,
+    "close": 149.64500427246094
    },
    "action": "🔴 續瀉：roll down 跟價優先；股每 $1 你食 −$100/張，CC 租只補一部分"
   }
