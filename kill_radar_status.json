@@ -3,7 +3,7 @@
  "level": "YEL",
  "level_since": null,
  "streak": {
-  "yel": 190,
+  "yel": 191,
   "red": 44
  },
  "reasons": [
@@ -621,7 +621,7 @@
   }
  ],
  "context": {
-  "vix": 21.5,
+  "vix": 21.47,
   "tnx": 4.894,
   "move": 100.4,
   "oas": 3.44,
@@ -639,7 +639,7 @@
   ],
   "name_fails": []
  },
- "as_of": "11-03 20:08 HKT",
- "updated": 1793707705729,
+ "as_of": "11-03 20:38 HKT",
+ "updated": 1793709515078,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
