@@ -1,7 +1,7 @@
 {
  "version": 2,
- "as_of": "2026-11-03 10:04 ET",
- "updated": 1793714664058,
+ "as_of": "2026-11-03 10:34 ET",
+ "updated": 1793716467946,
  "config": {
   "downvol_yellow": 0.7,
   "mtm_n": 10,
@@ -17,34 +17,14 @@
    "qty": 2.0,
    "code": "US.NBIS261106C165000",
    "covered": true,
-   "spot": 147.2,
+   "spot": null,
    "dte": 3,
-   "otm_pct": -10.79,
-   "light": "green",
+   "otm_pct": null,
+   "light": "nodata",
    "detail": {
-    "fresh": [
-     "S4 MTM死叉"
-    ],
-    "fresh_s1234": [
-     "S4 MTM死叉"
-    ],
-    "s5_only": false,
-    "above_ma20": false,
-    "st_ma510": false,
-    "st_ma1020": true,
-    "st_dif_neg": true,
-    "ma5": 164.06600036621094,
-    "ma10": 163.4530014038086,
-    "ma20": 184.46900100708007,
-    "dif": -17.252648737712008,
-    "dea": -15.045578381685885,
-    "mtm": -28.850006103515625,
-    "mtm_sig": -25.5749994913737,
-    "downvol": 0.566,
-    "close": 141.38999938964844,
-    "v12_note": "首響但 close<MA20（v1.2 唔平）——紅燈／破位先走"
+    "reason": "kline空"
    },
-   "action": "🟢 反彈中：向 K165.0 出口推進——被埋＝計劃內出貨，唔使做"
+   "action": "🔴 續瀉：roll down 跟價優先；股每 $1 你食 −$100/張，CC 租只補一部分"
   }
  ]
 }
