@@ -3,8 +3,8 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 172,
-  "red": 43
+  "yel": 173,
+  "red": 44
  },
  "reasons": [
   "單名血 17 隻 chg1d≤−6%（worst LITE -18.6%）",
@@ -631,7 +631,7 @@
   "stale_names": [],
   "name_fails": []
  },
- "as_of": "11-03 11:05 HKT",
- "updated": 1793675137066,
+ "as_of": "11-03 11:35 HKT",
+ "updated": 1793676946206,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
