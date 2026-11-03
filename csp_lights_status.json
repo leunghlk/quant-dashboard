@@ -1,7 +1,7 @@
 {
  "version": 2,
- "as_of": "2026-11-02 19:04 ET",
- "updated": 1793660650312,
+ "as_of": "2026-11-03 09:34 ET",
+ "updated": 1793712859936,
  "config": {
   "downvol_yellow": 0.7,
   "mtm_n": 10,
@@ -17,9 +17,9 @@
    "qty": 2.0,
    "code": "US.NBIS261106C165000",
    "covered": true,
-   "spot": 157.81,
-   "dte": 4,
-   "otm_pct": -4.36,
+   "spot": 147.5,
+   "dte": 3,
+   "otm_pct": -10.61,
    "light": "green",
    "detail": {
     "fresh": [
@@ -40,7 +40,7 @@
     "dea": -15.045578381685885,
     "mtm": -28.850006103515625,
     "mtm_sig": -25.5749994913737,
-    "downvol": 0.565,
+    "downvol": 0.566,
     "close": 141.38999938964844,
     "v12_note": "首響但 close<MA20（v1.2 唔平）——紅燈／破位先走"
    },
