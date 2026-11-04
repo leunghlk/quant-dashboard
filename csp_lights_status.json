@@ -1,7 +1,7 @@
 {
  "version": 2,
- "as_of": "2026-11-04 09:35 ET",
- "updated": 1793799333533,
+ "as_of": "2026-11-04 10:05 ET",
+ "updated": 1793801137905,
  "config": {
   "downvol_yellow": 0.7,
   "mtm_n": 10,
@@ -17,9 +17,9 @@
    "qty": 2.0,
    "code": "US.NBIS261106C165000",
    "covered": true,
-   "spot": 146.19,
+   "spot": 145.96,
    "dte": 2,
-   "otm_pct": -11.4,
+   "otm_pct": -11.54,
    "light": "red",
    "detail": {
     "fresh": [
