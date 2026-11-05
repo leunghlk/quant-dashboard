@@ -636,7 +636,11 @@ function mgChip(){return '<span class="pill" style="background:#fee2e2;color:#b9
 <script>
 "use strict";
 /* ════════════ 常數 ════════════ */
-const BRIDGE_SECRET='qtbridge-K7s2-wolf-9mX4';
+// ⭐2026-11-05 輪換：secret 唔再寫死入公開頁——?bsecret= 或 localStorage 'qbridge_secret'（輸入一次即存）
+const BRIDGE_SECRET=(function(){var q=new URLSearchParams(location.search).get('bsecret');var l=null;
+try{l=localStorage.getItem('qbridge_secret');}catch(e){}
+if(q&&q!==l){try{localStorage.setItem('qbridge_secret',q);}catch(e){}}
+return q||l||'';})();
 // ⭐ 10-16 kill switch 狀態旗：引擎 10-10 起用戶令全系統禁落單（bootout）——mark 凍／date 停舊是「停機」不是「hang」。
 //    狀態欄改顯示 ⚪ 已停，不要出 🔴 hang 假警。恢復引擎（必須用戶明言）當時先 flip 回 active:false，hang 偵測即復活。
 const ENGINE_STOPPED={active:false,since:'2026-10-27',reason:'kill switch 已解除（10-27 用戶明言，四引擎復活）——hang 偵測復活'};

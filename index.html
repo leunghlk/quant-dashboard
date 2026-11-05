@@ -569,7 +569,11 @@ function formatStalenessWarning(warning) {
 }
 
 // ===== Live data overlay (local Futu bridge) — real-time prices + real HSTECH index =====
-const BRIDGE_SECRET='qtbridge-K7s2-wolf-9mX4';
+// ⭐2026-11-05 輪換：secret 唔再寫死入公開頁——?bsecret= 或 localStorage 'qbridge_secret'（輸入一次即存）
+const BRIDGE_SECRET=(function(){var q=new URLSearchParams(location.search).get('bsecret');var l=null;
+try{l=localStorage.getItem('qbridge_secret');}catch(e){}
+if(q&&q!==l){try{localStorage.setItem('qbridge_secret',q);}catch(e){}}
+return q||l||'';})();
 // Bridge candidates tried in order:
 //   ?bridge= param > localStorage.qbridge > Tailscale MagicDNS (own devices)
 //   > localhost (this Mac) > same-origin Worker proxy (/live -> registered tunnel).
