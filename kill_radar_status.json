@@ -3,8 +3,8 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 288,
-  "red": 90
+  "yel": 289,
+  "red": 91
  },
  "reasons": [
   "HY OAS 3.40（5日 +0.22）",
@@ -25,7 +25,7 @@
   },
   "C": {
    "name": "10y 水平",
-   "val": "4.89",
+   "val": "4.90",
    "thr": "≥5.00🟡/≥5.15🔴/<4.95解除",
    "state": "off",
    "detail": "MOVE 94"
@@ -621,8 +621,8 @@
   }
  ],
  "context": {
-  "vix": 17.0,
-  "tnx": 4.894,
+  "vix": 16.75,
+  "tnx": 4.904,
   "move": 93.9,
   "oas": 3.4,
   "blood": 0,
@@ -639,7 +639,7 @@
   ],
   "name_fails": []
  },
- "as_of": "11-05 21:25 HKT",
- "updated": 1793885136077,
+ "as_of": "11-05 21:55 HKT",
+ "updated": 1793886945518,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
