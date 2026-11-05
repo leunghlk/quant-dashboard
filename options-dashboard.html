@@ -907,6 +907,11 @@ async function loadRec(force){
   if(!activeBridge){if(!(await detectBridge())){setLive('bridge 未連接，60 秒後自動重試…');clearTimeout(window.__recRR);window.__recRR=setTimeout(()=>loadRec(true),60000);if(btn)btn.classList.remove('loading');return;}}
   try{
     const r=await fetchTimeout(activeBridge+'/options_income?secret='+encodeURIComponent(BRIDGE_SECRET),20000);
+    if(r.status===403){
+      // ⭐ 11-06：bridge secret 輪換後 403 要一眼明——secret 唔會自己好返，重試冇用，教用戶 ?bsecret= 重開一次
+      setLive('🔐 Secret 無效（403）——bridge secret 已輪換。用 ?bsecret=<新secret> 開一次本頁即修（localStorage 記住）。唔會自動重試。');
+      if(btn)btn.classList.remove('loading');return;
+    }
     const j=await r.json().catch(()=>null);
     if(!j||!j.generated)throw 0;
     rec=j;
