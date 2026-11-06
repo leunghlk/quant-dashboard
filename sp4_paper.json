@@ -1,5 +1,5 @@
 {
- "asof": "2026-11-06",
+ "asof": "2026-11-07",
  "inception": "2026-10-25",
  "config": {
   "account_hkd": 700000.0,
@@ -55,13 +55,13 @@
   "realized_pl": 0.0,
   "unrealized_pl": 0.0,
   "equity_pl": 0.0,
-  "vs_tbill": -126.87,
-  "tbill_ref": 126.87,
+  "vs_tbill": -137.44,
+  "tbill_ref": 137.44,
   "rf_ann": 0.043
  },
- "updated_hk": "2026-11-06 23:30",
+ "updated_hk": "2026-11-07 07:55",
  "next_expiry": "2026-11-20",
- "cycle_dte": 14,
+ "cycle_dte": 13,
  "cycle_state": "managed",
  "next_entry": "2026-11-13"
 }
