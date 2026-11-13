@@ -266,6 +266,7 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
         <li><a class="mega-leaf" data-top="wave" data-sub="wave" data-leaf="^SOX">費城半導體</a></li>
         <li><a class="mega-leaf" data-top="wave" data-sub="wave" data-leaf="^GSPC">標普500</a></li>
         <li><a class="mega-leaf" data-top="wave" data-sub="wave" data-leaf="GC=F">黃金期貨</a></li>
+        <li><a class="mega-leaf" data-top="wave" data-sub="aihot" data-leaf="AIHOT" style="font-weight:800">🔥 AI hot names（12隻）</a></li>
       </ul>
     </li>
     <li class="mega-item">
@@ -280,12 +281,6 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
       <ul class="mega-l2">
         <li><a class="mega-leaf" data-top="earnings" data-sub="us">🇺🇸 美股</a></li>
         <li><a class="mega-leaf" data-top="earnings" data-sub="hk">🇭🇰 港股</a></li>
-      </ul>
-    </li>
-    <li class="mega-item">
-      <button class="mega-tab" type="button" data-top="aihot">🔥 AI hot names</button>
-      <ul class="mega-l2">
-        <li><a class="mega-leaf" data-top="aihot" data-sub="hot">🇺🇸 美股 · 12隻</a></li>
       </ul>
     </li>
     <li class="mega-item">
@@ -331,14 +326,6 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
   </section>
 </div>
 
-<!-- ════════════ 🔥 AI hot names（2026-11-14：用戶欽定 12 隻 AI 焦點股 · 數據全來自 /api watchlist）════════════ -->
-<div class="top-pane" data-top="aihot">
-  <section class="subview" data-sub="hot">
-    <div class="card" id="sec-ai-hot"><div class="card-h"><span class="t"><span class="sec-num">🔥</span>AI hot names — 美股焦點 12 隻</span><span class="meta">NVDA · GOOG · AMD · INTC · BE · NBIS · MU · LITE · COHR · MRVL · ANET · ALAB</span></div>
-    <div class="card-b" id="aiHotBody"><div style="color:#94a3b8;text-align:center;padding:14px;font-size:12px">載入中…</div></div></div>
-  </section>
-</div>
-
 <!-- ════════════ ③ 指數技術位 (INDEX TECHNICAL LEVELS) ════════════ -->
 <div class="top-pane" data-top="tech">
   <section class="subview" data-sub="us">
@@ -358,6 +345,14 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
 <div class="top-pane" data-top="wave">
   <section class="subview" data-sub="wave">
     <div id="waveBody" style="padding:2px 0"></div>
+  </section>
+  <section class="subview" data-sub="aihot">
+    <div style="padding:10px 12px;background:#fff7ed;border:1px solid #fdba74;border-radius:8px;color:#9a3412;font-size:12px;line-height:1.7;margin-bottom:14px">
+      <b>🔥 AI hot names — 12 隻 AI 焦點股手動 CFA 數浪</b>（NVDA · GOOG · AMD · INTC · BE · NBIS · MU · LITE · COHR · MRVL · ANET · ALAB）<br>
+      共用宏觀框架：2025-04 大底 → AI 五浪（ⓞ I II III IV V）→ 2026 年 5-10 月大頂 → 高級數調整（大部分跌穿 (IV) 底＝(V) 頂後調整確認，ANET 為唯一守住 (IV) 底例外）。
+      每隻附<b>① 首選數浪</b>（現處浪位＋鐵律檢驗＋金比目標＋波浪結構圖）與<b>② 次選數浪</b>（確認位／失效位）。現價自動跟 live；其餘水位為 2026-11-13 收市基準。
+    </div>
+    <div id="aiWaveBody"></div>
   </section>
 </div>
 
@@ -396,7 +391,7 @@ tr.sr-flash>td{box-shadow:inset 0 0 0 2px #0d9488,0 0 14px 2px rgba(13,148,136,.
 // ===== Nested mega-menu navigation (replaces flat switchTab + initSubnav) =====
 const FUND_TARGETS={LITE:1055.94}; // 執倉建議 target 用（renderCatchup）；⭐ 08-25 price alert 系統已整個移除（dashboard 轉工作用非 self-trading，user 欽定）
 // ⭐ 08-24 重組：總覽／部署／期權收入 panes 移除 — 大盤形勢（regime）成首頁預設
-const VALID_TOP=['regime','tech','wave','eln','earnings','aihot'];
+const VALID_TOP=['regime','tech','wave','eln','earnings'];
 const QVIEW_DEFAULT={top:'regime',sub:'regime',leaf:null};
 function openView(top,sub,leaf){
   if(VALID_TOP.indexOf(top)<0)top=QVIEW_DEFAULT.top;
@@ -1127,7 +1122,7 @@ function buildSearchIndex(){
   // 5. 波浪理論
   (d.waveCounts||[]).forEach(function(w){
     if(!w||!w.ticker)return;
-    idx.push({cat:'波浪理論',ord:5,go:'wave,wave,'+w.ticker,keys:_srKeys([w.ticker,w.name,w.idx].concat(_srAlias(w.ticker))),
+    idx.push({cat:w.aiHot?'波浪理論·AI hot':'波浪理論',ord:5,go:(w.aiHot?'wave,aihot,AIHOT':'wave,wave,'+w.ticker),keys:_srKeys([w.ticker,w.name,w.idx].concat(_srAlias(w.ticker))),
       html:'<div class="sr-row"><b>'+_srEsc(w.name||w.ticker)+'</b> <span class="sr-dim">'+_srEsc(w.ticker)+'</span><br>'+
         (w.position?_srKv('位置',_srEsc(w.position)):'')+
         (w.conclusion?'<div style="margin-top:4px;color:#475569">'+_srEsc(w.conclusion)+'</div>':'')+
@@ -2609,8 +2604,9 @@ function render(data){
     }
     data.waveCounts.forEach(x=>{
       const wkey=x.ticker||(x.name&&x.name.indexOf('恒')>=0?'^HSI':(x.name&&(x.name.indexOf('半')>=0||x.name.indexOf('SOX')>=0))?'^SOX':'NQ=F');
-      if(x.error){wh+='<div data-idx="'+wkey+'" style="color:#dc2626;margin-bottom:14px"><b>'+x.name+'</b>：'+x.error+'</div>';return;}
-      wh+='<div data-idx="'+wkey+'" style="margin-bottom:22px;padding:14px;border:1px solid #e2e8f0;border-radius:10px">';
+      const skey=x.aiHot?'AIHOT':wkey;   // 🔥 AI hot names（11-14）：卡片歸入 AIHOT leaf，live 價照跟 wkey
+      if(x.error){wh+='<div data-idx="'+skey+'" style="color:#dc2626;margin-bottom:14px"><b>'+x.name+'</b>：'+x.error+'</div>';return;}
+      wh+='<div data-idx="'+skey+'" style="margin-bottom:22px;padding:14px;border:1px solid #e2e8f0;border-radius:10px">';
       wh+='<div style="font-weight:800;font-size:16px;color:#0f172a;margin-bottom:4px">'+x.name+' <span data-wavepx="'+wkey+'" style="font-size:12px;color:#64748b;font-weight:500">現價 '+rD(x.currentPrice)+'</span>'+(x.calibrated===false?' <span style="font-size:10px;color:#b45309;background:#fff7ed;border:1px solid #fdba74;border-radius:4px;padding:1px 6px;font-weight:700">⚠️ 水位未校準</span>':'')+'</div>';
       // 手動數浪格式（MANUAL_WAVE_COUNTS）
       if(x.position && x.pivots && x.currentWaveTargets){
@@ -2771,6 +2767,16 @@ function render(data){
       wh+='</div>';
     });
     document.getElementById('waveBody').innerHTML=wh;
+    // 🔥 AI hot names（11-14）：把 AIHOT 卡 DOM-move 入 aiWaveBody（aihot subview）
+    try{
+      const awb=document.getElementById('aiWaveBody');
+      if(awb){
+        awb.innerHTML='';
+        const nodes=Array.from(document.querySelectorAll('#waveBody [data-idx="AIHOT"]'));
+        nodes.forEach(n=>awb.appendChild(n));
+        if(!nodes.length) awb.innerHTML='<div style="color:#94a3b8;text-align:center;padding:12px;font-size:12px">數據載入中…</div>';
+      }
+    }catch(e2){}
     }catch(e){console.error('[render:wave]',e);document.getElementById('waveBody').innerHTML='<div style="color:#dc2626;padding:12px">⚠️ 數浪區塊渲染錯誤：'+e.message+'</div>';}
   }
 
@@ -3301,8 +3307,6 @@ function renderExtraCards(data){
   }
   // ⭐ 08-24 業績日曆升格獨立 tab：港股 subview — data.hk.watchlist 每股附 earnings（server getHKEarningsInfo）
   renderHKEarningsCalendar(data);
-  // 🔥 AI hot names tab（2026-11-14）
-  renderAIHot(data);
 }
 
 // 港股業績日曆 — 中期／全年業績（港股慣例）· 格式同美股表一致（日期／時間／日數／風險／建議）＋來源
@@ -3354,98 +3358,7 @@ function renderHKEarningsCalendar(data){
   ec.innerHTML=eh;
 }
 
-// ═══ 🔥 AI hot names（2026-11-14：用戶欽定 12 隻 AI 焦點股 · 數據全部來自 /api watchlist）
-//     列帶 data-tk → 自動食 bridge live 價（.lp）＋點擊開 showDetail；次序跟用戶欽定 ═══
-const AI_HOT_LIST=['NVDA','GOOG','AMD','INTC','BE','NBIS','MU','LITE','COHR','MRVL','ANET','ALAB'];
-const AI_HOT_META={
-  NVDA:['NVIDIA','AI GPU／CUDA 生態龍頭'],
-  GOOG:['Alphabet','Gemini 大模型＋自研 TPU'],
-  AMD:['AMD','MI 系列 AI 加速卡＋CPU'],
-  INTC:['Intel','晶圓代工轉型＋18A 製程'],
-  BE:['Bloom Energy','燃料電池 · 數據中心現場供電'],
-  NBIS:['Nebius','AI 雲端／GPU 算力租賃'],
-  MU:['Micron','HBM 高頻寬記憶體三強'],
-  LITE:['Lumentum','光模組／EML 激光器'],
-  COHR:['Coherent','光模組／矽光子'],
-  MRVL:['Marvell','AI 定制 ASIC＋互連'],
-  ANET:['Arista Networks','AI 數據中心交換器'],
-  ALAB:['Astera Labs','PCIe Retimer／AI 互連'],
-};
-function _aiMomCell(v){
-  if(v==null)return '<td style="text-align:center;padding:4px;color:#94a3b8">—</td>';
-  const col=v>=0?'#16a34a':'#dc2626';
-  return '<td style="text-align:center;padding:4px;font-weight:600;color:'+col+'">'+(v>=0?'+':'')+fmtPct(v)+'</td>';
-}
-function renderAIHot(data){
-  const body=document.getElementById('aiHotBody');
-  if(!body)return;
-  const wl=data.watchlist||[];
-  let rows='',nBuy=0,nAcc=0,nHold=0,nRed=0,nSell=0,shown=0;
-  const imminent=[];
-  for(const t of AI_HOT_LIST){
-    const s=wl.find(function(w){return w.ticker===t;});
-    if(!s)continue;
-    shown++;
-    if(s.signal==='BUY')nBuy++;else if(s.signal==='ACCUMULATE')nAcc++;else if(s.signal==='HOLD')nHold++;else if(s.signal==='REDUCE')nRed++;else if(s.signal==='SELL')nSell++;
-    const e=getEarningsInfoJS(t,s.price);
-    if(e&&e.daysUntil!=null&&e.daysUntil>0&&e.daysUntil<=7)imminent.push(t+'('+e.daysUntil+'日)');
-    const meta=AI_HOT_META[t]||[t,''];
-    const score=s.score!=null?Math.round(s.score*100):null;
-    const scoreCol=score!=null?(score>=55?'#0d9488':score>=45?'#eab308':'#ef4444'):'#94a3b8';
-    const rsi=(s.techD&&s.techD.rsi!=null)?s.techD.rsi:null;
-    let rsiL='—',rsiC='#64748b';
-    if(rsi!=null){ if(rsi>=70){rsiL='超買';rsiC='#dc2626';} else if(rsi>=50){rsiL='偏強';rsiC='#16a34a';} else if(rsi>=30){rsiL='偏弱';rsiC='#ea580c';} else {rsiL='超賣';rsiC='#16a34a';} }
-    const maTd=function(up,lbl){const c=up==null?'#94a3b8':(up?'#16a34a':'#dc2626');const a=up==null?'—':(up?'↑':'↓');return '<td style="text-align:center;padding:4px;font-weight:700;color:'+c+'">'+lbl+a+'</td>';};
-    let earnHtml='—';
-    if(e){
-      const rc=e.risk==='極高'?'#dc2626':e.risk==='高'?'#f97316':e.risk==='中'?'#d97706':'#16a34a';
-      earnHtml=e.dateLabel+' <span style="font-weight:700;color:'+rc+'">'+(e.daysUntil>0?e.daysUntil+'日':e.daysUntil===0?'今日':'已過')+'</span>';
-    }
-    rows+='<tr class="clickable" data-tk="'+t+'" data-sector="'+sectorOf(t)+'" style="border-bottom:1px solid #f1f5f9">'+
-      '<td style="padding:5px 6px"><span style="font-weight:800;font-size:12px;color:#0f172a">'+t+'</span><div style="font-size:10px;color:#64748b">'+meta[0]+'<div style="color:#94a3b8">'+meta[1]+'</div></div></td>'+
-      '<td style="padding:5px 6px">'+sectorChip(sectorOf(t))+'</td>'+
-      '<td class="lp r" style="padding:5px 6px;font-weight:700;white-space:nowrap">$'+fmt(s.price)+'</td>'+
-      '<td class="r" style="padding:5px 6px;font-weight:700;color:'+cv(s.chg1d!=null?s.chg1d:0)+';white-space:nowrap">'+(s.chg1d!=null?(s.chg1d>=0?'+':'')+s.chg1d+'%':'—')+'</td>'+
-      '<td style="text-align:center;padding:5px 6px"><span class="'+sigClass(s.signal)+'">'+s.signal+'</span></td>'+
-      '<td style="text-align:center;padding:5px 6px;font-weight:800;font-size:12.5px;color:'+scoreCol+'">'+(score!=null?score:'—')+'</td>'+
-      '<td style="text-align:center;padding:5px 6px">'+(s.decel!=null&&s.decel!==0?'<span class="'+dc(s.decel)+'">'+s.decel+'</span>':'—')+'</td>'+
-      _aiMomCell(s.m1m)+_aiMomCell(s.m3)+_aiMomCell(s.m12)+
-      '<td style="text-align:center;padding:5px 6px;font-weight:600;color:'+rsiC+'">'+(rsi!=null?rsi.toFixed(0):'—')+' <span style="font-size:9.5px">'+rsiL+'</span></td>'+
-      maTd(s.aboveMaD,'日')+maTd(s.aboveMaW,'週')+maTd(s.aboveMaM,'月')+
-      '<td style="text-align:center;padding:5px 6px;white-space:nowrap;font-size:10.5px;color:#475569">'+earnHtml+'</td>'+
-      '</tr>';
-  }
-  if(shown===0){
-    body.innerHTML='<div style="color:#94a3b8;text-align:center;padding:14px;font-size:12px">數據載入中或 /api 未回應 — 請稍後重新整理</div>';
-    return;
-  }
-  let h='<div style="font-size:11px;color:#475569;margin-bottom:10px;line-height:1.6">造好 <b style="color:#16a34a">BUY '+nBuy+'</b> ＋ <b style="color:#3b82f6">ACCUMULATE '+nAcc+'</b> ｜ 持有 <b style="color:#eab308">HOLD '+nHold+'</b> ｜ 造淡 <b style="color:#f97316">REDUCE '+nRed+'</b> ＋ <b style="color:#dc2626">SELL '+nSell+'</b>'+
-    '　<span style="color:#94a3b8">👆 點擊任何一列查看完整詳情；現價盤中自動更新</span></div>';
-  h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="border-bottom:2px solid #e2e8f0">'+
-    '<th style="text-align:left;padding:4px 6px">股票</th>'+
-    '<th style="text-align:left;padding:4px 6px">板塊</th>'+
-    '<th style="text-align:right;padding:4px 6px">現價</th>'+
-    '<th style="text-align:right;padding:4px 6px">日變化</th>'+
-    '<th style="text-align:center;padding:4px">信號</th>'+
-    '<th style="text-align:center;padding:4px">評分</th>'+
-    '<th style="text-align:center;padding:4px">動量減速</th>'+
-    '<th style="text-align:center;padding:4px">近1月</th>'+
-    '<th style="text-align:center;padding:4px">近3月</th>'+
-    '<th style="text-align:center;padding:4px">近12月</th>'+
-    '<th style="text-align:center;padding:4px">日RSI</th>'+
-    '<th style="text-align:center;padding:4px" colspan="3">站上 MA（日／週／月）</th>'+
-    '<th style="text-align:center;padding:4px">業績</th>'+
-    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
-  if(imminent.length>0){
-    h+='<div style="margin-top:8px;padding:8px 10px;background:#fef2f2;border-radius:6px;font-size:11px;color:#dc2626;font-weight:600">⚠️ 未來7日有業績：'+imminent.join('、')+' — 績前波動大，新倉宜控制規模</div>';
-  }
-  const missing=AI_HOT_LIST.filter(function(t){return !wl.some(function(w){return w.ticker===t;});});
-  if(missing.length>0){
-    h+='<div style="margin-top:8px;padding:8px 10px;background:#fffbeb;border-radius:6px;font-size:11px;color:#b45309">ℹ️ 暫缺數據：'+missing.join('、')+'（可能數據源未回應）</div>';
-  }
-  h+='<div style="margin-top:8px;font-size:10px;color:#94a3b8">評分規則：BUY≥70 · ACCUMULATE≥55 · HOLD≥45 · REDUCE≥35 · SELL&lt;35 ｜ 動量減速：≥-1 正常 · ≤-3 禁止買入'+((data&&data.timestamp)?(' ｜ 資料時點 '+data.timestamp):'')+'</div>';
-  body.innerHTML=h;
-}
+
 
 // Helper for frontend: earnings info lookup (mirrors server-side getEarningsInfo)
 function getEarningsInfoJS(ticker, price) {
