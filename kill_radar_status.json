@@ -3,8 +3,8 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 789,
-  "red": 416
+  "yel": 790,
+  "red": 417
  },
  "reasons": [
   "10y 5.15 水平閘 R",
@@ -348,9 +348,9 @@
   },
   {
    "t": "SMCI",
-   "last": 26.864999771118164,
+   "last": 26.8700008392334,
    "chg1d": null,
-   "dd20": -0.24979059645734902,
+   "dd20": -0.249650940832567,
    "blood": false,
    "deep20": true,
    "stale": true,
@@ -630,7 +630,7 @@
   ],
   "name_fails": []
  },
- "as_of": "11-16 08:59 HKT",
- "updated": 1794790791937,
+ "as_of": "11-16 09:30 HKT",
+ "updated": 1794792606742,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
