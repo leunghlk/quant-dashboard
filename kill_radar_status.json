@@ -3,8 +3,8 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 990,
-  "red": 617
+  "yel": 991,
+  "red": 618
  },
  "reasons": [
   "10y 5.05 水平閘 R",
@@ -19,7 +19,7 @@
   },
   "B": {
    "name": "新深20",
-   "val": "0 隻（現 deep20 22）",
+   "val": "1 隻（現 deep20 23）",
    "thr": "≥3🟡/≥6🔴",
    "state": "off"
   },
@@ -28,7 +28,7 @@
    "val": "5.05",
    "thr": "≥5.00🟡/≥5.15🔴/<4.95解除",
    "state": "R",
-   "detail": "MOVE 98"
+   "detail": "MOVE 96"
   },
   "D": {
    "name": "HY OAS",
@@ -38,19 +38,19 @@
   },
   "E": {
    "name": "POW/QQQ",
-   "val": "ratio 0.667（20d低 0.601，緩衝 +10.9%）",
+   "val": "ratio 0.664（20d低 0.601，緩衝 +10.5%）",
    "thr": "破20d低🟡／40d新低🔴／👑主trigger",
    "state": "off",
-   "ratio": 0.667,
+   "ratio": 0.664,
    "lo20": 0.601,
    "lo40": 0.601,
-   "buf20": 10.9,
-   "buf40": 10.9,
+   "buf20": 10.5,
+   "buf40": 10.5,
    "detail": ""
   },
   "F": {
    "name": "credit 錨",
-   "val": "CRWV 47.8 vs sma20 53.1（下）｜ORCL CDS 人手錨 227bp 09-25",
+   "val": "CRWV 44.9 vs sma20 52.6（下）｜ORCL CDS 人手錨 227bp 09-25",
    "thr": "顯示不評分（真數要 FINRA token）",
    "state": "note"
   }
@@ -63,39 +63,59 @@
   "n": 0,
   "detail": "oas_offpeak -1bp",
   "c3_mode": "off",
-  "crwv_px": 47.83,
-  "crwv_sma20": 53.12,
+  "crwv_px": 44.91,
+  "crwv_sma20": 52.58,
   "oas_offpeak_bp": -1
  },
  "vuln_top": [
+  {
+   "t": "NBIS",
+   "score": 5,
+   "beta": 3.99,
+   "vol": 1.44,
+   "mcap": 51.0,
+   "corr": 16.94,
+   "debt": 9.7,
+   "hold": null
+  },
+  {
+   "t": "CRWV",
+   "score": 5,
+   "beta": 3.27,
+   "vol": 1.37,
+   "mcap": 38.0,
+   "corr": 16.31,
+   "debt": 77.6,
+   "hold": null
+  },
   {
    "t": "COHR",
    "score": 5,
    "beta": 3.42,
    "vol": 1.22,
    "mcap": 49.0,
-   "corr": 12.37,
+   "corr": 17.85,
    "debt": 7.2,
    "hold": null
   },
   {
-   "t": "NBIS",
-   "score": 4,
-   "beta": 1.18,
-   "vol": 1.43,
-   "mcap": 51.0,
-   "corr": 12.8,
-   "debt": 9.7,
+   "t": "WOLF",
+   "score": 5,
+   "beta": 3.72,
+   "vol": 1.17,
+   "mcap": 1.0,
+   "corr": 17.14,
+   "debt": 131.0,
    "hold": null
   },
   {
-   "t": "CRWV",
+   "t": "ALAB",
    "score": 4,
-   "beta": 1.34,
-   "vol": 1.4,
-   "mcap": 38.0,
-   "corr": 13.41,
-   "debt": 77.6,
+   "beta": 4.39,
+   "vol": 1.24,
+   "mcap": 52.0,
+   "corr": 17.95,
+   "debt": 0.0,
    "hold": null
   },
   {
@@ -104,8 +124,18 @@
    "beta": 2.7,
    "vol": 0.85,
    "mcap": 23.0,
-   "corr": 8.15,
+   "corr": 15.08,
    "debt": 38.0,
+   "hold": null
+  },
+  {
+   "t": "DELL",
+   "score": 4,
+   "beta": 3.42,
+   "vol": 1.04,
+   "mcap": 301.0,
+   "corr": 17.62,
+   "debt": 10.5,
    "hold": null
   },
   {
@@ -114,7 +144,7 @@
    "beta": 2.41,
    "vol": 0.75,
    "mcap": 42.0,
-   "corr": 12.68,
+   "corr": 16.18,
    "debt": 5.6,
    "hold": null
   },
@@ -124,7 +154,7 @@
    "beta": 2.94,
    "vol": 0.98,
    "mcap": 11.0,
-   "corr": 12.84,
+   "corr": 16.96,
    "debt": 14.3,
    "hold": null
   },
@@ -134,38 +164,8 @@
    "beta": 3.17,
    "vol": 0.98,
    "mcap": 54.0,
-   "corr": 14.01,
+   "corr": 17.51,
    "debt": 0.5,
-   "hold": null
-  },
-  {
-   "t": "INTC",
-   "score": 4,
-   "beta": 3.19,
-   "vol": 1.27,
-   "mcap": 501.0,
-   "corr": 11.08,
-   "debt": 9.3,
-   "hold": null
-  },
-  {
-   "t": "TSEM",
-   "score": 4,
-   "beta": 3.43,
-   "vol": 1.06,
-   "mcap": 24.0,
-   "corr": 13.66,
-   "debt": 0.7,
-   "hold": null
-  },
-  {
-   "t": "WOLF",
-   "score": 4,
-   "beta": 1.3,
-   "vol": 1.21,
-   "mcap": 1.0,
-   "corr": 14.28,
-   "debt": 131.0,
    "hold": null
   }
  ],
@@ -227,9 +227,9 @@
   },
   {
    "t": "META",
-   "last": 616.3800048828125,
+   "last": 596.219970703125,
    "chg1d": null,
-   "dd20": -0.11632643132302567,
+   "dd20": -0.08111274849827266,
    "blood": false,
    "deep20": false,
    "stale": true,
@@ -271,24 +271,24 @@
   },
   {
    "t": "BE",
-   "last": 170.97999572753906,
+   "last": 168.11000061035156,
    "chg1d": null,
-   "dd20": -0.28319290402654707,
-   "blood": false,
-   "deep20": true,
-   "stale": true,
-   "score": 2,
-   "hold": null
-  },
-  {
-   "t": "ALAB",
-   "last": 216.75,
-   "chg1d": null,
-   "dd20": -0.2706931658905495,
+   "dd20": -0.26293406146639986,
    "blood": false,
    "deep20": true,
    "stale": true,
    "score": 3,
+   "hold": null
+  },
+  {
+   "t": "ALAB",
+   "last": 211.60000610351562,
+   "chg1d": null,
+   "dd20": -0.2880215430270109,
+   "blood": false,
+   "deep20": true,
+   "stale": true,
+   "score": 4,
    "hold": null
   },
   {
@@ -304,24 +304,24 @@
   },
   {
    "t": "NBIS",
-   "last": 106.95999908447266,
+   "last": 96.91999816894531,
    "chg1d": null,
-   "dd20": -0.4134035251033613,
+   "dd20": -0.46846550337017234,
    "blood": false,
    "deep20": true,
    "stale": true,
-   "score": 4,
+   "score": 5,
    "hold": null
   },
   {
    "t": "CRWV",
-   "last": 47.83000183105469,
+   "last": 44.90999984741211,
    "chg1d": null,
-   "dd20": -0.2518379226852222,
+   "dd20": -0.2975129104797425,
    "blood": false,
    "deep20": true,
    "stale": true,
-   "score": 4,
+   "score": 5,
    "hold": null
   },
   {
@@ -337,9 +337,9 @@
   },
   {
    "t": "VRT",
-   "last": 194.47999572753906,
+   "last": 184.99000549316406,
    "chg1d": null,
-   "dd20": -0.20917372651437371,
+   "dd20": -0.24776347238715724,
    "blood": false,
    "deep20": true,
    "stale": true,
@@ -359,13 +359,13 @@
   },
   {
    "t": "DELL",
-   "last": 313.1099853515625,
+   "last": 312.5400085449219,
    "chg1d": null,
-   "dd20": -0.3762252157907616,
+   "dd20": -0.37736071825379336,
    "blood": false,
    "deep20": true,
    "stale": true,
-   "score": 3,
+   "score": 4,
    "hold": null
   },
   {
@@ -480,35 +480,35 @@
   },
   {
    "t": "CRDO",
-   "last": 122.94000244140625,
+   "last": 117.76000213623047,
    "chg1d": null,
-   "dd20": -0.32554310256354024,
+   "dd20": -0.322010475669396,
    "blood": false,
    "deep20": true,
    "stale": true,
-   "score": 3,
+   "score": 4,
    "hold": null
   },
   {
    "t": "AAOI",
-   "last": 40.790000915527344,
+   "last": 39.459999084472656,
    "chg1d": null,
-   "dd20": -0.5038919933115209,
+   "dd20": -0.5200681282094586,
    "blood": false,
    "deep20": true,
    "stale": true,
-   "score": 3,
+   "score": 4,
    "hold": null
   },
   {
    "t": "WOLF",
-   "last": 22.780000686645508,
+   "last": 22.479999542236328,
    "chg1d": null,
-   "dd20": -0.17702310565415857,
+   "dd20": -0.18786129716794564,
    "blood": false,
    "deep20": false,
    "stale": true,
-   "score": 4,
+   "score": 5,
    "hold": null
   },
   {
@@ -524,13 +524,13 @@
   },
   {
    "t": "LITE",
-   "last": 551.0700073242188,
+   "last": 535.1500244140625,
    "chg1d": null,
-   "dd20": -0.400704718968669,
+   "dd20": -0.41801789244091503,
    "blood": false,
    "deep20": true,
    "stale": true,
-   "score": 2,
+   "score": 3,
    "hold": null
   },
   {
@@ -546,9 +546,9 @@
   },
   {
    "t": "PLTR",
-   "last": 156.6699981689453,
+   "last": 153.67999267578125,
    "chg1d": null,
-   "dd20": -0.22332938121722656,
+   "dd20": -0.2271173028255773,
    "blood": false,
    "deep20": true,
    "stale": true,
@@ -557,42 +557,42 @@
   },
   {
    "t": "SNOW",
-   "last": 279.6199951171875,
+   "last": 268.5899963378906,
    "chg1d": null,
-   "dd20": -0.177370503649118,
+   "dd20": -0.20982026582281776,
    "blood": false,
-   "deep20": false,
+   "deep20": true,
    "stale": true,
    "score": 1,
    "hold": null
   },
   {
    "t": "CEG",
-   "last": 262.739990234375,
+   "last": 252.02999877929688,
    "chg1d": null,
-   "dd20": -0.06961757821183201,
+   "dd20": -0.10754247795175176,
    "blood": false,
    "deep20": false,
    "stale": true,
-   "score": 3,
+   "score": 2,
    "hold": null
   },
   {
    "t": "IONQ",
-   "last": 23.479999542236328,
+   "last": 22.709999084472656,
    "chg1d": null,
-   "dd20": -0.3355970729808577,
+   "dd20": -0.35738542766221126,
    "blood": false,
    "deep20": true,
    "stale": true,
-   "score": 3,
+   "score": 4,
    "hold": null
   },
   {
    "t": "MRNA",
-   "last": 196.7899932861328,
+   "last": 199.3300018310547,
    "chg1d": null,
-   "dd20": -0.2684386866686512,
+   "dd20": -0.25899627572098627,
    "blood": false,
    "deep20": true,
    "stale": true,
@@ -601,23 +601,23 @@
   },
   {
    "t": "APP",
-   "last": 390.9100036621094,
+   "last": 379.0199890136719,
    "chg1d": null,
-   "dd20": -0.05854727009085525,
+   "dd20": -0.08718272747123701,
    "blood": false,
    "deep20": false,
    "stale": true,
-   "score": 2,
+   "score": 1,
    "hold": null
   }
  ],
  "context": {
   "vix": 28.44,
   "tnx": 5.052,
-  "move": 98.2,
+  "move": 96.0,
   "oas": 3.47,
   "blood": 0,
-  "deep20": 22,
+  "deep20": 23,
   "stale_names": [
    "NVDA",
    "MSFT",
@@ -630,7 +630,7 @@
   ],
   "name_fails": []
  },
- "as_of": "11-20 14:12 HKT",
- "updated": 1795155152312,
+ "as_of": "11-20 14:42 HKT",
+ "updated": 1795156962828,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
