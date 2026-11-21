@@ -3,27 +3,26 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 1031,
-  "red": 658
+  "yel": 1032,
+  "red": 659
  },
  "reasons": [
-  "單名血 31 隻 chg1d≤−6%（worst AAOI -16.5%）",
-  "新深20 9 隻：AMD,AMKR,ASML,COHR,GLW,ON,STM,TSM",
+  "單名血 32 隻 chg1d≤−6%（worst AAOI -16.5%）",
   "MOVE 106 ≥100（regime 標記）",
   "HY OAS 3.52（5日 +0.32）"
  ],
  "legs": {
   "A": {
    "name": "廣度血",
-   "val": "31 隻 chg1d≤−6%",
+   "val": "32 隻 chg1d≤−6%",
    "thr": "≥2🟡/≥5🔴",
    "state": "R"
   },
   "B": {
    "name": "新深20",
-   "val": "9 隻（現 deep20 32）",
+   "val": "0 隻（現 deep20 32）",
    "thr": "≥3🟡/≥6🔴",
-   "state": "R"
+   "state": "off"
   },
   "C": {
    "name": "10y 水平",
@@ -76,7 +75,7 @@
    "beta": 4.04,
    "vol": 1.52,
    "mcap": 51.0,
-   "corr": 17.0,
+   "corr": 17.16,
    "debt": 9.7,
    "hold": null
   },
@@ -86,7 +85,7 @@
    "beta": 3.28,
    "vol": 1.42,
    "mcap": 38.0,
-   "corr": 16.37,
+   "corr": 16.51,
    "debt": 77.6,
    "hold": null
   },
@@ -96,7 +95,7 @@
    "beta": 3.46,
    "vol": 1.31,
    "mcap": 49.0,
-   "corr": 17.93,
+   "corr": 18.0,
    "debt": 7.2,
    "hold": null
   },
@@ -106,7 +105,7 @@
    "beta": 3.81,
    "vol": 1.28,
    "mcap": 1.0,
-   "corr": 17.33,
+   "corr": 17.45,
    "debt": 131.0,
    "hold": null
   },
@@ -116,7 +115,7 @@
    "beta": 4.31,
    "vol": 1.34,
    "mcap": 52.0,
-   "corr": 18.19,
+   "corr": 18.1,
    "debt": 0.0,
    "hold": null
   },
@@ -126,7 +125,7 @@
    "beta": 2.64,
    "vol": 0.9,
    "mcap": 23.0,
-   "corr": 15.26,
+   "corr": 15.48,
    "debt": 38.0,
    "hold": null
   },
@@ -136,7 +135,7 @@
    "beta": 3.34,
    "vol": 1.09,
    "mcap": 301.0,
-   "corr": 17.7,
+   "corr": 17.74,
    "debt": 10.5,
    "hold": null
   },
@@ -146,7 +145,7 @@
    "beta": 2.49,
    "vol": 0.84,
    "mcap": 42.0,
-   "corr": 16.7,
+   "corr": 16.68,
    "debt": 5.6,
    "hold": null
   },
@@ -156,7 +155,7 @@
    "beta": 2.9,
    "vol": 1.06,
    "mcap": 11.0,
-   "corr": 17.21,
+   "corr": 17.25,
    "debt": 14.3,
    "hold": null
   },
@@ -166,7 +165,7 @@
    "beta": 3.07,
    "vol": 1.02,
    "mcap": 54.0,
-   "corr": 17.61,
+   "corr": 17.58,
    "debt": 0.5,
    "hold": null
   }
@@ -515,13 +514,13 @@
   },
   {
    "t": "SNDK",
-   "last": 94.3949966430664,
-   "chg1d": null,
-   "dd20": -0.4624315990196627,
-   "blood": false,
+   "last": 79.23999786376953,
+   "chg1d": -0.1605487506567972,
+   "dd20": -0.5487375341896281,
+   "blood": true,
    "deep20": true,
-   "stale": true,
-   "score": 2,
+   "stale": false,
+   "score": 3,
    "hold": null
   },
   {
@@ -618,14 +617,12 @@
   "tnx": 4.912,
   "move": 106.3,
   "oas": 3.52,
-  "blood": 31,
+  "blood": 32,
   "deep20": 32,
-  "stale_names": [
-   "SNDK"
-  ],
+  "stale_names": [],
   "name_fails": []
  },
- "as_of": "11-21 10:49 HKT",
- "updated": 1795229352402,
+ "as_of": "11-21 11:19 HKT",
+ "updated": 1795231161233,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
