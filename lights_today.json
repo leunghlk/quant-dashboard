@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-20 08:15:30 HKT",
+ "generated_at": "2026-11-21 08:15:26 HKT",
  "light": "YELLOW",
  "state": "CALM",
  "yellow_flags": [
@@ -125,33 +125,33 @@
  ],
  "pool_radar": {
   "pool_n": 141,
-  "evaluated": 139,
+  "evaluated": 140,
   "mode": "freshyahoo",
-  "asof": "2026-11-19",
-  "lit_n": 107,
+  "asof": "2026-11-20",
+  "lit_n": 121,
   "lit": [
    {
     "sym": "AAOI",
     "beta63": 6.35,
-    "vol63": 1.11,
+    "vol63": 1.13,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "ACMR",
     "beta63": 2.45,
-    "vol63": 0.81,
+    "vol63": 0.85,
     "mom_turn": true,
     "conds": [
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "ADBE",
@@ -161,31 +161,106 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "ADI",
     "beta63": 1.74,
-    "vol63": 0.44,
+    "vol63": 0.48,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "AI",
     "beta63": 1.07,
+    "vol63": 0.54,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "ALAB",
+    "beta63": 5.34,
+    "vol63": 1.05,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "AMAT",
+    "beta63": 2.39,
+    "vol63": 0.67,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "AMBA",
+    "beta63": 2.06,
+    "vol63": 0.62,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "AMD",
+    "beta63": 3.23,
+    "vol63": 0.88,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "AMZN",
+    "beta63": 1.82,
+    "vol63": 0.34,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "ANET",
+    "beta63": 2.67,
+    "vol63": 0.65,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "APH",
+    "beta63": 1.88,
     "vol63": 0.5,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
-    "sym": "ALAB",
-    "beta63": 5.34,
+    "sym": "APLD",
+    "beta63": 4.95,
     "vol63": 1.0,
     "mom_turn": true,
     "conds": [
@@ -193,95 +268,51 @@
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
-    "sym": "AMAT",
-    "beta63": 2.39,
-    "vol63": 0.64,
-    "mom_turn": true,
-    "conds": [
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "AMBA",
-    "beta63": 2.06,
-    "vol63": 0.59,
-    "mom_turn": true,
-    "conds": [
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "AMD",
-    "beta63": 3.23,
-    "vol63": 0.83,
-    "mom_turn": true,
-    "conds": [
-     "beta",
-     "vol",
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "ANET",
-    "beta63": 2.67,
-    "vol63": 0.61,
+    "sym": "APP",
+    "beta63": 0.91,
+    "vol63": 0.81,
     "mom_turn": false,
     "conds": [
-     "beta"
+     "vol"
     ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "APLD",
-    "beta63": 4.95,
-    "vol63": 0.93,
-    "mom_turn": true,
-    "conds": [
-     "beta",
-     "vol",
-     "mom"
-    ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "ARM",
     "beta63": 4.6,
-    "vol63": 0.85,
+    "vol63": 0.9,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "ASML",
     "beta63": 1.59,
-    "vol63": 0.47,
+    "vol63": 0.48,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "ASX",
     "beta63": 3.42,
-    "vol63": 0.82,
+    "vol63": 0.87,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "AUR",
@@ -292,117 +323,129 @@
      "beta",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "AVGO",
+    "beta63": 1.92,
+    "vol63": 0.56,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
    },
    {
     "sym": "BBAI",
     "beta63": 3.35,
-    "vol63": 0.69,
+    "vol63": 0.7,
     "mom_turn": true,
     "conds": [
      "beta",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "BE",
     "beta63": 4.73,
-    "vol63": 0.98,
+    "vol63": 1.03,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "CCJ",
     "beta63": 2.33,
-    "vol63": 0.46,
+    "vol63": 0.47,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "CDNS",
     "beta63": 1.46,
-    "vol63": 0.45,
+    "vol63": 0.47,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "CEG",
     "beta63": 1.73,
-    "vol63": 0.54,
+    "vol63": 0.55,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "CIEN",
     "beta63": 3.92,
-    "vol63": 0.94,
+    "vol63": 0.96,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "CIFR",
     "beta63": 0.71,
-    "vol63": 1.16,
+    "vol63": 1.2,
     "mom_turn": true,
     "conds": [
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "COHR",
     "beta63": 4.53,
-    "vol63": 0.97,
-    "mom_turn": false,
-    "conds": [
-     "beta",
-     "vol"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "CORZ",
-    "beta63": 3.79,
-    "vol63": 0.82,
-    "mom_turn": false,
-    "conds": [
-     "beta",
-     "vol"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "CRDO",
-    "beta63": 4.56,
-    "vol63": 1.05,
+    "vol63": 1.01,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "CORZ",
+    "beta63": 3.79,
+    "vol63": 0.88,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "CRDO",
+    "beta63": 4.56,
+    "vol63": 1.09,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-11-20"
    },
    {
     "sym": "CRM",
@@ -412,29 +455,39 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "CRWD",
+    "beta63": 1.44,
+    "vol63": 0.73,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
    },
    {
     "sym": "CRWV",
     "beta63": 5.38,
-    "vol63": 0.99,
+    "vol63": 1.01,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "CSCO",
     "beta63": 1.23,
-    "vol63": 0.37,
+    "vol63": 0.38,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "DASH",
@@ -444,7 +497,7 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "DDOG",
@@ -454,103 +507,124 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "DELL",
     "beta63": 4.35,
-    "vol63": 0.87,
+    "vol63": 0.9,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "DLR",
+    "beta63": 1.21,
+    "vol63": 0.33,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
    },
    {
     "sym": "ENTG",
     "beta63": 4.09,
-    "vol63": 0.73,
-    "mom_turn": false,
-    "conds": [
-     "beta"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "ETN",
-    "beta63": 2.57,
-    "vol63": 0.51,
+    "vol63": 0.76,
     "mom_turn": true,
     "conds": [
      "beta",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
-    "sym": "FFIV",
-    "beta63": 1.41,
-    "vol63": 0.6,
+    "sym": "ETN",
+    "beta63": 2.57,
+    "vol63": 0.52,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "ETR",
+    "beta63": 0.33,
+    "vol63": 0.17,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "FFIV",
+    "beta63": 1.41,
+    "vol63": 0.61,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
    },
    {
     "sym": "FN",
     "beta63": 3.29,
-    "vol63": 0.84,
+    "vol63": 0.85,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "FTNT",
     "beta63": 0.93,
-    "vol63": 0.67,
+    "vol63": 0.68,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "GEV",
     "beta63": 2.09,
-    "vol63": 0.56,
+    "vol63": 0.58,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "GFS",
     "beta63": 2.14,
-    "vol63": 0.56,
+    "vol63": 0.58,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "GLW",
     "beta63": 3.21,
-    "vol63": 0.71,
+    "vol63": 0.74,
     "mom_turn": true,
     "conds": [
      "beta",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "GOOGL",
@@ -560,40 +634,40 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "HPE",
     "beta63": 2.95,
-    "vol63": 0.73,
+    "vol63": 0.76,
     "mom_turn": true,
     "conds": [
      "beta",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "HUBB",
     "beta63": 1.49,
-    "vol63": 0.3,
+    "vol63": 0.31,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "HUT",
     "beta63": 3.44,
-    "vol63": 1.11,
+    "vol63": 1.17,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "IBM",
@@ -603,29 +677,29 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "INTC",
     "beta63": 3.48,
-    "vol63": 0.96,
+    "vol63": 0.97,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "INTU",
     "beta63": -0.19,
-    "vol63": 0.43,
+    "vol63": 0.5,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "IONQ",
@@ -637,95 +711,95 @@
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "IREN",
     "beta63": 5.16,
-    "vol63": 1.04,
+    "vol63": 1.1,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "IRM",
     "beta63": 1.37,
-    "vol63": 0.37,
+    "vol63": 0.39,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "KLAC",
     "beta63": 2.11,
-    "vol63": 0.62,
+    "vol63": 0.65,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "LEU",
     "beta63": 2.99,
-    "vol63": 0.86,
+    "vol63": 0.88,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "LITE",
     "beta63": 3.63,
-    "vol63": 1.03,
+    "vol63": 1.07,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "LRCX",
     "beta63": 3.17,
-    "vol63": 0.72,
+    "vol63": 0.75,
     "mom_turn": true,
     "conds": [
      "beta",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "LTBR",
     "beta63": 2.61,
-    "vol63": 0.77,
+    "vol63": 0.79,
     "mom_turn": true,
     "conds": [
      "beta",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "MBLY",
     "beta63": 1.47,
-    "vol63": 0.52,
+    "vol63": 0.55,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "MELI",
@@ -735,17 +809,17 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "META",
     "beta63": 1.31,
-    "vol63": 0.44,
+    "vol63": 0.46,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "MOD",
@@ -756,19 +830,19 @@
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "MRVL",
     "beta63": 3.53,
-    "vol63": 0.88,
+    "vol63": 0.91,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "MSFT",
@@ -778,41 +852,52 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "MU",
     "beta63": 3.14,
-    "vol63": 0.72,
+    "vol63": 0.77,
     "mom_turn": true,
     "conds": [
      "beta",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "NBIS",
     "beta63": 5.69,
-    "vol63": 1.03,
+    "vol63": 1.08,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "NET",
+    "beta63": 2.07,
+    "vol63": 0.72,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
    },
    {
     "sym": "NNE",
     "beta63": 4.14,
-    "vol63": 0.79,
+    "vol63": 0.81,
     "mom_turn": true,
     "conds": [
      "beta",
+     "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "NOW",
@@ -822,159 +907,180 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "NTGR",
     "beta63": 1.48,
-    "vol63": 0.5,
+    "vol63": 0.52,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "NVDA",
     "beta63": 2.04,
-    "vol63": 0.44,
-    "mom_turn": true,
-    "conds": [
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "NVT",
-    "beta63": 2.78,
-    "vol63": 0.71,
-    "mom_turn": true,
-    "conds": [
-     "beta",
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "NVTS",
-    "beta63": 4.26,
-    "vol63": 0.91,
-    "mom_turn": true,
-    "conds": [
-     "beta",
-     "vol",
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "OKLO",
-    "beta63": 3.22,
-    "vol63": 0.9,
-    "mom_turn": true,
-    "conds": [
-     "beta",
-     "vol",
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "OKTA",
-    "beta63": 0.99,
-    "vol63": 0.86,
-    "mom_turn": false,
-    "conds": [
-     "vol"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "ON",
-    "beta63": 2.36,
-    "vol63": 0.6,
-    "mom_turn": true,
-    "conds": [
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "ONTO",
-    "beta63": 3.9,
-    "vol63": 0.84,
-    "mom_turn": true,
-    "conds": [
-     "beta",
-     "vol",
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "ORCL",
-    "beta63": 3.29,
-    "vol63": 0.62,
-    "mom_turn": true,
-    "conds": [
-     "beta",
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "PLTR",
-    "beta63": 2.45,
-    "vol63": 0.5,
-    "mom_turn": true,
-    "conds": [
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "POET",
-    "beta63": 4.66,
-    "vol63": 0.87,
-    "mom_turn": true,
-    "conds": [
-     "beta",
-     "vol",
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "PONY",
-    "beta63": 1.21,
-    "vol63": 0.58,
-    "mom_turn": true,
-    "conds": [
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "QBTS",
-    "beta63": 3.52,
-    "vol63": 0.82,
-    "mom_turn": true,
-    "conds": [
-     "beta",
-     "vol",
-     "mom"
-    ],
-    "last": "2026-11-19"
-   },
-   {
-    "sym": "QCOM",
-    "beta63": 1.92,
     "vol63": 0.53,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "NVT",
+    "beta63": 2.78,
+    "vol63": 0.72,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "NVTS",
+    "beta63": 4.26,
+    "vol63": 0.96,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "OKLO",
+    "beta63": 3.22,
+    "vol63": 0.89,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "OKTA",
+    "beta63": 0.99,
+    "vol63": 0.87,
+    "mom_turn": true,
+    "conds": [
+     "vol",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "ON",
+    "beta63": 2.36,
+    "vol63": 0.62,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "ONTO",
+    "beta63": 3.9,
+    "vol63": 0.88,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "ORCL",
+    "beta63": 3.29,
+    "vol63": 0.64,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "PANW",
+    "beta63": 1.18,
+    "vol63": 0.68,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "PLTR",
+    "beta63": 2.45,
+    "vol63": 0.52,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "POET",
+    "beta63": 4.66,
+    "vol63": 0.92,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "PONY",
+    "beta63": 1.21,
+    "vol63": 0.57,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "POWL",
+    "beta63": 2.21,
+    "vol63": 0.69,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "QBTS",
+    "beta63": 3.52,
+    "vol63": 0.83,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "QCOM",
+    "beta63": 1.92,
+    "vol63": 0.55,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
    },
    {
     "sym": "QLYS",
@@ -984,18 +1090,18 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "QUBT",
     "beta63": 3.53,
-    "vol63": 0.68,
+    "vol63": 0.7,
     "mom_turn": true,
     "conds": [
      "beta",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "RBLX",
@@ -1005,85 +1111,107 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "RGTI",
     "beta63": 4.28,
-    "vol63": 0.81,
+    "vol63": 0.83,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "RPD",
     "beta63": 0.15,
-    "vol63": 0.92,
+    "vol63": 0.93,
     "mom_turn": false,
     "conds": [
      "vol"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "S",
+    "beta63": 1.13,
+    "vol63": 0.7,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
    },
    {
     "sym": "SERV",
     "beta63": 2.32,
-    "vol63": 1.01,
+    "vol63": 1.02,
     "mom_turn": true,
     "conds": [
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "SHOP",
     "beta63": 1.36,
-    "vol63": 0.55,
+    "vol63": 0.57,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "SITM",
     "beta63": 4.18,
-    "vol63": 0.87,
+    "vol63": 0.89,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "SMCI",
     "beta63": 4.69,
-    "vol63": 0.78,
+    "vol63": 0.79,
     "mom_turn": true,
     "conds": [
      "beta",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "SMR",
     "beta63": 2.76,
-    "vol63": 0.91,
+    "vol63": 0.94,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "SNDK",
+    "beta63": 3.83,
+    "vol63": 0.99,
+    "mom_turn": true,
+    "conds": [
+     "beta",
+     "vol",
+     "mom"
+    ],
+    "last": "2026-11-20"
    },
    {
     "sym": "SNOW",
@@ -1093,37 +1221,58 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "SNPS",
+    "beta63": 1.99,
+    "vol63": 0.57,
+    "mom_turn": true,
+    "conds": [
+     "mom"
+    ],
+    "last": "2026-11-20"
    },
    {
     "sym": "SOUN",
     "beta63": 2.28,
-    "vol63": 0.48,
+    "vol63": 0.52,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "STM",
     "beta63": 2.46,
-    "vol63": 0.58,
+    "vol63": 0.62,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "STX",
     "beta63": 1.08,
-    "vol63": 0.78,
+    "vol63": 0.81,
+    "mom_turn": true,
+    "conds": [
+     "vol",
+     "mom"
+    ],
+    "last": "2026-11-20"
+   },
+   {
+    "sym": "TEL",
+    "beta63": 1.47,
+    "vol63": 0.34,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "TEM",
@@ -1134,115 +1283,117 @@
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "TER",
     "beta63": 3.21,
-    "vol63": 0.79,
+    "vol63": 0.81,
     "mom_turn": true,
     "conds": [
      "beta",
+     "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "TSEM",
     "beta63": 4.09,
-    "vol63": 0.87,
+    "vol63": 0.89,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "TSM",
     "beta63": 1.89,
-    "vol63": 0.45,
+    "vol63": 0.49,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "UBER",
     "beta63": 0.48,
-    "vol63": 0.29,
+    "vol63": 0.3,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "UCTT",
     "beta63": 2.13,
-    "vol63": 0.91,
+    "vol63": 0.94,
     "mom_turn": true,
     "conds": [
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "UEC",
     "beta63": 2.65,
-    "vol63": 0.66,
+    "vol63": 0.68,
     "mom_turn": true,
     "conds": [
      "beta",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "UMC",
     "beta63": 2.1,
-    "vol63": 0.68,
+    "vol63": 0.7,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "VICR",
     "beta63": 4.42,
-    "vol63": 1.1,
+    "vol63": 1.12,
     "mom_turn": true,
     "conds": [
      "beta",
      "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "VRT",
     "beta63": 2.75,
-    "vol63": 0.78,
+    "vol63": 0.81,
     "mom_turn": true,
     "conds": [
      "beta",
+     "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "VST",
     "beta63": 1.75,
-    "vol63": 0.62,
+    "vol63": 0.64,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "WDAY",
@@ -1252,91 +1403,92 @@
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "WDC",
     "beta63": 1.43,
-    "vol63": 0.77,
+    "vol63": 0.8,
     "mom_turn": true,
     "conds": [
+     "vol",
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "WULF",
     "beta63": 3.95,
-    "vol63": 0.95,
-    "mom_turn": false,
+    "vol63": 1.0,
+    "mom_turn": true,
     "conds": [
      "beta",
-     "vol"
+     "vol",
+     "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    },
    {
     "sym": "ZS",
     "beta63": -0.32,
-    "vol63": 0.68,
+    "vol63": 0.69,
     "mom_turn": true,
     "conds": [
      "mom"
     ],
-    "last": "2026-11-19"
+    "last": "2026-11-20"
    }
   ],
   "suspect_n": 0,
   "suspect": [],
   "stale_n": 0,
   "stale": [],
-  "missing_n": 2,
+  "missing_n": 1,
   "missing": [
-   "SNDK",
    "ATKR"
   ],
   "note": "any_mine 係狀態旗（base rate 59%）唔係 trigger；用途＝naked 資格開關＋m2x_lit 止蝕。數據可疑=63日窗內有單日|move|>45%，多數係 split 裂數，唔入亮名"
  },
  "live_ref": {
-  "asof": "2026-11-19",
+  "asof": "2026-11-20",
   "is_completed": true,
   "official_matches": false,
   "values": {
-   "spx": 7175.830078125,
-   "vix": 28.440000534057617,
-   "vix3m": 27.030000686645508,
-   "vvix": 127.0999984741211,
-   "qqq": 645.0399780273438,
-   "nvda": 145.97999572753906,
-   "hyg": 76.52999877929688,
-   "lqd": 103.08000183105469,
-   "ts_spread": 1.41
+   "spx": 6910.39013671875,
+   "vix": 35.88999938964844,
+   "vix3m": 30.940000534057617,
+   "vvix": 138.02999877929688,
+   "qqq": 608.4500122070312,
+   "nvda": 125.52999877929688,
+   "hyg": 76.33000183105469,
+   "lqd": 103.69000244140625,
+   "ts_spread": 4.95
   },
   "chg_vs_official": {
-   "^GSPC": -0.0587,
-   "^VIX": 9.41,
-   "^VIX3M": 6.91,
-   "QQQ": -0.0843,
-   "NVDA": -0.308
+   "^GSPC": -0.0936,
+   "^VIX": 16.86,
+   "^VIX3M": 10.82,
+   "QQQ": -0.1362,
+   "NVDA": -0.405
   },
   "canary": {
-   "nvda_live": 145.97999572753906,
-   "vs_sma50_official": -0.3439,
+   "nvda_live": 125.52999877929688,
+   "vs_sma50_official": -0.4358,
    "note": "SMA50 用 10-23 值（未重算）；要收市價企返 50 日線先算金絲雀修復"
   },
   "extended": {
-   "date": "2026-11-19",
+   "date": "2026-11-20",
    "state": "CRISIS",
-   "vix": 28.440000534057617,
-   "ts_spread": 1.41,
-   "dd252": -0.0822,
-   "qqq_dd252": -0.1509,
-   "mom20": -0.0636,
+   "vix": 35.88999938964844,
+   "ts_spread": 4.95,
+   "dd252": -0.1162,
+   "qqq_dd252": -0.199,
+   "mom20": -0.0936,
    "breadth200_stale": 66.7,
    "any2_cnt": 3,
-   "hyg_lqd_20d": 0.0042,
+   "hyg_lqd_20d": -0.0078,
    "f_nvda_brk": true,
-   "gap3": false,
+   "gap3": true,
    "vixjump": false,
    "spx_gt_sma200": false,
    "note": "廣度用停留值＋滯後近似；csv 更新後以引擎為準"
