@@ -3,11 +3,10 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 1171,
-  "red": 798
+  "yel": 1172,
+  "red": 799
  },
  "reasons": [
-  "新深20 8 隻：AMKR,ASML,COHR,GLW,ON,PLTR,STM,TSM",
   "MOVE 101 ≥100（regime 標記）",
   "HY OAS 3.76（5日 +0.53）"
  ],
@@ -20,9 +19,9 @@
   },
   "B": {
    "name": "新深20",
-   "val": "8 隻（現 deep20 32）",
+   "val": "0 隻（現 deep20 32）",
    "thr": "≥3🟡/≥6🔴",
-   "state": "R"
+   "state": "off"
   },
   "C": {
    "name": "10y 水平",
@@ -631,7 +630,7 @@
   ],
   "name_fails": []
  },
- "as_of": "11-24 09:11 HKT",
- "updated": 1795482717975,
+ "as_of": "11-24 09:42 HKT",
+ "updated": 1795484527547,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
