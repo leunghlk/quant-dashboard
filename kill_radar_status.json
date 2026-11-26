@@ -3,8 +3,8 @@
  "level": "RED",
  "level_since": null,
  "streak": {
-  "yel": 1267,
-  "red": 894
+  "yel": 1268,
+  "red": 895
  },
  "reasons": [
   "HY OAS 3.72（5日 +0.29）"
@@ -18,7 +18,7 @@
   },
   "B": {
    "name": "新深20",
-   "val": "1 隻（現 deep20 29）",
+   "val": "0 隻（現 deep20 29）",
    "thr": "≥3🟡/≥6🔴",
    "state": "off"
   },
@@ -629,7 +629,7 @@
   ],
   "name_fails": []
  },
- "as_of": "11-26 09:28 HKT",
- "updated": 1795656525594,
+ "as_of": "11-26 09:58 HKT",
+ "updated": 1795658336031,
  "note": "殺倉預警雷達 v2——六腿＋尾聲三確認（2/3=可落注窗口）＋脆弱度旗（顯示唔評分）。E=POW/QQQ 主trigger；C/D 窗A型盲只做 macro 確認；VIX 唔可靠僅顯示。"
 }
