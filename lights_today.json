@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-26 08:15:30 HKT",
+ "generated_at": "2026-11-27 08:15:31 HKT",
  "light": "YELLOW",
  "state": "CALM",
  "yellow_flags": [
@@ -1407,23 +1407,23 @@
   "note": "any_mine 係狀態旗（base rate 59%）唔係 trigger；用途＝naked 資格開關＋m2x_lit 止蝕。數據可疑=63日窗內有單日|move|>45%，多數係 split 裂數，唔入亮名"
  },
  "live_ref": {
-  "asof": "2026-11-25",
+  "asof": "2026-11-26",
   "is_completed": true,
   "official_matches": false,
   "values": {
    "spx": 7182.77978515625,
-   "vix": 28.290000915527344,
+   "vix": 26.799999237060547,
    "vix3m": 26.290000915527344,
    "vvix": 115.37999725341797,
    "qqq": 633.9299926757812,
    "nvda": 149.3000030517578,
    "hyg": 76.5199966430664,
    "lqd": 104.29000091552734,
-   "ts_spread": 2.0
+   "ts_spread": 0.51
   },
   "chg_vs_official": {
    "^GSPC": -0.0578,
-   "^VIX": 9.26,
+   "^VIX": 7.77,
    "^VIX3M": 6.17,
    "QQQ": -0.1,
    "NVDA": -0.2923
@@ -1434,10 +1434,10 @@
    "note": "SMA50 用 10-23 值（未重算）；要收市價企返 50 日線先算金絲雀修復"
   },
   "extended": {
-   "date": "2026-11-25",
-   "state": "CRISIS",
-   "vix": 28.290000915527344,
-   "ts_spread": 2.0,
+   "date": "2026-11-26",
+   "state": "STRESS",
+   "vix": 26.799999237060547,
+   "ts_spread": 0.51,
    "dd252": -0.0814,
    "qqq_dd252": -0.1655,
    "mom20": -0.0725,
